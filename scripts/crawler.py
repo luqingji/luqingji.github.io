@@ -21,7 +21,8 @@ from bs4 import BeautifulSoup
 # ==================== AI 配置（OpenRouter）====================
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
 OPENROUTER_BASE_URL = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct:free')  # 免费模型
+# OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct:free')  # 免费模型
+OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')  # 免费模型
 
 ENABLE_AI = bool(OPENROUTER_API_KEY)
 
