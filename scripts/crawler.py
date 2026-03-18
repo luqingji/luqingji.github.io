@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（支持 OpenRouter AI）
+每日数据爬虫（适配硅基流动 SiliconFlow）
 - 每日一句：一言API
 - 每日一曲：网易云音乐随机榜单/歌单 + 热门评论
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：百度/知乎/豆瓣/少数派/微博 → 备选词库
-- AI 增强：使用 OpenRouter API 生成 meaning 字段
+- AI 增强：使用硅基流动 API 生成 meaning 字段
 """
 
 import requests
@@ -18,13 +18,12 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-# ==================== AI 配置（OpenRouter）====================
-OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
-OPENROUTER_BASE_URL = os.environ.get('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1')
-# OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'mistralai/mistral-7b-instruct:free')  # 免费模型
-OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')  # 免费模型
+# ==================== AI 配置（硅基流动）====================
+SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
+SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
+SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')  # 免费模型
 
-ENABLE_AI = bool(OPENROUTER_API_KEY)
+ENABLE_AI = bool(SILICONFLOW_API_KEY)
 
 # 用于在每日一词中引用今日歌曲评论的缓存
 _cached_song = None
@@ -114,23 +113,20 @@ FALLBACK_WORDS = [
     {"word": "丰盈", "description": "内心丰盈者，独行也如众", "meaning": "丰盈是精神世界的富足。"},
 ]
 
-# ==================== AI辅助函数 ====================
+# ==================== AI辅助函数（适配硅基流动）====================
 
 def call_ai(prompt, max_tokens=300):
-    """调用 OpenRouter API 生成文本"""
+    """调用硅基流动 API 生成文本"""
     if not ENABLE_AI:
-        print("AI未启用（无 OpenRouter API Key），跳过AI生成")
+        print("AI未启用（无 SiliconFlow API Key），跳过AI生成")
         return None
 
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        # OpenRouter 可能需要 HTTP-Referer 和 X-Title，但通常非必需
-        # "HTTP-Referer": "https://luqingji.github.io",
-        # "X-Title": "Daily Site",
+        "Authorization": f"Bearer {SILICONFLOW_API_KEY}",
+        "Content-Type": "application/json"
     }
     payload = {
-        "model": OPENROUTER_MODEL,
+        "model": SILICONFLOW_MODEL,
         "messages": [
             {"role": "system", "content": "你是一位资深的音乐/文学/生活品味家，擅长用温暖、富有哲理的文字解读歌曲、句子、文章和词汇，给人带来启发和感动。"},
             {"role": "user", "content": prompt}
@@ -139,7 +135,7 @@ def call_ai(prompt, max_tokens=300):
         "temperature": 0.7
     }
     try:
-        resp = requests.post(f"{OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=15)
+        resp = requests.post(f"{SILICONFLOW_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=15)
         if resp.status_code == 200:
             data = resp.json()
             return data['choices'][0]['message']['content'].strip()
@@ -534,7 +530,7 @@ def fetch_word():
 
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（支持 OpenRouter）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（适配硅基流动）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 先获取每日一曲，以便每日一词可以引用其热评
