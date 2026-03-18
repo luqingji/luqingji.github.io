@@ -125,7 +125,7 @@ def call_ai(prompt, max_tokens=300):
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
         # OpenRouter 可能需要 HTTP-Referer 和 X-Title，但通常非必需
-        # "HTTP-Referer": "https://your-site.com",
+        # "HTTP-Referer": "https://luqingji.github.io",
         # "X-Title": "Daily Site",
     }
     payload = {
