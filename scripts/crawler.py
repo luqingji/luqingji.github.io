@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（适配硅基流动 + 全球音乐随机增强版，修复SSL问题）
+每日数据爬虫（适配硅基流动 + AI生成每日一曲）
 - 每日一句：一言API
-- 每日一曲：网易云全球榜单/歌单 + 多个公开API随机获取
+- 每日一曲：完全由AI生成（使用硅基流动）
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：百度/知乎/豆瓣/少数派/微博 → 备选词库
 - AI 增强：使用硅基流动 API 生成 meaning 字段
@@ -18,7 +18,7 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 import urllib3
-# 禁用 SSL 警告（因为部分公开API证书过期）
+# 禁用 SSL 警告（仅用于可能的外部请求，AI 生成模式基本用不到）
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== AI 配置（硅基流动）====================
@@ -212,216 +212,78 @@ def fetch_sentence():
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
 
-# ==================== 每日一曲（增强版，修复SSL）====================
+# ==================== 每日一曲（AI生成模式）====================
 
 def fetch_song():
-    """获取每日一曲 - 从网易云全球榜单/歌单 + 多个公开API随机获取（修复SSL）"""
-    print("正在获取每日一曲...")
+    """获取每日一曲 - 由 AI 直接生成推荐歌曲"""
+    print("正在获取每日一曲（AI生成模式）...")
 
-    # ========== 全球榜单（无需注册，ID来自网易云公开接口）==========
-    BILLBOARDS = [
-        {"id": 3778678, "name": "热歌榜"},
-        {"id": 3779629, "name": "新歌榜"},
-        {"id": 19723756, "name": "飙升榜"},
-        {"id": 2884035, "name": "原创榜"},
-        {"id": 60198, "name": "美国公告牌榜"},
-        {"id": 3812895, "name": "UK排行榜"},
-        {"id": 27126504, "name": "日本Oricon榜"},
-        {"id": 7138572872, "name": "法国流行榜"},
-        {"id": 7138577672, "name": "德国黑胶榜"},
-        {"id": 3812895, "name": "韩国Melon榜"},
-        {"id": 71384707, "name": "日本动漫榜"},
-        {"id": 7138571272, "name": "越南Zing榜"},
-        {"id": 71384707, "name": "全球电音榜"},
-        {"id": 991319590, "name": "全球说唱榜"},
-        {"id": 2023401535, "name": "全球摇滚榜"},
-        {"id": 7138572872, "name": "全球民谣榜"},
-        {"id": 7138573672, "name": "全球爵士榜"},
-        {"id": 7138574472, "name": "全球古典榜"},
-    ]
-
-    PLAYLISTS = [
-        {"id": 705123491, "name": "电子音乐·律动节奏"},
-        {"id": 2829816518, "name": "民谣·那些你熟悉的旋律"},
-        {"id": 5059631519, "name": "说唱·flow攻击"},
-        {"id": 2829883282, "name": "摇滚·经典合集"},
-        {"id": 2842812111, "name": "治愈·安静的时光"},
-        {"id": 2842803911, "name": "运动·跑步必听"},
-        {"id": 2842795411, "name": "学习·专注音乐"},
-        {"id": 2842786711, "name": "影视·原声大碟"},
-        {"id": 3136952023, "name": "欧美流行·Billboard精选"},
-        {"id": 6875529842, "name": "日韩流行·榜单新歌"},
-        {"id": 6879932175, "name": "独立音乐·小众宝藏"},
-        {"id": 6880012345, "name": "世界音乐·环球旅行"},
-    ]
-
-    # ========== 多个公开API（免费，无需注册） ==========
-    def fetch_from_public_api():
-        """尝试多个公开API，返回第一个成功的结果"""
-        apis = [
-            # API 1: uomg (SSL 证书过期，忽略验证)
-            {
-                "url": "https://api.uomg.com/api/rand.music",
-                "params": {"sort": random.choice(["热歌榜", "新歌榜", "飙升榜", "抖音榜"]), "format": "json"},
-                "parser": lambda d: {
-                    "name": d['data']['name'],
-                    "artist": d['data']['artistsname'],
-                    "album": d['data'].get('album', '未知专辑'),
-                    "cover": d['data']['picurl'],
-                },
-                "verify": False
-            },
-            # API 2: 一言·古诗词音乐（随机）
-            {
-                "url": "https://api.52vmy.cn/api/wl/163/random",
-                "params": {},
-                "parser": lambda d: {
-                    "name": d['data']['name'],
-                    "artist": d['data']['singer'],
-                    "album": d['data'].get('album', '未知专辑'),
-                    "cover": d['data']['pic'],
-                },
-                "verify": True
-            },
-            # API 3: 根据历史记录，另一个可用接口
-            {
-                "url": "https://api.vvhan.com/api/wyMusic",
-                "params": {"type": "rand"},
-                "parser": lambda d: {
-                    "name": d['data']['name'],
-                    "artist": d['data']['singer'],
-                    "album": d['data'].get('album', '未知专辑'),
-                    "cover": d['data']['pic'],
-                },
-                "verify": True
-            },
-        ]
-
-        for api in apis:
-            try:
-                print(f"尝试公开API: {api['url']}")
-                resp = requests.get(api['url'], params=api.get('params', {}), timeout=8, verify=api.get('verify', True))
-                if resp.status_code == 200:
-                    data = resp.json()
-                    # 检查成功标志（不同API格式不同）
-                    if (data.get('code') == 1) or (data.get('success')) or (data.get('data') and data['data'].get('name')):
-                        song_data = api['parser'](data)
-                        return {
-                            "name": song_data['name'],
-                            "artist": song_data['artist'],
-                            "album": song_data['album'],
-                            "cover": song_data['cover'],
-                            "comment": {"content": "来自公开随机接口", "user": "系统"},
-                            "source": "公开API"
-                        }
-            except Exception as e:
-                print(f"公开API请求失败: {e}")
-                continue
-        return None
-
-    # ========== 从网易云获取歌曲列表 ==========
-    def get_tracks_from_playlist(playlist_id, limit=50):
-        url = f"https://music.163.com/api/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        try:
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get('code') == 200:
-                    return data.get('songs', [])
-        except Exception as e:
-            print(f"获取歌单失败: {e}")
-        return []
-
-    def get_song_comments(song_id):
-        try:
-            url = f"https://music.163.com/api/v1/resource/comments/R_SO_4_{song_id}"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            resp = requests.get(url, headers=headers, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                hot_comments = data.get('hotComments', [])
-                if hot_comments:
-                    return {
-                        "content": hot_comments[0]['content'],
-                        "user": hot_comments[0]['user']['nickname']
-                    }
-        except Exception as e:
-            print(f"获取评论失败: {e}")
-        return None
-
-    # ========== 主逻辑 ==========
-    # 随机决定从哪个数据源获取（80%网易云，20%公开API）
-    source_pool = ["netease"] * 8 + ["public"] * 2
-    source_type = random.choice(source_pool)
-
-    if source_type == "public":
-        print("直接选择公开API源")
-        public_song = fetch_from_public_api()
-        if public_song:
-            return enrich_with_ai("song", public_song)
-        else:
-            print("公开API全部失败，降级到网易云")
-
-    # 从网易云获取
-    playlist_type = random.choice(["billboard", "playlist"])
-    tracks = []
-    source_name = ""
-
-    if playlist_type == "billboard":
-        billboard = random.choice(BILLBOARDS)
-        source_name = billboard["name"]
-        print(f"从榜单获取: {source_name}")
-        tracks = get_tracks_from_playlist(billboard["id"])
-    else:
-        playlist = random.choice(PLAYLISTS)
-        source_name = playlist["name"]
-        print(f"从歌单获取: {source_name}")
-        tracks = get_tracks_from_playlist(playlist["id"])
-
-    # 如果当前来源失败，尝试热歌榜保底
-    if not tracks:
-        print("× 当前来源获取失败，尝试热歌榜保底...")
-        tracks = get_tracks_from_playlist(3778678)
-        source_name = "热歌榜(保底)"
-
-    # 如果仍然失败，尝试公开API作为最终保底
-    if not tracks:
-        print("× 网易云全部失败，尝试公开API...")
-        public_song = fetch_from_public_api()
-        if public_song:
-            return enrich_with_ai("song", public_song)
-
-    # 如果所有尝试都失败，使用备选歌曲
-    if not tracks:
-        print("× 所有来源均失败，使用备选歌曲")
+    if not ENABLE_AI:
+        print("AI未启用，使用备选歌曲")
         result = random.choice(FALLBACK_SONGS).copy()
         return enrich_with_ai("song", result)
 
-    # 随机选择一首歌
-    track = random.choice(tracks)
-    print(f"✓ 获取歌曲：{track['name']} - {track['artists'][0]['name']} (来自{source_name})")
+    # 构建让 AI 生成歌曲的提示词（加入随机元素）
+    styles = ["流行", "摇滚", "民谣", "电子", "爵士", "古典", "说唱", "R&B", "乡村", "世界音乐"]
+    eras = ["80年代", "90年代", "00年代", "10年代", "当代", "经典老歌"]
+    regions = ["华语", "欧美", "日韩", "拉丁", "全球小众"]
+    prompt = f"""
+    请你扮演一位专业的音乐推荐官，为我推荐一首 {random.choice(regions)} {random.choice(eras)} 的 {random.choice(styles)} 歌曲。
+    请严格按照以下 JSON 格式输出，不要包含任何其他文字：
 
-    # 获取热门评论
-    hot_comment = get_song_comments(track['id'])
-    if hot_comment:
-        print(f"✓ 获取热评：{hot_comment['content'][:30]}...")
+    {{
+        "name": "推荐的歌曲名称",
+        "artist": "歌手或乐队名",
+        "album": "所属专辑",
+        "comment": {{
+            "content": "用一句简短、有吸引力的话作为推荐理由，类似网易云热评的风格"
+        }}
+    }}
 
-    # 封面处理
-    cover_url = track['album'].get('picUrl') or track['album'].get('blurPicUrl')
-    if not cover_url:
-        cover_url = "https://via.placeholder.com/300x300?text=No+Cover"
+    请确保推荐真实存在、有代表性的歌曲。
+    """
 
-    result = {
-        "name": track['name'],
-        "artist": track['artists'][0]['name'],
-        "album": track['album']['name'],
-        "cover": cover_url,
-        "comment": hot_comment or {"content": "暂无热评", "user": "系统"},
-        "source": source_name
-    }
+    ai_response_text = call_ai(prompt, max_tokens=300)
+
+    # 解析 AI 返回的 JSON
+    try:
+        # 尝试从AI回复中提取JSON（如果AI回复中包含了其他文字）
+        # 这里简单起见，假设AI严格按照指令返回了纯JSON
+        song_data = json.loads(ai_response_text)
+        name = song_data.get('name', '').strip()
+        artist = song_data.get('artist', '').strip()
+        album = song_data.get('album', '').strip()
+        comment_content = song_data.get('comment', {}).get('content', '').strip()
+
+        if name and artist:
+            print(f"✓ AI生成成功：{name} - {artist}")
+
+            # 使用可靠的在线图片服务作为封面（每次刷新都会变化）
+            # 为了更稳定，也可使用固定的占位图服务，这里用 picsum 基于歌曲名生成随机图片
+            cover_url = f"https://picsum.photos/seed/{name.replace(' ', '')}/300/300"
+
+            result = {
+                "name": name,
+                "artist": artist,
+                "album": album if album else "未知专辑",
+                "cover": cover_url,
+                "comment": {
+                    "content": comment_content if comment_content else f"今日AI推荐：{name}",
+                    "user": "AI推荐官"
+                },
+                "source": "AI生成"
+            }
+            return enrich_with_ai("song", result)
+        else:
+            print("× AI返回的歌曲信息不完整，使用备选歌曲")
+
+    except (json.JSONDecodeError, TypeError, AttributeError) as e:
+        print(f"× 解析AI响应失败: {e}")
+        print(f"AI原始响应: {ai_response_text}")
+
+    # 任何失败情况，降级使用备选
+    print("使用备选歌曲")
+    result = random.choice(FALLBACK_SONGS).copy()
     return enrich_with_ai("song", result)
 
 # ==================== 每日一文 ====================
@@ -625,7 +487,7 @@ def fetch_word():
 
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（适配硅基流动 + 全球音乐增强版）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（AI生成每日一曲）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 先获取每日一曲，以便每日一词可以引用其热评
