@@ -27,9 +27,10 @@ jobs:
 
       - name: Run crawler
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          # 如需自定义模型，可取消下一行注释并修改
-          # OPENROUTER_MODEL: your-model-name
+          SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+          # 如果需要自定义模型或地址，可取消下面两行的注释并修改
+          # SILICONFLOW_BASE_URL: ${{ secrets.SILICONFLOW_BASE_URL }}
+          # SILICONFLOW_MODEL: ${{ secrets.SILICONFLOW_MODEL }}
         run: python scripts/crawler.py
 
       - name: Commit and push changes
