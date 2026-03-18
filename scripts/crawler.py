@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（适配硅基流动 + AI生成每日一曲，含歌词片段）
+每日数据爬虫（适配硅基流动 + AI生成每日一曲，准确模式）
 - 每日一句：一言API
-- 每日一曲：完全由AI生成（包含歌名、歌手、专辑、歌词片段、推荐语）
+- 每日一曲：AI生成（严格校验歌手名，含歌词、发行信息）
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：百度/知乎/豆瓣/少数派/微博 → 备选词库
 - AI 增强：使用硅基流动 API 生成 meaning 字段
@@ -116,10 +116,10 @@ FALLBACK_WORDS = [
     {"word": "丰盈", "description": "内心丰盈者，独行也如众", "meaning": "丰盈是精神世界的富足。"},
 ]
 
-# ==================== AI辅助函数（适配硅基流动）====================
+# ==================== AI辅助函数（适配硅基流动，增加temperature参数）====================
 
-def call_ai(prompt, max_tokens=300):
-    """调用硅基流动 API 生成文本"""
+def call_ai(prompt, max_tokens=300, temperature=0.7):
+    """调用硅基流动 API 生成文本，支持调节温度"""
     if not ENABLE_AI:
         print("AI未启用（无 SiliconFlow API Key），跳过AI生成")
         return None
@@ -135,7 +135,7 @@ def call_ai(prompt, max_tokens=300):
             {"role": "user", "content": prompt}
         ],
         "max_tokens": max_tokens,
-        "temperature": 0.7
+        "temperature": temperature
     }
     try:
         resp = requests.post(f"{SILICONFLOW_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=15)
@@ -212,60 +212,95 @@ def fetch_sentence():
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
 
-# ==================== 每日一曲（AI生成模式，含歌词）====================
+# ==================== 每日一曲（准确生成模式）====================
 
 def fetch_song():
-    """获取每日一曲 - 由 AI 直接生成推荐歌曲（包含歌词片段）"""
-    print("正在获取每日一曲（AI生成模式，含歌词）...")
+    """获取每日一曲 - 由 AI 生成，严格校验歌手名，支持重试"""
+    print("正在获取每日一曲（准确生成模式）...")
 
     if not ENABLE_AI:
         print("AI未启用，使用备选歌曲")
-        result = random.choice(FALLBACK_SONGS).copy()
-        return enrich_with_ai("song", result)
+        return enrich_with_ai("song", random.choice(FALLBACK_SONGS).copy())
 
-    # 构建让 AI 生成歌曲的提示词（加入随机元素，并要求返回歌词片段）
     styles = ["流行", "摇滚", "民谣", "电子", "爵士", "古典", "说唱", "R&B", "乡村", "世界音乐"]
     eras = ["80年代", "90年代", "00年代", "10年代", "当代", "经典老歌"]
     regions = ["华语", "欧美", "日韩", "拉丁", "全球小众"]
-    prompt = f"""
-    请你扮演一位专业的音乐推荐官，为我推荐一首 {random.choice(regions)} {random.choice(eras)} 的 {random.choice(styles)} 歌曲。
-    请严格按照以下 JSON 格式输出，不要包含任何其他文字：
 
-    {{
-        "name": "推荐的歌曲名称",
-        "artist": "歌手或乐队名（请写具体的歌手名，不要写风格标签）",
-        "album": "所属专辑",
-        "lyrics_snippet": "请附上这首歌的一句或两句歌词片段，用来帮助确认歌曲",
-        "comment": {{
-            "content": "用一句简短、有吸引力的话作为推荐理由，类似网易云热评的风格"
+    # 重试机制，最多尝试3次
+    for attempt in range(3):
+        chosen_style = random.choice(styles)
+        chosen_era = random.choice(eras)
+        chosen_region = random.choice(regions)
+        print(f"尝试 {attempt+1}: {chosen_region} {chosen_era} {chosen_style}")
+
+        prompt = f"""
+        请你扮演一位专业的音乐推荐官，为我推荐一首 {chosen_region} {chosen_era} 的 {chosen_style} 歌曲。
+        请确保推荐的歌曲真实存在，并且歌手名是具体的人名或乐队名，不要使用“独立摇滚”、“流行歌手”这样的风格描述。
+        请严格按照以下 JSON 格式输出，不要包含任何其他文字：
+
+        {{
+            "name": "推荐的歌曲名称",
+            "artist": "歌手或乐队名（请写具体的歌手名，例如“周杰伦”、“Taylor Swift”，不要写风格标签）",
+            "album": "所属专辑",
+            "lyrics_snippet": "请附上这首歌的一句或两句歌词片段，用来帮助确认歌曲",
+            "release_info": "发行年份或简短背景",
+            "comment": {{
+                "content": "用一句简短、有吸引力的话作为推荐理由，类似网易云热评的风格"
+            }}
         }}
-    }}
 
-    请确保推荐真实存在、有代表性的歌曲，并且歌词片段要真实。
-    """
+        示例（仅供参考，不要照抄）：
+        {{
+            "name": "晴天",
+            "artist": "周杰伦",
+            "album": "叶惠美",
+            "lyrics_snippet": "故事的小黄花，从出生那年就飘着",
+            "release_info": "2003年发行",
+            "comment": {{
+                "content": "每次听到前奏，就想起那年夏天的校园"
+            }}
+        }}
 
-    ai_response_text = call_ai(prompt, max_tokens=400)  # 增加 max_tokens 以容纳歌词
+        现在请输出你推荐的歌曲信息：
+        """
 
-    # 解析 AI 返回的 JSON
-    try:
-        song_data = json.loads(ai_response_text)
-        name = song_data.get('name', '').strip()
-        artist = song_data.get('artist', '').strip()
-        album = song_data.get('album', '').strip()
-        lyrics_snippet = song_data.get('lyrics_snippet', '').strip()
-        comment_content = song_data.get('comment', {}).get('content', '').strip()
+        ai_response_text = call_ai(prompt, max_tokens=500, temperature=0.3)  # 降低温度提高确定性
 
-        if name and artist:
+        try:
+            song_data = json.loads(ai_response_text)
+            name = song_data.get('name', '').strip()
+            artist = song_data.get('artist', '').strip()
+            album = song_data.get('album', '').strip()
+            lyrics = song_data.get('lyrics_snippet', '').strip()
+            release = song_data.get('release_info', '').strip()
+            comment_content = song_data.get('comment', {}).get('content', '').strip()
+
+            # 基本检查：必须有歌名和歌手
+            if not name or not artist:
+                print("× 缺少必要字段，重试")
+                continue
+
+            # 检查歌手名是否包含可疑风格词
+            suspicious_keywords = ['indie', 'rock', 'pop', 'band', 'singer', '风格', '组合', '歌手']
+            artist_lower = artist.lower()
+            if any(keyword in artist_lower for keyword in suspicious_keywords):
+                print(f"× 歌手名 '{artist}' 可能不是具体名字，重试")
+                continue
+
+            # 通过检查，组装结果
             print(f"✓ AI生成成功：{name} - {artist}")
-            print(f"   歌词片段：{lyrics_snippet[:50]}...")
 
-            # 使用可靠的在线图片服务作为封面
+            # 组合评论信息：发行信息 + 歌词 + 推荐语
+            parts = []
+            if comment_content:
+                parts.append(comment_content)
+            if lyrics:
+                parts.append(f"🎵 {lyrics}")
+            if release:
+                parts.append(f"📅 {release}")
+            full_comment = "\n\n".join(parts)
+
             cover_url = f"https://picsum.photos/seed/{name.replace(' ', '')}/300/300"
-
-            # 将歌词片段合并到 comment 中，这样前端会显示在推荐理由里
-            full_comment = comment_content
-            if lyrics_snippet:
-                full_comment += f"\n\n🎵 {lyrics_snippet}"
 
             result = {
                 "name": name,
@@ -279,15 +314,14 @@ def fetch_song():
                 "source": "AI生成"
             }
             return enrich_with_ai("song", result)
-        else:
-            print("× AI返回的歌曲信息不完整，使用备选歌曲")
 
-    except (json.JSONDecodeError, TypeError, AttributeError) as e:
-        print(f"× 解析AI响应失败: {e}")
-        print(f"AI原始响应: {ai_response_text}")
+        except (json.JSONDecodeError, TypeError, AttributeError) as e:
+            print(f"× 解析AI响应失败: {e}")
+            print(f"AI原始响应: {ai_response_text}")
+            continue
 
-    # 任何失败情况，降级使用备选
-    print("使用备选歌曲")
+    # 所有尝试均失败，使用备选
+    print("所有AI尝试均失败，使用备选歌曲")
     result = random.choice(FALLBACK_SONGS).copy()
     return enrich_with_ai("song", result)
 
@@ -492,7 +526,7 @@ def fetch_word():
 
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（AI生成每日一曲，含歌词）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（准确生成模式）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 先获取每日一曲，以便每日一词可以引用其热评
