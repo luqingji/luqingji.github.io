@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日拾光 · 诗与歌的相遇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 400;
+            font-size: 2.5rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .date {
+            text-align: center;
+            color: #34495e;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            background: rgba(255,255,255,0.3);
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            font-weight: 400;
+            border-left: 5px solid #3498db;
+            padding-left: 15px;
+            color: #2c3e50;
+        }
+
+        .song-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .song-cover {
+            width: 120px;
+            height: 120px;
+            border-radius: 16px;
+            object-fit: cover;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .song-cover:hover {
+            transform: scale(1.05);
+        }
+
+        .song-info {
+            flex: 1;
+        }
+
+        .song-info h3 {
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .song-info p {
+            margin: 5px 0;
+            color: #555;
+            line-height: 1.5;
+        }
+
+        .song-comment {
+            margin-top: 12px;
+            font-style: italic;
+            color: #e67e22;
+            background: #fff3e0;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .sentence-content {
+            font-size: 1.6rem;
+            line-height: 1.6;
+            color: #2c3e50;
+            font-style: italic;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 300;
+        }
+
+        .sentence-from {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .article-title {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .article-desc {
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-size: 1.05rem;
+        }
+
+        .article-author {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 1rem;
+        }
+
+        .word {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #e67e22;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .word-desc {
+            text-align: center;
+            color: #555;
+            font-size: 1.2rem;
+        }
+
+        .meaning {
+            display: none;
+            margin-top: 20px;
+            background: #e8f4fd;
+            padding: 16px 20px;
+            border-radius: 16px;
+            font-style: italic;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        .footer {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 40px;
+            padding: 15px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .song-container {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .song-cover {
+                width: 150px;
+                height: 150px;
+            }
+            h1 { font-size: 2rem; }
+            .sentence-content { font-size: 1.3rem; }
+            .word { font-size: 2.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ 每日拾光 · 诗与歌的相遇</h1>
+        <div class="date" id="date"></div>
+
+        <div id="loader" class="loader"></div>
+
+        <!-- 每日一句卡片 -->
+        <div class="card" id="sentence-card" style="display: none;">
+            <h2>💭 每日一句</h2>
+            <div class="sentence-content" id="sentence-content"></div>
+            <div class="sentence-from" id="sentence-from"></div>
+            <div class="meaning" id="sentence-meaning"></div>
+        </div>
+
+        <!-- 每日一曲卡片 -->
+        <div class="card" id="song-card" style="display: none;">
+            <h2>🎵 每日一曲</h2>
+            <div class="song-container">
+                <img class="song-cover" id="song-cover" src="" alt="歌曲封面" onerror="this.src='https://via.placeholder.com/300x300?text=No+Cover'">
+                <div class="song-info">
+                    <h3 id="song-title"></h3>
+                    <p id="song-artist"></p>
+                    <p id="song-album"></p>
+                    <div class="song-comment" id="song-comment"></div>
+                </div>
+            </div>
+            <div class="meaning" id="song-meaning"></div>
+        </div>
+
+        <!-- 每日一文卡片 -->
+        <div class="card" id="article-card" style="display: none;">
+            <h2>📖 每日一文</h2>
+            <div class="article-title" id="article-title"></div>
+            <div class="article-desc" id="article-desc"></div>
+            <div class="article-author" id="article-author"></div>
+            <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 15px; color: #3498db; text-decoration: none;">🔗 阅读全文</a>
+            <div class="meaning" id="article-meaning"></div>
+        </div>
+
+        <!-- 每日一词卡片 -->
+        <div class="card" id="word-card" style="display: none;">
+            <h2>🔖 每日一词</h2>
+            <div class="word" id="word"></div>
+            <div class="word-desc" id="word-desc"></div>
+            <div class="meaning" id="word-meaning"></div>
+        </div>
+
+        <div class="footer" id="update-time"></div>
+    </div>
+
+    <script>
+        (function() {
+            // 由于仓库是用户主页，数据路径为 /data/daily.json
+            const dataUrl = `/data/daily.json?t=${Date.now()}`;
+
+            fetch(dataUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('loader').style.display = 'none';
+
+                    document.getElementById('date').textContent = data.date || '未知日期';
+                    if (data.updated_at) {
+                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN', { hour12: false })}`;
+                    }
+
+                    if (data.sentence) {
+                        document.getElementById('sentence-card').style.display = 'block';
+                        document.getElementById('sentence-content').textContent = data.sentence.content || '';
+                        document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
+                        if (data.sentence.meaning) {
+                            document.getElementById('sentence-meaning').textContent = data.sentence.meaning;
+                            document.getElementById('sentence-meaning').style.display = 'block';
+                        }
+                    }
+
+                    if (data.song) {
+                        document.getElementById('song-card').style.display = 'block';
+                        document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=No+Cover';
+                        document.getElementById('song-title').textContent = data.song.name || '未知歌曲';
+                        document.getElementById('song-artist').textContent = data.song.artist ? `歌手：${data.song.artist}` : '';
+                        document.getElementById('song-album').textContent = data.song.album ? `专辑：${data.song.album}` : '';
+                        if (data.song.comment && data.song.comment.content) {
+                            document.getElementById('song-comment').textContent = `“${data.song.comment.content}” —— ${data.song.comment.user || '网易云用户'}`;
+                        }
+                        if (data.song.meaning) {
+                            document.getElementById('song-meaning').textContent = data.song.meaning;
+                            document.getElementById('song-meaning').style.display = 'block';
+                        }
+                    }
+
+                    if (data.article) {
+                        document.getElementById('article-card').style.display = 'block';
+                        document.getElementById('article-title').textContent = data.article.title || '';
+                        document.getElementById('article-desc').textContent = data.article.description || data.article.content || '';
+                        document.getElementById('article-author').textContent = data.article.author ? `—— ${data.article.author}` : '';
+                        if (data.article.url) {
+                            document.getElementById('article-link').href = data.article.url;
+                        } else {
+                            document.getElementById('article-link').style.display = 'none';
+                        }
+                        if (data.article.meaning) {
+                            document.getElementById('article-meaning').textContent = data.article.meaning;
+                            document.getElementById('article-meaning').style.display = 'block';
+                        }
+                    }
+
+                    if (data.word) {
+                        document.getElementById('word-card').style.display = 'block';
+                        document.getElementById('word').textContent = data.word.word || '';
+                        document.getElementById('word-desc').textContent = data.word.description || '';
+                        if (data.word.meaning) {
+                            document.getElementById('word-meaning').textContent = data.word.meaning;
+                            document.getElementById('word-meaning').style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('加载数据失败：', error);
+                    document.getElementById('loader').style.display = 'none';
+                    document.body.innerHTML += '<div style="text-align:center; color:#e74c3c; margin-top:50px;">数据加载失败，请稍后刷新</div>';
+                });
+        })();
+    </script>
+</body>
+</html>
