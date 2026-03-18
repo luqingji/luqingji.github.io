@@ -4,7 +4,7 @@ on:
   schedule:
     # 每天北京时间 19:00 运行（UTC 11:00）
     - cron: '0 11 * * *'
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -28,7 +28,7 @@ jobs:
       - name: Run crawler
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          # 如需自定义模型，可添加下面这行（可选）
+          # 如需自定义模型，可取消下一行注释并修改
           # OPENROUTER_MODEL: your-model-name
         run: python scripts/crawler.py
 
