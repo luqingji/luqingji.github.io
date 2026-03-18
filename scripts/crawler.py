@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（适配硅基流动 + AI生成每日一曲）
+每日数据爬虫（适配硅基流动 + AI生成每日一曲，含歌词片段）
 - 每日一句：一言API
-- 每日一曲：完全由AI生成（使用硅基流动）
+- 每日一曲：完全由AI生成（包含歌名、歌手、专辑、歌词片段、推荐语）
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：百度/知乎/豆瓣/少数派/微博 → 备选词库
 - AI 增强：使用硅基流动 API 生成 meaning 字段
@@ -212,18 +212,18 @@ def fetch_sentence():
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
 
-# ==================== 每日一曲（AI生成模式）====================
+# ==================== 每日一曲（AI生成模式，含歌词）====================
 
 def fetch_song():
-    """获取每日一曲 - 由 AI 直接生成推荐歌曲"""
-    print("正在获取每日一曲（AI生成模式）...")
+    """获取每日一曲 - 由 AI 直接生成推荐歌曲（包含歌词片段）"""
+    print("正在获取每日一曲（AI生成模式，含歌词）...")
 
     if not ENABLE_AI:
         print("AI未启用，使用备选歌曲")
         result = random.choice(FALLBACK_SONGS).copy()
         return enrich_with_ai("song", result)
 
-    # 构建让 AI 生成歌曲的提示词（加入随机元素）
+    # 构建让 AI 生成歌曲的提示词（加入随机元素，并要求返回歌词片段）
     styles = ["流行", "摇滚", "民谣", "电子", "爵士", "古典", "说唱", "R&B", "乡村", "世界音乐"]
     eras = ["80年代", "90年代", "00年代", "10年代", "当代", "经典老歌"]
     regions = ["华语", "欧美", "日韩", "拉丁", "全球小众"]
@@ -233,34 +233,39 @@ def fetch_song():
 
     {{
         "name": "推荐的歌曲名称",
-        "artist": "歌手或乐队名",
+        "artist": "歌手或乐队名（请写具体的歌手名，不要写风格标签）",
         "album": "所属专辑",
+        "lyrics_snippet": "请附上这首歌的一句或两句歌词片段，用来帮助确认歌曲",
         "comment": {{
             "content": "用一句简短、有吸引力的话作为推荐理由，类似网易云热评的风格"
         }}
     }}
 
-    请确保推荐真实存在、有代表性的歌曲。
+    请确保推荐真实存在、有代表性的歌曲，并且歌词片段要真实。
     """
 
-    ai_response_text = call_ai(prompt, max_tokens=300)
+    ai_response_text = call_ai(prompt, max_tokens=400)  # 增加 max_tokens 以容纳歌词
 
     # 解析 AI 返回的 JSON
     try:
-        # 尝试从AI回复中提取JSON（如果AI回复中包含了其他文字）
-        # 这里简单起见，假设AI严格按照指令返回了纯JSON
         song_data = json.loads(ai_response_text)
         name = song_data.get('name', '').strip()
         artist = song_data.get('artist', '').strip()
         album = song_data.get('album', '').strip()
+        lyrics_snippet = song_data.get('lyrics_snippet', '').strip()
         comment_content = song_data.get('comment', {}).get('content', '').strip()
 
         if name and artist:
             print(f"✓ AI生成成功：{name} - {artist}")
+            print(f"   歌词片段：{lyrics_snippet[:50]}...")
 
-            # 使用可靠的在线图片服务作为封面（每次刷新都会变化）
-            # 为了更稳定，也可使用固定的占位图服务，这里用 picsum 基于歌曲名生成随机图片
+            # 使用可靠的在线图片服务作为封面
             cover_url = f"https://picsum.photos/seed/{name.replace(' ', '')}/300/300"
+
+            # 将歌词片段合并到 comment 中，这样前端会显示在推荐理由里
+            full_comment = comment_content
+            if lyrics_snippet:
+                full_comment += f"\n\n🎵 {lyrics_snippet}"
 
             result = {
                 "name": name,
@@ -268,7 +273,7 @@ def fetch_song():
                 "album": album if album else "未知专辑",
                 "cover": cover_url,
                 "comment": {
-                    "content": comment_content if comment_content else f"今日AI推荐：{name}",
+                    "content": full_comment if full_comment else f"今日AI推荐：{name}",
                     "user": "AI推荐官"
                 },
                 "source": "AI生成"
@@ -487,7 +492,7 @@ def fetch_word():
 
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（AI生成每日一曲）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（AI生成每日一曲，含歌词）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 先获取每日一曲，以便每日一词可以引用其热评
