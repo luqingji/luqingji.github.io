@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版，基于自建网易云API + AI润色 + 历史存档 + 歌词提取每日一词）
+每日数据爬虫（完整版，带调试信息）
 - 每日一句：一言API
 - 每日一曲：从自建网易云API获取真实歌曲库，随机选曲+AI润色
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
@@ -24,7 +24,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 配置区 ====================
-# 你部署的网易云 API 地址（如果实际接口需要 /api 前缀，请修改）
+# 你部署的网易云 API 地址（请根据实际路径确认是否需要 /api 前缀）
 API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app"
 # 如果上面访问 404，可尝试下面这个（加上 /api 路径）
 # API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app/api"
@@ -198,12 +198,12 @@ def enrich_with_ai(item_type, raw_data):
 
     return raw_data
 
-# ==================== 网易云API工具函数 ====================
+# ==================== 网易云API工具函数（带调试） ====================
 def get_tracks_from_playlist(playlist_id, limit=50):
-    """从自建API获取歌单歌曲"""
+    """从自建API获取歌单歌曲，并打印第一首歌的完整结构（调试用）"""
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     print(f"请求歌单: {playlist_id}")
     try:
@@ -215,6 +215,12 @@ def get_tracks_from_playlist(playlist_id, limit=50):
             if data.get('code') == 200:
                 songs = data.get('songs', [])
                 print(f"获取到 {len(songs)} 首歌曲")
+                if songs:
+                    # 打印第一首歌的完整JSON，截断以防日志过长
+                    print("第一首歌数据结构示例：")
+                    song_json = json.dumps(songs[0], ensure_ascii=False, indent=2)
+                    # 只打印前500字符，避免日志爆炸
+                    print(song_json[:500] + "..." if len(song_json) > 500 else song_json)
                 return songs
             else:
                 print(f"API错误: {data.get('code')}")
@@ -248,9 +254,13 @@ def update_song_library(force=False):
         2023401535, # 全球摇滚榜
     ]
     all_songs = []
+    total_processed = 0
     for bid in BILLBOARDS:
         songs = get_tracks_from_playlist(bid, limit=50)
+        print(f"榜单 {bid} 获取到 {len(songs)} 首歌曲，开始解析...")
         for s in songs:
+            # 注意：这里的字段名需要根据API实际返回调整
+            # 当前猜测的字段名（与原网易云API一致）：
             name = s.get('name', '').strip()
             if not name:
                 continue
@@ -263,7 +273,10 @@ def update_song_library(force=False):
                     "artist": artist,
                     "album": album if album else "未知专辑"
                 })
+                total_processed += 1
         time.sleep(1)  # 礼貌性延时
+
+    print(f"总共处理了 {total_processed} 条歌曲记录（含重复）")
 
     # 去重
     seen = set()
@@ -274,9 +287,11 @@ def update_song_library(force=False):
             seen.add(key)
             unique.append(s)
 
+    print(f"去重后得到 {len(unique)} 首唯一歌曲")
+
     with open(library_file, 'w', encoding='utf-8') as f:
         json.dump(unique, f, ensure_ascii=False, indent=2)
-    print(f"歌曲库已更新，共 {len(unique)} 首")
+    print(f"歌曲库已保存至 {library_file}")
 
 # ==================== 每日一曲（真实库+AI润色） ====================
 def fetch_song():
