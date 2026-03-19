@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>每日拾光 · 历史详情</title>
-    <!-- 复用主页的样式 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <style>
-        /* 直接复制你主页的样式，确保完全一致 */
+        /* 与主页样式完全一致，略 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -18,10 +17,7 @@
             padding: 2rem 1rem;
             color: #2c3e50;
         }
-        .container {
-            max-width: 750px;
-            margin: 0 auto;
-        }
+        .container { max-width: 750px; margin: 0 auto; }
         .back-link {
             display: inline-block;
             margin-bottom: 2rem;
@@ -81,6 +77,8 @@
         .article-author { text-align: right; color: #6b7c8b; }
         .word { font-size: 4rem; font-weight: 600; color: #bf6f5a; text-align: center; }
         .word-desc { text-align: center; color: #4f5e6b; font-size: 1.3rem; }
+        .novel-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; }
+        .novel-content { line-height: 1.8; }
         .meaning {
             display: none;
             margin-top: 1.5rem;
@@ -114,7 +112,7 @@
         <a href="/history.html" class="back-link">← 返回历史回顾</a>
         <div id="loader" class="loader"></div>
         <div id="content" style="display: none;">
-            <!-- 每日一曲卡片 -->
+            <!-- 卡片结构与主页一致 -->
             <div class="card" id="song-card" style="display: none;">
                 <h2>🎵 每日一曲</h2>
                 <div class="song-container">
@@ -128,45 +126,44 @@
                 </div>
                 <div class="meaning" id="song-meaning"></div>
             </div>
-            <!-- 每日一句卡片 -->
             <div class="card" id="sentence-card" style="display: none;">
                 <h2>💭 每日一句</h2>
                 <div class="sentence-content" id="sentence-content"></div>
                 <div class="sentence-from" id="sentence-from"></div>
                 <div class="meaning" id="sentence-meaning"></div>
             </div>
-            <!-- 每日一文卡片 -->
             <div class="card" id="article-card" style="display: none;">
                 <h2>📖 每日一文</h2>
                 <div class="article-title" id="article-title"></div>
                 <div class="article-desc" id="article-desc"></div>
                 <div class="article-author" id="article-author"></div>
+                <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
                 <div class="meaning" id="article-meaning"></div>
             </div>
-            <!-- 每日一词卡片 -->
             <div class="card" id="word-card" style="display: none;">
                 <h2>🔖 每日一词</h2>
                 <div class="word" id="word"></div>
                 <div class="word-desc" id="word-desc"></div>
                 <div class="meaning" id="word-meaning"></div>
             </div>
+            <div class="card" id="novel-card" style="display: none;">
+                <h2>📖 每日一小说 · 拾光</h2>
+                <div class="novel-title" id="novel-title"></div>
+                <div class="novel-content" id="novel-content"></div>
+            </div>
         </div>
     </div>
-
     <script>
         (function() {
-            // 获取 URL 参数中的日期
             const urlParams = new URLSearchParams(window.location.search);
             const date = urlParams.get('date');
             if (!date) {
                 document.getElementById('loader').style.display = 'none';
-                document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">未指定日期，请返回历史回顾重新选择。</p>';
+                document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">未指定日期</p>';
                 return;
             }
-
-            // 构建历史 JSON 文件路径，例如 /data/history/2026/03/19.json
-            const [year, month, day] = date.split('-');
-            const dataUrl = `/data/history/${year}/${month}/${day}.json?t=${Date.now()}`;
+            const [y, m, d] = date.split('-');
+            const dataUrl = `/data/history/${y}/${m}/${d}.json?t=${Date.now()}`;
 
             fetch(dataUrl)
                 .then(res => {
@@ -177,7 +174,7 @@
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('content').style.display = 'block';
 
-                    // 以下渲染逻辑与主页完全一致
+                    // 渲染逻辑与主页完全一致
                     if (data.song) {
                         document.getElementById('song-card').style.display = 'block';
                         document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
@@ -204,8 +201,13 @@
                     if (data.article) {
                         document.getElementById('article-card').style.display = 'block';
                         document.getElementById('article-title').textContent = data.article.title || '';
-                        document.getElementById('article-desc').textContent = data.article.description || '';
+                        document.getElementById('article-desc').textContent = data.article.description || data.article.content || '';
                         document.getElementById('article-author').textContent = data.article.author ? `—— ${data.article.author}` : '';
+                        if (data.article.url) {
+                            document.getElementById('article-link').href = data.article.url;
+                        } else {
+                            document.getElementById('article-link').style.display = 'none';
+                        }
                         if (data.article.meaning) {
                             document.getElementById('article-meaning').textContent = data.article.meaning;
                             document.getElementById('article-meaning').style.display = 'block';
@@ -220,11 +222,16 @@
                             document.getElementById('word-meaning').style.display = 'block';
                         }
                     }
+                    if (data.novel) {
+                        document.getElementById('novel-card').style.display = 'block';
+                        document.getElementById('novel-title').textContent = data.novel.title || '';
+                        document.getElementById('novel-content').textContent = data.novel.content || '';
+                    }
                 })
                 .catch(err => {
                     console.error(err);
                     document.getElementById('loader').style.display = 'none';
-                    document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">加载失败，可能该日期无数据。</p>';
+                    document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">加载失败，可能该日期无数据</p>';
                 });
         })();
     </script>
