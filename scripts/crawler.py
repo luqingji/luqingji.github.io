@@ -431,7 +431,7 @@ def fetch_word():
 
 # ==================== 每日一小说（1500-2500字）====================
 def fetch_novel():
-    """获取每日一小说 - 由 AI 根据随机风格生成短篇小说（1500-2500字）"""
+    """获取每日一小说 - 由 AI 根据随机风格生成短篇小说（1500-2500字），带健壮解析"""
     print("正在获取每日一小说...")
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
@@ -449,30 +449,49 @@ def fetch_novel():
     ]
     if not ENABLE_AI:
         return random.choice(FALLBACK_NOVELS).copy()
-    chosen = random.choice(styles)
-    print(f"风格：{chosen['name']}")
-    prompt = f"""
-    请创作一篇短篇小说，要求：
-    - 风格：{chosen['name']}（{chosen['desc']}）
-    - 标题简洁有吸引力
-    - 正文在1500-2500字之间，情节完整，有起承转合
-    - 按以下JSON格式输出：
-    {{
-        "title": "小说标题",
-        "content": "小说正文"
-    }}
-    """
-    ai_resp = call_ai(prompt, max_tokens=5000, temperature=0.8)
-    if ai_resp:
+
+    # 最多重试3次
+    for attempt in range(3):
+        chosen = random.choice(styles)
+        print(f"尝试 {attempt+1}，风格：{chosen['name']}")
+        prompt = f"""
+        请创作一篇短篇小说，要求：
+        - 风格：{chosen['name']}（{chosen['desc']}）
+        - 标题简洁有吸引力
+        - 正文在1500-2500字之间，情节完整，有起承转合
+        - 按以下JSON格式输出，不要包含任何其他文字：
+        {{
+            "title": "小说标题",
+            "content": "小说正文"
+        }}
+        """
+        ai_resp = call_ai(prompt, max_tokens=5000, temperature=0.8)
+        if not ai_resp:
+            continue
+
+        # 尝试从AI响应中提取JSON部分
         try:
-            data = json.loads(ai_resp)
+            # 查找第一个 '{' 和最后一个 '}'
+            start = ai_resp.find('{')
+            end = ai_resp.rfind('}')
+            if start == -1 or end == -1 or end <= start:
+                raise ValueError("未找到有效的JSON")
+            json_str = ai_resp[start:end+1]
+            data = json.loads(json_str)
             title = data.get('title', '').strip()
             content = data.get('content', '').strip()
             if title and content:
                 print(f"✓ 小说生成成功：{title}")
                 return {"title": title, "content": content}
+            else:
+                print("× 返回字段不完整")
         except Exception as e:
             print(f"× 解析失败: {e}")
+            # 打印AI响应前200字符用于调试
+            print(f"AI响应片段: {ai_resp[:200]}")
+
+    # 所有尝试失败，使用备选
+    print("所有尝试均失败，使用备选小说")
     return random.choice(FALLBACK_NOVELS).copy()
 
 # ==================== 主函数 ====================
