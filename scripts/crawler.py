@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（适配硅基流动 + AI生成每日一曲，准确模式，限定华语）
+每日数据爬虫（适配硅基流动 + 准确生成模式 + 历史存档）
 - 每日一句：一言API
-- 每日一曲：AI生成（仅华语歌曲，严格校验歌手名，含歌词、发行信息）
+- 每日一曲：AI 生成（华语歌曲，严格校验歌手名，含歌词、发行信息）
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：百度/知乎/豆瓣/少数派/微博 → 备选词库
 - AI 增强：使用硅基流动 API 生成 meaning 字段
+- 历史存档：每天数据自动保存到 data/history/ 并按日期归档
 """
 
 import requests
@@ -527,7 +528,7 @@ def fetch_word():
 
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（准确生成模式，限定华语）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（准确生成模式 + 历史存档）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 先获取每日一曲，以便每日一词可以引用其热评
@@ -547,11 +548,38 @@ def main():
     data_dir = os.path.join(script_dir, '..', 'data')
     os.makedirs(data_dir, exist_ok=True)
 
+    # 保存当天的 daily.json（供主页读取）
     output_file = os.path.join(data_dir, 'daily.json')
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(today_data, f, ensure_ascii=False, indent=2)
 
-    print(f"✅ 数据已保存至 {output_file}")
+    print(f"✅ 每日数据已保存至 {output_file}")
+
+    # ===== 新增：历史存档 =====
+    date_str = today_data["date"]
+    year, month, day = date_str.split('-')
+    history_dir = os.path.join(data_dir, 'history', year, month)
+    os.makedirs(history_dir, exist_ok=True)
+    history_file = os.path.join(history_dir, f"{day}.json")
+
+    with open(history_file, 'w', encoding='utf-8') as f:
+        json.dump(today_data, f, ensure_ascii=False, indent=2)
+
+    # 更新历史索引文件 data/history/index.json
+    index_file = os.path.join(data_dir, 'history', 'index.json')
+    if os.path.exists(index_file):
+        with open(index_file, 'r', encoding='utf-8') as f:
+            index = json.load(f)
+    else:
+        index = []
+
+    if date_str not in index:
+        index.append(date_str)
+        index.sort(reverse=True)  # 最新的在前
+        with open(index_file, 'w', encoding='utf-8') as f:
+            json.dump(index, f, ensure_ascii=False, indent=2)
+
+    print(f"📅 历史数据已保存至 {history_file}")
     print("=== 运行完成 ===")
 
 if __name__ == "__main__":
