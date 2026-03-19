@@ -146,8 +146,9 @@
                         grouped[year][month].sort((a,b) => parseInt(b.day) - parseInt(a.day)).forEach(item => {
                             const dayLink = document.createElement('a');
                             dayLink.className = 'day-card';
-                            dayLink.href = `/data/history/${year}/${month}/${item.day}.json`;
-                            dayLink.target = '_blank'; // 在新标签页打开JSON，方便查看或后续可改为自定义展示页
+                            // 修改为指向详情页，并传递日期参数
+                            dayLink.href = `/detail.html?date=${item.fullDate}`;
+                            dayLink.target = '_blank';  // 在新标签页打开详情
                             dayLink.textContent = `${item.day} 日`;
                             dayList.appendChild(dayLink);
                         });
