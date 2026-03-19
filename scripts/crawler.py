@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（真实歌曲库 + AI润色 + 历史存档 + 歌词提取每日一词）
+每日数据爬虫（完整版，基于自建网易云API + AI润色 + 历史存档 + 歌词提取每日一词）
 - 每日一句：一言API
-- 每日一曲：从网易云榜单真实歌曲库随机选择，AI生成推荐语和歌词片段
+- 每日一曲：从自建网易云API获取真实歌曲库，随机选曲+AI润色
 - 每日一文：古诗文网随机诗词 → 维基百科 → 备选文章库
 - 每日一词：优先从今日歌曲歌词提取 → 百度/知乎/豆瓣/少数派/微博 → 备选词库
 - AI 增强：使用硅基流动 API 生成 meaning 字段
@@ -20,17 +20,22 @@ import time
 from datetime import datetime
 from bs4 import BeautifulSoup
 import urllib3
+# 禁用 SSL 警告（仅用于可能的外部请求）
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ==================== AI 配置（硅基流动）====================
+# ==================== 配置区 ====================
+# 你部署的网易云 API 地址（如果实际接口需要 /api 前缀，请修改）
+API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app"
+# 如果上面访问 404，可尝试下面这个（加上 /api 路径）
+# API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app/api"
+
+# 硅基流动配置
 SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
-
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 
-# 缓存今日歌曲，供每日一词使用
-_cached_song = None
+_cached_song = None  # 缓存今日歌曲，供每日一词使用
 
 # ==================== 数据目录 ====================
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -123,8 +128,11 @@ FALLBACK_WORDS = [
 
 # ==================== AI辅助函数 ====================
 def call_ai(prompt, max_tokens=300, temperature=0.7):
+    """调用硅基流动 API 生成文本，支持调节温度"""
     if not ENABLE_AI:
+        print("AI未启用（无 SiliconFlow API Key），跳过AI生成")
         return None
+
     headers = {
         "Authorization": f"Bearer {SILICONFLOW_API_KEY}",
         "Content-Type": "application/json"
@@ -141,7 +149,8 @@ def call_ai(prompt, max_tokens=300, temperature=0.7):
     try:
         resp = requests.post(f"{SILICONFLOW_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=15)
         if resp.status_code == 200:
-            return resp.json()['choices'][0]['message']['content'].strip()
+            data = resp.json()
+            return data['choices'][0]['message']['content'].strip()
         else:
             print(f"AI调用失败: {resp.status_code} - {resp.text}")
     except Exception as e:
@@ -149,8 +158,10 @@ def call_ai(prompt, max_tokens=300, temperature=0.7):
     return None
 
 def enrich_with_ai(item_type, raw_data):
+    """为不同类型的数据添加AI生成的meaning字段"""
     if not ENABLE_AI:
         return raw_data
+
     if item_type == "sentence":
         content = raw_data.get('content', '')
         from_ = raw_data.get('from', '')
@@ -158,6 +169,7 @@ def enrich_with_ai(item_type, raw_data):
         meaning = call_ai(prompt, max_tokens=150)
         if meaning:
             raw_data['meaning'] = meaning
+
     elif item_type == "song":
         name = raw_data.get('name', '')
         artist = raw_data.get('artist', '')
@@ -167,6 +179,7 @@ def enrich_with_ai(item_type, raw_data):
         meaning = call_ai(prompt, max_tokens=250)
         if meaning:
             raw_data['meaning'] = meaning
+
     elif item_type == "article":
         title = raw_data.get('title', '')
         desc = raw_data.get('description', '') or raw_data.get('content', '')
@@ -174,6 +187,7 @@ def enrich_with_ai(item_type, raw_data):
         meaning = call_ai(prompt, max_tokens=200)
         if meaning:
             raw_data['meaning'] = meaning
+
     elif item_type == "word":
         word = raw_data.get('word', '')
         desc = raw_data.get('description', '')
@@ -181,37 +195,46 @@ def enrich_with_ai(item_type, raw_data):
         meaning = call_ai(prompt, max_tokens=150)
         if meaning:
             raw_data['meaning'] = meaning
+
     return raw_data
 
-# ==================== 网易云工具函数 ====================
+# ==================== 网易云API工具函数 ====================
 def get_tracks_from_playlist(playlist_id, limit=50):
-    """从歌单获取歌曲列表"""
-    url = f"https://music.163.com/api/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
+    """从自建API获取歌单歌曲"""
+    url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
+    print(f"请求歌单: {playlist_id}")
     try:
         resp = requests.get(url, headers=headers, timeout=10)
+        print(f"状态码: {resp.status_code}")
         if resp.status_code == 200:
             data = resp.json()
+            print(f"API返回code: {data.get('code')}")
             if data.get('code') == 200:
-                return data.get('songs', [])
+                songs = data.get('songs', [])
+                print(f"获取到 {len(songs)} 首歌曲")
+                return songs
+            else:
+                print(f"API错误: {data.get('code')}")
+        else:
+            print(f"HTTP错误: {resp.status_code}")
     except Exception as e:
-        print(f"获取歌单失败: {e}")
+        print(f"异常: {e}")
     return []
 
 # ==================== 更新歌曲库（每周一次） ====================
 def update_song_library(force=False):
-    """从网易云多个榜单抓取歌曲，更新本地歌曲库"""
+    """从API获取多个榜单歌曲，更新本地歌曲库"""
     library_file = os.path.join(data_dir, 'song_library.json')
-    # 如果库文件存在且不是强制更新，且更新间隔小于7天，则跳过
     if not force and os.path.exists(library_file):
         mtime = os.path.getmtime(library_file)
         if (time.time() - mtime) < 7 * 24 * 3600:
             print("歌曲库较新，跳过更新")
             return
 
-    # 榜单ID列表（涵盖华语、欧美、日韩等）
+    # 榜单ID列表（可自行增删）
     BILLBOARDS = [
         3778678,  # 热歌榜
         3779629,  # 新歌榜
@@ -220,9 +243,6 @@ def update_song_library(force=False):
         60198,    # 美国公告牌榜
         3812895,  # UK排行榜
         27126504, # 日本Oricon榜
-        7138572872, # 法国流行榜（需验证）
-        7138577672, # 德国黑胶榜
-        3812895,  # 韩国Melon榜
         71384707, # 日本动漫榜
         991319590, # 全球说唱榜
         2023401535, # 全球摇滚榜
@@ -231,14 +251,11 @@ def update_song_library(force=False):
     for bid in BILLBOARDS:
         songs = get_tracks_from_playlist(bid, limit=50)
         for s in songs:
-            # 提取基本信息
             name = s.get('name', '').strip()
             if not name:
                 continue
-            # 歌手取第一个
             artists = s.get('artists', [])
             artist = artists[0].get('name', '').strip() if artists else ''
-            # 专辑
             album = s.get('album', {}).get('name', '').strip()
             if name and artist:
                 all_songs.append({
@@ -246,9 +263,9 @@ def update_song_library(force=False):
                     "artist": artist,
                     "album": album if album else "未知专辑"
                 })
-        time.sleep(1)  # 避免请求过快
+        time.sleep(1)  # 礼貌性延时
 
-    # 去重（基于歌名+歌手）
+    # 去重
     seen = set()
     unique = []
     for s in all_songs:
@@ -261,33 +278,12 @@ def update_song_library(force=False):
         json.dump(unique, f, ensure_ascii=False, indent=2)
     print(f"歌曲库已更新，共 {len(unique)} 首")
 
-# ==================== 每日一句 ====================
-def fetch_sentence():
-    print("正在获取每日一句...")
-    try:
-        url = "https://v1.hitokoto.cn/"
-        resp = requests.get(url, timeout=5)
-        if resp.status_code == 200:
-            data = resp.json()
-            result = {
-                "content": data["hitokoto"],
-                "from": data.get("from", "未知")
-            }
-            print(f"✓ 获取成功：{result['content'][:30]}...")
-            return enrich_with_ai("sentence", result)
-    except Exception as e:
-        print(f"× 异常：{e}")
-    print("使用备选句子")
-    result = random.choice(FALLBACK_SENTENCES).copy()
-    return enrich_with_ai("sentence", result)
-
-# ==================== 每日一曲（真实库 + AI润色） ====================
+# ==================== 每日一曲（真实库+AI润色） ====================
 def fetch_song():
     """从真实歌曲库随机选一首，再由 AI 生成推荐语和歌词片段"""
     print("正在获取每日一曲（真实库+AI润色）...")
     library_file = os.path.join(data_dir, 'song_library.json')
 
-    # 如果歌曲库不存在或为空，降级到纯AI生成（备选）
     if not os.path.exists(library_file):
         print("歌曲库不存在，使用纯AI生成备选")
         return fetch_song_ai_fallback()
@@ -298,18 +294,16 @@ def fetch_song():
         print("歌曲库为空，使用纯AI生成备选")
         return fetch_song_ai_fallback()
 
-    # 随机选择一首
     chosen = random.choice(library)
     name = chosen['name']
     artist = chosen['artist']
     album = chosen.get('album', '未知专辑')
 
-    # 调用 AI 生成推荐语和歌词片段
     comment = f"今日推荐：{name}"
     lyrics = ""
     if ENABLE_AI:
         prompt = f"""
-        请为歌曲《{name}》- {artist}（专辑：{album}）写一段推荐语（80-120字），并附上一句真实歌词片段（如果知道的话，可以写出来；如果不知道，可以描述歌曲的风格或感受）。
+        请为歌曲《{name}》- {artist}（专辑：{album}）写一段推荐语（80-120字），并附上一句真实歌词片段（如果知道的话；如果不知道，可以描述歌曲的风格或感受）。
         请严格按照以下 JSON 格式输出：
         {{
             "comment": "推荐语",
@@ -392,13 +386,39 @@ def fetch_song_ai_fallback():
             continue
     return enrich_with_ai("song", random.choice(FALLBACK_SONGS).copy())
 
+# ==================== 每日一句 ====================
+def fetch_sentence():
+    """获取每日一句 - 来自一言API"""
+    print("正在获取每日一句...")
+    try:
+        url = "https://v1.hitokoto.cn/"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            result = {
+                "content": data["hitokoto"],
+                "from": data.get("from", "未知")
+            }
+            print(f"✓ 获取成功：{result['content'][:30]}...")
+            return enrich_with_ai("sentence", result)
+    except Exception as e:
+        print(f"× 异常：{e}")
+
+    print("使用备选句子")
+    result = random.choice(FALLBACK_SENTENCES).copy()
+    return enrich_with_ai("sentence", result)
+
 # ==================== 每日一文 ====================
 def fetch_article():
+    """获取每日一文：优先古诗文网，其次维基百科，最后备选"""
     print("正在获取每日一文...")
+
     # 1. 尝试古诗文网随机诗词
     try:
         url = "https://www.gushiwen.cn/random.aspx"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
         resp = requests.get(url, headers=headers, timeout=10)
         if resp.status_code == 200:
             soup = BeautifulSoup(resp.text, 'html.parser')
@@ -406,10 +426,13 @@ def fetch_article():
             if not title_tag:
                 title_tag = soup.find('b')
             title = title_tag.text.strip() if title_tag else "无题"
+
             content_div = soup.find('div', class_='contson')
             content = content_div.text.strip() if content_div else ""
+
             source_tag = soup.find('p', class_='source')
             author = source_tag.text.strip() if source_tag else "佚名"
+
             if content:
                 print(f"✓ 从古诗文网获取：{title}")
                 result = {
@@ -453,7 +476,7 @@ def fetch_article():
     result = random.choice(FALLBACK_ARTICLES).copy()
     return enrich_with_ai("article", result)
 
-# ==================== 每日一词（歌词优先）====================
+# ==================== 每日一词相关函数 ====================
 def fetch_word_from_song_lyrics():
     """从今日歌曲的歌词片段中提取一个词"""
     global _cached_song
@@ -484,8 +507,9 @@ def fetch_word_from_baidu():
     return {"word": word, "description": f"百度热搜 · {hot_value}"}
 
 def fetch_word_from_zhihu():
+    """从知乎热榜抓取"""
     url = "https://www.zhihu.com/billboard"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     resp = requests.get(url, headers=headers, timeout=8)
     if resp.status_code != 200:
         raise Exception(f"知乎请求失败: {resp.status_code}")
@@ -499,8 +523,9 @@ def fetch_word_from_zhihu():
     return {"word": word, "description": f"知乎热榜 · {hot_value}"}
 
 def fetch_word_from_douban():
+    """从豆瓣电影热门抓取"""
     url = "https://movie.douban.com/chart"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     resp = requests.get(url, headers=headers, timeout=8)
     if resp.status_code != 200:
         raise Exception(f"豆瓣请求失败: {resp.status_code}")
@@ -512,8 +537,9 @@ def fetch_word_from_douban():
     return {"word": word, "description": "豆瓣热门电影"}
 
 def fetch_word_from_sspai():
+    """从少数派热门文章抓取"""
     url = "https://sspai.com/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     resp = requests.get(url, headers=headers, timeout=8)
     if resp.status_code != 200:
         raise Exception(f"少数派请求失败: {resp.status_code}")
@@ -527,8 +553,11 @@ def fetch_word_from_sspai():
     return {"word": word, "description": "少数派热门文章"}
 
 def fetch_word_from_weibo():
+    """从微博热搜抓取（移动端）"""
     url = "https://s.weibo.com/top/summary"
-    headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'}
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'
+    }
     resp = requests.get(url, headers=headers, timeout=8)
     if resp.status_code != 200:
         raise Exception(f"微博请求失败: {resp.status_code}")
@@ -585,13 +614,13 @@ def fetch_word():
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    print(f"=== 每日数据爬虫（真实库+AI润色）开始运行 [{datetime.now().isoformat()}] ===")
+    print(f"=== 每日数据爬虫（自建API版）开始运行 [{datetime.now().isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 每周更新一次歌曲库
     update_song_library(force=False)
 
-    # 获取每日一曲（真实库）
+    # 获取每日一曲
     song = fetch_song()
     _cached_song = song
 
