@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日拾光 · 历史回顾</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Inter", sans-serif;
+            background: linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: "LXGW WenKai", cursive;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: #1e2f3f;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #4f5e6b;
+        }
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .year-group {
+            margin-bottom: 1.5rem;
+        }
+        .year-title {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #bf6f5a;
+            border-bottom: 2px solid rgba(191,111,90,0.3);
+            padding-bottom: 0.3rem;
+            margin-bottom: 1rem;
+        }
+        .month-group {
+            margin-left: 1rem;
+            margin-bottom: 1rem;
+        }
+        .month-title {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #4f9da6;
+            margin-bottom: 0.5rem;
+        }
+        .day-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-left: 1rem;
+        }
+        .day-card {
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 30px;
+            padding: 0.5rem 1.2rem;
+            border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        .day-card:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            border-color: #4f9da6;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 2rem;
+            color: #4f9da6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .loader {
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top: 5px solid #4f9da6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 每日拾光 · 历史回顾</h1>
+        <div class="subtitle">点击日期查看当天的完整内容</div>
+        <div id="loader" class="loader"></div>
+        <div id="timeline" class="timeline" style="display: none;"></div>
+        <a href="/" class="back-link">← 返回今日</a>
+    </div>
+    <script>
+        (async function() {
+            try {
+                const indexRes = await fetch('/data/history/index.json?t=' + Date.now());
+                const dates = await indexRes.json(); // 例如 ["2026-03-19", "2026-03-18", ...]
+                const timelineEl = document.getElementById('timeline');
+                const loader = document.getElementById('loader');
+                loader.style.display = 'none';
+                timelineEl.style.display = 'block';
+
+                // 按年份/月份分组
+                const grouped = {};
+                dates.forEach(date => {
+                    const [year, month, day] = date.split('-');
+                    if (!grouped[year]) grouped[year] = {};
+                    if (!grouped[year][month]) grouped[year][month] = [];
+                    grouped[year][month].push({ day, fullDate: date });
+                });
+
+                // 渲染
+                for (const year of Object.keys(grouped).sort().reverse()) {
+                    const yearDiv = document.createElement('div');
+                    yearDiv.className = 'year-group';
+                    yearDiv.innerHTML = `<div class="year-title">${year} 年</div>`;
+                    for (const month of Object.keys(grouped[year]).sort().reverse()) {
+                        const monthDiv = document.createElement('div');
+                        monthDiv.className = 'month-group';
+                        monthDiv.innerHTML = `<div class="month-title">${month} 月</div>`;
+                        const dayList = document.createElement('div');
+                        dayList.className = 'day-list';
+                        grouped[year][month].sort((a,b) => parseInt(b.day) - parseInt(a.day)).forEach(item => {
+                            const dayLink = document.createElement('a');
+                            dayLink.className = 'day-card';
+                            dayLink.href = `/data/history/${year}/${month}/${item.day}.json`;
+                            dayLink.target = '_blank'; // 在新标签页打开JSON，方便查看或后续可改为自定义展示页
+                            dayLink.textContent = `${item.day} 日`;
+                            dayList.appendChild(dayLink);
+                        });
+                        monthDiv.appendChild(dayList);
+                        yearDiv.appendChild(monthDiv);
+                    }
+                    timelineEl.appendChild(yearDiv);
+                }
+            } catch (err) {
+                console.error('加载历史索引失败', err);
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('timeline').innerHTML = '<p style="color:#bf6f5a;">历史数据加载失败，请稍后刷新</p>';
+            }
+        })();
+    </script>
+</body>
+</html>
