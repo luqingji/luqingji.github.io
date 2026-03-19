@@ -148,41 +148,6 @@
             border-left: 3px solid #bf6f5a;
         }
 
-        /* 播放按钮样式 */
-        .play-buttons {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .play-btn {
-            display: inline-block;
-            padding: 8px 16px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: background 0.2s, transform 0.1s;
-            border: 1px solid transparent;
-        }
-        .play-btn:hover {
-            transform: translateY(-2px);
-        }
-        .netease-btn {
-            background: #d43c33;
-            color: white;
-        }
-        .netease-btn:hover {
-            background: #b82d24;
-        }
-        .qqmusic-btn {
-            background: #1DB954;
-            color: white;
-        }
-        .qqmusic-btn:hover {
-            background: #169c46;
-        }
-
         .sentence-content {
             font-size: 1.7rem;
             font-family: "LXGW WenKai", cursive;
@@ -295,7 +260,7 @@
 
         <div id="loader" class="loader"></div>
 
-        <!-- 每日一曲卡片 -->
+        <!-- 每日一曲卡片（已移除音乐平台按钮） -->
         <div class="card" id="song-card" style="display: none;">
             <h2>🎵 每日一曲</h2>
             <div class="song-container">
@@ -305,11 +270,6 @@
                     <div class="artist" id="song-artist"></div>
                     <div class="album" id="song-album"></div>
                     <div class="song-comment" id="song-comment"></div>
-                    <!-- 播放按钮区域 -->
-                    <div class="play-buttons" id="play-buttons">
-                        <a id="netease-link" href="#" target="_blank" class="play-btn netease-btn">🎵 网易云听歌</a>
-                        <a id="qqmusic-link" href="#" target="_blank" class="play-btn qqmusic-btn">🎵 QQ音乐听歌</a>
-                    </div>
                 </div>
             </div>
             <div class="meaning" id="song-meaning"></div>
@@ -376,13 +336,6 @@
                             el.textContent = data.song.meaning;
                             el.style.display = 'block';
                         }
-
-                        // 设置播放按钮链接
-                        const searchQuery = encodeURIComponent(`${data.song.name} ${data.song.artist}`);
-                        const neteaseLink = `https://music.163.com/#/search/m/?s=${searchQuery}`;
-                        const qqmusicLink = `https://y.qq.com/n/ryqq/search?w=${searchQuery}`;
-                        document.getElementById('netease-link').href = neteaseLink;
-                        document.getElementById('qqmusic-link').href = qqmusicLink;
                     }
 
                     // 每日一句
