@@ -4,50 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>每日拾光 · 诗与歌的相遇</title>
-    <!-- Google Fonts 引入 Inter 和 LXGW WenKai -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: "Inter", sans-serif;
             background: linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%);
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             padding: 2rem 1rem;
-            line-height: 1.6;
             color: #2c3e50;
         }
-
-        .container {
-            max-width: 750px;
-            width: 100%;
-        }
-
-        .hero {
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-
+        .container { max-width: 750px; margin: 0 auto; }
+        .hero { text-align: center; margin-bottom: 2.5rem; }
         .hero h1 {
             font-family: "LXGW WenKai", cursive;
             font-size: 2.8rem;
             font-weight: 400;
             color: #1e2f3f;
-            letter-spacing: 2px;
             margin-bottom: 0.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
         }
-
         .hero .date {
             display: inline-block;
             background: rgba(255,255,255,0.3);
@@ -55,165 +32,80 @@
             padding: 0.4rem 1.5rem;
             border-radius: 40px;
             font-size: 0.95rem;
-            color: #2c3e50;
             border: 1px solid rgba(255,255,255,0.6);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
         }
-
         .card {
             background: rgba(255,255,255,0.75);
             backdrop-filter: blur(12px);
             border-radius: 32px;
             padding: 1.8rem 2rem;
             margin-bottom: 1.8rem;
-            box-shadow: 0 20px 35px -8px rgba(0,20,30,0.15),
-                        inset 0 1px 1px rgba(255,255,255,0.6);
+            box-shadow: 0 20px 35px -8px rgba(0,20,30,0.15);
             border: 1px solid rgba(255,255,255,0.5);
-            transition: transform 0.25s ease, box-shadow 0.3s ease;
+            transition: transform 0.25s ease;
             opacity: 0;
             animation: fadeInUp 0.5s ease forwards;
         }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 45px -12px rgba(0,20,40,0.25);
-        }
-
         @keyframes fadeInUp {
             0% { opacity: 0; transform: translateY(15px); }
             100% { opacity: 1; transform: translateY(0); }
         }
-
+        .card:hover { transform: translateY(-5px); }
         .card h2 {
             font-size: 1.8rem;
             font-weight: 500;
             margin-bottom: 1.2rem;
-            padding-left: 0.5rem;
             border-left: 5px solid #4f9da6;
+            padding-left: 0.5rem;
             color: #1e3c43;
-            letter-spacing: -0.01em;
         }
-
         .song-container {
             display: flex;
             gap: 1.8rem;
             align-items: center;
         }
-
         .song-cover {
             width: 120px;
             height: 120px;
             border-radius: 24px;
             object-fit: cover;
             box-shadow: 0 12px 25px -8px rgba(0,0,0,0.2);
-            transition: transform 0.2s ease;
-            background: #ddd;
         }
-
-        .song-cover:hover {
-            transform: scale(1.02);
-        }
-
-        .song-info {
-            flex: 1;
-        }
-
-        .song-info h3 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #1e2f3f;
-            line-height: 1.3;
-            margin-bottom: 0.3rem;
-        }
-
-        .song-info .artist {
-            font-size: 1.2rem;
-            color: #4f5e6b;
-            margin-bottom: 0.5rem;
-        }
-
-        .song-info .album {
-            font-size: 1rem;
-            color: #6b7c8b;
-            margin-bottom: 0.8rem;
-        }
-
+        .song-info h3 { font-size: 1.8rem; font-weight: 600; }
+        .song-info .artist { font-size: 1.2rem; color: #4f5e6b; }
+        .song-info .album { font-size: 1rem; color: #6b7c8b; }
         .song-comment {
             font-style: italic;
             color: #bf6f5a;
             background: rgba(255,235,220,0.7);
             padding: 0.8rem 1rem;
             border-radius: 20px;
-            font-size: 0.95rem;
-            border-left: 3px solid #bf6f5a;
+            margin-top: 1rem;
         }
-
         .sentence-content {
             font-size: 1.7rem;
             font-family: "LXGW WenKai", cursive;
-            line-height: 1.5;
-            color: #2c3e50;
-            margin-bottom: 0.8rem;
             text-align: center;
-            font-weight: 350;
-        }
-
-        .sentence-from {
-            text-align: right;
-            color: #6f8a9c;
-            font-size: 1.1rem;
-        }
-
-        .article-title {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #1e3c43;
-            margin-bottom: 0.5rem;
-        }
-
-        .article-desc {
-            color: #2c3e50;
-            line-height: 1.8;
             margin-bottom: 0.8rem;
         }
-
-        .article-author {
-            text-align: right;
-            color: #6b7c8b;
-            font-size: 1rem;
-        }
-
-        .word {
-            font-size: 4rem;
-            font-weight: 600;
-            color: #bf6f5a;
-            text-align: center;
-            line-height: 1.2;
-            margin-bottom: 0.5rem;
-            letter-spacing: 2px;
-        }
-
-        .word-desc {
-            text-align: center;
-            color: #4f5e6b;
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-        }
-
+        .sentence-from { text-align: right; color: #6f8a9c; }
+        .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .article-desc { color: #2c3e50; line-height: 1.8; }
+        .article-author { text-align: right; color: #6b7c8b; }
+        .word { font-size: 4rem; font-weight: 600; color: #bf6f5a; text-align: center; }
+        .word-desc { text-align: center; color: #4f5e6b; font-size: 1.3rem; }
+        .novel-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; }
+        .novel-content { line-height: 1.8; }
         .meaning {
             display: none;
             margin-top: 1.5rem;
-            background: rgba(225, 240, 250, 0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(225,240,250,0.7);
             padding: 1.2rem 1.5rem;
             border-radius: 24px;
             font-style: italic;
             color: #1e3c43;
             border-left: 4px solid #4f9da6;
-            font-size: 1rem;
-            line-height: 1.7;
         }
-
         .footer {
             text-align: center;
             color: #5d737e;
@@ -223,9 +115,7 @@
             background: rgba(255,255,255,0.3);
             backdrop-filter: blur(4px);
             border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.5);
         }
-
         .loader {
             border: 5px solid rgba(255,255,255,0.3);
             border-top: 5px solid #4f9da6;
@@ -235,12 +125,7 @@
             animation: spin 1s linear infinite;
             margin: 2rem auto;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 移动端适配 */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media (max-width: 600px) {
             .hero h1 { font-size: 2.2rem; }
             .card { padding: 1.5rem; }
@@ -257,14 +142,13 @@
             <h1>✨ 每日拾光 · 诗与歌的相遇</h1>
             <div class="date" id="date"></div>
         </div>
-
         <div id="loader" class="loader"></div>
 
-        <!-- 每日一曲卡片（已移除音乐平台按钮） -->
+        <!-- 每日一曲 -->
         <div class="card" id="song-card" style="display: none;">
             <h2>🎵 每日一曲</h2>
             <div class="song-container">
-                <img class="song-cover" id="song-cover" src="" alt="歌曲封面" onerror="this.src='https://via.placeholder.com/300x300?text=🎵'">
+                <img class="song-cover" id="song-cover" src="" alt="封面" onerror="this.src='https://via.placeholder.com/300x300?text=🎵'">
                 <div class="song-info">
                     <h3 id="song-title"></h3>
                     <div class="artist" id="song-artist"></div>
@@ -275,7 +159,7 @@
             <div class="meaning" id="song-meaning"></div>
         </div>
 
-        <!-- 每日一句卡片 -->
+        <!-- 每日一句 -->
         <div class="card" id="sentence-card" style="display: none;">
             <h2>💭 每日一句</h2>
             <div class="sentence-content" id="sentence-content"></div>
@@ -283,22 +167,29 @@
             <div class="meaning" id="sentence-meaning"></div>
         </div>
 
-        <!-- 每日一文卡片 -->
+        <!-- 每日一文 -->
         <div class="card" id="article-card" style="display: none;">
             <h2>📖 每日一文</h2>
             <div class="article-title" id="article-title"></div>
             <div class="article-desc" id="article-desc"></div>
             <div class="article-author" id="article-author"></div>
-            <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none; font-weight: 500;">🔗 阅读全文</a>
+            <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
             <div class="meaning" id="article-meaning"></div>
         </div>
 
-        <!-- 每日一词卡片 -->
+        <!-- 每日一词 -->
         <div class="card" id="word-card" style="display: none;">
             <h2>🔖 每日一词</h2>
             <div class="word" id="word"></div>
             <div class="word-desc" id="word-desc"></div>
             <div class="meaning" id="word-meaning"></div>
+        </div>
+
+        <!-- 每日一小说 -->
+        <div class="card" id="novel-card" style="display: none;">
+            <h2>📖 每日一小说 · 拾光</h2>
+            <div class="novel-title" id="novel-title"></div>
+            <div class="novel-content" id="novel-content"></div>
         </div>
 
         <div class="footer">
@@ -309,48 +200,38 @@
 
     <script>
         (function() {
-            const dataUrl = '/data/daily.json?t=' + Date.now();
-
-            fetch(dataUrl)
+            fetch('/data/daily.json?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('date').textContent = data.date || '今日';
                     if (data.updated_at) {
-                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN', { hour12: false })}`;
+                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
                     }
 
-                    // 每日一曲
                     if (data.song) {
-                        const songCard = document.getElementById('song-card');
-                        songCard.style.display = 'block';
+                        document.getElementById('song-card').style.display = 'block';
                         document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
-                        document.getElementById('song-title').textContent = data.song.name || '未知歌曲';
+                        document.getElementById('song-title').textContent = data.song.name || '';
                         document.getElementById('song-artist').textContent = data.song.artist ? `歌手 · ${data.song.artist}` : '';
                         document.getElementById('song-album').textContent = data.song.album ? `专辑 · ${data.song.album}` : '';
                         if (data.song.comment?.content) {
-                            document.getElementById('song-comment').textContent = `“${data.song.comment.content}” —— ${data.song.comment.user || '网易云用户'}`;
+                            document.getElementById('song-comment').textContent = `“${data.song.comment.content}” —— ${data.song.comment.user || ''}`;
                         }
                         if (data.song.meaning) {
-                            const el = document.getElementById('song-meaning');
-                            el.textContent = data.song.meaning;
-                            el.style.display = 'block';
+                            document.getElementById('song-meaning').textContent = data.song.meaning;
+                            document.getElementById('song-meaning').style.display = 'block';
                         }
                     }
-
-                    // 每日一句
                     if (data.sentence) {
                         document.getElementById('sentence-card').style.display = 'block';
                         document.getElementById('sentence-content').textContent = data.sentence.content || '';
                         document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
                         if (data.sentence.meaning) {
-                            const el = document.getElementById('sentence-meaning');
-                            el.textContent = data.sentence.meaning;
-                            el.style.display = 'block';
+                            document.getElementById('sentence-meaning').textContent = data.sentence.meaning;
+                            document.getElementById('sentence-meaning').style.display = 'block';
                         }
                     }
-
-                    // 每日一文
                     if (data.article) {
                         document.getElementById('article-card').style.display = 'block';
                         document.getElementById('article-title').textContent = data.article.title || '';
@@ -362,28 +243,29 @@
                             document.getElementById('article-link').style.display = 'none';
                         }
                         if (data.article.meaning) {
-                            const el = document.getElementById('article-meaning');
-                            el.textContent = data.article.meaning;
-                            el.style.display = 'block';
+                            document.getElementById('article-meaning').textContent = data.article.meaning;
+                            document.getElementById('article-meaning').style.display = 'block';
                         }
                     }
-
-                    // 每日一词
                     if (data.word) {
                         document.getElementById('word-card').style.display = 'block';
                         document.getElementById('word').textContent = data.word.word || '';
                         document.getElementById('word-desc').textContent = data.word.description || '';
                         if (data.word.meaning) {
-                            const el = document.getElementById('word-meaning');
-                            el.textContent = data.word.meaning;
-                            el.style.display = 'block';
+                            document.getElementById('word-meaning').textContent = data.word.meaning;
+                            document.getElementById('word-meaning').style.display = 'block';
                         }
+                    }
+                    if (data.novel) {
+                        document.getElementById('novel-card').style.display = 'block';
+                        document.getElementById('novel-title').textContent = data.novel.title || '';
+                        document.getElementById('novel-content').textContent = data.novel.content || '';
                     }
                 })
                 .catch(err => {
-                    console.error('数据加载失败', err);
+                    console.error(err);
                     document.getElementById('loader').style.display = 'none';
-                    document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">数据加载失败，请稍后刷新</p>';
+                    document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">数据加载失败</p>';
                 });
         })();
     </script>
