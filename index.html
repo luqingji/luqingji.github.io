@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 样式与之前相同，略 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -79,7 +80,6 @@
         }
         .card:hover { transform: translateY(-5px); }
 
-        /* 卡片头部：标题 + 按钮 */
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -122,7 +122,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 原卡片内容样式保持不变 */
         .song-container {
             display: flex;
             gap: 1.8rem;
@@ -561,18 +560,32 @@
                         document.getElementById('novel-stats').textContent = formatStats(novelWords);
                     }
 
-                    // 绑定盲盒按钮事件
-                    document.querySelectorAll('.open-btn').forEach(btn => {
-                        btn.addEventListener('click', function(e) {
-                            const card = this.closest('.card');
-                            const content = card.querySelector('.card-content');
+                    // ========== 绑定盲盒按钮事件（确保在数据填充后执行） ==========
+                    const openBtns = document.querySelectorAll('.open-btn');
+                    console.log(`找到 ${openBtns.length} 个盲盒按钮`);  // 调试：输出按钮数量
+                    openBtns.forEach(btn => {
+                        // 移除可能已绑定的旧事件，避免重复
+                        btn.removeEventListener('click', handleBlindBox);
+                        btn.addEventListener('click', handleBlindBox);
+                    });
+
+                    function handleBlindBox(e) {
+                        const btn = e.currentTarget;
+                        const card = btn.closest('.card');
+                        const content = card.querySelector('.card-content');
+                        if (content) {
                             if (content.style.display === 'none') {
                                 content.style.display = 'block';
-                                this.textContent = '📦 已开启';
-                                this.disabled = true;  // 或可保留可点击但文字不变，这里设为不可重复开启
+                                btn.textContent = '📦 已开启';
+                                btn.disabled = true;  // 可选：开启后禁用按钮
+                                console.log(`已打开盲盒：${btn.getAttribute('data-card')}`);
+                            } else {
+                                // 如果已开启，可以什么都不做，或者允许重新关闭（这里不实现）
                             }
-                        });
-                    });
+                        } else {
+                            console.error('未找到 card-content', card);
+                        }
+                    }
                 })
                 .catch(err => {
                     console.error(err);
