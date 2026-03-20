@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，每日三篇小说，每篇2000字以上）
+每日数据爬虫（完整版 v1.0，每日三篇小说，优化稳定性和容错）
 - 每日一句：一言API
 - 每日一曲：真实歌曲库（自建网易云API） + AI润色
 - 每日一文：古诗文网 → 维基百科 → 备选
 - 每日一词：优先从歌曲歌词提取 → 热搜备选
-- 每日小说：AI生成 3 篇（12种随机风格，每篇2000-3000字，作者“拾光”）
+- 每日小说：AI生成 3 篇（每篇1500字以上，12种随机风格）
 - 历史存档：自动保存每日数据
 """
 
@@ -127,7 +127,8 @@ FALLBACK_NOVELS = [
 ]
 
 # ==================== AI辅助函数 ====================
-def call_ai(prompt, max_tokens=300, temperature=0.7):
+def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
+    """调用硅基流动 API 生成文本，支持调节超时"""
     if not ENABLE_AI:
         return None
     headers = {
@@ -144,9 +145,11 @@ def call_ai(prompt, max_tokens=300, temperature=0.7):
         "temperature": temperature
     }
     try:
-        resp = requests.post(f"{SILICONFLOW_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=15)
+        resp = requests.post(f"{SILICONFLOW_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=timeout)
         if resp.status_code == 200:
             return resp.json()['choices'][0]['message']['content'].strip()
+        else:
+            print(f"AI调用失败: {resp.status_code} - {resp.text}")
     except Exception as e:
         print(f"AI请求异常: {e}")
     return None
@@ -159,7 +162,7 @@ def enrich_with_ai(item_type, raw_data):
         content = raw_data.get('content', '')
         from_ = raw_data.get('from', '')
         prompt = f"请为这句话写一段简短的解读（50-100字）：\n\n“{content}” —— {from_}"
-        meaning = call_ai(prompt, max_tokens=150)
+        meaning = call_ai(prompt, max_tokens=150, timeout=15)
         if meaning:
             raw_data['meaning'] = meaning
     elif item_type == "song":
@@ -168,14 +171,14 @@ def enrich_with_ai(item_type, raw_data):
         album = raw_data.get('album', '')
         comment = raw_data.get('comment', {}).get('content', '')
         prompt = f"请为歌曲《{name}》- {artist}写一段推荐语（100-150字）。参考评论：{comment}"
-        meaning = call_ai(prompt, max_tokens=250)
+        meaning = call_ai(prompt, max_tokens=250, timeout=20)
         if meaning:
             raw_data['meaning'] = meaning
     elif item_type == "article":
         title = raw_data.get('title', '')
         desc = raw_data.get('description', '')
         prompt = f"请为文章《{title}》写一段推荐语（80-120字）：{desc[:200]}"
-        meaning = call_ai(prompt, max_tokens=200)
+        meaning = call_ai(prompt, max_tokens=200, timeout=15)
         if meaning:
             raw_data['meaning'] = meaning
     return raw_data
@@ -243,7 +246,7 @@ def fetch_song():
     lyrics = ""
     if ENABLE_AI:
         prompt = f"请为歌曲《{name}》- {artist}写一段推荐语（80-120字），并附上一句歌词片段。输出JSON：{{\"comment\":\"...\", \"lyrics_snippet\":\"...\"}}"
-        ai_resp = call_ai(prompt, max_tokens=300, temperature=0.5)
+        ai_resp = call_ai(prompt, max_tokens=300, temperature=0.5, timeout=15)
         if ai_resp:
             try:
                 data = json.loads(ai_resp)
@@ -421,9 +424,42 @@ def fetch_word():
             continue
     return enrich_with_ai("word", random.choice(FALLBACK_WORDS).copy())
 
-# ==================== 每日小说（3篇，每篇2000字以上） ====================
+# ==================== 每日小说（3篇，优化稳定版） ====================
+def clean_json_string(s):
+    """尝试修复 JSON 中常见的格式错误"""
+    # 去除首尾空白
+    s = s.strip()
+    # 移除 BOM
+    if s.startswith('\ufeff'):
+        s = s[1:]
+    # 替换不可见控制字符
+    s = re.sub(r'[\x00-\x1f\x7f]', '', s)
+    # 尝试修复缺失的逗号（简单启发式）
+    # 例如 "key": "value" "key2":   -> 在 " 和 " 之间加逗号
+    s = re.sub(r'\"\s+\"', '", "', s)
+    # 修复末尾多余的逗号
+    s = re.sub(r',\s*}', '}', s)
+    s = re.sub(r',\s*]', ']', s)
+    return s
+
+def extract_json(text):
+    """从 AI 回复中提取第一个完整的 JSON 对象"""
+    # 找到第一个 '{' 和对应的 '}'
+    start = text.find('{')
+    if start == -1:
+        return None
+    brace_count = 0
+    for i in range(start, len(text)):
+        if text[i] == '{':
+            brace_count += 1
+        elif text[i] == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                return text[start:i+1]
+    return None
+
 def generate_one_novel():
-    """生成一篇小说（带重试和风格随机），字数严格2000字以上"""
+    """生成一篇小说，带回退和重试"""
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
         {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
@@ -444,8 +480,7 @@ def generate_one_novel():
     请创作一篇短篇小说，严格按照以下要求：
     - 风格：{chosen['name']}（{chosen['desc']}）
     - 标题简洁有吸引力
-    - 正文必须在2000字以上，上不封顶，建议在2000-3000字之间。
-    - 情节完整，有起承转合，人物形象鲜明，场景描写细腻。
+    - 正文在1500-2500字之间，情节完整，有起承转合，人物形象鲜明，场景描写细腻。
     - 适当加入反派或冲突元素（可以是人物、命运、环境等），增强故事张力。
     - 不要刻意压缩字数，充分展开故事，细节越丰富越好。
     - 按以下JSON格式输出，不要包含任何其他文字：
@@ -454,45 +489,49 @@ def generate_one_novel():
         "content": "小说正文"
     }}
     """
-    ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8)
+    ai_resp = call_ai(prompt, max_tokens=9000, temperature=0.8, timeout=30)
     if not ai_resp:
         return None
 
-    import re
-    json_pattern = r'(\{(?:[^{}]|(?:\{[^{}]*\}))*\})'
-    matches = re.findall(json_pattern, ai_resp, re.DOTALL)
-    for json_str in matches:
-        try:
-            json_str_clean = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
-            data = json.loads(json_str_clean)
-            title = data.get('title', '').strip()
-            content = data.get('content', '').strip()
-            if title and content:
-                word_count = len(content)
-                if word_count < 2000:
-                    print(f"  × 字数不足2000（实际{word_count}），重试")
-                    return None
-                print(f"  ✓ 生成成功：{title}，字数约{word_count}")
-                return {"title": title, "content": content}
-        except json.JSONDecodeError as e:
-            print(f"  × JSON解析失败: {e}")
-            continue
-    print(f"  × 解析失败，AI响应片段: {ai_resp[:200]}")
+    # 提取 JSON
+    json_str = extract_json(ai_resp)
+    if not json_str:
+        print(f"  × 未找到JSON结构，AI响应片段: {ai_resp[:200]}")
+        return None
+
+    # 清理并解析
+    json_str = clean_json_string(json_str)
+    try:
+        data = json.loads(json_str)
+        title = data.get('title', '').strip()
+        content = data.get('content', '').strip()
+        if title and content:
+            word_count = len(content)
+            if word_count < 1500:
+                print(f"  × 字数不足1500（实际{word_count}），重试")
+                return None
+            print(f"  ✓ 生成成功：{title}，字数约{word_count}")
+            return {"title": title, "content": content}
+        else:
+            print("  × 返回字段不完整")
+    except json.JSONDecodeError as e:
+        print(f"  × JSON解析失败: {e}")
+        # 打印前200字符帮助调试
+        print(f"  JSON片段: {json_str[:200]}")
     return None
 
 def fetch_novels(n=3):
-    """获取每日三篇小说"""
+    """获取每日三篇小说，尽可能多地生成成功，不足部分用备选补全"""
     print("正在获取每日三篇小说...")
     novels = []
     for i in range(n):
         print(f"生成第 {i+1} 篇:")
         novel = None
-        # 最多尝试3次
-        for attempt in range(3):
+        for attempt in range(3):  # 每篇最多尝试3次
             novel = generate_one_novel()
             if novel:
                 break
-            time.sleep(1)
+            time.sleep(2)  # 重试前等待2秒
         if novel:
             novels.append(novel)
         else:
@@ -508,7 +547,7 @@ def main():
     # 使用北京时间
     bj_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，每篇2000字以上）开始运行 [{bj_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，优化稳定版）开始运行 [{bj_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
