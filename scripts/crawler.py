@@ -311,20 +311,21 @@ def fetch_article():
 
 # ==================== 每日一小说（增强版）====================
 def fetch_novel():
+    """获取每日一小说 - 字数1500+无上限，强化提示词，加入反派/冲突元素"""
     print("正在获取每日一小说...")
     styles = [
-        {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
-        {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
-        {"name": "科幻未来", "desc": "设定在未来或科技背景下，探讨人性与技术。"},
-        {"name": "幽默搞笑", "desc": "轻松诙谐，让人会心一笑或捧腹。"},
-        {"name": "人生哲理", "desc": "短小精悍，蕴含深刻道理，引人深思。"},
-        {"name": "都市情感", "desc": "现代城市中的情感故事，关于爱情、友情或亲情。"},
-        {"name": "奇幻冒险", "desc": "奇幻世界或冒险旅程，充满想象力。"},
-        {"name": "历史瞬间", "desc": "以历史事件或人物为背景，展现时代切片。"},
-        {"name": "微恐怖", "desc": "轻微恐怖氛围，但不过分，结局留有想象空间。"},
-        {"name": "动物视角", "desc": "以动物为主角，通过它们的眼睛看世界。"},
-        {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期。"},
-        {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主。"},
+        {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望，细节温暖。"},
+        {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料，逻辑严密。"},
+        {"name": "科幻未来", "desc": "设定在未来或科技背景下，探讨人性与技术，想象丰富。"},
+        {"name": "幽默搞笑", "desc": "轻松诙谐，让人会心一笑或捧腹，语言风趣。"},
+        {"name": "人生哲理", "desc": "蕴含深刻道理，引人深思，通过故事传递智慧。"},
+        {"name": "都市情感", "desc": "现代城市中的情感故事，关于爱情、友情或亲情，情感真挚。"},
+        {"name": "奇幻冒险", "desc": "奇幻世界或冒险旅程，充满想象力，世界观独特。"},
+        {"name": "历史瞬间", "desc": "以历史事件或人物为背景，展现时代切片，考究细节。"},
+        {"name": "微恐怖", "desc": "轻微恐怖氛围，但不过分，结局留有想象空间，氛围营造出色。"},
+        {"name": "动物视角", "desc": "以动物为主角，通过它们的眼睛看世界，视角新颖。"},
+        {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期，铺垫合理。"},
+        {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主，语言优美。"},
     ]
     if not ENABLE_AI:
         return random.choice(FALLBACK_NOVELS).copy()
@@ -333,10 +334,13 @@ def fetch_novel():
         chosen = random.choice(styles)
         print(f"尝试 {attempt+1}，风格：{chosen['name']}")
         prompt = f"""
-        请创作一篇短篇小说，要求：
+        请创作一篇短篇小说，严格按照以下要求：
         - 风格：{chosen['name']}（{chosen['desc']}）
         - 标题简洁有吸引力
-        - 正文在1500-2500字之间，情节完整，有起承转合
+        - **字数要求：正文必须在1500字以上，上不封顶，请尽情发挥，写得越长越丰富越好。鼓励添加细腻的场景描写、人物心理活动、对话和情节转折。**
+        - 情节完整，有起承转合，人物形象鲜明，让读者沉浸其中。
+        - **反派/冲突元素：请根据风格适当加入反派角色或冲突元素（可以是人物、势力、命运、环境等广义的对抗力量），增强故事的张力和可读性，但要自然融入情节，避免生硬。**
+        - 不要刻意压缩字数，而是充分展开故事，细节越多越好。
         - 按以下JSON格式输出，不要包含任何其他文字：
         {{
             "title": "小说标题",
@@ -344,7 +348,7 @@ def fetch_novel():
         }}
         """
         try:
-            ai_resp = call_ai(prompt, max_tokens=5000, temperature=0.8)
+            ai_resp = call_ai(prompt, max_tokens=12000, temperature=0.8)
         except Exception as e:
             print(f"× AI调用异常: {e}")
             continue
@@ -358,11 +362,13 @@ def fetch_novel():
         success = False
         for json_str in matches:
             try:
-                data = json.loads(json_str)
+                json_str_clean = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
+                data = json.loads(json_str_clean)
                 title = data.get('title', '').strip()
                 content = data.get('content', '').strip()
                 if title and content:
-                    print(f"✓ 小说生成成功：{title}")
+                    word_count = len(content)
+                    print(f"✓ 小说生成成功：{title}，字数约{word_count}")
                     return {"title": title, "content": content}
                 else:
                     print("× 返回字段不完整")
