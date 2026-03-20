@@ -8,6 +8,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <style>
+        /* ==================== CSS 变量 ==================== */
+        :root {
+            --theme-color: #4f9da6;
+            --theme-accent: #bf6f5a;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -27,17 +33,21 @@
             border-color: rgba(255,255,255,0.1);
             color: #e0e0e0;
         }
-        body.dark-mode .card h2 { color: #b0c4de; border-left-color: #6c91b2; }
+        body.dark-mode .card h2 { color: #b0c4de; border-left-color: var(--theme-color); }
         body.dark-mode .song-comment { background: rgba(100,80,70,0.5); color: #f0b27a; }
         body.dark-mode .sentence-content { color: #f0f0f0; }
         body.dark-mode .sentence-from { color: #a0b0c0; }
         body.dark-mode .article-title, body.dark-mode .novel-title { color: #d0e0f0; }
         body.dark-mode .article-desc, body.dark-mode .novel-content { color: #ccc; }
-        body.dark-mode .meaning { background: rgba(50,70,90,0.7); color: #e0e0e0; border-left-color: #6c91b2; }
+        body.dark-mode .meaning { background: rgba(50,70,90,0.7); color: #e0e0e0; border-left-color: var(--theme-color); }
         body.dark-mode .footer { background: rgba(20,30,40,0.5); color: #aaa; }
-        body.dark-mode .back-link { color: #6c91b2; }
+        body.dark-mode .back-link { color: var(--theme-color); }
         body.dark-mode .day-card { background: rgba(40,50,60,0.7); color: #e0e0e0; border-color: rgba(255,255,255,0.1); }
         body.dark-mode .day-card:hover { background: rgba(60,80,100,0.9); }
+        body.dark-mode .stats { color: #9aaebf; border-top-color: rgba(255,255,255,0.1); }
+        body.dark-mode .theme-toggle { background: rgba(0,0,0,0.5); color: #eee; }
+        body.dark-mode .color-picker-container { background: rgba(0,0,0,0.5); }
+        body.dark-mode .color-picker-container label { color: #ddd; }
 
         .container { max-width: 750px; margin: 0 auto; position: relative; }
         .hero { text-align: center; margin-bottom: 2.5rem; position: relative; }
@@ -79,7 +89,7 @@
             font-size: 1.8rem;
             font-weight: 500;
             margin-bottom: 1.2rem;
-            border-left: 5px solid #4f9da6;
+            border-left: 5px solid var(--theme-color);
             padding-left: 0.5rem;
             color: #1e3c43;
         }
@@ -100,7 +110,7 @@
         .song-info .album { font-size: 1rem; color: #6b7c8b; }
         .song-comment {
             font-style: italic;
-            color: #bf6f5a;
+            color: var(--theme-accent);
             background: rgba(255,235,220,0.7);
             padding: 0.8rem 1rem;
             border-radius: 20px;
@@ -143,9 +153,7 @@
             transition: opacity 0.3s;
             pointer-events: none;
         }
-        .toast.show {
-            opacity: 1;
-        }
+        .toast.show { opacity: 1; }
         .sentence-content {
             font-size: 1.7rem;
             font-family: "LXGW WenKai", cursive;
@@ -167,7 +175,7 @@
             font-weight: 600;
             margin-bottom: 1rem;
             color: #1e3c43;
-            border-left: 4px solid #bf6f5a;
+            border-left: 4px solid var(--theme-accent);
             padding-left: 1rem;
         }
         .novel-content {
@@ -180,9 +188,7 @@
             margin-bottom: 1.2em;
             text-indent: 2em;
         }
-        .novel-content p:last-child {
-            margin-bottom: 0;
-        }
+        .novel-content p:last-child { margin-bottom: 0; }
 
         .stats {
             margin-top: 1rem;
@@ -192,7 +198,6 @@
             border-top: 1px dashed rgba(0,0,0,0.1);
             padding-top: 0.8rem;
         }
-        body.dark-mode .stats { color: #9aaebf; border-top-color: rgba(255,255,255,0.1); }
 
         .meaning {
             display: none;
@@ -202,7 +207,7 @@
             border-radius: 24px;
             font-style: italic;
             color: #1e3c43;
-            border-left: 4px solid #4f9da6;
+            border-left: 4px solid var(--theme-color);
         }
         .footer {
             text-align: center;
@@ -216,7 +221,7 @@
         }
         .loader {
             border: 5px solid rgba(255,255,255,0.3);
-            border-top: 5px solid #4f9da6;
+            border-top: 5px solid var(--theme-color);
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -246,16 +251,9 @@
             font-size: 1.5rem;
             border: none;
         }
-        .go-top.visible {
-            opacity: 1;
-        }
-        .go-top:hover {
-            background: rgba(0,0,0,0.7);
-        }
-        body.dark-mode .go-top {
-            background: rgba(255,255,255,0.2);
-            color: #ccc;
-        }
+        .go-top.visible { opacity: 1; }
+        .go-top:hover { background: rgba(0,0,0,0.7); }
+        body.dark-mode .go-top { background: rgba(255,255,255,0.2); color: #ccc; }
 
         /* 暗色模式切换按钮 */
         .theme-toggle {
@@ -275,12 +273,34 @@
             gap: 6px;
             transition: background 0.2s;
         }
-        .theme-toggle:hover {
-            background: rgba(255,255,255,0.8);
+        .theme-toggle:hover { background: rgba(255,255,255,0.8); }
+
+        /* 颜色选择器容器 */
+        .color-picker-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 40px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
         }
-        body.dark-mode .theme-toggle {
-            background: rgba(0,0,0,0.5);
-            color: #eee;
+        .color-picker-container label {
+            color: white;
+            font-size: 0.9rem;
+        }
+        #theme-color-picker {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: var(--theme-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
         @media (max-width: 600px) {
@@ -292,6 +312,8 @@
             .novel-title { font-size: 1.8rem; }
             .novel-content { font-size: 1rem; }
             .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
+            .color-picker-container { bottom: 10px; left: 10px; padding: 5px 12px; }
+            #theme-color-picker { width: 28px; height: 28px; }
         }
     </style>
 </head>
@@ -300,6 +322,11 @@
     <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
     <!-- 回到顶部按钮 -->
     <div class="go-top" id="go-top">↑</div>
+    <!-- 颜色选择器 -->
+    <div class="color-picker-container">
+        <label>🎨 主题色</label>
+        <input type="color" id="theme-color-picker" value="#4f9da6">
+    </div>
     <div class="toast" id="toast">已复制</div>
 
     <div class="container">
@@ -341,7 +368,7 @@
             <div class="article-title" id="article-title"></div>
             <div class="article-desc" id="article-desc"></div>
             <div class="article-author" id="article-author"></div>
-            <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
+            <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: var(--theme-color); text-decoration: none;">🔗 阅读全文</a>
             <div class="meaning" id="article-meaning"></div>
             <div class="stats" id="article-stats"></div>
         </div>
@@ -356,12 +383,30 @@
 
         <div class="footer">
             <div id="update-time"></div>
-            <a href="/history.html" style="color: #4f9da6; text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
+            <a href="/history.html" style="color: var(--theme-color); text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
         </div>
     </div>
 
     <script>
         (function() {
+            // ==================== 主题色管理 ====================
+            function setThemeColor(color) {
+                document.documentElement.style.setProperty('--theme-color', color);
+                localStorage.setItem('themeColor', color);
+                const picker = document.getElementById('theme-color-picker');
+                if (picker) picker.value = color;
+            }
+            const savedColor = localStorage.getItem('themeColor');
+            if (savedColor) {
+                setThemeColor(savedColor);
+            }
+            const colorPicker = document.getElementById('theme-color-picker');
+            if (colorPicker) {
+                colorPicker.addEventListener('input', (e) => {
+                    setThemeColor(e.target.value);
+                });
+            }
+
             // ==================== 随机渐变背景 ====================
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
@@ -413,7 +458,6 @@
 
             // ==================== 字数统计函数 ====================
             function countWords(text) {
-                // 中文字符数 + 英文单词数（简单估算）
                 const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
                 const english = (text.match(/[a-zA-Z]+/g) || []).length;
                 return chinese + english;
