@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        /* 样式与之前一致，保持不变 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -301,7 +300,6 @@
 
     <script>
         (function() {
-            // 随机渐变背景
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
                 "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
@@ -312,7 +310,6 @@
             ];
             document.body.style.background = gradients[Math.floor(Math.random() * gradients.length)];
 
-            // 暗色模式
             const themeToggle = document.getElementById('theme-toggle');
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'dark') {
@@ -326,7 +323,6 @@
                 themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
             });
 
-            // 回到顶部
             const goTopBtn = document.getElementById('go-top');
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 300) goTopBtn.classList.add('visible');
@@ -334,7 +330,6 @@
             });
             goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-            // 复制功能
             function copyToClipboard(text) {
                 navigator.clipboard.writeText(text).then(() => {
                     const toast = document.getElementById('toast');
@@ -343,7 +338,6 @@
                 }).catch(() => alert('复制失败'));
             }
 
-            // 生成图片功能
             function captureCard(element, filename = '拾光驿站.png') {
                 if (!element) {
                     alert('无法截取内容');
@@ -365,7 +359,6 @@
                 });
             }
 
-            // 字数统计
             function countWords(text) {
                 const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
                 const english = (text.match(/[a-zA-Z]+/g) || []).length;
@@ -375,7 +368,6 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // 获取日期参数并加载数据
             const urlParams = new URLSearchParams(window.location.search);
             const date = urlParams.get('date');
             if (!date) {
