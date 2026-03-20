@@ -92,8 +92,6 @@
         .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
-        .word { font-size: 4rem; font-weight: 600; color: #bf6f5a; text-align: center; }
-        .word-desc { text-align: center; color: #4f5e6b; font-size: 1.3rem; }
         .novel-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; }
         .novel-content { line-height: 1.8; }
         .meaning {
@@ -132,7 +130,6 @@
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
             .sentence-content { font-size: 1.4rem; }
-            .word { font-size: 3.2rem; }
         }
     </style>
 </head>
@@ -175,14 +172,6 @@
             <div class="article-author" id="article-author"></div>
             <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
             <div class="meaning" id="article-meaning"></div>
-        </div>
-
-        <!-- 每日一词 -->
-        <div class="card" id="word-card" style="display: none;">
-            <h2>🔖 每日一词</h2>
-            <div class="word" id="word"></div>
-            <div class="word-desc" id="word-desc"></div>
-            <div class="meaning" id="word-meaning"></div>
         </div>
 
         <!-- 每日一小说 -->
@@ -245,15 +234,6 @@
                         if (data.article.meaning) {
                             document.getElementById('article-meaning').textContent = data.article.meaning;
                             document.getElementById('article-meaning').style.display = 'block';
-                        }
-                    }
-                    if (data.word) {
-                        document.getElementById('word-card').style.display = 'block';
-                        document.getElementById('word').textContent = data.word.word || '';
-                        document.getElementById('word-desc').textContent = data.word.description || '';
-                        if (data.word.meaning) {
-                            document.getElementById('word-meaning').textContent = data.word.meaning;
-                            document.getElementById('word-meaning').style.display = 'block';
                         }
                     }
                     if (data.novel) {
