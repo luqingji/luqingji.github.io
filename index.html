@@ -15,9 +15,32 @@
             min-height: 100vh;
             padding: 2rem 1rem;
             color: #2c3e50;
+            transition: background 0.3s, color 0.3s;
         }
-        .container { max-width: 750px; margin: 0 auto; }
-        .hero { text-align: center; margin-bottom: 2.5rem; }
+        /* 暗色模式 */
+        body.dark-mode {
+            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+            color: #e0e0e0;
+        }
+        body.dark-mode .card {
+            background: rgba(30,40,50,0.85);
+            border-color: rgba(255,255,255,0.1);
+            color: #e0e0e0;
+        }
+        body.dark-mode .card h2 { color: #b0c4de; border-left-color: #6c91b2; }
+        body.dark-mode .song-comment { background: rgba(100,80,70,0.5); color: #f0b27a; }
+        body.dark-mode .sentence-content { color: #f0f0f0; }
+        body.dark-mode .sentence-from { color: #a0b0c0; }
+        body.dark-mode .article-title, body.dark-mode .novel-title { color: #d0e0f0; }
+        body.dark-mode .article-desc, body.dark-mode .novel-content { color: #ccc; }
+        body.dark-mode .meaning { background: rgba(50,70,90,0.7); color: #e0e0e0; border-left-color: #6c91b2; }
+        body.dark-mode .footer { background: rgba(20,30,40,0.5); color: #aaa; }
+        body.dark-mode .back-link { color: #6c91b2; }
+        body.dark-mode .day-card { background: rgba(40,50,60,0.7); color: #e0e0e0; border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .day-card:hover { background: rgba(60,80,100,0.9); }
+
+        .container { max-width: 750px; margin: 0 auto; position: relative; }
+        .hero { text-align: center; margin-bottom: 2.5rem; position: relative; }
         .hero h1 {
             font-family: "LXGW WenKai", cursive;
             font-size: 2.8rem;
@@ -25,6 +48,7 @@
             color: #1e2f3f;
             margin-bottom: 0.5rem;
         }
+        body.dark-mode .hero h1 { color: #d0e0f0; }
         .hero .date {
             display: inline-block;
             background: rgba(255,255,255,0.3);
@@ -42,7 +66,7 @@
             margin-bottom: 1.8rem;
             box-shadow: 0 20px 35px -8px rgba(0,20,30,0.15);
             border: 1px solid rgba(255,255,255,0.5);
-            transition: transform 0.25s ease;
+            transition: transform 0.25s ease, background 0.3s;
             opacity: 0;
             animation: fadeInUp 0.5s ease forwards;
         }
@@ -82,18 +106,62 @@
             border-radius: 20px;
             margin-top: 1rem;
         }
+        .sentence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .copy-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            transition: background 0.2s;
+            color: inherit;
+        }
+        .copy-btn:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        body.dark-mode .copy-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show {
+            opacity: 1;
+        }
         .sentence-content {
             font-size: 1.7rem;
             font-family: "LXGW WenKai", cursive;
             text-align: center;
             margin-bottom: 0.8rem;
         }
-        .sentence-from { text-align: right; color: #6f8a9c; }
+        .sentence-from {
+            text-align: right;
+            color: #6f8a9c;
+            font-size: 1.1rem;
+        }
         .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
-        
-        /* 小说卡片新样式 */
+
+        /* 小说卡片样式 */
         .novel-title {
             font-size: 2rem;
             font-weight: 600;
@@ -115,6 +183,16 @@
         .novel-content p:last-child {
             margin-bottom: 0;
         }
+
+        .stats {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: right;
+            border-top: 1px dashed rgba(0,0,0,0.1);
+            padding-top: 0.8rem;
+        }
+        body.dark-mode .stats { color: #9aaebf; border-top-color: rgba(255,255,255,0.1); }
 
         .meaning {
             display: none;
@@ -146,6 +224,65 @@
             margin: 2rem auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 回到顶部按钮 */
+        .go-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 44px;
+            height: 44px;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 999;
+            color: white;
+            font-size: 1.5rem;
+            border: none;
+        }
+        .go-top.visible {
+            opacity: 1;
+        }
+        .go-top:hover {
+            background: rgba(0,0,0,0.7);
+        }
+        body.dark-mode .go-top {
+            background: rgba(255,255,255,0.2);
+            color: #ccc;
+        }
+
+        /* 暗色模式切换按钮 */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.5);
+            backdrop-filter: blur(4px);
+            border: none;
+            border-radius: 40px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 1rem;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s;
+        }
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.8);
+        }
+        body.dark-mode .theme-toggle {
+            background: rgba(0,0,0,0.5);
+            color: #eee;
+        }
+
         @media (max-width: 600px) {
             .hero h1 { font-size: 2.2rem; }
             .card { padding: 1.5rem; }
@@ -154,10 +291,17 @@
             .sentence-content { font-size: 1.4rem; }
             .novel-title { font-size: 1.8rem; }
             .novel-content { font-size: 1rem; }
+            .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
         }
     </style>
 </head>
 <body>
+    <!-- 暗色模式切换按钮 -->
+    <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
+    <!-- 回到顶部按钮 -->
+    <div class="go-top" id="go-top">↑</div>
+    <div class="toast" id="toast">已复制</div>
+
     <div class="container">
         <div class="hero">
             <h1>✨ 每日拾光 · 诗与歌的相遇</h1>
@@ -182,7 +326,10 @@
 
         <!-- 每日一句 -->
         <div class="card" id="sentence-card" style="display: none;">
-            <h2>💭 每日一句</h2>
+            <div class="sentence-header">
+                <h2>💭 每日一句</h2>
+                <button class="copy-btn" id="copy-sentence-btn" title="复制句子">📋</button>
+            </div>
             <div class="sentence-content" id="sentence-content"></div>
             <div class="sentence-from" id="sentence-from"></div>
             <div class="meaning" id="sentence-meaning"></div>
@@ -196,6 +343,7 @@
             <div class="article-author" id="article-author"></div>
             <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
             <div class="meaning" id="article-meaning"></div>
+            <div class="stats" id="article-stats"></div>
         </div>
 
         <!-- 每日一小说 -->
@@ -203,6 +351,7 @@
             <h2>📖 每日一小说 · 拾光</h2>
             <div class="novel-title" id="novel-title"></div>
             <div class="novel-content" id="novel-content"></div>
+            <div class="stats" id="novel-stats"></div>
         </div>
 
         <div class="footer">
@@ -213,6 +362,68 @@
 
     <script>
         (function() {
+            // ==================== 随机渐变背景 ====================
+            const gradients = [
+                "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
+                "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
+                "linear-gradient(145deg, #f5efe9 0%, #e0d8cf 100%)",
+                "linear-gradient(135deg, #fdf8ed 0%, #eae3d5 100%)",
+                "linear-gradient(145deg, #f2e9e1 0%, #dcd3c6 100%)",
+                "linear-gradient(135deg, #ebf0f5 0%, #cbdbe0 100%)"
+            ];
+            const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
+            document.body.style.background = randomGradient;
+
+            // ==================== 暗色模式 ====================
+            const themeToggle = document.getElementById('theme-toggle');
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '☀️ 亮色模式';
+            }
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
+            });
+
+            // ==================== 回到顶部按钮 ====================
+            const goTopBtn = document.getElementById('go-top');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    goTopBtn.classList.add('visible');
+                } else {
+                    goTopBtn.classList.remove('visible');
+                }
+            });
+            goTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // ==================== 复制功能 ====================
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const toast = document.getElementById('toast');
+                    toast.classList.add('show');
+                    setTimeout(() => toast.classList.remove('show'), 2000);
+                }).catch(() => alert('复制失败'));
+            }
+            let currentSentence = '';
+
+            // ==================== 字数统计函数 ====================
+            function countWords(text) {
+                // 中文字符数 + 英文单词数（简单估算）
+                const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+                const english = (text.match(/[a-zA-Z]+/g) || []).length;
+                return chinese + english;
+            }
+            function formatStats(words) {
+                const minutes = Math.ceil(words / 250);
+                return `${words} 字 · 约 ${minutes} 分钟阅读`;
+            }
+
+            // ==================== 加载数据 ====================
             fetch('/data/daily.json?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
@@ -222,6 +433,7 @@
                         document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
                     }
 
+                    // 每日一曲
                     if (data.song) {
                         document.getElementById('song-card').style.display = 'block';
                         document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
@@ -236,19 +448,28 @@
                             document.getElementById('song-meaning').style.display = 'block';
                         }
                     }
+
+                    // 每日一句
                     if (data.sentence) {
                         document.getElementById('sentence-card').style.display = 'block';
-                        document.getElementById('sentence-content').textContent = data.sentence.content || '';
+                        const sentenceText = data.sentence.content || '';
+                        currentSentence = sentenceText;
+                        document.getElementById('sentence-content').textContent = sentenceText;
                         document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
                         if (data.sentence.meaning) {
                             document.getElementById('sentence-meaning').textContent = data.sentence.meaning;
                             document.getElementById('sentence-meaning').style.display = 'block';
                         }
+                        const copyBtn = document.getElementById('copy-sentence-btn');
+                        copyBtn.onclick = () => copyToClipboard(sentenceText);
                     }
+
+                    // 每日一文
                     if (data.article) {
                         document.getElementById('article-card').style.display = 'block';
                         document.getElementById('article-title').textContent = data.article.title || '';
-                        document.getElementById('article-desc').textContent = data.article.description || data.article.content || '';
+                        let articleText = data.article.description || data.article.content || '';
+                        document.getElementById('article-desc').textContent = articleText;
                         document.getElementById('article-author').textContent = data.article.author ? `—— ${data.article.author}` : '';
                         if (data.article.url) {
                             document.getElementById('article-link').href = data.article.url;
@@ -259,16 +480,20 @@
                             document.getElementById('article-meaning').textContent = data.article.meaning;
                             document.getElementById('article-meaning').style.display = 'block';
                         }
+                        const articleWords = countWords(articleText);
+                        document.getElementById('article-stats').textContent = formatStats(articleWords);
                     }
+
+                    // 每日一小说
                     if (data.novel) {
                         document.getElementById('novel-card').style.display = 'block';
                         document.getElementById('novel-title').textContent = data.novel.title || '';
-
-                        // 将小说正文按段落分割，包裹在 <p> 标签中
                         const content = data.novel.content || '';
-                        const paragraphs = content.split(/\n\s*\n/); // 按空行分割
+                        const paragraphs = content.split(/\n\s*\n/);
                         const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                         document.getElementById('novel-content').innerHTML = htmlContent;
+                        const novelWords = countWords(content);
+                        document.getElementById('novel-stats').textContent = formatStats(novelWords);
                     }
                 })
                 .catch(err => {
