@@ -165,7 +165,6 @@
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
 
-        /* 小说卡片样式 */
         .novel-title {
             font-size: 2rem;
             font-weight: 600;
@@ -226,7 +225,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 回到顶部按钮 */
         .go-top {
             position: fixed;
             bottom: 30px;
@@ -251,7 +249,6 @@
         .go-top:hover { background: rgba(0,0,0,0.7); }
         body.dark-mode .go-top { background: rgba(255,255,255,0.2); color: #ccc; }
 
-        /* 暗色模式切换按钮 */
         .theme-toggle {
             position: fixed;
             top: 20px;
@@ -295,7 +292,7 @@
         </div>
         <div id="loader" class="loader"></div>
 
-        <!-- 未知旋律 -->
+        <!-- 未知旋律（原每日一曲） -->
         <div class="card" id="song-card" style="display: none;">
             <h2>🎵 未知旋律</h2>
             <div class="song-container">
@@ -310,7 +307,7 @@
             <div class="meaning" id="song-meaning"></div>
         </div>
 
-        <!-- 散落诗行 -->
+        <!-- 散落诗行（原每日一句） -->
         <div class="card" id="sentence-card" style="display: none;">
             <div class="sentence-header">
                 <h2>💭 散落诗行</h2>
@@ -324,7 +321,7 @@
             <div class="meaning" id="sentence-meaning"></div>
         </div>
 
-        <!-- 墨香盲盒 -->
+        <!-- 墨香盲盒（原每日一文） -->
         <div class="card" id="article-card" style="display: none;">
             <h2>📖 墨香盲盒</h2>
             <div class="article-title" id="article-title"></div>
@@ -335,7 +332,7 @@
             <div class="stats" id="article-stats"></div>
         </div>
 
-        <!-- 虚构抽屉 -->
+        <!-- 虚构抽屉（原每日一小说） -->
         <div class="card" id="novel-card" style="display: none;">
             <h2>📚 虚构抽屉</h2>
             <div class="novel-title" id="novel-title"></div>
@@ -351,7 +348,6 @@
 
     <script>
         (function() {
-            // 随机渐变背景
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
                 "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
@@ -363,7 +359,6 @@
             const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
             document.body.style.background = randomGradient;
 
-            // 暗色模式
             const themeToggle = document.getElementById('theme-toggle');
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'dark') {
@@ -377,7 +372,6 @@
                 themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
             });
 
-            // 回到顶部
             const goTopBtn = document.getElementById('go-top');
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 300) goTopBtn.classList.add('visible');
@@ -385,7 +379,6 @@
             });
             goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-            // 复制功能
             function copyToClipboard(text) {
                 navigator.clipboard.writeText(text).then(() => {
                     const toast = document.getElementById('toast');
@@ -394,7 +387,6 @@
                 }).catch(() => alert('复制失败'));
             }
 
-            // 生成图片功能
             function captureCard(element, filename = '拾光驿站.png') {
                 if (!element) {
                     alert('无法截取内容');
@@ -416,7 +408,6 @@
                 });
             }
 
-            // 字数统计
             function countWords(text) {
                 const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
                 const english = (text.match(/[a-zA-Z]+/g) || []).length;
@@ -426,7 +417,6 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // 加载数据
             fetch('/data/daily.json?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
@@ -505,186 +495,6 @@
                     console.error(err);
                     document.getElementById('loader').style.display = 'none';
                     document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">数据加载失败</p>';
-                });
-        })();
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拾光驿站 · 测试盲盒</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #f5f0e8;
-            padding: 2rem 1rem;
-        }
-        .container {
-            max-width: 750px;
-            margin: 0 auto;
-        }
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            border: 1px solid #eee;
-        }
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .card h2 {
-            font-size: 1.8rem;
-            font-weight: 500;
-            color: #333;
-            margin: 0;
-        }
-        .open-btn {
-            background: #f0f0f0;
-            border: none;
-            border-radius: 40px;
-            padding: 0.5rem 1.2rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .open-btn:hover {
-            background: #e0e0e0;
-        }
-        .card-content {
-            display: none;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #eee;
-        }
-        /* 简单内容样式 */
-        .song-info h3 { font-size: 1.5rem; }
-        .song-info .artist { color: #666; margin-top: 0.3rem; }
-        .sentence-content { font-size: 1.4rem; line-height: 1.5; font-style: italic; }
-        .article-title { font-size: 1.5rem; font-weight: 600; }
-        .novel-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .novel-content { line-height: 1.6; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 style="text-align:center; margin-bottom:2rem;">✨ 拾光驿站 · 盲盒测试</h1>
-
-        <!-- 未知旋律卡片（示例数据，实际会从JSON加载） -->
-        <div class="card" id="song-card" style="display: none;">
-            <div class="card-header">
-                <h2>🎵 未知旋律</h2>
-                <button class="open-btn" data-card="song">🔓 打开盲盒</button>
-            </div>
-            <div class="card-content">
-                <div class="song-info">
-                    <h3 id="song-title"></h3>
-                    <div class="artist" id="song-artist"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card" id="sentence-card" style="display: none;">
-            <div class="card-header">
-                <h2>💭 散落诗行</h2>
-                <button class="open-btn" data-card="sentence">🔓 打开盲盒</button>
-            </div>
-            <div class="card-content">
-                <div class="sentence-content" id="sentence-content"></div>
-                <div class="sentence-from" id="sentence-from" style="margin-top:0.5rem; text-align:right; color:#888;"></div>
-            </div>
-        </div>
-
-        <div class="card" id="article-card" style="display: none;">
-            <div class="card-header">
-                <h2>📖 墨香盲盒</h2>
-                <button class="open-btn" data-card="article">🔓 打开盲盒</button>
-            </div>
-            <div class="card-content">
-                <div class="article-title" id="article-title"></div>
-                <div class="article-desc" id="article-desc"></div>
-                <div class="article-author" id="article-author"></div>
-            </div>
-        </div>
-
-        <div class="card" id="novel-card" style="display: none;">
-            <div class="card-header">
-                <h2>📚 虚构抽屉</h2>
-                <button class="open-btn" data-card="novel">🔓 打开盲盒</button>
-            </div>
-            <div class="card-content">
-                <div class="novel-title" id="novel-title"></div>
-                <div class="novel-content" id="novel-content"></div>
-            </div>
-        </div>
-
-        <div id="loader" style="text-align:center; margin:2rem;">加载中...</div>
-    </div>
-
-    <script>
-        (function() {
-            // 加载真实数据
-            fetch('/data/daily.json?t=' + Date.now())
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('loader').style.display = 'none';
-
-                    // 填充未知旋律
-                    if (data.song) {
-                        document.getElementById('song-card').style.display = 'block';
-                        document.getElementById('song-title').textContent = data.song.name || '';
-                        document.getElementById('song-artist').textContent = data.song.artist ? `歌手 · ${data.song.artist}` : '';
-                    }
-
-                    // 填充散落诗行
-                    if (data.sentence) {
-                        document.getElementById('sentence-card').style.display = 'block';
-                        document.getElementById('sentence-content').textContent = data.sentence.content || '';
-                        document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
-                    }
-
-                    // 填充墨香盲盒
-                    if (data.article) {
-                        document.getElementById('article-card').style.display = 'block';
-                        document.getElementById('article-title').textContent = data.article.title || '';
-                        document.getElementById('article-desc').textContent = data.article.description || data.article.content || '';
-                        document.getElementById('article-author').textContent = data.article.author ? `—— ${data.article.author}` : '';
-                    }
-
-                    // 填充虚构抽屉
-                    if (data.novel) {
-                        document.getElementById('novel-card').style.display = 'block';
-                        document.getElementById('novel-title').textContent = data.novel.title || '';
-                        const content = data.novel.content || '';
-                        const paragraphs = content.split(/\n\s*\n/);
-                        const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-                        document.getElementById('novel-content').innerHTML = htmlContent;
-                    }
-
-                    // 绑定盲盒按钮事件
-                    const btns = document.querySelectorAll('.open-btn');
-                    btns.forEach(btn => {
-                        btn.addEventListener('click', function(e) {
-                            const card = this.closest('.card');
-                            const content = card.querySelector('.card-content');
-                            if (content.style.display === 'none') {
-                                content.style.display = 'block';
-                                this.textContent = '📦 已开启';
-                                this.disabled = true;
-                                console.log('已打开盲盒：', this.getAttribute('data-card'));
-                            }
-                        });
-                    });
-                })
-                .catch(err => {
-                    console.error('加载失败', err);
-                    document.getElementById('loader').textContent = '数据加载失败，请刷新重试';
                 });
         })();
     </script>
