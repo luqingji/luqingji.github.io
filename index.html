@@ -92,8 +92,30 @@
         .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
-        .novel-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; }
-        .novel-content { line-height: 1.8; }
+        
+        /* 小说卡片新样式 */
+        .novel-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1e3c43;
+            border-left: 4px solid #bf6f5a;
+            padding-left: 1rem;
+        }
+        .novel-content {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            text-align: justify;
+        }
+        .novel-content p {
+            margin-bottom: 1.2em;
+            text-indent: 2em;
+        }
+        .novel-content p:last-child {
+            margin-bottom: 0;
+        }
+
         .meaning {
             display: none;
             margin-top: 1.5rem;
@@ -130,6 +152,8 @@
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
             .sentence-content { font-size: 1.4rem; }
+            .novel-title { font-size: 1.8rem; }
+            .novel-content { font-size: 1rem; }
         }
     </style>
 </head>
@@ -239,7 +263,12 @@
                     if (data.novel) {
                         document.getElementById('novel-card').style.display = 'block';
                         document.getElementById('novel-title').textContent = data.novel.title || '';
-                        document.getElementById('novel-content').textContent = data.novel.content || '';
+
+                        // 将小说正文按段落分割，包裹在 <p> 标签中
+                        const content = data.novel.content || '';
+                        const paragraphs = content.split(/\n\s*\n/); // 按空行分割
+                        const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+                        document.getElementById('novel-content').innerHTML = htmlContent;
                     }
                 })
                 .catch(err => {
