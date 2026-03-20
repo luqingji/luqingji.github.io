@@ -431,7 +431,7 @@ def fetch_word():
 
 # ==================== 每日一小说（1500-2500字）====================
 def fetch_novel():
-    """获取每日一小说 - 由 AI 根据随机风格生成短篇小说（1500-2500字），带健壮解析"""
+    """获取每日一小说 - 增强版：更健壮的JSON提取 + 5次重试 + 超时处理"""
     print("正在获取每日一小说...")
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
@@ -450,8 +450,8 @@ def fetch_novel():
     if not ENABLE_AI:
         return random.choice(FALLBACK_NOVELS).copy()
 
-    # 最多重试3次
-    for attempt in range(3):
+    # 最多重试5次
+    for attempt in range(5):
         chosen = random.choice(styles)
         print(f"尝试 {attempt+1}，风格：{chosen['name']}")
         prompt = f"""
@@ -465,30 +465,39 @@ def fetch_novel():
             "content": "小说正文"
         }}
         """
-        ai_resp = call_ai(prompt, max_tokens=5000, temperature=0.8)
+        try:
+            ai_resp = call_ai(prompt, max_tokens=5000, temperature=0.8)
+        except Exception as e:
+            print(f"× AI调用异常: {e}")
+            continue  # 网络超时等异常，直接换风格重试
+
         if not ai_resp:
             continue
 
-        # 尝试从AI响应中提取JSON部分
-        try:
-            # 查找第一个 '{' 和最后一个 '}'
-            start = ai_resp.find('{')
-            end = ai_resp.rfind('}')
-            if start == -1 or end == -1 or end <= start:
-                raise ValueError("未找到有效的JSON")
-            json_str = ai_resp[start:end+1]
-            data = json.loads(json_str)
-            title = data.get('title', '').strip()
-            content = data.get('content', '').strip()
-            if title and content:
-                print(f"✓ 小说生成成功：{title}")
-                return {"title": title, "content": content}
-            else:
-                print("× 返回字段不完整")
-        except Exception as e:
-            print(f"× 解析失败: {e}")
-            # 打印AI响应前200字符用于调试
-            print(f"AI响应片段: {ai_resp[:200]}")
+        # 增强JSON提取：使用正则查找最可能的JSON对象
+        import re
+        json_pattern = r'(\{(?:[^{}]|(?:\{[^{}]*\}))*\})'  # 匹配可能嵌套的JSON
+        matches = re.findall(json_pattern, ai_resp, re.DOTALL)
+        
+        success = False
+        for json_str in matches:
+            try:
+                # 尝试清理常见错误：多余逗号、换行符等
+                # 这里不做复杂修复，只尝试直接解析
+                data = json.loads(json_str)
+                title = data.get('title', '').strip()
+                content = data.get('content', '').strip()
+                if title and content:
+                    print(f"✓ 小说生成成功：{title}")
+                    return {"title": title, "content": content}
+                else:
+                    print("× 返回字段不完整")
+            except json.JSONDecodeError as e:
+                print(f"× JSON解析失败: {e}")
+                continue
+        
+        # 如果没有找到有效的JSON，打印响应片段帮助调试
+        print(f"AI响应片段: {ai_resp[:200]}")
 
     # 所有尝试失败，使用备选
     print("所有尝试均失败，使用备选小说")
