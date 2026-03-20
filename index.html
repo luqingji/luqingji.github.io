@@ -42,6 +42,9 @@
         body.dark-mode .theme-toggle { background: rgba(0,0,0,0.5); color: #eee; }
         body.dark-mode .speak-btn { background: rgba(255,255,255,0.2); color: #ddd; border-color: rgba(255,255,255,0.3); }
         body.dark-mode .speak-btn:hover { background: rgba(255,255,255,0.3); }
+        body.dark-mode .immerse-btn { background: rgba(255,255,255,0.2); color: #ddd; border-color: rgba(255,255,255,0.3); }
+        body.dark-mode .immerse-btn:hover { background: rgba(255,255,255,0.3); }
+        body.dark-mode .close-immerse { background: rgba(0,0,0,0.7); color: white; }
 
         .container { max-width: 750px; margin: 0 auto; position: relative; }
         .hero { text-align: center; margin-bottom: 2.5rem; position: relative; }
@@ -195,7 +198,7 @@
             padding-left: 1rem;
             margin: 0;
         }
-        .speak-btn {
+        .immerse-btn, .speak-btn {
             background: rgba(0,0,0,0.1);
             border: 1px solid rgba(0,0,0,0.2);
             border-radius: 30px;
@@ -205,8 +208,9 @@
             transition: all 0.2s;
             font-family: inherit;
             color: inherit;
+            margin-left: 0.5rem;
         }
-        .speak-btn:hover {
+        .immerse-btn:hover, .speak-btn:hover {
             background: rgba(0,0,0,0.2);
             transform: scale(0.98);
         }
@@ -234,6 +238,23 @@
         }
         body.dark-mode .novel-item {
             border-bottom-color: rgba(255,255,255,0.1);
+        }
+
+        /* AI 一句话书评 */
+        .ai-review {
+            margin-top: 0.8rem;
+            font-size: 0.95rem;
+            color: #9b6b43;
+            background: rgba(255,245,235,0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border-left: 3px solid #bf6f5a;
+            font-style: italic;
+        }
+        body.dark-mode .ai-review {
+            background: rgba(80,60,50,0.5);
+            color: #e0c0a0;
+            border-left-color: #e0a070;
         }
 
         .stats {
@@ -319,6 +340,78 @@
         }
         .theme-toggle:hover { background: rgba(255,255,255,0.8); }
 
+        /* 沉浸式模态框 */
+        .immerse-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .immerse-modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .immerse-content {
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            background: rgba(30,30,30,0.95);
+            border-radius: 32px;
+            padding: 2rem;
+            color: #eee;
+            font-family: "Inter", sans-serif;
+            line-height: 1.6;
+        }
+        .immerse-content .novel-title {
+            color: #f0c0a0;
+            border-left-color: #e0a070;
+        }
+        .immerse-content .novel-content {
+            color: #ddd;
+        }
+        .immerse-content .novel-content p {
+            text-indent: 2em;
+        }
+        .close-immerse {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: white;
+            z-index: 10001;
+        }
+
+        /* 彩蛋 */
+        .easter-egg {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            color: #b87333;
+            background: rgba(255,255,255,0.3);
+            display: inline-block;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+        }
+        body.dark-mode .easter-egg {
+            color: #e0b080;
+            background: rgba(0,0,0,0.3);
+        }
+
         @media (max-width: 600px) {
             .hero h1 { font-size: 2.2rem; }
             .card { padding: 1.5rem; }
@@ -328,7 +421,7 @@
             .novel-title { font-size: 1.6rem; }
             .novel-content { font-size: 1rem; }
             .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
-            .speak-btn { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
+            .speak-btn, .immerse-btn { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
         }
     </style>
 </head>
@@ -341,6 +434,8 @@
         <div class="hero">
             <h1>✨ 拾光驿站 · 诗与歌的相遇</h1>
             <div class="date" id="date"></div>
+            <!-- 今日份彩蛋区域 -->
+            <div id="easter-egg" class="easter-egg"></div>
         </div>
         <div id="loader" class="loader"></div>
 
@@ -384,7 +479,7 @@
             <div class="stats" id="article-stats"></div>
         </div>
 
-        <!-- 虚构抽屉（多篇小说，支持朗读） -->
+        <!-- 虚构抽屉（多篇小说） -->
         <div class="card" id="novel-card" style="display: none;">
             <h2>📚 虚构抽屉</h2>
             <div id="novels-container" class="novels-container"></div>
@@ -392,8 +487,15 @@
 
         <div class="footer">
             <div id="update-time"></div>
+            <div id="today-in-history"></div>
             <a href="/history.html" style="color: #4f9da6; text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
         </div>
+    </div>
+
+    <!-- 沉浸式模态框 -->
+    <div id="immerse-modal" class="immerse-modal">
+        <button class="close-immerse" id="close-immerse">✕ 退出沉浸</button>
+        <div id="immerse-content" class="immerse-content"></div>
     </div>
 
     <script>
@@ -424,7 +526,88 @@
                 window.speechSynthesis.speak(utterance);
             }
 
-            // 随机渐变背景
+            // ==================== 沉浸模式 ====================
+            const modal = document.getElementById('immerse-modal');
+            const immerseContent = document.getElementById('immerse-content');
+            const closeImmerse = document.getElementById('close-immerse');
+            function openImmerse(htmlContent) {
+                immerseContent.innerHTML = htmlContent;
+                modal.classList.add('active');
+            }
+            closeImmerse.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+
+            // ==================== 今日份彩蛋（基于日期种子） ====================
+            function getEasterEgg() {
+                const date = new Date();
+                const seed = date.toDateString();
+                // 彩蛋列表
+                const eggs = [
+                    "✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
+                    "🍂 今日彩蛋：时光不语，静待花开。",
+                    "📖 今日彩蛋：每一篇小说都是平行宇宙的你。",
+                    "🎵 今日彩蛋：未知旋律里藏着昨天的故事。",
+                    "💭 今日彩蛋：散落的诗行，是某人的心事。",
+                    "🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
+                    "🌙 今日彩蛋：此刻的宁静，胜过万语千言。",
+                    "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
+                ];
+                // 用日期种子确定索引，保证同一天相同
+                let hash = 0;
+                for (let i = 0; i < seed.length; i++) {
+                    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                    hash |= 0;
+                }
+                const index = Math.abs(hash) % eggs.length;
+                return eggs[index];
+            }
+
+            // ==================== 历史上的今天（本地预置） ====================
+            const historyEvents = [
+                "1883年3月21日，安徒生逝世。",
+                "1955年3月21日，中国第一座大型水库——官厅水库建成。",
+                "1990年3月21日，纳米比亚独立。",
+                "1992年3月21日，中国正式加入《不扩散核武器条约》。",
+                "2012年3月21日，著名作家莫言获得诺贝尔文学奖。",
+                "1960年3月21日，南非沙佩维尔惨案发生，后成为“国际消除种族歧视日”。",
+                "1985年3月21日，中国宣布实行夏令时。",
+                "2006年3月21日，中国首个微博网站“微博客”上线。",
+                "1927年3月21日，上海工人第三次武装起义胜利。",
+                "2019年3月21日，中国科学家发现人类新基因。"
+            ];
+            function getTodayInHistory() {
+                const date = new Date();
+                const month = date.getMonth() + 1;
+                const day = date.getDate();
+                // 如果正好有匹配的事件，优先显示当天；否则随机选一个
+                const matched = historyEvents.filter(e => e.includes(`${month}月${day}日`));
+                if (matched.length > 0) return matched[0];
+                // 否则随机选一条
+                const randomIndex = (date.getDate() + date.getMonth() * 31) % historyEvents.length;
+                return historyEvents[randomIndex];
+            }
+
+            // ==================== AI 一句话书评（预设库） ====================
+            const aiReviews = [
+                "📖 这篇小说像一杯温茶，慢慢品出人生滋味。",
+                "🎭 虚构的世界里，藏着真实的情感。",
+                "🌟 每一段文字都是时光的琥珀。",
+                "💫 读完后，心里某个角落被轻轻触动。",
+                "📜 故事虽短，余韵悠长。",
+                "🌙 适合在夜深人静时再读一遍。",
+                "🍃 像风一样轻，却留下痕迹。"
+            ];
+            function getRandomAIReview() {
+                return aiReviews[Math.floor(Math.random() * aiReviews.length)];
+            }
+
+            // ==================== 随机渐变背景 ====================
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
                 "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
@@ -436,7 +619,7 @@
             const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
             document.body.style.background = randomGradient;
 
-            // 暗色模式
+            // ==================== 暗色模式 ====================
             const themeToggle = document.getElementById('theme-toggle');
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'dark') {
@@ -450,7 +633,7 @@
                 themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
             });
 
-            // 回到顶部
+            // ==================== 回到顶部 ====================
             const goTopBtn = document.getElementById('go-top');
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 300) goTopBtn.classList.add('visible');
@@ -458,7 +641,7 @@
             });
             goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
-            // 复制功能
+            // ==================== 复制功能 ====================
             function copyToClipboard(text) {
                 navigator.clipboard.writeText(text).then(() => {
                     const toast = document.getElementById('toast');
@@ -467,7 +650,7 @@
                 }).catch(() => alert('复制失败'));
             }
 
-            // 生成图片功能
+            // ==================== 生成图片功能 ====================
             function captureCard(element, filename = '拾光驿站.png') {
                 if (!element) {
                     alert('无法截取内容');
@@ -489,7 +672,7 @@
                 });
             }
 
-            // 字数统计
+            // ==================== 字数统计 ====================
             function countWords(text) {
                 const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
                 const english = (text.match(/[a-zA-Z]+/g) || []).length;
@@ -499,7 +682,7 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // 渲染多篇小说（增加朗读按钮）
+            // ==================== 渲染多篇小说（增加沉浸按钮和 AI 书评） ====================
             function renderNovels(novels) {
                 const container = document.getElementById('novels-container');
                 container.innerHTML = '';
@@ -514,6 +697,12 @@
                     const content = novel.content || '';
                     const wordCount = countWords(content);
                     const stats = formatStats(wordCount);
+                    
+                    // 头部：标题 + 按钮组
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'novel-header';
+                    headerDiv.innerHTML = `<div class="novel-title">${title}</div>`;
+                    const btnGroup = document.createElement('div');
                     // 朗读按钮
                     const speakBtn = document.createElement('button');
                     speakBtn.className = 'speak-btn';
@@ -522,25 +711,49 @@
                         e.stopPropagation();
                         speakText(content);
                     });
-                    const headerDiv = document.createElement('div');
-                    headerDiv.className = 'novel-header';
-                    headerDiv.innerHTML = `<div class="novel-title">${title}</div>`;
-                    headerDiv.appendChild(speakBtn);
+                    // 沉浸按钮
+                    const immerseBtn = document.createElement('button');
+                    immerseBtn.className = 'immerse-btn';
+                    immerseBtn.textContent = '🔍 沉浸';
+                    immerseBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // 构建沉浸内容
+                        const html = `
+                            <div class="novel-title" style="font-size:2rem; margin-bottom:1rem;">${title}</div>
+                            <div class="novel-content">${content.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+                            <div class="novel-stats">${stats}</div>
+                        `;
+                        openImmerse(html);
+                    });
+                    btnGroup.appendChild(speakBtn);
+                    btnGroup.appendChild(immerseBtn);
+                    headerDiv.appendChild(btnGroup);
                     novelDiv.appendChild(headerDiv);
+                    
+                    // 正文
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'novel-content';
                     const paragraphs = content.split(/\n\s*\n/);
                     contentDiv.innerHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                     novelDiv.appendChild(contentDiv);
+                    
+                    // 统计
                     const statsDiv = document.createElement('div');
                     statsDiv.className = 'novel-stats';
                     statsDiv.textContent = stats;
                     novelDiv.appendChild(statsDiv);
+                    
+                    // AI 一句话书评
+                    const reviewDiv = document.createElement('div');
+                    reviewDiv.className = 'ai-review';
+                    reviewDiv.textContent = getRandomAIReview();
+                    novelDiv.appendChild(reviewDiv);
+                    
                     container.appendChild(novelDiv);
                 });
             }
 
-            // 加载数据
+            // ==================== 加载数据 ====================
             fetch('/data/daily.json?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
@@ -549,6 +762,11 @@
                     if (data.updated_at) {
                         document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
                     }
+                    
+                    // 今日份彩蛋
+                    document.getElementById('easter-egg').textContent = getEasterEgg();
+                    // 历史上的今天
+                    document.getElementById('today-in-history').innerHTML = `📜 历史上的今天：${getTodayInHistory()}`;
 
                     // 未知旋律
                     if (data.song) {
