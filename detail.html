@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日拾光 · 历史详情</title>
+    <title>拾光驿站 · 历史详情</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 样式与之前一致，保持不变 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -251,9 +252,9 @@
         <a href="/history.html" class="back-link">← 返回历史回顾</a>
         <div id="loader" class="loader"></div>
         <div id="content" style="display: none;">
-            <!-- 每日一曲 -->
+            <!-- 未知旋律 -->
             <div class="card" id="song-card" style="display: none;">
-                <h2>🎵 每日一曲</h2>
+                <h2>🎵 未知旋律</h2>
                 <div class="song-container">
                     <img class="song-cover" id="song-cover" src="" alt="封面" onerror="this.src='https://via.placeholder.com/300x300?text=🎵'">
                     <div class="song-info">
@@ -265,10 +266,10 @@
                 </div>
                 <div class="meaning" id="song-meaning"></div>
             </div>
-            <!-- 每日一句 -->
+            <!-- 散落诗行 -->
             <div class="card" id="sentence-card" style="display: none;">
                 <div class="sentence-header">
-                    <h2>💭 每日一句</h2>
+                    <h2>💭 散落诗行</h2>
                     <div class="sentence-actions">
                         <button class="action-btn" id="copy-sentence-btn" title="复制句子">📋</button>
                         <button class="action-btn" id="share-sentence-btn" title="生成图片">📸</button>
@@ -278,9 +279,9 @@
                 <div class="sentence-from" id="sentence-from"></div>
                 <div class="meaning" id="sentence-meaning"></div>
             </div>
-            <!-- 每日一文 -->
+            <!-- 墨香盲盒 -->
             <div class="card" id="article-card" style="display: none;">
-                <h2>📖 每日一文</h2>
+                <h2>📖 墨香盲盒</h2>
                 <div class="article-title" id="article-title"></div>
                 <div class="article-desc" id="article-desc"></div>
                 <div class="article-author" id="article-author"></div>
@@ -288,9 +289,9 @@
                 <div class="meaning" id="article-meaning"></div>
                 <div class="stats" id="article-stats"></div>
             </div>
-            <!-- 每日一小说 -->
+            <!-- 虚构抽屉 -->
             <div class="card" id="novel-card" style="display: none;">
-                <h2>📖 每日一小说 · 拾光</h2>
+                <h2>📚 虚构抽屉</h2>
                 <div class="novel-title" id="novel-title"></div>
                 <div class="novel-content" id="novel-content"></div>
                 <div class="stats" id="novel-stats"></div>
@@ -328,7 +329,8 @@
             // 回到顶部
             const goTopBtn = document.getElementById('go-top');
             window.addEventListener('scroll', () => {
-                goTopBtn.classList.toggle('visible', window.scrollY > 300);
+                if (window.scrollY > 300) goTopBtn.classList.add('visible');
+                else goTopBtn.classList.remove('visible');
             });
             goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
@@ -342,7 +344,7 @@
             }
 
             // 生成图片功能
-            function captureCard(element, filename = '每日拾光.png') {
+            function captureCard(element, filename = '拾光驿站.png') {
                 if (!element) {
                     alert('无法截取内容');
                     return;
@@ -420,7 +422,7 @@
                         copyBtn.onclick = () => copyToClipboard(sentenceText);
                         const shareBtn = document.getElementById('share-sentence-btn');
                         const cardElement = document.getElementById('sentence-card');
-                        shareBtn.onclick = () => captureCard(cardElement, `每日拾光_${date}.png`);
+                        shareBtn.onclick = () => captureCard(cardElement, `拾光驿站_${date}.png`);
                     }
                     if (data.article) {
                         document.getElementById('article-card').style.display = 'block';
