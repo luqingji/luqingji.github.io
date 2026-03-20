@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        /* 样式与主页一致，此处省略以节省篇幅，实际应包含完整样式 */
+        /* 样式与主页完全一致，此处省略（实际应包含完整样式） */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -38,6 +38,8 @@
         body.dark-mode .stats { color: #9aaebf; border-top-color: rgba(255,255,255,0.1); }
         body.dark-mode .back-link { color: #4f9da6; }
         body.dark-mode .theme-toggle { background: rgba(0,0,0,0.5); color: #eee; }
+        body.dark-mode .speak-btn { background: rgba(255,255,255,0.2); color: #ddd; border-color: rgba(255,255,255,0.3); }
+        body.dark-mode .speak-btn:hover { background: rgba(255,255,255,0.3); }
 
         .container { max-width: 750px; margin: 0 auto; position: relative; }
         .back-link {
@@ -153,13 +155,34 @@
             margin-bottom: 0;
             padding-bottom: 0;
         }
+        .novel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
         .novel-title {
             font-size: 1.8rem;
             font-weight: 600;
-            margin-bottom: 0.8rem;
             color: #1e3c43;
             border-left: 4px solid #bf6f5a;
             padding-left: 1rem;
+            margin: 0;
+        }
+        .speak-btn {
+            background: rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.2);
+            border-radius: 30px;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: inherit;
+        }
+        .speak-btn:hover {
+            background: rgba(0,0,0,0.2);
+            transform: scale(0.98);
         }
         .novel-content {
             line-height: 1.8;
@@ -266,6 +289,7 @@
             .novel-title { font-size: 1.6rem; }
             .novel-content { font-size: 1rem; }
             .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
+            .speak-btn { font-size: 0.8rem; padding: 0.2rem 0.6rem; }
         }
     </style>
 </head>
@@ -315,7 +339,7 @@
                 <div class="meaning" id="article-meaning"></div>
                 <div class="stats" id="article-stats"></div>
             </div>
-            <!-- 虚构抽屉（多篇小说） -->
+            <!-- 虚构抽屉（多篇小说，支持朗读） -->
             <div class="card" id="novel-card" style="display: none;">
                 <h2>📚 虚构抽屉</h2>
                 <div id="novels-container" class="novels-container"></div>
@@ -325,6 +349,32 @@
 
     <script>
         (function() {
+            // 全局语音控制
+            let currentUtterance = null;
+            function stopSpeaking() {
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+                if (currentUtterance) {
+                    currentUtterance = null;
+                }
+            }
+            function speakText(text) {
+                if (!window.speechSynthesis) {
+                    alert("您的浏览器不支持语音朗读");
+                    return;
+                }
+                stopSpeaking();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                currentUtterance = utterance;
+                utterance.onend = () => { currentUtterance = null; };
+                utterance.onerror = () => { currentUtterance = null; };
+                window.speechSynthesis.speak(utterance);
+            }
+
             // 随机背景
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
@@ -399,7 +449,7 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // 渲染多篇小说
+            // 渲染多篇小说（增加朗读按钮）
             function renderNovels(novels) {
                 const container = document.getElementById('novels-container');
                 container.innerHTML = '';
@@ -414,11 +464,27 @@
                     const content = novel.content || '';
                     const wordCount = countWords(content);
                     const stats = formatStats(wordCount);
-                    novelDiv.innerHTML = `
-                        <div class="novel-title">${title}</div>
-                        <div class="novel-content">${content.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
-                        <div class="novel-stats">${stats}</div>
-                    `;
+                    const speakBtn = document.createElement('button');
+                    speakBtn.className = 'speak-btn';
+                    speakBtn.textContent = '🔊 朗读';
+                    speakBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        speakText(content);
+                    });
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = 'novel-header';
+                    headerDiv.innerHTML = `<div class="novel-title">${title}</div>`;
+                    headerDiv.appendChild(speakBtn);
+                    novelDiv.appendChild(headerDiv);
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'novel-content';
+                    const paragraphs = content.split(/\n\s*\n/);
+                    contentDiv.innerHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+                    novelDiv.appendChild(contentDiv);
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'novel-stats';
+                    statsDiv.textContent = stats;
+                    novelDiv.appendChild(statsDiv);
                     container.appendChild(novelDiv);
                 });
             }
