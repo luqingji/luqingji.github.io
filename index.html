@@ -3,374 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拾光驿站 · 诗与歌的相遇</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <title>拾光驿站 · 测试盲盒</title>
     <style>
-        /* 样式与之前相同，略 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: "Inter", sans-serif;
-            background: linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%);
-            min-height: 100vh;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f0e8;
             padding: 2rem 1rem;
-            color: #2c3e50;
-            transition: background 0.3s, color 0.3s;
         }
-        body.dark-mode {
-            background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
-            color: #e0e0e0;
-        }
-        body.dark-mode .card {
-            background: rgba(30,40,50,0.85);
-            border-color: rgba(255,255,255,0.1);
-            color: #e0e0e0;
-        }
-        body.dark-mode .card h2 { color: #b0c4de; border-left-color: #4f9da6; }
-        body.dark-mode .song-comment { background: rgba(100,80,70,0.5); color: #f0b27a; }
-        body.dark-mode .sentence-content { color: #f0f0f0; }
-        body.dark-mode .sentence-from { color: #a0b0c0; }
-        body.dark-mode .article-title, body.dark-mode .novel-title { color: #d0e0f0; }
-        body.dark-mode .article-desc, body.dark-mode .novel-content { color: #ccc; }
-        body.dark-mode .meaning { background: rgba(50,70,90,0.7); color: #e0e0e0; border-left-color: #4f9da6; }
-        body.dark-mode .footer { background: rgba(20,30,40,0.5); color: #aaa; }
-        body.dark-mode .back-link { color: #4f9da6; }
-        body.dark-mode .day-card { background: rgba(40,50,60,0.7); color: #e0e0e0; border-color: rgba(255,255,255,0.1); }
-        body.dark-mode .day-card:hover { background: rgba(60,80,100,0.9); }
-        body.dark-mode .stats { color: #9aaebf; border-top-color: rgba(255,255,255,0.1); }
-        body.dark-mode .theme-toggle { background: rgba(0,0,0,0.5); color: #eee; }
-        body.dark-mode .open-btn { background: rgba(255,255,255,0.2); color: #eee; border-color: rgba(255,255,255,0.3); }
-
-        .container { max-width: 750px; margin: 0 auto; position: relative; }
-        .hero { text-align: center; margin-bottom: 2.5rem; position: relative; }
-        .hero h1 {
-            font-family: "LXGW WenKai", cursive;
-            font-size: 2.8rem;
-            font-weight: 400;
-            color: #1e2f3f;
-            margin-bottom: 0.5rem;
-        }
-        body.dark-mode .hero h1 { color: #d0e0f0; }
-        .hero .date {
-            display: inline-block;
-            background: rgba(255,255,255,0.3);
-            backdrop-filter: blur(4px);
-            padding: 0.4rem 1.5rem;
-            border-radius: 40px;
-            font-size: 0.95rem;
-            border: 1px solid rgba(255,255,255,0.6);
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
         }
         .card {
-            background: rgba(255,255,255,0.75);
-            backdrop-filter: blur(12px);
-            border-radius: 32px;
-            padding: 1.8rem 2rem;
-            margin-bottom: 1.8rem;
-            box-shadow: 0 20px 35px -8px rgba(0,20,30,0.15);
-            border: 1px solid rgba(255,255,255,0.5);
-            transition: transform 0.25s ease, background 0.3s;
-            opacity: 0;
-            animation: fadeInUp 0.5s ease forwards;
+            background: white;
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
         }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(15px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .card:hover { transform: translateY(-5px); }
-
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0;
         }
         .card h2 {
             font-size: 1.8rem;
             font-weight: 500;
-            border-left: 5px solid #4f9da6;
-            padding-left: 0.5rem;
-            color: #1e3c43;
+            color: #333;
             margin: 0;
         }
         .open-btn {
-            background: rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.2);
+            background: #f0f0f0;
+            border: none;
             border-radius: 40px;
-            padding: 0.4rem 1rem;
+            padding: 0.5rem 1.2rem;
             font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-            color: inherit;
+            transition: 0.2s;
         }
         .open-btn:hover {
-            background: rgba(0,0,0,0.2);
-            transform: scale(0.98);
-        }
-        .open-btn:active {
-            transform: scale(0.96);
+            background: #e0e0e0;
         }
         .card-content {
-            margin-top: 1.5rem;
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .song-container {
-            display: flex;
-            gap: 1.8rem;
-            align-items: center;
-        }
-        .song-cover {
-            width: 120px;
-            height: 120px;
-            border-radius: 24px;
-            object-fit: cover;
-            box-shadow: 0 12px 25px -8px rgba(0,0,0,0.2);
-        }
-        .song-info h3 { font-size: 1.8rem; font-weight: 600; }
-        .song-info .artist { font-size: 1.2rem; color: #4f5e6b; }
-        .song-info .album { font-size: 1rem; color: #6b7c8b; }
-        .song-comment {
-            font-style: italic;
-            color: #bf6f5a;
-            background: rgba(255,235,220,0.7);
-            padding: 0.8rem 1rem;
-            border-radius: 20px;
-            margin-top: 1rem;
-        }
-        .sentence-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .sentence-actions {
-            display: flex;
-            gap: 10px;
-        }
-        .action-btn {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0.2rem 0.5rem;
-            border-radius: 20px;
-            transition: background 0.2s;
-            color: inherit;
-        }
-        .action-btn:hover {
-            background: rgba(0,0,0,0.1);
-        }
-        body.dark-mode .action-btn:hover {
-            background: rgba(255,255,255,0.1);
-        }
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            z-index: 1000;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        .toast.show { opacity: 1; }
-        .sentence-content {
-            font-size: 1.7rem;
-            font-family: "LXGW WenKai", cursive;
-            text-align: center;
-            margin-bottom: 0.8rem;
-        }
-        .sentence-from {
-            text-align: right;
-            color: #6f8a9c;
-            font-size: 1.1rem;
-        }
-        .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .article-desc { color: #2c3e50; line-height: 1.8; }
-        .article-author { text-align: right; color: #6b7c8b; }
-
-        .novel-title {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #1e3c43;
-            border-left: 4px solid #bf6f5a;
-            padding-left: 1rem;
-        }
-        .novel-content {
-            line-height: 1.8;
-            font-size: 1.1rem;
-            color: #2c3e50;
-            text-align: justify;
-        }
-        .novel-content p {
-            margin-bottom: 1.2em;
-            text-indent: 2em;
-        }
-        .novel-content p:last-child { margin-bottom: 0; }
-
-        .stats {
-            margin-top: 1rem;
-            font-size: 0.85rem;
-            color: #7f8c8d;
-            text-align: right;
-            border-top: 1px dashed rgba(0,0,0,0.1);
-            padding-top: 0.8rem;
-        }
-
-        .meaning {
             display: none;
             margin-top: 1.5rem;
-            background: rgba(225,240,250,0.7);
-            padding: 1.2rem 1.5rem;
-            border-radius: 24px;
-            font-style: italic;
-            color: #1e3c43;
-            border-left: 4px solid #4f9da6;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
         }
-        .footer {
-            text-align: center;
-            color: #5d737e;
-            font-size: 0.9rem;
-            margin-top: 2.5rem;
-            padding: 1rem;
-            background: rgba(255,255,255,0.3);
-            backdrop-filter: blur(4px);
-            border-radius: 50px;
-        }
-        .loader {
-            border: 5px solid rgba(255,255,255,0.3);
-            border-top: 5px solid #4f9da6;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 2rem auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        .go-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 44px;
-            height: 44px;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 999;
-            color: white;
-            font-size: 1.5rem;
-            border: none;
-        }
-        .go-top.visible { opacity: 1; }
-        .go-top:hover { background: rgba(0,0,0,0.7); }
-        body.dark-mode .go-top { background: rgba(255,255,255,0.2); color: #ccc; }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.5);
-            backdrop-filter: blur(4px);
-            border: none;
-            border-radius: 40px;
-            padding: 8px 16px;
-            cursor: pointer;
-            font-size: 1rem;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: background 0.2s;
-        }
-        .theme-toggle:hover { background: rgba(255,255,255,0.8); }
-
-        @media (max-width: 600px) {
-            .hero h1 { font-size: 2.2rem; }
-            .card { padding: 1.5rem; }
-            .card-header { flex-wrap: wrap; gap: 1rem; }
-            .song-container { flex-direction: column; text-align: center; }
-            .song-cover { width: 150px; height: 150px; }
-            .sentence-content { font-size: 1.4rem; }
-            .novel-title { font-size: 1.8rem; }
-            .novel-content { font-size: 1rem; }
-            .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
-        }
+        /* 简单内容样式 */
+        .song-info h3 { font-size: 1.5rem; }
+        .song-info .artist { color: #666; margin-top: 0.3rem; }
+        .sentence-content { font-size: 1.4rem; line-height: 1.5; font-style: italic; }
+        .article-title { font-size: 1.5rem; font-weight: 600; }
+        .novel-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .novel-content { line-height: 1.6; }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
-    <div class="go-top" id="go-top">↑</div>
-    <div class="toast" id="toast">已复制</div>
-
     <div class="container">
-        <div class="hero">
-            <h1>✨ 拾光驿站 · 诗与歌的相遇</h1>
-            <div class="date" id="date"></div>
-        </div>
-        <div id="loader" class="loader"></div>
+        <h1 style="text-align:center; margin-bottom:2rem;">✨ 拾光驿站 · 盲盒测试</h1>
 
-        <!-- 未知旋律卡片 -->
+        <!-- 未知旋律卡片（示例数据，实际会从JSON加载） -->
         <div class="card" id="song-card" style="display: none;">
             <div class="card-header">
                 <h2>🎵 未知旋律</h2>
                 <button class="open-btn" data-card="song">🔓 打开盲盒</button>
             </div>
             <div class="card-content">
-                <div class="song-container">
-                    <img class="song-cover" id="song-cover" src="" alt="封面" onerror="this.src='https://via.placeholder.com/300x300?text=🎵'">
-                    <div class="song-info">
-                        <h3 id="song-title"></h3>
-                        <div class="artist" id="song-artist"></div>
-                        <div class="album" id="song-album"></div>
-                        <div class="song-comment" id="song-comment"></div>
-                    </div>
+                <div class="song-info">
+                    <h3 id="song-title"></h3>
+                    <div class="artist" id="song-artist"></div>
                 </div>
-                <div class="meaning" id="song-meaning"></div>
             </div>
         </div>
 
-        <!-- 散落诗行卡片 -->
         <div class="card" id="sentence-card" style="display: none;">
             <div class="card-header">
                 <h2>💭 散落诗行</h2>
                 <button class="open-btn" data-card="sentence">🔓 打开盲盒</button>
             </div>
             <div class="card-content">
-                <div class="sentence-header">
-                    <div></div>
-                    <div class="sentence-actions">
-                        <button class="action-btn" id="copy-sentence-btn" title="复制句子">📋</button>
-                        <button class="action-btn" id="share-sentence-btn" title="生成图片">📸</button>
-                    </div>
-                </div>
                 <div class="sentence-content" id="sentence-content"></div>
-                <div class="sentence-from" id="sentence-from"></div>
-                <div class="meaning" id="sentence-meaning"></div>
+                <div class="sentence-from" id="sentence-from" style="margin-top:0.5rem; text-align:right; color:#888;"></div>
             </div>
         </div>
 
-        <!-- 墨香盲盒卡片 -->
         <div class="card" id="article-card" style="display: none;">
             <div class="card-header">
                 <h2>📖 墨香盲盒</h2>
@@ -380,13 +99,9 @@
                 <div class="article-title" id="article-title"></div>
                 <div class="article-desc" id="article-desc"></div>
                 <div class="article-author" id="article-author"></div>
-                <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
-                <div class="meaning" id="article-meaning"></div>
-                <div class="stats" id="article-stats"></div>
             </div>
         </div>
 
-        <!-- 虚构抽屉卡片 -->
         <div class="card" id="novel-card" style="display: none;">
             <div class="card-header">
                 <h2>📚 虚构抽屉</h2>
@@ -395,202 +110,70 @@
             <div class="card-content">
                 <div class="novel-title" id="novel-title"></div>
                 <div class="novel-content" id="novel-content"></div>
-                <div class="stats" id="novel-stats"></div>
             </div>
         </div>
 
-        <div class="footer">
-            <div id="update-time"></div>
-            <a href="/history.html" style="color: #4f9da6; text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
-        </div>
+        <div id="loader" style="text-align:center; margin:2rem;">加载中...</div>
     </div>
 
     <script>
         (function() {
-            // 随机渐变背景
-            const gradients = [
-                "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
-                "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
-                "linear-gradient(145deg, #f5efe9 0%, #e0d8cf 100%)",
-                "linear-gradient(135deg, #fdf8ed 0%, #eae3d5 100%)",
-                "linear-gradient(145deg, #f2e9e1 0%, #dcd3c6 100%)",
-                "linear-gradient(135deg, #ebf0f5 0%, #cbdbe0 100%)"
-            ];
-            document.body.style.background = gradients[Math.floor(Math.random() * gradients.length)];
-
-            // 暗色模式
-            const themeToggle = document.getElementById('theme-toggle');
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-                themeToggle.innerHTML = '☀️ 亮色模式';
-            }
-            themeToggle.addEventListener('click', () => {
-                document.body.classList.toggle('dark-mode');
-                const isDark = document.body.classList.contains('dark-mode');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
-            });
-
-            // 回到顶部
-            const goTopBtn = document.getElementById('go-top');
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 300) goTopBtn.classList.add('visible');
-                else goTopBtn.classList.remove('visible');
-            });
-            goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
-            // 复制功能
-            function copyToClipboard(text) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const toast = document.getElementById('toast');
-                    toast.classList.add('show');
-                    setTimeout(() => toast.classList.remove('show'), 2000);
-                }).catch(() => alert('复制失败'));
-            }
-
-            // 生成图片功能
-            function captureCard(element, filename = '拾光驿站.png') {
-                if (!element) {
-                    alert('无法截取内容');
-                    return;
-                }
-                html2canvas(element, {
-                    scale: 2,
-                    backgroundColor: null,
-                    useCORS: true,
-                    logging: false
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = filename;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                }).catch(err => {
-                    console.error(err);
-                    alert('生成图片失败，请重试');
-                });
-            }
-
-            // 字数统计
-            function countWords(text) {
-                const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-                const english = (text.match(/[a-zA-Z]+/g) || []).length;
-                return chinese + english;
-            }
-            function formatStats(words) {
-                return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
-            }
-
-            // 加载数据
+            // 加载真实数据
             fetch('/data/daily.json?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('loader').style.display = 'none';
-                    document.getElementById('date').textContent = data.date || '今日';
-                    if (data.updated_at) {
-                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
-                    }
 
-                    // 未知旋律
+                    // 填充未知旋律
                     if (data.song) {
-                        const card = document.getElementById('song-card');
-                        card.style.display = 'block';
-                        document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
+                        document.getElementById('song-card').style.display = 'block';
                         document.getElementById('song-title').textContent = data.song.name || '';
                         document.getElementById('song-artist').textContent = data.song.artist ? `歌手 · ${data.song.artist}` : '';
-                        document.getElementById('song-album').textContent = data.song.album ? `专辑 · ${data.song.album}` : '';
-                        if (data.song.comment?.content) {
-                            document.getElementById('song-comment').textContent = `“${data.song.comment.content}” —— ${data.song.comment.user || ''}`;
-                        }
-                        if (data.song.meaning) {
-                            document.getElementById('song-meaning').textContent = data.song.meaning;
-                            document.getElementById('song-meaning').style.display = 'block';
-                        }
                     }
 
-                    // 散落诗行
+                    // 填充散落诗行
                     if (data.sentence) {
-                        const card = document.getElementById('sentence-card');
-                        card.style.display = 'block';
-                        const sentenceText = data.sentence.content || '';
-                        document.getElementById('sentence-content').textContent = sentenceText;
+                        document.getElementById('sentence-card').style.display = 'block';
+                        document.getElementById('sentence-content').textContent = data.sentence.content || '';
                         document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
-                        if (data.sentence.meaning) {
-                            document.getElementById('sentence-meaning').textContent = data.sentence.meaning;
-                            document.getElementById('sentence-meaning').style.display = 'block';
-                        }
-                        const copyBtn = document.getElementById('copy-sentence-btn');
-                        copyBtn.onclick = () => copyToClipboard(sentenceText);
-                        const shareBtn = document.getElementById('share-sentence-btn');
-                        const cardElement = document.getElementById('sentence-card').querySelector('.card-content');
-                        shareBtn.onclick = () => captureCard(cardElement, `拾光驿站_${data.date}.png`);
                     }
 
-                    // 墨香盲盒
+                    // 填充墨香盲盒
                     if (data.article) {
-                        const card = document.getElementById('article-card');
-                        card.style.display = 'block';
+                        document.getElementById('article-card').style.display = 'block';
                         document.getElementById('article-title').textContent = data.article.title || '';
-                        let articleText = data.article.description || data.article.content || '';
-                        document.getElementById('article-desc').textContent = articleText;
+                        document.getElementById('article-desc').textContent = data.article.description || data.article.content || '';
                         document.getElementById('article-author').textContent = data.article.author ? `—— ${data.article.author}` : '';
-                        if (data.article.url) {
-                            document.getElementById('article-link').href = data.article.url;
-                        } else {
-                            document.getElementById('article-link').style.display = 'none';
-                        }
-                        if (data.article.meaning) {
-                            document.getElementById('article-meaning').textContent = data.article.meaning;
-                            document.getElementById('article-meaning').style.display = 'block';
-                        }
-                        const articleWords = countWords(articleText);
-                        document.getElementById('article-stats').textContent = formatStats(articleWords);
                     }
 
-                    // 虚构抽屉
+                    // 填充虚构抽屉
                     if (data.novel) {
-                        const card = document.getElementById('novel-card');
-                        card.style.display = 'block';
+                        document.getElementById('novel-card').style.display = 'block';
                         document.getElementById('novel-title').textContent = data.novel.title || '';
                         const content = data.novel.content || '';
                         const paragraphs = content.split(/\n\s*\n/);
                         const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                         document.getElementById('novel-content').innerHTML = htmlContent;
-                        const novelWords = countWords(content);
-                        document.getElementById('novel-stats').textContent = formatStats(novelWords);
                     }
 
-                    // ========== 绑定盲盒按钮事件（确保在数据填充后执行） ==========
-                    const openBtns = document.querySelectorAll('.open-btn');
-                    console.log(`找到 ${openBtns.length} 个盲盒按钮`);  // 调试：输出按钮数量
-                    openBtns.forEach(btn => {
-                        // 移除可能已绑定的旧事件，避免重复
-                        btn.removeEventListener('click', handleBlindBox);
-                        btn.addEventListener('click', handleBlindBox);
-                    });
-
-                    function handleBlindBox(e) {
-                        const btn = e.currentTarget;
-                        const card = btn.closest('.card');
-                        const content = card.querySelector('.card-content');
-                        if (content) {
+                    // 绑定盲盒按钮事件
+                    const btns = document.querySelectorAll('.open-btn');
+                    btns.forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            const card = this.closest('.card');
+                            const content = card.querySelector('.card-content');
                             if (content.style.display === 'none') {
                                 content.style.display = 'block';
-                                btn.textContent = '📦 已开启';
-                                btn.disabled = true;  // 可选：开启后禁用按钮
-                                console.log(`已打开盲盒：${btn.getAttribute('data-card')}`);
-                            } else {
-                                // 如果已开启，可以什么都不做，或者允许重新关闭（这里不实现）
+                                this.textContent = '📦 已开启';
+                                this.disabled = true;
+                                console.log('已打开盲盒：', this.getAttribute('data-card'));
                             }
-                        } else {
-                            console.error('未找到 card-content', card);
-                        }
-                    }
+                        });
+                    });
                 })
                 .catch(err => {
-                    console.error(err);
-                    document.getElementById('loader').style.display = 'none';
-                    document.body.innerHTML += '<p style="text-align:center; color:#bf6f5a;">数据加载失败</p>';
+                    console.error('加载失败', err);
+                    document.getElementById('loader').textContent = '数据加载失败，请刷新重试';
                 });
         })();
     </script>
