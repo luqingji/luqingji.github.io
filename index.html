@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -114,7 +115,11 @@
             align-items: center;
             margin-bottom: 1rem;
         }
-        .copy-btn {
+        .sentence-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .action-btn {
             background: none;
             border: none;
             font-size: 1.2rem;
@@ -124,10 +129,10 @@
             transition: background 0.2s;
             color: inherit;
         }
-        .copy-btn:hover {
+        .action-btn:hover {
             background: rgba(0,0,0,0.1);
         }
-        body.dark-mode .copy-btn:hover {
+        body.dark-mode .action-btn:hover {
             background: rgba(255,255,255,0.1);
         }
         .toast {
@@ -312,7 +317,10 @@
         <div class="card" id="sentence-card" style="display: none;">
             <div class="sentence-header">
                 <h2>💭 每日一句</h2>
-                <button class="copy-btn" id="copy-sentence-btn" title="复制句子">📋</button>
+                <div class="sentence-actions">
+                    <button class="action-btn" id="copy-sentence-btn" title="复制句子">📋</button>
+                    <button class="action-btn" id="share-sentence-btn" title="生成图片">📸</button>
+                </div>
             </div>
             <div class="sentence-content" id="sentence-content"></div>
             <div class="sentence-from" id="sentence-from"></div>
@@ -393,7 +401,29 @@
                     setTimeout(() => toast.classList.remove('show'), 2000);
                 }).catch(() => alert('复制失败'));
             }
-            let currentSentence = '';
+
+            // ==================== 生成图片功能 ====================
+            function captureCard(element, filename = '每日拾光.png') {
+                if (!element) {
+                    alert('无法截取内容');
+                    return;
+                }
+                // 临时隐藏可能干扰截图的操作按钮（可选，但为了美观，可以保留）
+                html2canvas(element, {
+                    scale: 2,
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }).catch(err => {
+                    console.error(err);
+                    alert('生成图片失败，请重试');
+                });
+            }
 
             // ==================== 字数统计函数 ====================
             function countWords(text) {
@@ -436,15 +466,19 @@
                     if (data.sentence) {
                         document.getElementById('sentence-card').style.display = 'block';
                         const sentenceText = data.sentence.content || '';
-                        currentSentence = sentenceText;
                         document.getElementById('sentence-content').textContent = sentenceText;
                         document.getElementById('sentence-from').textContent = data.sentence.from ? `—— ${data.sentence.from}` : '';
                         if (data.sentence.meaning) {
                             document.getElementById('sentence-meaning').textContent = data.sentence.meaning;
                             document.getElementById('sentence-meaning').style.display = 'block';
                         }
+                        // 复制按钮
                         const copyBtn = document.getElementById('copy-sentence-btn');
                         copyBtn.onclick = () => copyToClipboard(sentenceText);
+                        // 生成图片按钮
+                        const shareBtn = document.getElementById('share-sentence-btn');
+                        const cardElement = document.getElementById('sentence-card');
+                        shareBtn.onclick = () => captureCard(cardElement, `每日拾光_${data.date || '今日'}.png`);
                     }
 
                     // 每日一文
