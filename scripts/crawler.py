@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，已移除每日一词）
+每日数据爬虫（完整版 v1.0，每日三篇小说，每篇2000字以上）
 - 每日一句：一言API
 - 每日一曲：真实歌曲库（自建网易云API） + AI润色
 - 每日一文：古诗文网 → 维基百科 → 备选
-- 每日一小说：AI生成（12种随机风格，1500-2500字，作者“拾光”）
+- 每日一词：优先从歌曲歌词提取 → 热搜备选
+- 每日小说：AI生成 3 篇（12种随机风格，每篇2000-3000字，作者“拾光”）
 - 历史存档：自动保存每日数据
 """
 
@@ -66,6 +67,12 @@ FALLBACK_SONGS = [
 FALLBACK_ARTICLES = [
     {"title": "荷塘月色", "description": "这几天心里颇不宁静。今晚在院子里坐着乘凉，忽然想起日日走过的荷塘，在这满月的光里，总该另有一番样子吧。", "author": "朱自清"},
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
+]
+
+FALLBACK_WORDS = [
+    {"word": "治愈", "description": "在音乐中找到内心的平静", "meaning": "治愈不是忘记伤痛，而是学会与伤痛共处。"},
+    {"word": "怀旧", "description": "那些年我们一起听过的歌", "meaning": "怀旧不是沉溺过去，而是为了更清晰地看见来路。"},
+    {"word": "励志", "description": "每一首歌都是一个故事", "meaning": "励志不是盲目的打鸡血，而是认清现实后依然选择前行。"},
 ]
 
 FALLBACK_NOVELS = [
@@ -309,76 +316,191 @@ def fetch_article():
         print(f"维基百科失败: {e}")
     return enrich_with_ai("article", random.choice(FALLBACK_ARTICLES).copy())
 
-# ==================== 每日一小说（增强版）====================
-def fetch_novel():
-    """获取每日一小说 - 字数1500+无上限，强化提示词，加入反派/冲突元素"""
-    print("正在获取每日一小说...")
-    styles = [
-        {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望，细节温暖。"},
-        {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料，逻辑严密。"},
-        {"name": "科幻未来", "desc": "设定在未来或科技背景下，探讨人性与技术，想象丰富。"},
-        {"name": "幽默搞笑", "desc": "轻松诙谐，让人会心一笑或捧腹，语言风趣。"},
-        {"name": "人生哲理", "desc": "蕴含深刻道理，引人深思，通过故事传递智慧。"},
-        {"name": "都市情感", "desc": "现代城市中的情感故事，关于爱情、友情或亲情，情感真挚。"},
-        {"name": "奇幻冒险", "desc": "奇幻世界或冒险旅程，充满想象力，世界观独特。"},
-        {"name": "历史瞬间", "desc": "以历史事件或人物为背景，展现时代切片，考究细节。"},
-        {"name": "微恐怖", "desc": "轻微恐怖氛围，但不过分，结局留有想象空间，氛围营造出色。"},
-        {"name": "动物视角", "desc": "以动物为主角，通过它们的眼睛看世界，视角新颖。"},
-        {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期，铺垫合理。"},
-        {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主，语言优美。"},
+# ==================== 每日一词 ====================
+def fetch_word_from_song_lyrics():
+    global _cached_song
+    if _cached_song and _cached_song.get('lyrics_snippet'):
+        words = re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]+', _cached_song['lyrics_snippet'])
+        if words:
+            return {"word": words[0][:8], "description": "来自今日歌曲歌词"}
+    return None
+
+def fetch_word_from_baidu():
+    url = "https://top.baidu.com/board?tab=realtime"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    resp = requests.get(url, headers=headers, timeout=8)
+    if resp.status_code != 200: raise Exception("百度失败")
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    first = soup.select_one('.c-single-text-ellipsis')
+    if not first: raise Exception("百度解析失败")
+    word = first.text.strip()
+    hot_span = soup.select_one('.hot-index_1E1kp')
+    hot = hot_span.text.strip() if hot_span else ""
+    return {"word": word, "description": f"百度热搜 · {hot}"}
+
+def fetch_word_from_zhihu():
+    url = "https://www.zhihu.com/billboard"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    resp = requests.get(url, headers=headers, timeout=8)
+    if resp.status_code != 200: raise Exception("知乎失败")
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    topic = soup.select_one('.HotList-itemTitle')
+    if not topic: raise Exception("知乎解析失败")
+    word = topic.text.strip()
+    hot = soup.select_one('.HotList-itemHot')
+    hot_value = hot.text.strip() if hot else "未知热度"
+    return {"word": word, "description": f"知乎热榜 · {hot_value}"}
+
+def fetch_word_from_douban():
+    url = "https://movie.douban.com/chart"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    resp = requests.get(url, headers=headers, timeout=8)
+    if resp.status_code != 200: raise Exception("豆瓣失败")
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    first_movie = soup.select_one('.pl2 a')
+    if not first_movie: raise Exception("豆瓣解析失败")
+    word = first_movie.text.strip().replace(' ', '').replace('\n', '')
+    return {"word": word, "description": "豆瓣热门电影"}
+
+def fetch_word_from_sspai():
+    url = "https://sspai.com/"
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    resp = requests.get(url, headers=headers, timeout=8)
+    if resp.status_code != 200: raise Exception("少数派失败")
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    first_article = soup.select_one('.itemTitle a') or soup.select_one('h2 a')
+    if not first_article: raise Exception("少数派解析失败")
+    word = first_article.text.strip()
+    return {"word": word, "description": "少数派热门文章"}
+
+def fetch_word_from_weibo():
+    url = "https://s.weibo.com/top/summary"
+    headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'}
+    resp = requests.get(url, headers=headers, timeout=8)
+    if resp.status_code != 200: raise Exception("微博失败")
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    first_tr = soup.select_one('tbody tr:first-child')
+    if not first_tr: raise Exception("微博解析失败")
+    a_tag = first_tr.select_one('.td-02 a')
+    if not a_tag: raise Exception("微博解析失败")
+    word = a_tag.text.strip()
+    hot_span = first_tr.select_one('.td-02 span')
+    hot_value = hot_span.text.strip() if hot_span else ""
+    return {"word": word, "description": f"微博热搜 · {hot_value}"}
+
+def fetch_word_from_today_song():
+    global _cached_song
+    if _cached_song and _cached_song.get('comment'):
+        comment = _cached_song['comment'].get('content', '')
+        if comment:
+            word = comment.split()[0][:5] if comment else None
+            if word:
+                return {"word": word, "description": "来自今日歌曲热评"}
+    return None
+
+def fetch_word():
+    print("正在获取每日一词...")
+    sources = [
+        fetch_word_from_song_lyrics,
+        fetch_word_from_baidu,
+        fetch_word_from_zhihu,
+        fetch_word_from_douban,
+        fetch_word_from_sspai,
+        fetch_word_from_weibo,
+        fetch_word_from_today_song,
     ]
-    if not ENABLE_AI:
-        return random.choice(FALLBACK_NOVELS).copy()
-
-    for attempt in range(5):
-        chosen = random.choice(styles)
-        print(f"尝试 {attempt+1}，风格：{chosen['name']}")
-        prompt = f"""
-        请创作一篇短篇小说，严格按照以下要求：
-        - 风格：{chosen['name']}（{chosen['desc']}）
-        - 标题简洁有吸引力
-        - **字数要求：正文必须在1500字以上，上不封顶，请尽情发挥，写得越长越丰富越好。鼓励添加细腻的场景描写、人物心理活动、对话和情节转折。**
-        - 情节完整，有起承转合，人物形象鲜明，让读者沉浸其中。
-        - **反派/冲突元素：请根据风格适当加入反派角色或冲突元素（可以是人物、势力、命运、环境等广义的对抗力量），增强故事的张力和可读性，但要自然融入情节，避免生硬。**
-        - 不要刻意压缩字数，而是充分展开故事，细节越多越好。
-        - 按以下JSON格式输出，不要包含任何其他文字：
-        {{
-            "title": "小说标题",
-            "content": "小说正文"
-        }}
-        """
+    random.shuffle(sources)
+    for func in sources:
         try:
-            ai_resp = call_ai(prompt, max_tokens=12000, temperature=0.8)
+            result = func()
+            if result and result.get('word'):
+                print(f"✓ 成功：{result['word']}")
+                return enrich_with_ai("word", result)
         except Exception as e:
-            print(f"× AI调用异常: {e}")
+            print(f"× 失败: {e}")
             continue
+    return enrich_with_ai("word", random.choice(FALLBACK_WORDS).copy())
 
-        if not ai_resp:
+# ==================== 每日小说（3篇，每篇2000字以上） ====================
+def generate_one_novel():
+    """生成一篇小说（带重试和风格随机），字数严格2000字以上"""
+    styles = [
+        {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
+        {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
+        {"name": "科幻未来", "desc": "设定在未来或科技背景下，探讨人性与技术。"},
+        {"name": "幽默搞笑", "desc": "轻松诙谐，让人会心一笑或捧腹。"},
+        {"name": "人生哲理", "desc": "蕴含深刻道理，引人深思，通过故事传递智慧。"},
+        {"name": "都市情感", "desc": "现代城市中的情感故事，关于爱情、友情或亲情。"},
+        {"name": "奇幻冒险", "desc": "奇幻世界或冒险旅程，充满想象力。"},
+        {"name": "历史瞬间", "desc": "以历史事件或人物为背景，展现时代切片。"},
+        {"name": "微恐怖", "desc": "轻微恐怖氛围，但不过分，结局留有想象空间。"},
+        {"name": "动物视角", "desc": "以动物为主角，通过它们的眼睛看世界。"},
+        {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期。"},
+        {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主。"},
+    ]
+    chosen = random.choice(styles)
+    print(f"  生成小说 风格：{chosen['name']}")
+    prompt = f"""
+    请创作一篇短篇小说，严格按照以下要求：
+    - 风格：{chosen['name']}（{chosen['desc']}）
+    - 标题简洁有吸引力
+    - 正文必须在2000字以上，上不封顶，建议在2000-3000字之间。
+    - 情节完整，有起承转合，人物形象鲜明，场景描写细腻。
+    - 适当加入反派或冲突元素（可以是人物、命运、环境等），增强故事张力。
+    - 不要刻意压缩字数，充分展开故事，细节越丰富越好。
+    - 按以下JSON格式输出，不要包含任何其他文字：
+    {{
+        "title": "小说标题",
+        "content": "小说正文"
+    }}
+    """
+    ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8)
+    if not ai_resp:
+        return None
+
+    import re
+    json_pattern = r'(\{(?:[^{}]|(?:\{[^{}]*\}))*\})'
+    matches = re.findall(json_pattern, ai_resp, re.DOTALL)
+    for json_str in matches:
+        try:
+            json_str_clean = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
+            data = json.loads(json_str_clean)
+            title = data.get('title', '').strip()
+            content = data.get('content', '').strip()
+            if title and content:
+                word_count = len(content)
+                if word_count < 2000:
+                    print(f"  × 字数不足2000（实际{word_count}），重试")
+                    return None
+                print(f"  ✓ 生成成功：{title}，字数约{word_count}")
+                return {"title": title, "content": content}
+        except json.JSONDecodeError as e:
+            print(f"  × JSON解析失败: {e}")
             continue
+    print(f"  × 解析失败，AI响应片段: {ai_resp[:200]}")
+    return None
 
-        import re
-        json_pattern = r'(\{(?:[^{}]|(?:\{[^{}]*\}))*\})'
-        matches = re.findall(json_pattern, ai_resp, re.DOTALL)
-        success = False
-        for json_str in matches:
-            try:
-                json_str_clean = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
-                data = json.loads(json_str_clean)
-                title = data.get('title', '').strip()
-                content = data.get('content', '').strip()
-                if title and content:
-                    word_count = len(content)
-                    print(f"✓ 小说生成成功：{title}，字数约{word_count}")
-                    return {"title": title, "content": content}
-                else:
-                    print("× 返回字段不完整")
-            except json.JSONDecodeError as e:
-                print(f"× JSON解析失败: {e}")
-                continue
-        print(f"AI响应片段: {ai_resp[:200]}")
-
-    print("所有尝试均失败，使用备选小说")
-    return random.choice(FALLBACK_NOVELS).copy()
+def fetch_novels(n=3):
+    """获取每日三篇小说"""
+    print("正在获取每日三篇小说...")
+    novels = []
+    for i in range(n):
+        print(f"生成第 {i+1} 篇:")
+        novel = None
+        # 最多尝试3次
+        for attempt in range(3):
+            novel = generate_one_novel()
+            if novel:
+                break
+            time.sleep(1)
+        if novel:
+            novels.append(novel)
+        else:
+            # 使用备选小说
+            fallback = random.choice(FALLBACK_NOVELS).copy()
+            print(f"  使用备选小说：{fallback['title']}")
+            novels.append(fallback)
+    return novels
 
 # ==================== 主函数 ====================
 def main():
@@ -386,7 +508,7 @@ def main():
     # 使用北京时间
     bj_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（无每日一词）开始运行 [{bj_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，每篇2000字以上）开始运行 [{bj_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -400,8 +522,8 @@ def main():
         "sentence": fetch_sentence(),
         "song": song,
         "article": fetch_article(),
-        "novel": fetch_novel(),
-        # 每日一词已移除
+        "word": fetch_word(),
+        "novels": fetch_novels(3),   # 改为 novels 数组
     }
 
     output_file = os.path.join(data_dir, 'daily.json')
