@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 样式与主页一致，此处省略以节省篇幅，实际应包含完整样式 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -139,10 +140,23 @@
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
 
+        .novels-container {
+            margin-top: 1rem;
+        }
+        .novel-item {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 1.5rem;
+        }
+        .novel-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
         .novel-title {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.8rem;
             color: #1e3c43;
             border-left: 4px solid #bf6f5a;
             padding-left: 1rem;
@@ -157,7 +171,21 @@
             margin-bottom: 1.2em;
             text-indent: 2em;
         }
-        .novel-content p:last-child { margin-bottom: 0; }
+        .novel-content p:last-child {
+            margin-bottom: 0;
+        }
+        .novel-stats {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: right;
+        }
+        body.dark-mode .novel-stats {
+            color: #9aaebf;
+        }
+        body.dark-mode .novel-item {
+            border-bottom-color: rgba(255,255,255,0.1);
+        }
 
         .stats {
             margin-top: 1rem;
@@ -167,7 +195,6 @@
             border-top: 1px dashed rgba(0,0,0,0.1);
             padding-top: 0.8rem;
         }
-
         .meaning {
             display: none;
             margin-top: 1.5rem;
@@ -236,7 +263,7 @@
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
             .sentence-content { font-size: 1.4rem; }
-            .novel-title { font-size: 1.8rem; }
+            .novel-title { font-size: 1.6rem; }
             .novel-content { font-size: 1rem; }
             .theme-toggle { top: 10px; right: 10px; padding: 5px 12px; font-size: 0.8rem; }
         }
@@ -288,18 +315,17 @@
                 <div class="meaning" id="article-meaning"></div>
                 <div class="stats" id="article-stats"></div>
             </div>
-            <!-- 虚构抽屉 -->
+            <!-- 虚构抽屉（多篇小说） -->
             <div class="card" id="novel-card" style="display: none;">
                 <h2>📚 虚构抽屉</h2>
-                <div class="novel-title" id="novel-title"></div>
-                <div class="novel-content" id="novel-content"></div>
-                <div class="stats" id="novel-stats"></div>
+                <div id="novels-container" class="novels-container"></div>
             </div>
         </div>
     </div>
 
     <script>
         (function() {
+            // 随机背景
             const gradients = [
                 "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
                 "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
@@ -310,6 +336,7 @@
             ];
             document.body.style.background = gradients[Math.floor(Math.random() * gradients.length)];
 
+            // 暗色模式
             const themeToggle = document.getElementById('theme-toggle');
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'dark') {
@@ -323,6 +350,7 @@
                 themeToggle.innerHTML = isDark ? '☀️ 亮色模式' : '🌙 暗色模式';
             });
 
+            // 回到顶部
             const goTopBtn = document.getElementById('go-top');
             window.addEventListener('scroll', () => {
                 if (window.scrollY > 300) goTopBtn.classList.add('visible');
@@ -330,6 +358,7 @@
             });
             goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
+            // 复制功能
             function copyToClipboard(text) {
                 navigator.clipboard.writeText(text).then(() => {
                     const toast = document.getElementById('toast');
@@ -338,6 +367,7 @@
                 }).catch(() => alert('复制失败'));
             }
 
+            // 生成图片功能
             function captureCard(element, filename = '拾光驿站.png') {
                 if (!element) {
                     alert('无法截取内容');
@@ -359,6 +389,7 @@
                 });
             }
 
+            // 字数统计
             function countWords(text) {
                 const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
                 const english = (text.match(/[a-zA-Z]+/g) || []).length;
@@ -368,6 +399,31 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
+            // 渲染多篇小说
+            function renderNovels(novels) {
+                const container = document.getElementById('novels-container');
+                container.innerHTML = '';
+                if (!novels || novels.length === 0) {
+                    container.innerHTML = '<p>暂无小说，请稍后再来。</p>';
+                    return;
+                }
+                novels.forEach((novel, idx) => {
+                    const novelDiv = document.createElement('div');
+                    novelDiv.className = 'novel-item';
+                    const title = novel.title || '无题';
+                    const content = novel.content || '';
+                    const wordCount = countWords(content);
+                    const stats = formatStats(wordCount);
+                    novelDiv.innerHTML = `
+                        <div class="novel-title">${title}</div>
+                        <div class="novel-content">${content.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+                        <div class="novel-stats">${stats}</div>
+                    `;
+                    container.appendChild(novelDiv);
+                });
+            }
+
+            // 获取日期参数并加载数据
             const urlParams = new URLSearchParams(window.location.search);
             const date = urlParams.get('date');
             if (!date) {
@@ -433,14 +489,12 @@
                         }
                         document.getElementById('article-stats').textContent = formatStats(countWords(articleText));
                     }
-                    if (data.novel) {
+                    if (data.novels && Array.isArray(data.novels)) {
                         document.getElementById('novel-card').style.display = 'block';
-                        document.getElementById('novel-title').textContent = data.novel.title || '';
-                        const content = data.novel.content || '';
-                        const paragraphs = content.split(/\n\s*\n/);
-                        const htmlContent = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-                        document.getElementById('novel-content').innerHTML = htmlContent;
-                        document.getElementById('novel-stats').textContent = formatStats(countWords(content));
+                        renderNovels(data.novels);
+                    } else if (data.novel) {
+                        document.getElementById('novel-card').style.display = 'block';
+                        renderNovels([data.novel]);
                     }
                 })
                 .catch(err => {
