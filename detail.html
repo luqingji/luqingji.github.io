@@ -8,7 +8,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <style>
-        /* 与主页样式完全一致，略 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -75,8 +74,6 @@
         .article-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.5rem; }
         .article-desc { color: #2c3e50; line-height: 1.8; }
         .article-author { text-align: right; color: #6b7c8b; }
-        .word { font-size: 4rem; font-weight: 600; color: #bf6f5a; text-align: center; }
-        .word-desc { text-align: center; color: #4f5e6b; font-size: 1.3rem; }
         .novel-title { font-size: 1.8rem; font-weight: 600; margin-bottom: 0.8rem; }
         .novel-content { line-height: 1.8; }
         .meaning {
@@ -103,7 +100,6 @@
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
             .sentence-content { font-size: 1.4rem; }
-            .word { font-size: 3.2rem; }
         }
     </style>
 </head>
@@ -112,7 +108,7 @@
         <a href="/history.html" class="back-link">← 返回历史回顾</a>
         <div id="loader" class="loader"></div>
         <div id="content" style="display: none;">
-            <!-- 卡片结构与主页一致 -->
+            <!-- 每日一曲 -->
             <div class="card" id="song-card" style="display: none;">
                 <h2>🎵 每日一曲</h2>
                 <div class="song-container">
@@ -126,12 +122,14 @@
                 </div>
                 <div class="meaning" id="song-meaning"></div>
             </div>
+            <!-- 每日一句 -->
             <div class="card" id="sentence-card" style="display: none;">
                 <h2>💭 每日一句</h2>
                 <div class="sentence-content" id="sentence-content"></div>
                 <div class="sentence-from" id="sentence-from"></div>
                 <div class="meaning" id="sentence-meaning"></div>
             </div>
+            <!-- 每日一文 -->
             <div class="card" id="article-card" style="display: none;">
                 <h2>📖 每日一文</h2>
                 <div class="article-title" id="article-title"></div>
@@ -140,12 +138,7 @@
                 <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
                 <div class="meaning" id="article-meaning"></div>
             </div>
-            <div class="card" id="word-card" style="display: none;">
-                <h2>🔖 每日一词</h2>
-                <div class="word" id="word"></div>
-                <div class="word-desc" id="word-desc"></div>
-                <div class="meaning" id="word-meaning"></div>
-            </div>
+            <!-- 每日一小说 -->
             <div class="card" id="novel-card" style="display: none;">
                 <h2>📖 每日一小说 · 拾光</h2>
                 <div class="novel-title" id="novel-title"></div>
@@ -174,7 +167,6 @@
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('content').style.display = 'block';
 
-                    // 渲染逻辑与主页完全一致
                     if (data.song) {
                         document.getElementById('song-card').style.display = 'block';
                         document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
@@ -211,15 +203,6 @@
                         if (data.article.meaning) {
                             document.getElementById('article-meaning').textContent = data.article.meaning;
                             document.getElementById('article-meaning').style.display = 'block';
-                        }
-                    }
-                    if (data.word) {
-                        document.getElementById('word-card').style.display = 'block';
-                        document.getElementById('word').textContent = data.word.word || '';
-                        document.getElementById('word-desc').textContent = data.word.description || '';
-                        if (data.word.meaning) {
-                            document.getElementById('word-meaning').textContent = data.word.meaning;
-                            document.getElementById('word-meaning').style.display = 'block';
                         }
                     }
                     if (data.novel) {
