@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，每日三篇小说，高稳定性版）
+每日数据爬虫（完整版 v1.0，每日三篇小说，高稳定性版，含每日总结）
 - 每日一句：一言API
 - 每日一曲：真实歌曲库（自建网易云API） + AI润色
 - 每日一文：古诗文网 → 维基百科 → 备选
 - 每日一词：优先从歌曲歌词提取 → 热搜备选
 - 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
+- 每日总结：AI 生成一句今日主题/情绪概括
 - 历史存档：自动保存每日数据
 """
 
@@ -558,12 +559,38 @@ def fetch_novels(n=3):
             novels.append(fallback)
     return novels
 
+# ==================== 每日总结（AI生成） ====================
+def generate_summary(data):
+    """根据当日数据生成一句总结"""
+    if not ENABLE_AI:
+        return "今日拾光，愿您有所获。"
+    # 构建提示词
+    sentence_content = data.get('sentence', {}).get('content', '')
+    song_name = data.get('song', {}).get('name', '')
+    song_artist = data.get('song', {}).get('artist', '')
+    article_title = data.get('article', {}).get('title', '')
+    novels_titles = [n['title'] for n in data.get('novels', [])]
+    novels_str = '、'.join(novels_titles) if novels_titles else '无'
+    prompt = f"""
+    请根据以下今日内容，用一句简短、诗意的话概括它们共同的主题或情绪（20-40字）：
+    每日一句：{sentence_content}
+    每日一曲：《{song_name}》- {song_artist}
+    每日一文：《{article_title}》
+    每日小说：{novels_str}
+    """
+    ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, timeout=20)
+    if ai_resp:
+        # 去掉可能的引号
+        return ai_resp.strip('"').strip()
+    else:
+        return "今日拾光，愿您有所获。"
+
 # ==================== 主函数 ====================
 def main():
     global _cached_song
     bj_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，高稳定性版）开始运行 [{bj_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，含每日总结）开始运行 [{bj_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -580,6 +607,11 @@ def main():
         "word": fetch_word(),
         "novels": fetch_novels(3),
     }
+
+    # 生成每日总结
+    summary = generate_summary(today_data)
+    today_data['summary'] = summary
+    print(f"📝 每日总结：{summary}")
 
     output_file = os.path.join(data_dir, 'daily.json')
     with open(output_file, 'w', encoding='utf-8') as f:
