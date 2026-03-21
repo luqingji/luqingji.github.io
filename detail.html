@@ -430,6 +430,49 @@
             background: rgba(0,0,0,0.3);
         }
 
+        /* 歌单列表样式 */
+        .songs-list {
+            margin-top: 1rem;
+        }
+        .song-item {
+            margin-bottom: 1rem;
+            border-bottom: 1px dashed rgba(0,0,0,0.1);
+            padding-bottom: 0.8rem;
+        }
+        .song-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        .song-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .song-artist {
+            font-size: 0.9rem;
+            color: #4f5e6b;
+        }
+        .song-album {
+            font-size: 0.85rem;
+            color: #6b7c8b;
+        }
+        .song-recommendation {
+            margin-top: 0.4rem;
+            font-style: italic;
+            color: #bf6f5a;
+            font-size: 0.9rem;
+        }
+        body.dark-mode .song-artist,
+        body.dark-mode .song-album {
+            color: #aaa;
+        }
+        body.dark-mode .song-recommendation {
+            color: #f0b27a;
+        }
+        body.dark-mode .song-item {
+            border-bottom-color: rgba(255,255,255,0.1);
+        }
+
         @media (max-width: 600px) {
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
@@ -456,20 +499,12 @@
         </div>
         <div id="loader" class="loader"></div>
         <div id="content" style="display: none;">
-            <!-- 未知旋律 -->
+            <!-- 未知旋律卡片（歌单列表） -->
             <div class="card" id="song-card" style="display: none;">
                 <h2>🎵 未知旋律</h2>
-                <div class="song-container">
-                    <img class="song-cover" id="song-cover" src="" alt="封面" onerror="this.src='https://via.placeholder.com/300x300?text=🎵'">
-                    <div class="song-info">
-                        <h3 id="song-title"></h3>
-                        <div class="artist" id="song-artist"></div>
-                        <div class="album" id="song-album"></div>
-                        <div class="song-comment" id="song-comment"></div>
-                    </div>
-                </div>
-                <div class="meaning" id="song-meaning"></div>
+                <div id="songs-list" class="songs-list"></div>
             </div>
+
             <!-- 散落诗行 -->
             <div class="card" id="sentence-card" style="display: none;">
                 <div class="sentence-header">
@@ -483,6 +518,7 @@
                 <div class="sentence-from" id="sentence-from"></div>
                 <div class="meaning" id="sentence-meaning"></div>
             </div>
+
             <!-- 墨香盲盒 -->
             <div class="card" id="article-card" style="display: none;">
                 <h2>📖 墨香盲盒</h2>
@@ -493,6 +529,7 @@
                 <div class="meaning" id="article-meaning"></div>
                 <div class="stats" id="article-stats"></div>
             </div>
+
             <!-- 虚构抽屉（多篇小说） -->
             <div class="card" id="novel-card" style="display: none;">
                 <h2>📚 虚构抽屉</h2>
@@ -706,10 +743,9 @@
                     let content = novel.content || '';
 
                     // 清理可能残留的 JSON 键名和转义字符
-                    content = content.replace(/^\s*"content":\s*/, '');        // 去掉开头的 "content":
-                    content = content.replace(/"content":\s*/g, '');           // 去掉文中可能残留的 "content":
-                    content = content.replace(/\\n/g, '\n');                   // 将 \n 还原为换行
-                    // 去除开头多余的引号
+                    content = content.replace(/^\s*"content":\s*/, '');
+                    content = content.replace(/"content":\s*/g, '');
+                    content = content.replace(/\\n/g, '\n');
                     content = content.replace(/^["']|["']$/g, '');
                     
                     // 段落去重
@@ -815,20 +851,36 @@
                     // 历史上的今天
                     document.getElementById('today-in-history').innerHTML = `📜 历史上的今天：${getTodayInHistory()}`;
 
-                    // 未知旋律
-                    if (data.song) {
+                    // 歌单展示
+                    if (data.songs && data.songs.length > 0) {
                         document.getElementById('song-card').style.display = 'block';
-                        document.getElementById('song-cover').src = data.song.cover || 'https://via.placeholder.com/300x300?text=🎵';
-                        document.getElementById('song-title').textContent = data.song.name || '';
-                        document.getElementById('song-artist').textContent = data.song.artist ? `歌手 · ${data.song.artist}` : '';
-                        document.getElementById('song-album').textContent = data.song.album ? `专辑 · ${data.song.album}` : '';
-                        if (data.song.comment?.content) {
-                            document.getElementById('song-comment').textContent = `“${data.song.comment.content}” —— ${data.song.comment.user || ''}`;
-                        }
-                        if (data.song.meaning) {
-                            document.getElementById('song-meaning').textContent = data.song.meaning;
-                            document.getElementById('song-meaning').style.display = 'block';
-                        }
+                        const container = document.getElementById('songs-list');
+                        container.innerHTML = '';
+                        data.songs.forEach(song => {
+                            const div = document.createElement('div');
+                            div.className = 'song-item';
+                            div.innerHTML = `
+                                <div class="song-name">${song.name}</div>
+                                <div class="song-artist">${song.artist}</div>
+                                <div class="song-album">${song.album || '未知专辑'}</div>
+                                <div class="song-recommendation">${song.recommendation || '暂无推荐语'}</div>
+                            `;
+                            container.appendChild(div);
+                        });
+                    } else if (data.song) {
+                        // 兼容旧版单曲数据
+                        document.getElementById('song-card').style.display = 'block';
+                        const container = document.getElementById('songs-list');
+                        container.innerHTML = '';
+                        const div = document.createElement('div');
+                        div.className = 'song-item';
+                        div.innerHTML = `
+                            <div class="song-name">${data.song.name}</div>
+                            <div class="song-artist">${data.song.artist}</div>
+                            <div class="song-album">${data.song.album || '未知专辑'}</div>
+                            <div class="song-recommendation">${data.song.comment?.content || '暂无推荐语'}</div>
+                        `;
+                        container.appendChild(div);
                     }
 
                     // 散落诗行
