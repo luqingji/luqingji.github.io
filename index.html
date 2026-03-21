@@ -677,7 +677,7 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // ==================== 渲染多篇小说（增加清理逻辑） ====================
+            // ==================== 渲染多篇小说（增强清理） ====================
             function renderNovels(novels) {
                 const container = document.getElementById('novels-container');
                 container.innerHTML = '';
@@ -690,13 +690,30 @@
                     novelDiv.className = 'novel-item';
                     const title = novel.title || '无题';
                     let content = novel.content || '';
-                    
+
                     // 清理可能残留的 JSON 键名和转义字符
                     content = content.replace(/^\s*"content":\s*/, '');        // 去掉开头的 "content":
                     content = content.replace(/"content":\s*/g, '');           // 去掉文中可能残留的 "content":
                     content = content.replace(/\\n/g, '\n');                   // 将 \n 还原为换行
+                    // 去除开头多余的引号
+                    content = content.replace(/^["']|["']$/g, '');
                     
-                    const wordCount = countWords(content);
+                    // 段落去重
+                    let paragraphs = content.split(/\n\s*\n/);
+                    const uniqueParagraphs = [];
+                    for (let i = 0; i < paragraphs.length; i++) {
+                        let p = paragraphs[i].trim();
+                        if (p === '') continue;
+                        if (uniqueParagraphs.length > 0 && uniqueParagraphs[uniqueParagraphs.length-1] === p) {
+                            continue;
+                        }
+                        // 简单去句子重复（可选）
+                        // 先不做了，保持段落去重即可
+                        uniqueParagraphs.push(p);
+                    }
+                    const finalContent = uniqueParagraphs.join('\n\n');
+                    
+                    const wordCount = countWords(finalContent);
                     const stats = formatStats(wordCount);
                     
                     // 头部：标题 + 按钮组
@@ -710,7 +727,7 @@
                     speakBtn.textContent = '🔊 朗读';
                     speakBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        speakText(content);
+                        speakText(finalContent);
                     });
                     // 沉浸按钮
                     const immerseBtn = document.createElement('button');
@@ -718,10 +735,9 @@
                     immerseBtn.textContent = '🔍 沉浸';
                     immerseBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        // 构建沉浸内容
                         const html = `
                             <div class="novel-title" style="font-size:2rem; margin-bottom:1rem;">${title}</div>
-                            <div class="novel-content">${content.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+                            <div class="novel-content">${finalContent.split(/\n\s*\n/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
                             <div class="novel-stats">${stats}</div>
                         `;
                         openImmerse(html);
@@ -734,8 +750,8 @@
                     // 正文
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'novel-content';
-                    const paragraphs = content.split(/\n\s*\n/);
-                    contentDiv.innerHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+                    const finalParagraphs = finalContent.split(/\n\s*\n/);
+                    contentDiv.innerHTML = finalParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                     novelDiv.appendChild(contentDiv);
                     
                     // 统计
