@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
+        /* 样式与主页完全相同，此处复用 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -838,9 +839,7 @@
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('date').textContent = date;
                     if (data.updated_at) {
-                        const utcTime = new Date(data.updated_at);
-                        const beijingTime = new Date(utcTime.getTime() + 8 * 60 * 60 * 1000);
-                        document.getElementById('update-time').textContent = `更新于 ${beijingTime.toLocaleString('zh-CN')}`;
+                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
                     }
 
                     // 每日总结
