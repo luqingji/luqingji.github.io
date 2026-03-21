@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，每日歌单（6首）+三篇小说+每日总结）
+每日数据爬虫（完整版 v1.0，每日歌单+三篇小说+每日总结）
 - 每日一句：一言API
 - 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
 - 每日一文：古诗文网 → 维基百科 → 备选
@@ -609,9 +609,10 @@ def generate_summary(data):
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    bj_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    # 使用 UTC 时间
+    utc_now = datetime.now(timezone.utc)
 
-    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{bj_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{utc_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -620,12 +621,11 @@ def main():
     songs = fetch_songs(6)
 
     # 为了兼容每日一词（如果还保留），但我们可以忽略 _cached_song
-    # 不再需要 _cached_song，可置空
     _cached_song = None
 
     today_data = {
-        "date": bj_now.strftime("%Y-%m-%d"),
-        "updated_at": bj_now.isoformat(),
+        "date": utc_now.strftime("%Y-%m-%d"),
+        "updated_at": utc_now.isoformat(),
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
