@@ -505,7 +505,7 @@
                 <div id="songs-list" class="songs-list"></div>
             </div>
 
-            <!-- 散落诗行 -->
+            <!-- 散落诗行卡片 -->
             <div class="card" id="sentence-card" style="display: none;">
                 <div class="sentence-header">
                     <h2>💭 散落诗行</h2>
@@ -519,7 +519,7 @@
                 <div class="meaning" id="sentence-meaning"></div>
             </div>
 
-            <!-- 墨香盲盒 -->
+            <!-- 墨香盲盒卡片 -->
             <div class="card" id="article-card" style="display: none;">
                 <h2>📖 墨香盲盒</h2>
                 <div class="article-title" id="article-title"></div>
@@ -530,7 +530,7 @@
                 <div class="stats" id="article-stats"></div>
             </div>
 
-            <!-- 虚构抽屉（多篇小说） -->
+            <!-- 虚构抽屉卡片 -->
             <div class="card" id="novel-card" style="display: none;">
                 <h2>📚 虚构抽屉</h2>
                 <div id="novels-container" class="novels-container"></div>
@@ -728,7 +728,7 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // ==================== 渲染多篇小说（增强清理） ====================
+            // ==================== 渲染多篇小说 ====================
             function renderNovels(novels) {
                 const container = document.getElementById('novels-container');
                 container.innerHTML = '';
@@ -838,7 +838,9 @@
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('date').textContent = date;
                     if (data.updated_at) {
-                        document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN')}`;
+                        const utcTime = new Date(data.updated_at);
+                        const beijingTime = new Date(utcTime.getTime() + 8 * 60 * 60 * 1000);
+                        document.getElementById('update-time').textContent = `更新于 ${beijingTime.toLocaleString('zh-CN')}`;
                     }
 
                     // 每日总结
