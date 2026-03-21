@@ -434,7 +434,6 @@
         <div class="hero">
             <h1>✨ 拾光驿站 · 诗与歌的相遇</h1>
             <div class="date" id="date"></div>
-            <!-- 今日份彩蛋区域 -->
             <div id="easter-egg" class="easter-egg"></div>
         </div>
         <div id="loader" class="loader"></div>
@@ -543,11 +542,10 @@
                 }
             });
 
-            // ==================== 今日份彩蛋（基于日期种子） ====================
+            // ==================== 今日份彩蛋 ====================
             function getEasterEgg() {
                 const date = new Date();
                 const seed = date.toDateString();
-                // 彩蛋列表
                 const eggs = [
                     "✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
                     "🍂 今日彩蛋：时光不语，静待花开。",
@@ -558,7 +556,6 @@
                     "🌙 今日彩蛋：此刻的宁静，胜过万语千言。",
                     "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
                 ];
-                // 用日期种子确定索引，保证同一天相同
                 let hash = 0;
                 for (let i = 0; i < seed.length; i++) {
                     hash = ((hash << 5) - hash) + seed.charCodeAt(i);
@@ -568,7 +565,7 @@
                 return eggs[index];
             }
 
-            // ==================== 历史上的今天（本地预置） ====================
+            // ==================== 历史上的今天 ====================
             const historyEvents = [
                 "1883年3月21日，安徒生逝世。",
                 "1955年3月21日，中国第一座大型水库——官厅水库建成。",
@@ -585,15 +582,13 @@
                 const date = new Date();
                 const month = date.getMonth() + 1;
                 const day = date.getDate();
-                // 如果正好有匹配的事件，优先显示当天；否则随机选一个
                 const matched = historyEvents.filter(e => e.includes(`${month}月${day}日`));
                 if (matched.length > 0) return matched[0];
-                // 否则随机选一条
                 const randomIndex = (date.getDate() + date.getMonth() * 31) % historyEvents.length;
                 return historyEvents[randomIndex];
             }
 
-            // ==================== AI 一句话书评（预设库） ====================
+            // ==================== AI 一句话书评 ====================
             const aiReviews = [
                 "📖 这篇小说像一杯温茶，慢慢品出人生滋味。",
                 "🎭 虚构的世界里，藏着真实的情感。",
@@ -682,7 +677,7 @@
                 return `${words} 字 · 约 ${Math.ceil(words / 250)} 分钟阅读`;
             }
 
-            // ==================== 渲染多篇小说（增加沉浸按钮和 AI 书评） ====================
+            // ==================== 渲染多篇小说（增加清理逻辑） ====================
             function renderNovels(novels) {
                 const container = document.getElementById('novels-container');
                 container.innerHTML = '';
@@ -694,7 +689,13 @@
                     const novelDiv = document.createElement('div');
                     novelDiv.className = 'novel-item';
                     const title = novel.title || '无题';
-                    const content = novel.content || '';
+                    let content = novel.content || '';
+                    
+                    // 清理可能残留的 JSON 键名和转义字符
+                    content = content.replace(/^\s*"content":\s*/, '');        // 去掉开头的 "content":
+                    content = content.replace(/"content":\s*/g, '');           // 去掉文中可能残留的 "content":
+                    content = content.replace(/\\n/g, '\n');                   // 将 \n 还原为换行
+                    
                     const wordCount = countWords(content);
                     const stats = formatStats(wordCount);
                     
