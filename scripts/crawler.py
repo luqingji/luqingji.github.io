@@ -33,7 +33,7 @@ SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.silic
 SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 
-_cached_song = None  # 用于每日一词（可保留，但每日一词已不再使用，暂保留）
+_cached_song = None
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
@@ -609,7 +609,7 @@ def generate_summary(data):
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    # 使用北京时间
+    # 获取北京时间
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
     print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{beijing_now.isoformat()}] ===")
