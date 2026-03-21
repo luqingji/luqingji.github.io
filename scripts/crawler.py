@@ -38,7 +38,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
 os.makedirs(data_dir, exist_ok=True)
 
-# ==================== 备选数据 ====================
+# ==================== 备选数据（完整保留） ====================
 FALLBACK_SENTENCES = [
     {"content": "生活不止眼前的苟且，还有诗和远方的田野", "from": "高晓松"},
     {"content": "愿你出走半生，归来仍是少年", "from": "网络"},
@@ -128,7 +128,6 @@ FALLBACK_NOVELS = [
 
 # ==================== AI辅助函数 ====================
 def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
-    """调用硅基流动 API 生成文本，支持调节超时"""
     if not ENABLE_AI:
         return None
     headers = {
@@ -155,7 +154,6 @@ def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
     return None
 
 def enrich_with_ai(item_type, raw_data):
-    """为不同类型的数据添加AI生成的meaning字段（仅用于句子、歌曲、文章）"""
     if not ENABLE_AI:
         return raw_data
     if item_type == "sentence":
@@ -285,7 +283,6 @@ def fetch_sentence():
 # ==================== 每日一文 ====================
 def fetch_article():
     print("正在获取每日一文...")
-    # 古诗文网尝试
     try:
         url = "https://www.gushiwen.cn/random.aspx"
         headers = {'User-Agent': 'Mozilla/5.0'}
@@ -303,7 +300,6 @@ def fetch_article():
                 return enrich_with_ai("article", result)
     except Exception as e:
         print(f"古诗文网失败: {e}")
-    # 维基百科尝试
     try:
         today = datetime.now()
         url = f"https://zh.wikipedia.org/api/rest_v1/feed/featured/{today.year}/{today.month:02d}/{today.day:02d}"
@@ -424,25 +420,19 @@ def fetch_word():
             continue
     return enrich_with_ai("word", random.choice(FALLBACK_WORDS).copy())
 
-# ==================== 每日小说（3篇，高稳定性版） ====================
+# ==================== 每日小说（3篇，高稳定性版，含去重） ====================
 def clean_json_string(s):
-    """强力修复 JSON 字符串"""
     s = s.strip()
     if s.startswith('\ufeff'):
         s = s[1:]
-    # 移除控制字符
     s = re.sub(r'[\x00-\x1f\x7f]', '', s)
-    # 修复缺失的逗号：在 " 后面跟着 " 的情况
     s = re.sub(r'\"\s+\"', '", "', s)
-    # 修复末尾多余逗号
     s = re.sub(r',\s*}', '}', s)
     s = re.sub(r',\s*]', ']', s)
-    # 修复键名没有引号的情况（简单处理，只匹配常见模式）
     s = re.sub(r'(\{|\s+|,)([a-zA-Z0-9_]+):', r'\1"\2":', s)
     return s
 
 def extract_json(text):
-    """提取第一个完整的 JSON 对象"""
     start = text.find('{')
     if start == -1:
         return None
@@ -458,7 +448,6 @@ def extract_json(text):
     return None
 
 def generate_one_novel():
-    """生成一篇小说，带回退和重试，增强 JSON 清理，确保内容干净"""
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
         {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
@@ -482,6 +471,7 @@ def generate_one_novel():
     - 正文在1000-2500字之间，最好在1500字以上，情节完整，有起承转合，人物形象鲜明，场景描写细腻。
     - 适当加入反派或冲突元素（可以是人物、命运、环境等），增强故事张力。
     - 不要刻意压缩字数，充分展开故事，细节越丰富越好。
+    - **重要：请勿重复叙述同一段内容，确保每段文字都是新的信息。**
     - 按以下JSON格式输出，不要包含任何其他文字：
     {{
         "title": "小说标题",
@@ -492,57 +482,53 @@ def generate_one_novel():
     if not ai_resp:
         return None
 
-    # 增强 JSON 提取：找到第一个 '{' 和匹配的 '}'
-    start = ai_resp.find('{')
-    if start == -1:
-        print(f"  × 未找到JSON起始，AI响应片段: {ai_resp[:200]}")
+    json_str = extract_json(ai_resp)
+    if not json_str:
+        print(f"  × 未找到JSON结构，AI响应片段: {ai_resp[:200]}")
         return None
-    brace_count = 0
-    end = start
-    for i in range(start, len(ai_resp)):
-        if ai_resp[i] == '{':
-            brace_count += 1
-        elif ai_resp[i] == '}':
-            brace_count -= 1
-            if brace_count == 0:
-                end = i
-                break
-    if end == start:
-        print(f"  × 未找到完整JSON，AI响应片段: {ai_resp[:200]}")
-        return None
-    json_str = ai_resp[start:end+1]
 
-    # 强力清理 JSON 字符串
-    # 移除控制字符
-    json_str = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
-    # 修复键名中可能的错误（例如缺少引号）
-    json_str = re.sub(r'(\{|\,)\s*([a-zA-Z0-9_]+)\s*:', r'\1"\2":', json_str)
-    # 移除 JSON 字符串值中未转义的双引号（简单处理，仅针对 content 字段）
-    # 但更稳妥的方法：先尝试解析，失败后尝试用正则提取 content 字段
+    json_str = clean_json_string(json_str)
     try:
         data = json.loads(json_str)
         title = data.get('title', '').strip()
         content = data.get('content', '').strip()
         if title and content:
+            # 去重重复段落
+            paragraphs = re.split(r'\n\s*\n', content)
+            unique_paragraphs = []
+            for p in paragraphs:
+                p = p.strip()
+                if not p:
+                    continue
+                if unique_paragraphs and unique_paragraphs[-1] == p:
+                    continue
+                unique_paragraphs.append(p)
+            content = '\n\n'.join(unique_paragraphs)
             word_count = len(content)
             if word_count < 1000:
                 print(f"  × 字数不足1000（实际{word_count}），重试")
                 return None
-            # 移除内容中可能残留的 JSON 键名（例如 "content": ）
-            # 如果内容开头恰好是 "content": 之类的，需要去掉
-            content = re.sub(r'^\s*"content":\s*', '', content)
             print(f"  ✓ 生成成功：{title}，字数约{word_count}")
             return {"title": title, "content": content}
     except json.JSONDecodeError as e:
         print(f"  × JSON解析失败: {e}，尝试正则提取")
-        # 使用正则直接提取 title 和 content
         title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', json_str, re.DOTALL)
         content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', json_str, re.DOTALL)
         if title_match and content_match:
             title = title_match.group(1).strip()
             content = content_match.group(1).strip()
-            # 处理转义字符
             content = content.replace('\\"', '"').replace('\\n', '\n')
+            # 同样去重
+            paragraphs = re.split(r'\n\s*\n', content)
+            unique_paragraphs = []
+            for p in paragraphs:
+                p = p.strip()
+                if not p:
+                    continue
+                if unique_paragraphs and unique_paragraphs[-1] == p:
+                    continue
+                unique_paragraphs.append(p)
+            content = '\n\n'.join(unique_paragraphs)
             if title and content:
                 word_count = len(content)
                 if word_count < 1000:
@@ -554,17 +540,16 @@ def generate_one_novel():
     return None
 
 def fetch_novels(n=3):
-    """获取每日三篇小说，尽可能多地生成成功，不足部分用备选补全"""
     print("正在获取每日三篇小说...")
     novels = []
     for i in range(n):
         print(f"生成第 {i+1} 篇:")
         novel = None
-        for attempt in range(5):  # 每篇最多尝试5次
+        for attempt in range(5):
             novel = generate_one_novel()
             if novel:
                 break
-            time.sleep(2)  # 重试前等待2秒
+            time.sleep(2)
         if novel:
             novels.append(novel)
         else:
@@ -593,7 +578,7 @@ def main():
         "song": song,
         "article": fetch_article(),
         "word": fetch_word(),
-        "novels": fetch_novels(3),   # 三篇小说
+        "novels": fetch_novels(3),
     }
 
     output_file = os.path.join(data_dir, 'daily.json')
@@ -601,7 +586,6 @@ def main():
         json.dump(today_data, f, ensure_ascii=False, indent=2)
     print(f"✅ 每日数据已保存")
 
-    # 历史存档
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
     hist_dir = os.path.join(data_dir, 'history', y, m)
