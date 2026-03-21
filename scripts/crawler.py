@@ -458,7 +458,7 @@ def extract_json(text):
     return None
 
 def generate_one_novel():
-    """生成一篇小说，带回退和重试，字数要求1000字以上"""
+    """生成一篇小说，带回退和重试，增强 JSON 清理，确保内容干净"""
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
         {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
@@ -492,12 +492,33 @@ def generate_one_novel():
     if not ai_resp:
         return None
 
-    json_str = extract_json(ai_resp)
-    if not json_str:
-        print(f"  × 未找到JSON结构，AI响应片段: {ai_resp[:200]}")
+    # 增强 JSON 提取：找到第一个 '{' 和匹配的 '}'
+    start = ai_resp.find('{')
+    if start == -1:
+        print(f"  × 未找到JSON起始，AI响应片段: {ai_resp[:200]}")
         return None
+    brace_count = 0
+    end = start
+    for i in range(start, len(ai_resp)):
+        if ai_resp[i] == '{':
+            brace_count += 1
+        elif ai_resp[i] == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                end = i
+                break
+    if end == start:
+        print(f"  × 未找到完整JSON，AI响应片段: {ai_resp[:200]}")
+        return None
+    json_str = ai_resp[start:end+1]
 
-    json_str = clean_json_string(json_str)
+    # 强力清理 JSON 字符串
+    # 移除控制字符
+    json_str = re.sub(r'[\x00-\x1f\x7f]', '', json_str)
+    # 修复键名中可能的错误（例如缺少引号）
+    json_str = re.sub(r'(\{|\,)\s*([a-zA-Z0-9_]+)\s*:', r'\1"\2":', json_str)
+    # 移除 JSON 字符串值中未转义的双引号（简单处理，仅针对 content 字段）
+    # 但更稳妥的方法：先尝试解析，失败后尝试用正则提取 content 字段
     try:
         data = json.loads(json_str)
         title = data.get('title', '').strip()
@@ -507,23 +528,29 @@ def generate_one_novel():
             if word_count < 1000:
                 print(f"  × 字数不足1000（实际{word_count}），重试")
                 return None
+            # 移除内容中可能残留的 JSON 键名（例如 "content": ）
+            # 如果内容开头恰好是 "content": 之类的，需要去掉
+            content = re.sub(r'^\s*"content":\s*', '', content)
             print(f"  ✓ 生成成功：{title}，字数约{word_count}")
             return {"title": title, "content": content}
-        else:
-            print("  × 返回字段不完整")
     except json.JSONDecodeError as e:
-        print(f"  × JSON解析失败: {e}")
-        # 尝试用正则直接提取 content 和 title
-        if 'content' in ai_resp:
-            match = re.search(r'"content"\s*:\s*"(.*?)"(?:\s*[,}])', ai_resp, re.DOTALL)
-            if match:
-                content = match.group(1).strip()
-                title_match = re.search(r'"title"\s*:\s*"(.*?)"', ai_resp)
-                title = title_match.group(1).strip() if title_match else "无题"
-                if content and len(content) >= 1000:
-                    print(f"  ✓ 通过正则提取成功：{title}，字数约{len(content)}")
-                    return {"title": title, "content": content}
-        print(f"  JSON片段: {json_str[:200]}")
+        print(f"  × JSON解析失败: {e}，尝试正则提取")
+        # 使用正则直接提取 title 和 content
+        title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', json_str, re.DOTALL)
+        content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', json_str, re.DOTALL)
+        if title_match and content_match:
+            title = title_match.group(1).strip()
+            content = content_match.group(1).strip()
+            # 处理转义字符
+            content = content.replace('\\"', '"').replace('\\n', '\n')
+            if title and content:
+                word_count = len(content)
+                if word_count < 1000:
+                    print(f"  × 字数不足1000（实际{word_count}），重试")
+                    return None
+                print(f"  ✓ 通过正则提取成功：{title}，字数约{word_count}")
+                return {"title": title, "content": content}
+    print(f"  × 解析失败，JSON片段: {json_str[:200]}")
     return None
 
 def fetch_novels(n=3):
