@@ -609,10 +609,10 @@ def generate_summary(data):
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    # 使用 UTC 时间
-    utc_now = datetime.now(timezone.utc)
+    # 使用北京时间
+    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{utc_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{beijing_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -620,12 +620,11 @@ def main():
     # 获取歌单（6首）
     songs = fetch_songs(6)
 
-    # 为了兼容每日一词（如果还保留），但我们可以忽略 _cached_song
     _cached_song = None
 
     today_data = {
-        "date": utc_now.strftime("%Y-%m-%d"),
-        "updated_at": utc_now.isoformat(),
+        "date": beijing_now.strftime("%Y-%m-%d"),
+        "updated_at": beijing_now.isoformat(),
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
