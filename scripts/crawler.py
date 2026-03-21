@@ -2,11 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，每日三篇小说，高稳定性版，含每日总结）
+每日数据爬虫（完整版 v1.0，每日歌单（6首）+三篇小说+每日总结）
 - 每日一句：一言API
-- 每日一曲：真实歌曲库（自建网易云API） + AI润色
+- 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
 - 每日一文：古诗文网 → 维基百科 → 备选
-- 每日一词：优先从歌曲歌词提取 → 热搜备选
+- 每日一词：优先从歌曲歌词提取 → 热搜备选（可选）
 - 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
 - 每日总结：AI 生成一句今日主题/情绪概括
 - 历史存档：自动保存每日数据
@@ -33,7 +33,7 @@ SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.silic
 SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 
-_cached_song = None
+_cached_song = None  # 用于每日一词（可保留，但每日一词已不再使用，暂保留）
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
@@ -164,15 +164,6 @@ def enrich_with_ai(item_type, raw_data):
         meaning = call_ai(prompt, max_tokens=150, timeout=15)
         if meaning:
             raw_data['meaning'] = meaning
-    elif item_type == "song":
-        name = raw_data.get('name', '')
-        artist = raw_data.get('artist', '')
-        album = raw_data.get('album', '')
-        comment = raw_data.get('comment', {}).get('content', '')
-        prompt = f"请为歌曲《{name}》- {artist}写一段推荐语（100-150字）。参考评论：{comment}"
-        meaning = call_ai(prompt, max_tokens=250, timeout=20)
-        if meaning:
-            raw_data['meaning'] = meaning
     elif item_type == "article":
         title = raw_data.get('title', '')
         desc = raw_data.get('description', '')
@@ -229,43 +220,70 @@ def update_song_library(force=False):
         json.dump(unique, f, ensure_ascii=False, indent=2)
     print(f"歌曲库已更新，共 {len(unique)} 首")
 
-# ==================== 每日一曲 ====================
-def fetch_song():
-    print("正在获取每日一曲...")
+# ==================== 每日歌单（多首，带推荐理由） ====================
+def fetch_songs(n=6):
+    """从真实歌曲库随机抽取 n 首不重复的歌曲，并为每首生成推荐理由"""
+    print("正在获取每日歌单...")
     library_file = os.path.join(data_dir, 'song_library.json')
     if not os.path.exists(library_file):
-        return fetch_song_ai_fallback()
+        print("歌曲库不存在，使用备选歌单")
+        return fetch_songs_ai_fallback(n)
+
     with open(library_file, 'r', encoding='utf-8') as f:
         library = json.load(f)
     if not library:
-        return fetch_song_ai_fallback()
-    chosen = random.choice(library)
-    name, artist, album = chosen['name'], chosen['artist'], chosen.get('album', '未知专辑')
-    comment = f"今日推荐：{name}"
-    lyrics = ""
-    if ENABLE_AI:
-        prompt = f"请为歌曲《{name}》- {artist}写一段推荐语（80-120字），并附上一句歌词片段。输出JSON：{{\"comment\":\"...\", \"lyrics_snippet\":\"...\"}}"
-        ai_resp = call_ai(prompt, max_tokens=300, temperature=0.5, timeout=15)
-        if ai_resp:
-            try:
-                data = json.loads(ai_resp)
-                comment = data.get('comment', '').strip() or comment
-                lyrics = data.get('lyrics_snippet', '').strip()
-            except:
-                pass
-    cover_url = f"https://picsum.photos/seed/{name.replace(' ', '')}/300/300"
-    result = {
-        "name": name, "artist": artist, "album": album, "cover": cover_url,
-        "comment": {"content": comment, "user": "AI推荐官"},
-        "lyrics_snippet": lyrics, "source": "真实歌曲库"
-    }
-    return enrich_with_ai("song", result)
+        print("歌曲库为空，使用备选歌单")
+        return fetch_songs_ai_fallback(n)
 
-def fetch_song_ai_fallback():
-    print("使用纯AI生成备选歌曲")
-    if not ENABLE_AI:
-        return enrich_with_ai("song", random.choice(FALLBACK_SONGS).copy())
-    return enrich_with_ai("song", random.choice(FALLBACK_SONGS).copy())
+    # 随机抽取 n 首（不重复）
+    if len(library) < n:
+        selected = random.sample(library, len(library))
+        while len(selected) < n:
+            selected += random.sample(library, min(n - len(selected), len(library)))
+    else:
+        selected = random.sample(library, n)
+
+    songs = []
+    for idx, item in enumerate(selected):
+        name = item['name']
+        artist = item['artist']
+        album = item.get('album', '未知专辑')
+        print(f"  为《{name}》生成推荐语...")
+        prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
+        recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=10)
+        if not recommendation:
+            recommendation = f"一首来自 {artist} 的动人作品。"
+        songs.append({
+            "name": name,
+            "artist": artist,
+            "album": album,
+            "recommendation": recommendation
+        })
+        time.sleep(1)  # 避免请求过快
+
+    return songs
+
+def fetch_songs_ai_fallback(n=6):
+    """备选：如果歌曲库不可用，返回备选歌曲列表（带推荐语）"""
+    print("使用备选歌曲库")
+    fallback_songs = [
+        {"name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
+        {"name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
+        {"name": "海阔天空", "artist": "Beyond", "album": "乐与怒"},
+        {"name": "稻香", "artist": "周杰伦", "album": "魔杰座"},
+        {"name": "平凡之路", "artist": "朴树", "album": "平凡之路"},
+        {"name": "岁月神偷", "artist": "金玟岐", "album": "金玟岐作品集"},
+    ]
+    songs = []
+    for i in range(n):
+        s = fallback_songs[i % len(fallback_songs)]
+        songs.append({
+            "name": s["name"],
+            "artist": s["artist"],
+            "album": s["album"],
+            "recommendation": f"这首《{s['name']}》是经典之作，值得反复聆听。"
+        })
+    return songs
 
 # ==================== 每日一句 ====================
 def fetch_sentence():
@@ -316,7 +334,7 @@ def fetch_article():
         print(f"维基百科失败: {e}")
     return enrich_with_ai("article", random.choice(FALLBACK_ARTICLES).copy())
 
-# ==================== 每日一词 ====================
+# ==================== 每日一词（保留但不再使用，可忽略） ====================
 def fetch_word_from_song_lyrics():
     global _cached_song
     if _cached_song and _cached_song.get('lyrics_snippet'):
@@ -564,23 +582,26 @@ def generate_summary(data):
     """根据当日数据生成一句总结"""
     if not ENABLE_AI:
         return "今日拾光，愿您有所获。"
-    # 构建提示词
     sentence_content = data.get('sentence', {}).get('content', '')
-    song_name = data.get('song', {}).get('name', '')
-    song_artist = data.get('song', {}).get('artist', '')
+    songs = data.get('songs', [])
+    if songs:
+        song_name = songs[0]['name']
+        song_artist = songs[0]['artist']
+    else:
+        song_name = "未知"
+        song_artist = "未知"
     article_title = data.get('article', {}).get('title', '')
     novels_titles = [n['title'] for n in data.get('novels', [])]
     novels_str = '、'.join(novels_titles) if novels_titles else '无'
     prompt = f"""
     请根据以下今日内容，用一句简短、诗意的话概括它们共同的主题或情绪（20-40字）：
     每日一句：{sentence_content}
-    每日一曲：《{song_name}》- {song_artist}
+    每日歌单示例：《{song_name}》- {song_artist}
     每日一文：《{article_title}》
     每日小说：{novels_str}
     """
     ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, timeout=20)
     if ai_resp:
-        # 去掉可能的引号
         return ai_resp.strip('"').strip()
     else:
         return "今日拾光，愿您有所获。"
@@ -590,21 +611,25 @@ def main():
     global _cached_song
     bj_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（每日三篇小说，含每日总结）开始运行 [{bj_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{bj_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
 
-    song = fetch_song()
-    _cached_song = song
+    # 获取歌单（6首）
+    songs = fetch_songs(6)
+
+    # 为了兼容每日一词（如果还保留），但我们可以忽略 _cached_song
+    # 不再需要 _cached_song，可置空
+    _cached_song = None
 
     today_data = {
         "date": bj_now.strftime("%Y-%m-%d"),
         "updated_at": bj_now.isoformat(),
         "sentence": fetch_sentence(),
-        "song": song,
+        "songs": songs,
         "article": fetch_article(),
-        "word": fetch_word(),
+        "word": fetch_word(),   # 如果不想保留每日一词，可删除此字段
         "novels": fetch_novels(3),
     }
 
