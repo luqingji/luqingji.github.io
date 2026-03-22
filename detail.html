@@ -747,7 +747,7 @@
                     content = content.replace(/"content":\s*/g, '');
                     content = content.replace(/\\n/g, '\n');
                     content = content.replace(/^["']|["']$/g, '');
-                    
+
                     // 段落去重
                     let paragraphs = content.split(/\n\s*\n/);
                     const uniqueParagraphs = [];
@@ -760,10 +760,10 @@
                         uniqueParagraphs.push(p);
                     }
                     const finalContent = uniqueParagraphs.join('\n\n');
-                    
+
                     const wordCount = countWords(finalContent);
                     const stats = formatStats(wordCount);
-                    
+
                     // 头部：标题 + 按钮组
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'novel-header';
@@ -794,26 +794,26 @@
                     btnGroup.appendChild(immerseBtn);
                     headerDiv.appendChild(btnGroup);
                     novelDiv.appendChild(headerDiv);
-                    
+
                     // 正文
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'novel-content';
                     const finalParagraphs = finalContent.split(/\n\s*\n/);
                     contentDiv.innerHTML = finalParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                     novelDiv.appendChild(contentDiv);
-                    
+
                     // 统计
                     const statsDiv = document.createElement('div');
                     statsDiv.className = 'novel-stats';
                     statsDiv.textContent = stats;
                     novelDiv.appendChild(statsDiv);
-                    
+
                     // AI 一句话书评
                     const reviewDiv = document.createElement('div');
                     reviewDiv.className = 'ai-review';
                     reviewDiv.textContent = getRandomAIReview();
                     novelDiv.appendChild(reviewDiv);
-                    
+
                     container.appendChild(novelDiv);
                 });
             }
@@ -837,12 +837,11 @@
                 .then(data => {
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('date').textContent = date;
-                    // 直接将 UTC 时间戳交给浏览器，自动转换为本地时区（北京时间）
+                    // 时间显示：将 UTC 时间转换为北京时间
                     if (data.updated_at) {
-    const utcTime = new Date(data.updated_at);
-    const beijingTime = new Date(utcTime.getTime() - 8 * 60 * 60 * 1000);
-    document.getElementById('update-time').textContent = `更新于 ${beijingTime.toLocaleString('zh-CN')}`;
-}
+                        const beijingTime = new Date(data.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                        document.getElementById('update-time').textContent = `更新于 ${beijingTime}`;
+                    }
 
                     // 每日总结
                     if (data.summary) {
