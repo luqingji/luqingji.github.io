@@ -28,6 +28,7 @@ jobs:
       - name: Run crawler
         env:
           SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+          ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
         run: python scripts/crawler.py
 
       - name: Commit and push changes
