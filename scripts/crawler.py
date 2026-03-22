@@ -5,7 +5,7 @@
 每日数据爬虫（完整版 v1.0，每日歌单+三篇小说+每日总结）
 - 每日一句：优先 ALAPI 一言 → 原有一言API → 备选句子
 - 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
-- 每日一文：古诗文网 → 维基百科 → 备选
+- 每日一文：随机从知乎日报、古诗文网、维基百科获取，多层降级
 - 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
 - 每日总结：AI 生成一句今日主题/情绪概括
 - 历史存档：自动保存每日数据
@@ -320,14 +320,61 @@ def fetch_sentence():
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
 
-# ==================== 每日一文 ====================
+# ==================== 每日一文（随机切换多个数据源） ====================
 def fetch_article():
+    """获取每日一文：随机从知乎日报、古诗文网、维基百科中选择，多层降级"""
     print("正在获取每日一文...")
-    try:
-        url = "https://www.gushiwen.cn/random.aspx"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code == 200:
+
+    # 定义各个数据源的抓取函数
+    def fetch_zhihu():
+        """从知乎日报获取一篇文章"""
+        if not ALAPI_TOKEN:
+            return None
+        try:
+            # 获取日报列表
+            list_url = f"https://v3.alapi.cn/api/zhihu?token={ALAPI_TOKEN}"
+            resp = requests.get(list_url, timeout=10)
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            if not data.get('success') or not data.get('data', {}).get('stories'):
+                return None
+            stories = data['data']['stories']
+            story = random.choice(stories)
+            story_id = story.get('id')
+            title = story.get('title', '知乎日报')
+            # 尝试获取详情
+            detail_url = f"https://v3.alapi.cn/api/zhihu/news?token={ALAPI_TOKEN}&id={story_id}"
+            detail_resp = requests.get(detail_url, timeout=10)
+            content = ""
+            if detail_resp.status_code == 200:
+                detail_data = detail_resp.json()
+                if detail_data.get('success') and detail_data.get('data'):
+                    body = detail_data['data'].get('body', '')
+                    if body:
+                        soup = BeautifulSoup(body, 'html.parser')
+                        content = soup.get_text()
+            # 构建结果
+            return {
+                "title": title,
+                "description": (content[:200] + "...") if content else title,
+                "content": content,
+                "author": "知乎日报",
+                "url": story.get('url', ''),
+                "source": "知乎日报"
+            }
+        except Exception as e:
+            print(f"知乎日报抓取异常: {e}")
+            return None
+
+    def fetch_gushiwen():
+        """从古诗文网获取随机诗词"""
+        try:
+            url = "https://www.gushiwen.cn/random.aspx"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                return None
             soup = BeautifulSoup(resp.text, 'html.parser')
             title_tag = soup.find('h1') or soup.find('b')
             title = title_tag.text.strip() if title_tag else "无题"
@@ -335,25 +382,62 @@ def fetch_article():
             content = content_div.text.strip() if content_div else ""
             source_tag = soup.find('p', class_='source')
             author = source_tag.text.strip() if source_tag else "佚名"
-            if content:
-                result = {"title": title, "description": content[:200]+"...", "content": content, "author": author, "source": "古诗文网"}
-                return enrich_with_ai("article", result)
-    except Exception as e:
-        print(f"古诗文网失败: {e}")
-    try:
-        today = datetime.now()
-        url = f"https://zh.wikipedia.org/api/rest_v1/feed/featured/{today.year}/{today.month:02d}/{today.day:02d}"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code == 200:
+            if not content:
+                return None
+            return {
+                "title": title,
+                "description": content[:200] + "...",
+                "content": content,
+                "author": author,
+                "source": "古诗文网"
+            }
+        except Exception as e:
+            print(f"古诗文网抓取异常: {e}")
+            return None
+
+    def fetch_wikipedia():
+        """从维基百科获取每日特色条目"""
+        try:
+            today = datetime.now()
+            url = f"https://zh.wikipedia.org/api/rest_v1/feed/featured/{today.year}/{today.month:02d}/{today.day:02d}"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                return None
             data = resp.json()
             tfa = data.get('tfa', {})
-            if tfa:
-                result = {"title": tfa.get('title'), "description": tfa.get('extract'), "url": tfa.get('content_urls',{}).get('desktop',{}).get('page'), "author": "维基百科", "source": "维基百科"}
+            if not tfa:
+                return None
+            return {
+                "title": tfa.get('title', ''),
+                "description": tfa.get('extract', ''),
+                "url": tfa.get('content_urls', {}).get('desktop', {}).get('page', ''),
+                "author": "维基百科",
+                "source": "维基百科"
+            }
+        except Exception as e:
+            print(f"维基百科抓取异常: {e}")
+            return None
+
+    # 随机打乱数据源顺序，实现随机切换
+    sources = [fetch_zhihu, fetch_gushiwen, fetch_wikipedia]
+    random.shuffle(sources)
+
+    # 依次尝试，直到成功
+    for source_func in sources:
+        try:
+            result = source_func()
+            if result:
+                print(f"✓ 从 {result['source']} 获取：{result['title']}")
                 return enrich_with_ai("article", result)
-    except Exception as e:
-        print(f"维基百科失败: {e}")
-    return enrich_with_ai("article", random.choice(FALLBACK_ARTICLES).copy())
+        except Exception as e:
+            print(f"源 {source_func.__name__} 失败: {e}")
+            continue
+
+    # 全部失败，使用备选文章
+    print("所有来源均失败，使用备选文章")
+    result = random.choice(FALLBACK_ARTICLES).copy()
+    return enrich_with_ai("article", result)
 
 # ==================== 每日小说（3篇，高稳定性版，含去重） ====================
 def clean_json_string(s):
