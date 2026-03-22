@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        /* 样式与主页完全相同，此处保留（实际部署时确保样式完整） */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -46,6 +45,11 @@
         body.dark-mode .immerse-btn { background: rgba(255,255,255,0.2); color: #ddd; border-color: rgba(255,255,255,0.3); }
         body.dark-mode .immerse-btn:hover { background: rgba(255,255,255,0.3); }
         body.dark-mode .close-immerse { background: rgba(0,0,0,0.7); color: white; }
+        body.dark-mode .songs-link { background: rgba(255,255,255,0.1); color: #ddd; }
+        body.dark-mode .songs-link:hover { background: rgba(255,255,255,0.2); }
+        body.dark-mode .zaobao-summary { background: rgba(50,70,90,0.5); color: #ddd; }
+        body.dark-mode .zaobao-item { border-bottom-color: rgba(255,255,255,0.1); }
+        body.dark-mode .zaobao-summary-text { color: #ccc; }
 
         .container { max-width: 750px; margin: 0 auto; position: relative; }
         .back-link {
@@ -474,6 +478,39 @@
             border-bottom-color: rgba(255,255,255,0.1);
         }
 
+        /* 早报样式 */
+        .zaobao-summary {
+            background: rgba(225,240,250,0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .zaobao-item {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 0.8rem;
+        }
+        .zaobao-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .zaobao-source {
+            font-size: 0.8rem;
+            color: #6b7c8b;
+            margin-left: 0.5rem;
+        }
+        .zaobao-summary-text {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 0.2rem;
+        }
+        .zaobao-date {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-align: right;
+        }
+
         @media (max-width: 600px) {
             .song-container { flex-direction: column; text-align: center; }
             .song-cover { width: 150px; height: 150px; }
@@ -529,6 +566,14 @@
                 <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
                 <div class="meaning" id="article-meaning"></div>
                 <div class="stats" id="article-stats"></div>
+            </div>
+
+            <!-- 每日早报卡片 -->
+            <div class="card" id="zaobao-card" style="display: none;">
+                <h2>📰 每日早报</h2>
+                <div id="zaobao-summary" class="zaobao-summary" style="margin-bottom: 1rem; font-style: italic;"></div>
+                <div id="zaobao-list" class="zaobao-list"></div>
+                <div id="zaobao-date" class="zaobao-date"></div>
             </div>
 
             <!-- 虚构抽屉卡片 -->
@@ -850,7 +895,7 @@
 
                     // 今日份彩蛋（基于当前日期）
                     document.getElementById('easter-egg').textContent = getEasterEgg();
-                    // 历史上的今天（只显示当天匹配的事件）
+                    // 历史上的今天
                     document.getElementById('today-in-history').innerHTML = `📜 历史上的今天：${getTodayInHistory()}`;
 
                     // 歌单展示
@@ -920,6 +965,37 @@
                         }
                         const articleWords = countWords(articleText);
                         document.getElementById('article-stats').textContent = formatStats(articleWords);
+                    }
+
+                    // 每日早报
+                    if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
+                        document.getElementById('zaobao-card').style.display = 'block';
+                        if (data.zaobao.summary) {
+                            document.getElementById('zaobao-summary').textContent = data.zaobao.summary;
+                        }
+                        const listContainer = document.getElementById('zaobao-list');
+                        listContainer.innerHTML = '';
+                        data.zaobao.news.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'zaobao-item';
+                            itemDiv.innerHTML = `
+                                <div>
+                                    <span class="zaobao-title">${item.title}</span>
+                                    <span class="zaobao-source">${item.source || ''}</span>
+                                </div>
+                                <div class="zaobao-summary-text">${item.summary || ''}</div>
+                            `;
+                            if (item.url) {
+                                const titleSpan = itemDiv.querySelector('.zaobao-title');
+                                titleSpan.style.cursor = 'pointer';
+                                titleSpan.style.color = '#4f9da6';
+                                titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
+                            }
+                            listContainer.appendChild(itemDiv);
+                        });
+                        if (data.zaobao.date) {
+                            document.getElementById('zaobao-date').textContent = data.zaobao.date;
+                        }
                     }
 
                     // 虚构抽屉（兼容新旧数据结构）
