@@ -50,11 +50,20 @@
         h1 {
             font-family: "LXGW WenKai", cursive;
             font-size: 2rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
             color: #1e2f3f;
         }
         body.dark-mode h1 {
             color: #d0e0f0;
+        }
+        .song-date {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        body.dark-mode .song-date {
+            color: #aaa;
         }
         .song-card {
             background: rgba(255,255,255,0.75);
@@ -114,25 +123,50 @@
     <div class="container">
         <a href="/" class="back-link">← 返回主页</a>
         <h1>🎵 今日歌单</h1>
+        <div id="song-date" class="song-date"></div>
         <div id="loader" class="loader"></div>
         <div id="songs-container" style="display: none;"></div>
     </div>
 
     <script>
         (function() {
+            // 暗色模式初始化
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             const date = urlParams.get('date');
             let dataUrl = '/data/daily.json';
+            let displayDate = null;
+
             if (date) {
                 const [y, m, d] = date.split('-');
                 dataUrl = `/data/history/${y}/${m}/${d}.json`;
+                displayDate = date;
             }
+
             fetch(dataUrl + '?t=' + Date.now())
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('loader').style.display = 'none';
                     const container = document.getElementById('songs-container');
                     container.style.display = 'block';
+
+                    // 显示日期
+                    let dateToShow = displayDate;
+                    if (!dateToShow && data.date) {
+                        dateToShow = data.date;
+                    }
+                    if (dateToShow) {
+                        // 将 YYYY-MM-DD 格式转为 YYYY年MM月DD日
+                        const [year, month, day] = dateToShow.split('-');
+                        document.getElementById('song-date').textContent = `${year}年${parseInt(month)}月${parseInt(day)}日`;
+                    } else {
+                        document.getElementById('song-date').style.display = 'none';
+                    }
+
                     let songs = data.songs;
                     // 兼容旧数据：如果 songs 不存在但有 song，则包装成数组
                     if (!songs && data.song) {
