@@ -6,7 +6,6 @@
 - 每日一句：一言API
 - 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
 - 每日一文：古诗文网 → 维基百科 → 备选
-- 每日一词：优先从歌曲歌词提取 → 热搜备选（可选）
 - 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
 - 每日总结：AI 生成一句今日主题/情绪概括
 - 历史存档：自动保存每日数据
@@ -39,7 +38,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
 os.makedirs(data_dir, exist_ok=True)
 
-# ==================== 备选数据（完整保留） ====================
+# ==================== 备选数据 ====================
 FALLBACK_SENTENCES = [
     {"content": "生活不止眼前的苟且，还有诗和远方的田野", "from": "高晓松"},
     {"content": "愿你出走半生，归来仍是少年", "from": "网络"},
@@ -68,12 +67,6 @@ FALLBACK_SONGS = [
 FALLBACK_ARTICLES = [
     {"title": "荷塘月色", "description": "这几天心里颇不宁静。今晚在院子里坐着乘凉，忽然想起日日走过的荷塘，在这满月的光里，总该另有一番样子吧。", "author": "朱自清"},
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
-]
-
-FALLBACK_WORDS = [
-    {"word": "治愈", "description": "在音乐中找到内心的平静", "meaning": "治愈不是忘记伤痛，而是学会与伤痛共处。"},
-    {"word": "怀旧", "description": "那些年我们一起听过的歌", "meaning": "怀旧不是沉溺过去，而是为了更清晰地看见来路。"},
-    {"word": "励志", "description": "每一首歌都是一个故事", "meaning": "励志不是盲目的打鸡血，而是认清现实后依然选择前行。"},
 ]
 
 FALLBACK_NOVELS = [
@@ -334,111 +327,6 @@ def fetch_article():
         print(f"维基百科失败: {e}")
     return enrich_with_ai("article", random.choice(FALLBACK_ARTICLES).copy())
 
-# ==================== 每日一词（保留但不再使用，可忽略） ====================
-def fetch_word_from_song_lyrics():
-    global _cached_song
-    if _cached_song and _cached_song.get('lyrics_snippet'):
-        words = re.findall(r'[\u4e00-\u9fa5a-zA-Z0-9]+', _cached_song['lyrics_snippet'])
-        if words:
-            return {"word": words[0][:8], "description": "来自今日歌曲歌词"}
-    return None
-
-def fetch_word_from_baidu():
-    url = "https://top.baidu.com/board?tab=realtime"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    resp = requests.get(url, headers=headers, timeout=8)
-    if resp.status_code != 200: raise Exception("百度失败")
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    first = soup.select_one('.c-single-text-ellipsis')
-    if not first: raise Exception("百度解析失败")
-    word = first.text.strip()
-    hot_span = soup.select_one('.hot-index_1E1kp')
-    hot = hot_span.text.strip() if hot_span else ""
-    return {"word": word, "description": f"百度热搜 · {hot}"}
-
-def fetch_word_from_zhihu():
-    url = "https://www.zhihu.com/billboard"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    resp = requests.get(url, headers=headers, timeout=8)
-    if resp.status_code != 200: raise Exception("知乎失败")
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    topic = soup.select_one('.HotList-itemTitle')
-    if not topic: raise Exception("知乎解析失败")
-    word = topic.text.strip()
-    hot = soup.select_one('.HotList-itemHot')
-    hot_value = hot.text.strip() if hot else "未知热度"
-    return {"word": word, "description": f"知乎热榜 · {hot_value}"}
-
-def fetch_word_from_douban():
-    url = "https://movie.douban.com/chart"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    resp = requests.get(url, headers=headers, timeout=8)
-    if resp.status_code != 200: raise Exception("豆瓣失败")
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    first_movie = soup.select_one('.pl2 a')
-    if not first_movie: raise Exception("豆瓣解析失败")
-    word = first_movie.text.strip().replace(' ', '').replace('\n', '')
-    return {"word": word, "description": "豆瓣热门电影"}
-
-def fetch_word_from_sspai():
-    url = "https://sspai.com/"
-    headers = {'User-Agent': 'Mozilla/5.0'}
-    resp = requests.get(url, headers=headers, timeout=8)
-    if resp.status_code != 200: raise Exception("少数派失败")
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    first_article = soup.select_one('.itemTitle a') or soup.select_one('h2 a')
-    if not first_article: raise Exception("少数派解析失败")
-    word = first_article.text.strip()
-    return {"word": word, "description": "少数派热门文章"}
-
-def fetch_word_from_weibo():
-    url = "https://s.weibo.com/top/summary"
-    headers = {'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'}
-    resp = requests.get(url, headers=headers, timeout=8)
-    if resp.status_code != 200: raise Exception("微博失败")
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    first_tr = soup.select_one('tbody tr:first-child')
-    if not first_tr: raise Exception("微博解析失败")
-    a_tag = first_tr.select_one('.td-02 a')
-    if not a_tag: raise Exception("微博解析失败")
-    word = a_tag.text.strip()
-    hot_span = first_tr.select_one('.td-02 span')
-    hot_value = hot_span.text.strip() if hot_span else ""
-    return {"word": word, "description": f"微博热搜 · {hot_value}"}
-
-def fetch_word_from_today_song():
-    global _cached_song
-    if _cached_song and _cached_song.get('comment'):
-        comment = _cached_song['comment'].get('content', '')
-        if comment:
-            word = comment.split()[0][:5] if comment else None
-            if word:
-                return {"word": word, "description": "来自今日歌曲热评"}
-    return None
-
-def fetch_word():
-    print("正在获取每日一词...")
-    sources = [
-        fetch_word_from_song_lyrics,
-        fetch_word_from_baidu,
-        fetch_word_from_zhihu,
-        fetch_word_from_douban,
-        fetch_word_from_sspai,
-        fetch_word_from_weibo,
-        fetch_word_from_today_song,
-    ]
-    random.shuffle(sources)
-    for func in sources:
-        try:
-            result = func()
-            if result and result.get('word'):
-                print(f"✓ 成功：{result['word']}")
-                return enrich_with_ai("word", result)
-        except Exception as e:
-            print(f"× 失败: {e}")
-            continue
-    return enrich_with_ai("word", random.choice(FALLBACK_WORDS).copy())
-
 # ==================== 每日小说（3篇，高稳定性版，含去重） ====================
 def clean_json_string(s):
     s = s.strip()
@@ -609,10 +497,12 @@ def generate_summary(data):
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    # 获取北京时间
+    # 获取北京时间用于日期字段
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    # 获取UTC时间用于updated_at
+    utc_now = datetime.now(timezone.utc)
 
-    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{beijing_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{utc_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -623,12 +513,11 @@ def main():
     _cached_song = None
 
     today_data = {
-        "date": beijing_now.strftime("%Y-%m-%d"),
-        "updated_at": beijing_now.isoformat(),
+        "date": beijing_now.strftime("%Y-%m-%d"),          # 北京日期
+        "updated_at": utc_now.isoformat(),                 # UTC时间
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
-        "word": fetch_word(),   # 如果不想保留每日一词，可删除此字段
         "novels": fetch_novels(3),
     }
 
