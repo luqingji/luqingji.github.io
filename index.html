@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        /* 此处保留之前完整样式，为了节省篇幅，这里不再重复，实际使用时请确保样式完整 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Inter", sans-serif;
@@ -731,7 +730,7 @@
                     content = content.replace(/"content":\s*/g, '');
                     content = content.replace(/\\n/g, '\n');
                     content = content.replace(/^["']|["']$/g, '');
-                    
+
                     // 段落去重
                     let paragraphs = content.split(/\n\s*\n/);
                     const uniqueParagraphs = [];
@@ -744,10 +743,10 @@
                         uniqueParagraphs.push(p);
                     }
                     const finalContent = uniqueParagraphs.join('\n\n');
-                    
+
                     const wordCount = countWords(finalContent);
                     const stats = formatStats(wordCount);
-                    
+
                     // 头部：标题 + 按钮组
                     const headerDiv = document.createElement('div');
                     headerDiv.className = 'novel-header';
@@ -778,26 +777,26 @@
                     btnGroup.appendChild(immerseBtn);
                     headerDiv.appendChild(btnGroup);
                     novelDiv.appendChild(headerDiv);
-                    
+
                     // 正文
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'novel-content';
                     const finalParagraphs = finalContent.split(/\n\s*\n/);
                     contentDiv.innerHTML = finalParagraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                     novelDiv.appendChild(contentDiv);
-                    
+
                     // 统计
                     const statsDiv = document.createElement('div');
                     statsDiv.className = 'novel-stats';
                     statsDiv.textContent = stats;
                     novelDiv.appendChild(statsDiv);
-                    
+
                     // AI 一句话书评
                     const reviewDiv = document.createElement('div');
                     reviewDiv.className = 'ai-review';
                     reviewDiv.textContent = getRandomAIReview();
                     novelDiv.appendChild(reviewDiv);
-                    
+
                     container.appendChild(novelDiv);
                 });
             }
@@ -808,18 +807,17 @@
                 .then(data => {
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('date').textContent = data.date || '今日';
-                    // 直接将 UTC 时间戳交给浏览器，自动转换为本地时区（北京时间）
+                    // 时间显示：将 UTC 时间转换为北京时间
                     if (data.updated_at) {
-    const utcTime = new Date(data.updated_at);
-    const beijingTime = new Date(utcTime.getTime() - 8 * 60 * 60 * 1000);
-    document.getElementById('update-time').textContent = `更新于 ${beijingTime.toLocaleString('zh-CN')}`;
-}
-                    
+                        const beijingTime = new Date(data.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                        document.getElementById('update-time').textContent = `更新于 ${beijingTime}`;
+                    }
+
                     // 每日总结
                     if (data.summary) {
                         document.getElementById('daily-summary').textContent = data.summary;
                     }
-                    
+
                     // 今日份彩蛋
                     document.getElementById('easter-egg').textContent = getEasterEgg();
                     // 历史上的今天（只显示当天匹配的事件）
