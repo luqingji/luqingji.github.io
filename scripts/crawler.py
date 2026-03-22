@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，每日歌单+三篇小说+每日总结）
+每日数据爬虫（完整版 v1.0，含每日早报）
 - 每日一句：优先 ALAPI 一言 → 原有一言API → 备选句子
 - 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
-- 每日一文：随机从知乎日报、古诗文网、维基百科获取，多层降级
-- 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
+- 每日一文：随机从知乎日报、古诗文网、维基百科获取
+- 每日小说：AI生成 3 篇（每篇1000字以上，12种风格）
 - 每日总结：AI 生成一句今日主题/情绪概括
+- 每日早报：ALAPI 获取当日新闻摘要
 - 历史存档：自动保存每日数据
 """
 
@@ -604,6 +605,43 @@ def generate_summary(data):
     else:
         return "今日拾光，愿您有所获。"
 
+# ==================== 每日早报 ====================
+def fetch_zaobao():
+    """获取每日早报（ALAPI）"""
+    print("正在获取每日早报...")
+    if not ALAPI_TOKEN:
+        print("未设置 ALAPI_TOKEN，跳过早报")
+        return None
+
+    try:
+        url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}"
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success') and data.get('data'):
+                zaobao_data = data['data']
+                # 可选：调用 AI 为早报生成一句总结
+                summary = ""
+                if ENABLE_AI:
+                    titles = [item.get('title', '') for item in zaobao_data.get('news', [])[:3]]
+                    if titles:
+                        prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
+                        ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
+                        if ai_resp:
+                            summary = ai_resp.strip('"').strip()
+                return {
+                    "date": zaobao_data.get('date', ''),
+                    "news": zaobao_data.get('news', []),
+                    "summary": summary
+                }
+            else:
+                print(f"早报接口返回错误: {data.get('message')}")
+        else:
+            print(f"早报请求失败: {resp.status_code}")
+    except Exception as e:
+        print(f"获取早报异常: {e}")
+    return None
+
 # ==================== 主函数 ====================
 def main():
     global _cached_song
@@ -612,7 +650,7 @@ def main():
     # 获取北京时间用于 date 字段
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{utc_now.isoformat()}] ===")
+    print(f"=== 每日数据爬虫 v1.0（含早报）开始运行 [{utc_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -627,6 +665,7 @@ def main():
         "songs": songs,
         "article": fetch_article(),
         "novels": fetch_novels(3),
+        "zaobao": fetch_zaobao(),   # 新增每日早报
     }
 
     summary = generate_summary(today_data)
