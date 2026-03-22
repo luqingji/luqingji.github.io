@@ -3,7 +3,7 @@
 
 """
 每日数据爬虫（完整版 v1.0，每日歌单+三篇小说+每日总结）
-- 每日一句：一言API
+- 每日一句：优先 ALAPI 一言 → 原有一言API → 备选句子
 - 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
 - 每日一文：古诗文网 → 维基百科 → 备选
 - 每日小说：AI生成 3 篇（每篇1000字以上，尽力1500，12种随机风格）
@@ -31,6 +31,8 @@ SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
+
+ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')   # ALAPI 平台 token
 
 _cached_song = None
 
@@ -213,9 +215,8 @@ def update_song_library(force=False):
         json.dump(unique, f, ensure_ascii=False, indent=2)
     print(f"歌曲库已更新，共 {len(unique)} 首")
 
-# ==================== 每日歌单（多首，带推荐理由） ====================
+# ==================== 每日歌单 ====================
 def fetch_songs(n=6):
-    """从真实歌曲库随机抽取 n 首不重复的歌曲，并为每首生成推荐理由"""
     print("正在获取每日歌单...")
     library_file = os.path.join(data_dir, 'song_library.json')
     if not os.path.exists(library_file):
@@ -228,7 +229,6 @@ def fetch_songs(n=6):
         print("歌曲库为空，使用备选歌单")
         return fetch_songs_ai_fallback(n)
 
-    # 随机抽取 n 首（不重复）
     if len(library) < n:
         selected = random.sample(library, len(library))
         while len(selected) < n:
@@ -237,11 +237,10 @@ def fetch_songs(n=6):
         selected = random.sample(library, n)
 
     songs = []
-    for idx, item in enumerate(selected):
+    for item in selected:
         name = item['name']
         artist = item['artist']
         album = item.get('album', '未知专辑')
-        print(f"  为《{name}》生成推荐语...")
         prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
         recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=10)
         if not recommendation:
@@ -252,12 +251,10 @@ def fetch_songs(n=6):
             "album": album,
             "recommendation": recommendation
         })
-        time.sleep(1)  # 避免请求过快
-
+        time.sleep(1)
     return songs
 
 def fetch_songs_ai_fallback(n=6):
-    """备选：如果歌曲库不可用，返回备选歌曲列表（带推荐语）"""
     print("使用备选歌曲库")
     fallback_songs = [
         {"name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
@@ -280,17 +277,48 @@ def fetch_songs_ai_fallback(n=6):
 
 # ==================== 每日一句 ====================
 def fetch_sentence():
+    """获取每日一句：优先 ALAPI 一言 → 原有一言 → 备选"""
     print("正在获取每日一句...")
+
+    # 1. 尝试 ALAPI 一言（需要 token）
+    if ALAPI_TOKEN:
+        try:
+            # 随机句子类型，增加多样性
+            types = [1, 2, 3, 4, 5, 6, 7, 8]
+            type_choice = random.choice(types)
+            url = f"https://v3.alapi.cn/api/hitokoto?token={ALAPI_TOKEN}&type={type_choice}"
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('success') and data.get('data'):
+                    result = {
+                        "content": data['data'].get('hitokoto', ''),
+                        "from": data['data'].get('from', '未知')
+                    }
+                    print(f"✓ 从 ALAPI 获取成功：{result['content'][:30]}...")
+                    return enrich_with_ai("sentence", result)
+        except Exception as e:
+            print(f"ALAPI 获取失败: {e}")
+
+    # 2. 备选：原有一言接口（无需 token）
     try:
-        resp = requests.get("https://v1.hitokoto.cn/", timeout=5)
+        url = "https://v1.hitokoto.cn/"
+        resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
-            result = {"content": data["hitokoto"], "from": data.get("from", "未知")}
-            print(f"✓ 获取成功：{result['content'][:30]}...")
+            result = {
+                "content": data["hitokoto"],
+                "from": data.get("from", "未知")
+            }
+            print(f"✓ 从原有一言获取成功：{result['content'][:30]}...")
             return enrich_with_ai("sentence", result)
     except Exception as e:
-        print(f"× 异常：{e}")
-    return enrich_with_ai("sentence", random.choice(FALLBACK_SENTENCES).copy())
+        print(f"原有一言接口异常: {e}")
+
+    # 3. 最终备选
+    print("所有来源均失败，使用备选句子")
+    result = random.choice(FALLBACK_SENTENCES).copy()
+    return enrich_with_ai("sentence", result)
 
 # ==================== 每日一文 ====================
 def fetch_article():
@@ -425,7 +453,6 @@ def generate_one_novel():
             title = title_match.group(1).strip()
             content = content_match.group(1).strip()
             content = content.replace('\\"', '"').replace('\\n', '\n')
-            # 同样去重
             paragraphs = re.split(r'\n\s*\n', content)
             unique_paragraphs = []
             for p in paragraphs:
@@ -465,9 +492,8 @@ def fetch_novels(n=3):
             novels.append(fallback)
     return novels
 
-# ==================== 每日总结（AI生成） ====================
+# ==================== 每日总结 ====================
 def generate_summary(data):
-    """根据当日数据生成一句总结"""
     if not ENABLE_AI:
         return "今日拾光，愿您有所获。"
     sentence_content = data.get('sentence', {}).get('content', '')
@@ -497,31 +523,28 @@ def generate_summary(data):
 # ==================== 主函数 ====================
 def main():
     global _cached_song
-    # 获取北京时间用于日期字段
-    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    # 获取UTC时间用于updated_at
+    # 获取UTC时间用于 updated_at
     utc_now = datetime.now(timezone.utc)
+    # 获取北京时间用于 date 字段
+    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
     print(f"=== 每日数据爬虫 v1.0（每日歌单+三篇小说+每日总结）开始运行 [{utc_now.isoformat()}] ===")
     print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
 
-    # 获取歌单（6首）
     songs = fetch_songs(6)
-
     _cached_song = None
 
     today_data = {
-        "date": beijing_now.strftime("%Y-%m-%d"),          # 北京日期
-        "updated_at": utc_now.isoformat(),                 # UTC时间
+        "date": beijing_now.strftime("%Y-%m-%d"),
+        "updated_at": utc_now.isoformat(),
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
         "novels": fetch_novels(3),
     }
 
-    # 生成每日总结
     summary = generate_summary(today_data)
     today_data['summary'] = summary
     print(f"📝 每日总结：{summary}")
