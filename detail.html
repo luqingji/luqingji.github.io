@@ -839,9 +839,10 @@
                     document.getElementById('date').textContent = date;
                     // 直接将 UTC 时间戳交给浏览器，自动转换为本地时区（北京时间）
                     if (data.updated_at) {
-                        const localTime = new Date(data.updated_at);
-                        document.getElementById('update-time').textContent = `更新于 ${localTime.toLocaleString('zh-CN')}`;
-                    }
+    const utcTime = new Date(data.updated_at);
+    const beijingTime = new Date(utcTime.getTime() - 8 * 60 * 60 * 1000);
+    document.getElementById('update-time').textContent = `更新于 ${beijingTime.toLocaleString('zh-CN')}`;
+}
 
                     // 每日总结
                     if (data.summary) {
