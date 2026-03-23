@@ -128,7 +128,6 @@ function formatStats(words) {
 
 // ==================== 彩蛋 ====================
 function getEasterEgg(dateStr) {
-    // 基于日期生成固定彩蛋，如果无日期则用当前日期
     let baseDate = dateStr ? new Date(dateStr) : new Date();
     const seed = baseDate.toDateString();
     const eggs = [
@@ -150,56 +149,21 @@ function getEasterEgg(dateStr) {
     return eggs[index];
 }
 
-// ==================== 历史上的今天（静态数据，可扩展） ====================
-const historyEvents = [
-    "1883年3月21日，安徒生逝世。",
-    "1955年3月21日，中国第一座大型水库——官厅水库建成。",
-    "1990年3月21日，纳米比亚独立。",
-    "1992年3月21日，中国正式加入《不扩散核武器条约》。",
-    "2012年3月21日，著名作家莫言获得诺贝尔文学奖。",
-    "1960年3月21日，南非沙佩维尔惨案发生，后成为“国际消除种族歧视日”。",
-    "1985年3月21日，中国宣布实行夏令时。",
-    "2006年3月21日，中国首个微博网站“微博客”上线。",
-    "1927年3月21日，上海工人第三次武装起义胜利。",
-    "2019年3月21日，中国科学家发现人类新基因。"
-];
-
-function getTodayInHistory(dateStr) {
-    let month, day;
-    if (dateStr) {
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-            month = parseInt(parts[1], 10);
-            day = parseInt(parts[2], 10);
-        }
-    }
-    if (!month || !day) {
-        const now = new Date();
-        month = now.getMonth() + 1;
-        day = now.getDate();
-    }
-    const matched = historyEvents.filter(e => e.includes(`${month}月${day}日`));
-    return matched.length > 0 ? matched[0] : "今日暂无重大历史事件。";
-}
-
-// ==================== 随机渐变背景 ====================
-function setRandomGradient() {
-    const gradients = [
-        "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
-        "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
-        "linear-gradient(145deg, #f5efe9 0%, #e0d8cf 100%)",
-        "linear-gradient(135deg, #fdf8ed 0%, #eae3d5 100%)",
-        "linear-gradient(145deg, #f2e9e1 0%, #dcd3c6 100%)",
-        "linear-gradient(135deg, #ebf0f5 0%, #cbdbe0 100%)"
-    ];
-    const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
-    document.body.style.background = randomGradient;
+// ==================== HTML 转义 ====================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 // ==================== 加载与错误处理 ====================
 function showLoader() {
     const loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'block';
+    if (loader) loader.style.display = 'flex';
 }
 
 function hideLoader() {
@@ -224,7 +188,18 @@ function showError(message, retryCallback = null) {
 // ==================== 页面通用初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
-    setRandomGradient();
+
+    // 随机渐变背景（可选）
+    const gradients = [
+        "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
+        "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
+        "linear-gradient(145deg, #f5efe9 0%, #e0d8cf 100%)",
+        "linear-gradient(135deg, #fdf8ed 0%, #eae3d5 100%)",
+        "linear-gradient(145deg, #f2e9e1 0%, #dcd3c6 100%)",
+        "linear-gradient(135deg, #ebf0f5 0%, #cbdbe0 100%)"
+    ];
+    const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
+    document.body.style.background = randomGradient;
 
     // 回到顶部按钮
     const goTopBtn = document.getElementById('go-top');
