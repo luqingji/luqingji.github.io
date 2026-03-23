@@ -778,3 +778,47 @@ body.dark-mode .one-qa {
 body.dark-mode .one-question {
     color: #e0a070;
 }
+
+
+/* 突出显示每日总结 */
+.daily-summary.prominent {
+    font-size: 2.2rem;
+    font-weight: 600;
+    font-family: "LXGW WenKai", cursive;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+    background: rgba(255,255,255,0.4);
+    padding: 1rem 1.5rem;
+    border-radius: 60px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    line-height: 1.3;
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.dark-mode .daily-summary.prominent {
+    color: #f0f0f0;
+    background: rgba(0,0,0,0.4);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* 日期样式微调 */
+.date {
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}
+
+.easter-egg {
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+    .daily-summary.prominent {
+        font-size: 1.6rem;
+        padding: 0.8rem 1rem;
+    }
+}
