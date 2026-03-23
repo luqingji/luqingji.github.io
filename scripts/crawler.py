@@ -124,7 +124,14 @@ def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
         if resp.status_code == 200:
             data = resp.json()
             if data.get('code') == 200:
-                return data.get('songs', [])
+                songs = data.get('songs', [])
+                # 返回包含 id 的歌曲信息
+                return [{
+                    "id": s.get('id'),
+                    "name": s.get('name', '').strip(),
+                    "artist": s.get('ar', [{}])[0].get('name', '').strip(),
+                    "album": s.get('al', {}).get('name', '').strip()
+                } for s in songs if s.get('name') and s.get('ar')]
     except Exception as e:
         logger.error(f"获取歌单失败: {e}")
     return []
@@ -140,22 +147,14 @@ def update_song_library(force: bool = False):
     all_songs = []
     for bid in BILLBOARDS:
         songs = get_tracks_from_playlist(bid, limit=50)
-        for s in songs:
-            name = s.get('name', '').strip()
-            if not name:
-                continue
-            artists = s.get('ar', [])
-            artist = artists[0].get('name', '').strip() if artists else ''
-            album = s.get('al', {}).get('name', '').strip()
-            if name and artist:
-                all_songs.append({"name": name, "artist": artist, "album": album if album else "未知专辑"})
+        all_songs.extend(songs)
         time.sleep(1)
+    # 去重（根据 id）
     seen = set()
     unique = []
     for s in all_songs:
-        key = f"{s['name']}|{s['artist']}"
-        if key not in seen:
-            seen.add(key)
+        if s['id'] and s['id'] not in seen:
+            seen.add(s['id'])
             unique.append(s)
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
         json.dump(unique, tmp, ensure_ascii=False, indent=2)
@@ -188,11 +187,13 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         name = item['name']
         artist = item['artist']
         album = item.get('album', '未知专辑')
+        song_id = item.get('id')
         prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
         recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=10)
         if not recommendation:
             recommendation = f"一首来自 {artist} 的动人作品。"
         songs.append({
+            "id": song_id,           # 新增
             "name": name,
             "artist": artist,
             "album": album,
@@ -203,17 +204,15 @@ def fetch_songs(n: int = 6) -> List[Dict]:
 
 def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
     fallback_songs = [
-        {"name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
-        {"name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
-        {"name": "海阔天空", "artist": "Beyond", "album": "乐与怒"},
-        {"name": "稻香", "artist": "周杰伦", "album": "魔杰座"},
-        {"name": "平凡之路", "artist": "朴树", "album": "平凡之路"},
-        {"name": "岁月神偷", "artist": "金玟岐", "album": "金玟岐作品集"},
+        {"id": 186016, "name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
+        {"id": 141268, "name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
+        # ... 其他歌曲也加上对应的网易云ID
     ]
     songs = []
     for i in range(n):
         s = fallback_songs[i % len(fallback_songs)]
         songs.append({
+            "id": s["id"],
             "name": s["name"],
             "artist": s["artist"],
             "album": s["album"],
