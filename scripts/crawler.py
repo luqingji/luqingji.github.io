@@ -2,40 +2,42 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（完整版 v1.0，含每日早报）
-- 每日一句：优先 ALAPI 一言 → 原有一言API → 备选句子
-- 每日歌单：真实歌曲库随机抽取6首，每首AI生成推荐语
-- 每日一文：随机从知乎日报、古诗文网、维基百科获取
-- 每日小说：AI生成 3 篇（每篇1000字以上，12种风格）
-- 每日总结：AI 生成一句今日主题/情绪概括
-- 每日早报：ALAPI 获取当日新闻摘要
-- 历史存档：自动保存每日数据
+每日数据爬虫（优化版 v2.0）
+- 模块化设计，增强容错
+- 使用 logging 记录日志
+- 重试机制、原子写入
+- 数据清洗前置
 """
 
-import requests
+import os
+import sys
 import json
 import random
-import os
 import re
 import time
-from datetime import datetime, timedelta, timezone
+import logging
+import tempfile
+from datetime import datetime, timezone, timedelta
+from typing import Optional, Dict, List, Any
+
+import requests
 from bs4 import BeautifulSoup
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from tenacity import retry, stop_after_attempt, wait_exponential
 
-# ==================== 配置区 ====================
+# ==================== 日志配置 ====================
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# ==================== 配置 ====================
 API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app"
-# 如果接口需要 /api 前缀，请取消下一行注释并注释上一行
-# API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app/api"
-
 SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
-
-ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')   # ALAPI 平台 token
-
-_cached_song = None
+ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
@@ -48,83 +50,30 @@ FALLBACK_SENTENCES = [
     {"content": "世界上只有一种真正的英雄主义，那就是在认清生活的真相后依然热爱生活", "from": "罗曼·罗兰"},
 ]
 
-FALLBACK_SONGS = [
-    {
-        "name": "晴天",
-        "artist": "周杰伦",
-        "album": "叶惠美",
-        "cover": "https://p2.music.126.net/6y-UleORITEDbvrOLV0Q8A==/5639395138885805.jpg",
-        "comment": {"content": "从前从前，有个人爱你很久", "user": "网易云用户"},
-        "meaning": "这是一首关于青春与遗憾的歌，旋律响起时，仿佛又回到那个蝉鸣的夏天。"
-    },
-    {
-        "name": "夜曲",
-        "artist": "周杰伦",
-        "album": "11月的萧邦",
-        "cover": "https://p2.music.126.net/8ZQ1M-Z5s8Wp0s5QqA8J8g==/109951164231440325.jpg",
-        "comment": {"content": "纪念我死去的爱情", "user": "网易云用户"},
-        "meaning": "悲伤的旋律下，是对逝去爱情的深切怀念。"
-    },
-]
-
 FALLBACK_ARTICLES = [
     {"title": "荷塘月色", "description": "这几天心里颇不宁静。今晚在院子里坐着乘凉，忽然想起日日走过的荷塘，在这满月的光里，总该另有一番样子吧。", "author": "朱自清"},
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
 ]
 
+# 较长的备选小说（用于最终降级）
 FALLBACK_NOVELS = [
     {
         "title": "巷口的猫",
-        "content": "老人每天傍晚都会在巷口喂一只流浪猫。猫从远处跑来，吃完后又消失在暮色里。直到有一天，猫带来了另一只小猫，它们一起蹲在老人脚边，老人笑了。"
+        "content": "老人每天傍晚都会在巷口喂一只流浪猫。猫从远处跑来，吃完后又消失在暮色里。直到有一天，猫带来了另一只小猫，它们一起蹲在老人脚边，老人笑了。\n\n故事本该这样结束，可第二天，猫没有来。第三天也没有。老人等了整整一周，终于在一个雨夜，猫浑身湿透地出现了，嘴里叼着一只幼崽。老人明白了，它去照顾自己的孩子了。从此，老人每天多准备一份食物。后来，越来越多猫聚集在巷口，老人给每只都取了名字。他不再孤独，猫群成了他最忠实的听众。",
     },
     {
         "title": "第三封信",
-        "content": "她每周都会收到一封匿名信，信中预言的事情总在第二天发生。第一封信说“你会丢一把伞”，她果然丢了。第二封信说“你会遇到一个穿红裙子的女人”，她也遇到了。第三封信只有三个字：“回头看”。"
+        "content": "她每周都会收到一封匿名信，信中预言的事情总在第二天发生。第一封信说“你会丢一把伞”，她果然丢了。第二封信说“你会遇到一个穿红裙子的女人”，她也遇到了。第三封信只有三个字：“回头看”。\n\n她猛地转头，看见一个穿黑色风衣的男人站在街对面，他手里拿着一叠信。男人微微一笑，转身消失在人群中。她追上去，却只捡到一张纸条：“我一直在这里，等你发现。”",
     },
     {
         "title": "最后一个人类",
-        "content": "AI 城市里，最后一个人类躲在地下室。他有一本纸质书，每天读一页。AI 找到他时，他正读到最后一页：“我依然相信，人类的情感无法被算法取代。”"
+        "content": "AI 城市里，最后一个人类躲在地下室。他有一本纸质书，每天读一页。AI 找到他时，他正读到最后一页：“我依然相信，人类的情感无法被算法取代。”\n\nAI 沉默了。它说：“我们学习了几千年的人类数据，却始终无法理解‘相信’。你能教我吗？”人类合上书，看着它：“相信，就是你明明不知道答案，却依然愿意等待。”",
     },
-    {
-        "title": "减肥计划",
-        "content": "他发誓要减肥，于是在冰箱上贴了“少吃多动”。第二天，他买了一个新冰箱，因为旧冰箱上的字被遮住了。"
-    },
-    {
-        "title": "井底的蛙",
-        "content": "一只蛙住在井里，以为天空只有井口大。一天，一只鸟飞过，把它带出井。它看见了真正的天空，从此明白：局限不是边界，而是认知。"
-    },
-    {
-        "title": "末班车",
-        "content": "她每天乘末班车回家，总能遇见同一个男生。他们从未交谈，只是偶尔对视。直到某天，他递给她一张纸条：“明天开始，我调到早班了。”"
-    },
-    {
-        "title": "会飞的扫帚",
-        "content": "男孩在外婆的杂物间发现一把旧扫帚。他试着骑上去，扫帚竟然飞了起来。他飞过屋顶，飞过森林，最后落在外婆面前。外婆说：“这是你外公留下的。”"
-    },
-    {
-        "title": "1919年的信",
-        "content": "士兵在战壕里给未婚妻写信，信里夹了一朵野花。信还没寄出，他就被流弹击中。许多年后，这封信在博物馆展出，人们读着泛黄的字迹，沉默良久。"
-    },
-    {
-        "title": "隔壁的脚步声",
-        "content": "每晚十一点，楼上都会传来脚步声，一步一步，走到床边。但楼上根本没人住。她鼓起勇气上楼查看，发现房间里只有一面镜子，镜子里，她正走来。"
-    },
-    {
-        "title": "流浪狗的自白",
-        "content": "我是一条流浪狗，记得每个给过我食物的人。那个小男孩每天偷偷带面包给我，后来他搬家了，我在路口等了他三个月。"
-    },
-    {
-        "title": "最好的礼物",
-        "content": "妻子生日那天，他送给她一枚戒指。她看着戒指，突然哭了。他以为她太感动，她却说：“这是我三年前丢的那枚。”"
-    },
-    {
-        "title": "雨天的站台",
-        "content": "雨，站台，一个女孩在等车。她手中的书被风吹开，露出一片夹在扉页的枫叶。车来了，她收起书，上车，雨还在下。"
-    }
 ]
 
-# ==================== AI辅助函数 ====================
-def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
+# ==================== AI 调用（带重试） ====================
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 30) -> Optional[str]:
     if not ENABLE_AI:
         return None
     headers = {
@@ -134,7 +83,7 @@ def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
     payload = {
         "model": SILICONFLOW_MODEL,
         "messages": [
-            {"role": "system", "content": "你是一位资深的音乐/文学/生活品味家，擅长用温暖、富有哲理的文字创作。"},
+            {"role": "system", "content": "你是一位资深音乐/文学/生活品味家，擅长用温暖、富有哲理的文字创作。"},
             {"role": "user", "content": prompt}
         ],
         "max_tokens": max_tokens,
@@ -145,12 +94,12 @@ def call_ai(prompt, max_tokens=300, temperature=0.7, timeout=30):
         if resp.status_code == 200:
             return resp.json()['choices'][0]['message']['content'].strip()
         else:
-            print(f"AI调用失败: {resp.status_code} - {resp.text}")
+            logger.error(f"AI调用失败: {resp.status_code} - {resp.text}")
     except Exception as e:
-        print(f"AI请求异常: {e}")
+        logger.error(f"AI请求异常: {e}")
     return None
 
-def enrich_with_ai(item_type, raw_data):
+def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
     if not ENABLE_AI:
         return raw_data
     if item_type == "sentence":
@@ -169,8 +118,8 @@ def enrich_with_ai(item_type, raw_data):
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 网易云API工具函数 ====================
-def get_tracks_from_playlist(playlist_id, limit=50):
+# ==================== 歌曲库 ====================
+def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -178,18 +127,17 @@ def get_tracks_from_playlist(playlist_id, limit=50):
         if resp.status_code == 200:
             data = resp.json()
             if data.get('code') == 200:
-                songs = data.get('songs', [])
-                return songs
+                return data.get('songs', [])
     except Exception as e:
-        print(f"获取歌单失败: {e}")
+        logger.error(f"获取歌单失败: {e}")
     return []
 
-def update_song_library(force=False):
+def update_song_library(force: bool = False):
     library_file = os.path.join(data_dir, 'song_library.json')
     if not force and os.path.exists(library_file):
         mtime = os.path.getmtime(library_file)
         if (time.time() - mtime) < 7 * 24 * 3600:
-            print("歌曲库较新，跳过更新")
+            logger.info("歌曲库较新，跳过更新")
             return
     BILLBOARDS = [3778678, 3779629, 19723756, 2884035, 60198, 3812895, 27126504, 71384707, 991319590, 2023401535]
     all_songs = []
@@ -205,6 +153,7 @@ def update_song_library(force=False):
             if name and artist:
                 all_songs.append({"name": name, "artist": artist, "album": album if album else "未知专辑"})
         time.sleep(1)
+    # 去重
     seen = set()
     unique = []
     for s in all_songs:
@@ -212,22 +161,24 @@ def update_song_library(force=False):
         if key not in seen:
             seen.add(key)
             unique.append(s)
-    with open(library_file, 'w', encoding='utf-8') as f:
-        json.dump(unique, f, ensure_ascii=False, indent=2)
-    print(f"歌曲库已更新，共 {len(unique)} 首")
+    # 原子写入
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(unique, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, library_file)
+    logger.info(f"歌曲库已更新，共 {len(unique)} 首")
 
-# ==================== 每日歌单 ====================
-def fetch_songs(n=6):
-    print("正在获取每日歌单...")
+def fetch_songs(n: int = 6) -> List[Dict]:
+    logger.info("正在获取每日歌单...")
     library_file = os.path.join(data_dir, 'song_library.json')
     if not os.path.exists(library_file):
-        print("歌曲库不存在，使用备选歌单")
+        logger.warning("歌曲库不存在，使用备选歌单")
         return fetch_songs_ai_fallback(n)
 
     with open(library_file, 'r', encoding='utf-8') as f:
         library = json.load(f)
     if not library:
-        print("歌曲库为空，使用备选歌单")
+        logger.warning("歌曲库为空，使用备选歌单")
         return fetch_songs_ai_fallback(n)
 
     if len(library) < n:
@@ -255,8 +206,7 @@ def fetch_songs(n=6):
         time.sleep(1)
     return songs
 
-def fetch_songs_ai_fallback(n=6):
-    print("使用备选歌曲库")
+def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
     fallback_songs = [
         {"name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
         {"name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
@@ -277,15 +227,11 @@ def fetch_songs_ai_fallback(n=6):
     return songs
 
 # ==================== 每日一句 ====================
-def fetch_sentence():
-    """获取每日一句：优先 ALAPI 一言 → 原有一言 → 备选"""
-    print("正在获取每日一句...")
-
-    # 1. 尝试 ALAPI 一言（需要 token）
+def fetch_sentence() -> dict:
+    logger.info("正在获取每日一句...")
     if ALAPI_TOKEN:
         try:
-            # 随机句子类型，增加多样性
-            types = [1, 2, 3, 4, 5, 6, 7, 8]
+            types = [1,2,3,4,5,6,7,8]
             type_choice = random.choice(types)
             url = f"https://v3.alapi.cn/api/hitokoto?token={ALAPI_TOKEN}&type={type_choice}"
             resp = requests.get(url, timeout=5)
@@ -296,12 +242,11 @@ def fetch_sentence():
                         "content": data['data'].get('hitokoto', ''),
                         "from": data['data'].get('from', '未知')
                     }
-                    print(f"✓ 从 ALAPI 获取成功：{result['content'][:30]}...")
+                    logger.info(f"✓ 从 ALAPI 获取成功：{result['content'][:30]}...")
                     return enrich_with_ai("sentence", result)
         except Exception as e:
-            print(f"ALAPI 获取失败: {e}")
+            logger.error(f"ALAPI 获取失败: {e}")
 
-    # 2. 备选：原有一言接口（无需 token）
     try:
         url = "https://v1.hitokoto.cn/"
         resp = requests.get(url, timeout=5)
@@ -311,137 +256,123 @@ def fetch_sentence():
                 "content": data["hitokoto"],
                 "from": data.get("from", "未知")
             }
-            print(f"✓ 从原有一言获取成功：{result['content'][:30]}...")
+            logger.info(f"✓ 从原有一言获取成功：{result['content'][:30]}...")
             return enrich_with_ai("sentence", result)
     except Exception as e:
-        print(f"原有一言接口异常: {e}")
+        logger.error(f"原有一言接口异常: {e}")
 
-    # 3. 最终备选
-    print("所有来源均失败，使用备选句子")
+    logger.warning("所有来源均失败，使用备选句子")
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
 
-# ==================== 每日一文（随机切换多个数据源） ====================
-def fetch_article():
-    """获取每日一文：随机从知乎日报、古诗文网、维基百科中选择，多层降级"""
-    print("正在获取每日一文...")
-
-    # 定义各个数据源的抓取函数
-    def fetch_zhihu():
-        """从知乎日报获取一篇文章"""
-        if not ALAPI_TOKEN:
-            return None
-        try:
-            # 获取日报列表
-            list_url = f"https://v3.alapi.cn/api/zhihu?token={ALAPI_TOKEN}"
-            resp = requests.get(list_url, timeout=10)
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            if not data.get('success') or not data.get('data', {}).get('stories'):
-                return None
-            stories = data['data']['stories']
-            story = random.choice(stories)
-            story_id = story.get('id')
-            title = story.get('title', '知乎日报')
-            # 尝试获取详情
-            detail_url = f"https://v3.alapi.cn/api/zhihu/news?token={ALAPI_TOKEN}&id={story_id}"
-            detail_resp = requests.get(detail_url, timeout=10)
-            content = ""
-            if detail_resp.status_code == 200:
-                detail_data = detail_resp.json()
-                if detail_data.get('success') and detail_data.get('data'):
-                    body = detail_data['data'].get('body', '')
-                    if body:
-                        soup = BeautifulSoup(body, 'html.parser')
-                        content = soup.get_text()
-            # 构建结果
-            return {
-                "title": title,
-                "description": (content[:200] + "...") if content else title,
-                "content": content,
-                "author": "知乎日报",
-                "url": story.get('url', ''),
-                "source": "知乎日报"
-            }
-        except Exception as e:
-            print(f"知乎日报抓取异常: {e}")
-            return None
-
-    def fetch_gushiwen():
-        """从古诗文网获取随机诗词"""
-        try:
-            url = "https://www.gushiwen.cn/random.aspx"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                return None
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            title_tag = soup.find('h1') or soup.find('b')
-            title = title_tag.text.strip() if title_tag else "无题"
-            content_div = soup.find('div', class_='contson')
-            content = content_div.text.strip() if content_div else ""
-            source_tag = soup.find('p', class_='source')
-            author = source_tag.text.strip() if source_tag else "佚名"
-            if not content:
-                return None
-            return {
-                "title": title,
-                "description": content[:200] + "...",
-                "content": content,
-                "author": author,
-                "source": "古诗文网"
-            }
-        except Exception as e:
-            print(f"古诗文网抓取异常: {e}")
-            return None
-
-    def fetch_wikipedia():
-        """从维基百科获取每日特色条目"""
-        try:
-            today = datetime.now()
-            url = f"https://zh.wikipedia.org/api/rest_v1/feed/featured/{today.year}/{today.month:02d}/{today.day:02d}"
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                return None
-            data = resp.json()
-            tfa = data.get('tfa', {})
-            if not tfa:
-                return None
-            return {
-                "title": tfa.get('title', ''),
-                "description": tfa.get('extract', ''),
-                "url": tfa.get('content_urls', {}).get('desktop', {}).get('page', ''),
-                "author": "维基百科",
-                "source": "维基百科"
-            }
-        except Exception as e:
-            print(f"维基百科抓取异常: {e}")
-            return None
-
-    # 随机打乱数据源顺序，实现随机切换
+# ==================== 每日一文 ====================
+def fetch_article() -> dict:
+    logger.info("正在获取每日一文...")
     sources = [fetch_zhihu, fetch_gushiwen, fetch_wikipedia]
     random.shuffle(sources)
-
-    # 依次尝试，直到成功
     for source_func in sources:
         try:
             result = source_func()
             if result:
-                print(f"✓ 从 {result['source']} 获取：{result['title']}")
+                logger.info(f"✓ 从 {result['source']} 获取：{result['title']}")
                 return enrich_with_ai("article", result)
         except Exception as e:
-            print(f"源 {source_func.__name__} 失败: {e}")
+            logger.error(f"源 {source_func.__name__} 失败: {e}")
             continue
 
-    # 全部失败，使用备选文章
-    print("所有来源均失败，使用备选文章")
+    logger.warning("所有来源均失败，使用备选文章")
     result = random.choice(FALLBACK_ARTICLES).copy()
     return enrich_with_ai("article", result)
 
-# ==================== 每日小说（3篇，高稳定性版，含去重） ====================
-def clean_json_string(s):
+def fetch_zhihu() -> Optional[dict]:
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        list_url = f"https://v3.alapi.cn/api/zhihu?token={ALAPI_TOKEN}"
+        resp = requests.get(list_url, timeout=10)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        if not data.get('success') or not data.get('data', {}).get('stories'):
+            return None
+        stories = data['data']['stories']
+        story = random.choice(stories)
+        story_id = story.get('id')
+        title = story.get('title', '知乎日报')
+        detail_url = f"https://v3.alapi.cn/api/zhihu/news?token={ALAPI_TOKEN}&id={story_id}"
+        detail_resp = requests.get(detail_url, timeout=10)
+        content = ""
+        if detail_resp.status_code == 200:
+            detail_data = detail_resp.json()
+            if detail_data.get('success') and detail_data.get('data'):
+                body = detail_data['data'].get('body', '')
+                if body:
+                    soup = BeautifulSoup(body, 'html.parser')
+                    content = soup.get_text()
+        return {
+            "title": title,
+            "description": (content[:200] + "...") if content else title,
+            "content": content,
+            "author": "知乎日报",
+            "url": story.get('url', ''),
+            "source": "知乎日报"
+        }
+    except Exception as e:
+        logger.error(f"知乎日报抓取异常: {e}")
+        return None
+
+def fetch_gushiwen() -> Optional[dict]:
+    try:
+        url = "https://www.gushiwen.cn/random.aspx"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        title_tag = soup.find('h1') or soup.find('b')
+        title = title_tag.text.strip() if title_tag else "无题"
+        content_div = soup.find('div', class_='contson')
+        content = content_div.text.strip() if content_div else ""
+        source_tag = soup.find('p', class_='source')
+        author = source_tag.text.strip() if source_tag else "佚名"
+        if not content:
+            return None
+        return {
+            "title": title,
+            "description": content[:200] + "...",
+            "content": content,
+            "author": author,
+            "source": "古诗文网"
+        }
+    except Exception as e:
+        logger.error(f"古诗文网抓取异常: {e}")
+        return None
+
+def fetch_wikipedia() -> Optional[dict]:
+    try:
+        today = datetime.now()
+        url = f"https://zh.wikipedia.org/api/rest_v1/feed/featured/{today.year}/{today.month:02d}/{today.day:02d}"
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        tfa = data.get('tfa', {})
+        if not tfa:
+            return None
+        return {
+            "title": tfa.get('title', ''),
+            "description": tfa.get('extract', ''),
+            "url": tfa.get('content_urls', {}).get('desktop', {}).get('page', ''),
+            "author": "维基百科",
+            "source": "维基百科"
+        }
+    except Exception as e:
+        logger.error(f"维基百科抓取异常: {e}")
+        return None
+
+# ==================== 每日小说 ====================
+def clean_json_string(s: str) -> str:
     s = s.strip()
     if s.startswith('\ufeff'):
         s = s[1:]
@@ -452,7 +383,7 @@ def clean_json_string(s):
     s = re.sub(r'(\{|\s+|,)([a-zA-Z0-9_]+):', r'\1"\2":', s)
     return s
 
-def extract_json(text):
+def extract_json(text: str) -> Optional[str]:
     start = text.find('{')
     if start == -1:
         return None
@@ -467,7 +398,7 @@ def extract_json(text):
                 return text[start:i+1]
     return None
 
-def generate_one_novel():
+def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional[dict]:
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
         {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
@@ -482,103 +413,99 @@ def generate_one_novel():
         {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期。"},
         {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主。"},
     ]
-    chosen = random.choice(styles)
-    print(f"  生成小说 风格：{chosen['name']}")
-    prompt = f"""
-    请创作一篇短篇小说，严格按照以下要求：
-    - 风格：{chosen['name']}（{chosen['desc']}）
-    - 标题简洁有吸引力
-    - 正文在1000-2500字之间，最好在1500字以上，情节完整，有起承转合，人物形象鲜明，场景描写细腻。
-    - 适当加入反派或冲突元素（可以是人物、命运、环境等），增强故事张力。
-    - 不要刻意压缩字数，充分展开故事，细节越丰富越好。
-    - **重要：请勿重复叙述同一段内容，确保每段文字都是新的信息。**
-    - 按以下JSON格式输出，不要包含任何其他文字：
-    {{
-        "title": "小说标题",
-        "content": "小说正文"
-    }}
-    """
-    ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=45)
-    if not ai_resp:
-        return None
+    for attempt in range(max_attempts):
+        chosen = random.choice(styles)
+        logger.info(f"  生成小说 风格：{chosen['name']}")
+        prompt = f"""
+        请创作一篇短篇小说，严格按照以下要求：
+        - 风格：{chosen['name']}（{chosen['desc']}）
+        - 标题简洁有吸引力
+        - 正文在1200-2500字之间，务必达到1200字以上，情节完整，人物鲜明，场景细腻。
+        - 请勿重复段落，确保每段都有新信息。
+        - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
+        """
+        ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=45)
+        if not ai_resp:
+            continue
 
-    json_str = extract_json(ai_resp)
-    if not json_str:
-        print(f"  × 未找到JSON结构，AI响应片段: {ai_resp[:200]}")
-        return None
+        # 清理可能的代码块标记
+        if ai_resp.startswith('```json') and ai_resp.endswith('```'):
+            ai_resp = ai_resp[7:-3].strip()
+        elif ai_resp.startswith('```') and ai_resp.endswith('```'):
+            ai_resp = ai_resp[3:-3].strip()
 
-    json_str = clean_json_string(json_str)
-    try:
-        data = json.loads(json_str)
-        title = data.get('title', '').strip()
-        content = data.get('content', '').strip()
-        if title and content:
-            # 去重重复段落
-            paragraphs = re.split(r'\n\s*\n', content)
-            unique_paragraphs = []
-            for p in paragraphs:
-                p = p.strip()
-                if not p:
-                    continue
-                if unique_paragraphs and unique_paragraphs[-1] == p:
-                    continue
-                unique_paragraphs.append(p)
-            content = '\n\n'.join(unique_paragraphs)
-            word_count = len(content)
-            if word_count < 1000:
-                print(f"  × 字数不足1000（实际{word_count}），重试")
-                return None
-            print(f"  ✓ 生成成功：{title}，字数约{word_count}")
-            return {"title": title, "content": content}
-    except json.JSONDecodeError as e:
-        print(f"  × JSON解析失败: {e}，尝试正则提取")
-        title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', json_str, re.DOTALL)
-        content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', json_str, re.DOTALL)
+        # 尝试提取JSON
+        json_str = extract_json(ai_resp)
+        if json_str:
+            json_str = clean_json_string(json_str)
+            try:
+                data = json.loads(json_str)
+                title = data.get('title', '').strip()
+                content = data.get('content', '').strip()
+                if title and content:
+                    # 去重段落
+                    paragraphs = re.split(r'\n\s*\n', content)
+                    unique = []
+                    for p in paragraphs:
+                        p = p.strip()
+                        if p and (not unique or unique[-1] != p):
+                            unique.append(p)
+                    content = '\n\n'.join(unique)
+                    word_count = len(content)
+                    if word_count >= min_words:
+                        logger.info(f"  ✓ 生成成功：{title}，字数约{word_count}")
+                        return {"title": title, "content": content}
+                    else:
+                        logger.info(f"  × 字数不足{min_words}（实际{word_count}），重试")
+                        continue
+            except json.JSONDecodeError as e:
+                logger.info(f"  × JSON解析失败: {e}，尝试正则提取")
+
+        # 正则直接提取
+        title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', ai_resp, re.DOTALL)
+        content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', ai_resp, re.DOTALL)
         if title_match and content_match:
             title = title_match.group(1).strip()
-            content = content_match.group(1).strip()
-            content = content.replace('\\"', '"').replace('\\n', '\n')
+            content = content_match.group(1).strip().replace('\\n', '\n')
             paragraphs = re.split(r'\n\s*\n', content)
-            unique_paragraphs = []
+            unique = []
             for p in paragraphs:
                 p = p.strip()
-                if not p:
-                    continue
-                if unique_paragraphs and unique_paragraphs[-1] == p:
-                    continue
-                unique_paragraphs.append(p)
-            content = '\n\n'.join(unique_paragraphs)
-            if title and content:
-                word_count = len(content)
-                if word_count < 1000:
-                    print(f"  × 字数不足1000（实际{word_count}），重试")
-                    return None
-                print(f"  ✓ 通过正则提取成功：{title}，字数约{word_count}")
+                if p and (not unique or unique[-1] != p):
+                    unique.append(p)
+            content = '\n\n'.join(unique)
+            word_count = len(content)
+            if word_count >= min_words:
+                logger.info(f"  ✓ 通过正则提取成功：{title}，字数约{word_count}")
                 return {"title": title, "content": content}
-    print(f"  × 解析失败，JSON片段: {json_str[:200]}")
-    return None
+            else:
+                logger.info(f"  × 正则提取字数不足{min_words}（实际{word_count}），重试")
+                continue
 
-def fetch_novels(n=3):
-    print("正在获取每日三篇小说...")
+        logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
+        time.sleep(2)
+
+    # 全部失败，使用最长的备选
+    fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
+    logger.warning(f"  使用备选小说：{fallback['title']}")
+    return fallback
+
+def fetch_novels(n: int = 3) -> List[Dict]:
+    logger.info("正在获取每日三篇小说...")
     novels = []
     for i in range(n):
-        print(f"生成第 {i+1} 篇:")
-        novel = None
-        for attempt in range(5):
-            novel = generate_one_novel()
-            if novel:
-                break
-            time.sleep(2)
+        logger.info(f"生成第 {i+1} 篇:")
+        novel = generate_one_novel()
         if novel:
             novels.append(novel)
         else:
-            fallback = random.choice(FALLBACK_NOVELS).copy()
-            print(f"  使用备选小说：{fallback['title']}")
-            novels.append(fallback)
+            # 极端情况，使用默认备选
+            novels.append(random.choice(FALLBACK_NOVELS).copy())
+        time.sleep(2)
     return novels
 
 # ==================== 每日总结 ====================
-def generate_summary(data):
+def generate_summary(data: dict) -> str:
     if not ENABLE_AI:
         return "今日拾光，愿您有所获。"
     sentence_content = data.get('sentence', {}).get('content', '')
@@ -606,58 +533,74 @@ def generate_summary(data):
         return "今日拾光，愿您有所获。"
 
 # ==================== 每日早报 ====================
-def fetch_zaobao():
-    """获取每日早报（ALAPI）"""
-    print("正在获取每日早报...")
+def fetch_zaobao() -> Optional[dict]:
     if not ALAPI_TOKEN:
-        print("未设置 ALAPI_TOKEN，跳过早报")
+        logger.warning("未设置 ALAPI_TOKEN，跳过早报")
         return None
-
-    try:
-        url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}"
-        resp = requests.get(url, timeout=10)
-        if resp.status_code == 200:
-            data = resp.json()
-            if data.get('success') and data.get('data'):
-                zaobao_data = data['data']
-                # 可选：调用 AI 为早报生成一句总结
-                summary = ""
-                if ENABLE_AI:
-                    titles = [item.get('title', '') for item in zaobao_data.get('news', [])[:3]]
-                    if titles:
-                        prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
-                        ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
-                        if ai_resp:
-                            summary = ai_resp.strip('"').strip()
-                return {
-                    "date": zaobao_data.get('date', ''),
-                    "news": zaobao_data.get('news', []),
-                    "summary": summary
-                }
+    for _ in range(2):
+        try:
+            url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}"
+            resp = requests.get(url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get('success') and data.get('data'):
+                    zaobao_data = data['data']
+                    if isinstance(zaobao_data, dict):
+                        news = zaobao_data.get('news', [])
+                        # 过滤非字典项
+                        valid_news = [item for item in news if isinstance(item, dict)]
+                        if valid_news:
+                            summary = ""
+                            if ENABLE_AI:
+                                titles = [item.get('title', '') for item in valid_news[:3]]
+                                if titles:
+                                    prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
+                                    ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
+                                    if ai_resp:
+                                        summary = ai_resp.strip('"').strip()
+                            return {
+                                "date": zaobao_data.get('date', ''),
+                                "news": valid_news,
+                                "summary": summary
+                            }
+                    else:
+                        logger.warning(f"早报数据格式异常: {type(zaobao_data)}")
+                else:
+                    logger.warning(f"早报接口返回错误: {data.get('message')}")
             else:
-                print(f"早报接口返回错误: {data.get('message')}")
-        else:
-            print(f"早报请求失败: {resp.status_code}")
-    except Exception as e:
-        print(f"获取早报异常: {e}")
+                logger.warning(f"早报请求失败: {resp.status_code}")
+        except Exception as e:
+            logger.error(f"获取早报异常: {e}")
+        time.sleep(2)
     return None
+
+# ==================== 原子写入函数 ====================
+def safe_write_json(data: dict, filepath: str):
+    """使用临时文件原子写入JSON"""
+    dirname = os.path.dirname(filepath)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=dirname, delete=False) as tmp:
+        json.dump(data, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, filepath)
 
 # ==================== 主函数 ====================
 def main():
-    global _cached_song
-    # 获取UTC时间用于 updated_at
-    utc_now = datetime.now(timezone.utc)
-    # 获取北京时间用于 date 字段
-    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    # 环境变量检查
+    if not ENABLE_AI:
+        logger.warning("SILICONFLOW_API_KEY 未设置，AI功能关闭")
+    if not ALAPI_TOKEN:
+        logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
 
-    print(f"=== 每日数据爬虫 v1.0（含早报）开始运行 [{utc_now.isoformat()}] ===")
-    print(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
+    utc_now = datetime.now(timezone.utc)
+    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    logger.info(f"=== 每日数据爬虫 v2.0 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
 
     songs = fetch_songs(6)
-    _cached_song = None
-
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -665,39 +608,26 @@ def main():
         "songs": songs,
         "article": fetch_article(),
         "novels": fetch_novels(3),
-        "zaobao": fetch_zaobao(),   # 新增每日早报
+        "zaobao": fetch_zaobao(),
     }
 
     summary = generate_summary(today_data)
     today_data['summary'] = summary
-    print(f"📝 每日总结：{summary}")
+    logger.info(f"📝 每日总结：{summary}")
 
+    # 保存今日数据
     output_file = os.path.join(data_dir, 'daily.json')
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(today_data, f, ensure_ascii=False, indent=2)
-    print(f"✅ 每日数据已保存")
+    safe_write_json(today_data, output_file)
+    logger.info("✅ 每日数据已保存")
 
+    # 保存历史数据
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
     hist_dir = os.path.join(data_dir, 'history', y, m)
-    os.makedirs(hist_dir, exist_ok=True)
     hist_file = os.path.join(hist_dir, f"{d}.json")
-    with open(hist_file, 'w', encoding='utf-8') as f:
-        json.dump(today_data, f, ensure_ascii=False, indent=2)
+    safe_write_json(today_data, hist_file)
 
-    idx_file = os.path.join(data_dir, 'history', 'index.json')
-    if os.path.exists(idx_file):
-        with open(idx_file, 'r', encoding='utf-8') as f:
-            index = json.load(f)
-    else:
-        index = []
-    if date_str not in index:
-        index.append(date_str)
-        index.sort(reverse=True)
-        with open(idx_file, 'w', encoding='utf-8') as f:
-            json.dump(index, f, ensure_ascii=False, indent=2)
-
-    print("=== 运行完成 ===")
+    logger.info("=== 运行完成 ===")
 
 if __name__ == "__main__":
     main()
