@@ -11,32 +11,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.summary) {
                 document.getElementById('daily-summary').textContent = data.summary;
             }
-            // 彩蛋（使用数据中的日期）
             const displayDate = data.date;
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
-            // 歌单入口
             // 歌单展示（显示歌曲列表+播放图标）
-if (data.songs && data.songs.length > 0) {
-    document.getElementById('song-card').style.display = 'block';
-    document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
-    const container = document.getElementById('songs-list-mini');
-    container.innerHTML = '';
-    data.songs.forEach(song => {
-        const songDiv = document.createElement('div');
-        songDiv.className = 'song-item-mini';
-        const playLink = song.id ? `https://music.163.com/#/song?id=${song.id}` : null;
-        songDiv.innerHTML = `
-            <div class="song-name">
-                ${escapeHtml(song.name)}
-                ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
-            </div>
-            <div class="song-artist">${escapeHtml(song.artist)}</div>
-            <div class="song-recommendation">${escapeHtml(song.recommendation || '')}</div>
-        `;
-        container.appendChild(songDiv);
-    });
-}
+            if (data.songs && data.songs.length > 0) {
+                document.getElementById('song-card').style.display = 'block';
+                document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
+                const container = document.getElementById('songs-list-mini');
+                container.innerHTML = '';
+                data.songs.forEach(song => {
+                    const songDiv = document.createElement('div');
+                    songDiv.className = 'song-item-mini';
+                    const playLink = song.id ? `https://music.163.com/#/song?id=${song.id}` : null;
+                    songDiv.innerHTML = `
+                        <div class="song-name">
+                            ${escapeHtml(song.name)}
+                            ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
+                        </div>
+                        <div class="song-artist">${escapeHtml(song.artist)}</div>
+                        <div class="song-recommendation">${escapeHtml(song.recommendation || '')}</div>
+                    `;
+                    container.appendChild(songDiv);
+                });
+            }
 
             // 散落诗行
             if (data.sentence) {
@@ -75,73 +73,70 @@ if (data.songs && data.songs.length > 0) {
             }
 
             // 早报
-if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
-    document.getElementById('zaobao-card').style.display = 'block';
-    
-    // 显示微语（优先 weiyu，其次 summary）
-    const weiyuEl = document.getElementById('zaobao-weiyu');
-    if (data.zaobao.weiyu) {
-        weiyuEl.textContent = data.zaobao.weiyu;
-        weiyuEl.style.display = 'block';
-    } else if (data.zaobao.summary) {
-        weiyuEl.textContent = data.zaobao.summary;
-        weiyuEl.style.display = 'block';
-    } else {
-        weiyuEl.style.display = 'none';
-    }
-    
-    // 处理音频播放按钮
-    const audioUrl = data.zaobao.audio;
-    const playBtn = document.getElementById('zaobao-play-btn');
-    const audioPlayer = document.getElementById('zaobao-audio-player');
-    if (audioUrl && playBtn && audioPlayer) {
-        audioPlayer.src = audioUrl;
-        playBtn.style.display = 'inline-block';
-        playBtn.onclick = () => {
-            if (audioPlayer.paused) {
-                audioPlayer.play();
-                playBtn.textContent = '⏸️ 暂停';
-            } else {
-                audioPlayer.pause();
-                playBtn.textContent = '🔊 语音播报';
+            if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
+                document.getElementById('zaobao-card').style.display = 'block';
+                // 微语
+                const weiyuEl = document.getElementById('zaobao-weiyu');
+                if (data.zaobao.weiyu) {
+                    weiyuEl.textContent = data.zaobao.weiyu;
+                    weiyuEl.style.display = 'block';
+                } else if (data.zaobao.summary) {
+                    weiyuEl.textContent = data.zaobao.summary;
+                    weiyuEl.style.display = 'block';
+                } else {
+                    weiyuEl.style.display = 'none';
+                }
+                // 音频
+                const audioUrl = data.zaobao.audio;
+                const playBtn = document.getElementById('zaobao-play-btn');
+                const audioPlayer = document.getElementById('zaobao-audio-player');
+                if (audioUrl && playBtn && audioPlayer) {
+                    audioPlayer.src = audioUrl;
+                    playBtn.style.display = 'inline-block';
+                    playBtn.onclick = () => {
+                        if (audioPlayer.paused) {
+                            audioPlayer.play();
+                            playBtn.textContent = '⏸️ 暂停';
+                        } else {
+                            audioPlayer.pause();
+                            playBtn.textContent = '🔊 语音播报';
+                        }
+                    };
+                    audioPlayer.onended = () => {
+                        playBtn.textContent = '🔊 语音播报';
+                    };
+                    audioPlayer.onerror = () => {
+                        playBtn.style.display = 'none';
+                        console.error('早报音频加载失败');
+                    };
+                } else if (playBtn) {
+                    playBtn.style.display = 'none';
+                }
+                // 新闻列表
+                const listContainer = document.getElementById('zaobao-list');
+                listContainer.innerHTML = '';
+                data.zaobao.news.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'zaobao-item';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <span class="zaobao-title">${escapeHtml(item.title)}</span>
+                            <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
+                        </div>
+                        <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
+                    `;
+                    if (item.url) {
+                        const titleSpan = itemDiv.querySelector('.zaobao-title');
+                        titleSpan.style.cursor = 'pointer';
+                        titleSpan.style.color = '#4f9da6';
+                        titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
+                    }
+                    listContainer.appendChild(itemDiv);
+                });
+                if (data.zaobao.date) {
+                    document.getElementById('zaobao-date').textContent = data.zaobao.date;
+                }
             }
-        };
-        audioPlayer.onended = () => {
-            playBtn.textContent = '🔊 语音播报';
-        };
-        audioPlayer.onerror = () => {
-            playBtn.style.display = 'none';
-            console.error('早报音频加载失败');
-        };
-    } else if (playBtn) {
-        playBtn.style.display = 'none';
-    }
-    
-    // 新闻列表渲染
-    const listContainer = document.getElementById('zaobao-list');
-    listContainer.innerHTML = '';
-    data.zaobao.news.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'zaobao-item';
-        itemDiv.innerHTML = `
-            <div>
-                <span class="zaobao-title">${escapeHtml(item.title)}</span>
-                <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
-            </div>
-            <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
-        `;
-        if (item.url) {
-            const titleSpan = itemDiv.querySelector('.zaobao-title');
-            titleSpan.style.cursor = 'pointer';
-            titleSpan.style.color = '#4f9da6';
-            titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
-        }
-        listContainer.appendChild(itemDiv);
-    });
-    if (data.zaobao.date) {
-        document.getElementById('zaobao-date').textContent = data.zaobao.date;
-    }
-}
 
             // 小说
             if (data.novels && Array.isArray(data.novels)) {
@@ -167,7 +162,6 @@ function renderOneModule(oneData) {
     oneContainer.innerHTML = '';
     let hasContent = false;
 
-    // 文章
     if (oneData.article && oneData.article.content) {
         hasContent = true;
         const articleDiv = document.createElement('div');
@@ -182,7 +176,6 @@ function renderOneModule(oneData) {
         oneContainer.appendChild(articleDiv);
     }
 
-    // 摄影
     if (oneData.photo && oneData.photo.image) {
         hasContent = true;
         const photoDiv = document.createElement('div');
@@ -197,7 +190,6 @@ function renderOneModule(oneData) {
         oneContainer.appendChild(photoDiv);
     }
 
-    // 问答
     if (oneData.question && oneData.question.question) {
         hasContent = true;
         const qaDiv = document.createElement('div');
@@ -214,17 +206,6 @@ function renderOneModule(oneData) {
     if (hasContent) {
         oneCard.style.display = 'block';
     }
-}
-
-// 辅助函数：转义HTML
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
 }
 
 function renderNovels(novels) {
