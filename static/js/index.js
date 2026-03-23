@@ -14,27 +14,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayDate = data.date;
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
-            // 歌单展示（显示歌曲列表+播放图标）
-            if (data.songs && data.songs.length > 0) {
-                document.getElementById('song-card').style.display = 'block';
-                document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
-                const container = document.getElementById('songs-list-mini');
-                container.innerHTML = '';
-                data.songs.forEach(song => {
-                    const songDiv = document.createElement('div');
-                    songDiv.className = 'song-item-mini';
-                    const playLink = song.id ? `https://music.163.com/#/song?id=${song.id}` : null;
-                    songDiv.innerHTML = `
-                        <div class="song-name">
-                            ${escapeHtml(song.name)}
-                            ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
-                        </div>
-                        <div class="song-artist">${escapeHtml(song.artist)}</div>
-                        <div class="song-recommendation">${escapeHtml(song.recommendation || '')}</div>
-                    `;
-                    container.appendChild(songDiv);
-                });
-            }
+            // 每日一歌（只取第一首歌）
+if (data.songs && data.songs.length > 0) {
+    document.getElementById('song-card').style.display = 'block';
+    document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
+    const dailySong = data.songs[0];  // 取第一首
+    const container = document.getElementById('daily-song');
+    container.innerHTML = '';
+    const playLink = dailySong.id ? `https://music.163.com/#/song?id=${dailySong.id}` : null;
+    container.innerHTML = `
+        <div class="daily-song-item">
+            <div class="song-name">
+                ${escapeHtml(dailySong.name)}
+                ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
+            </div>
+            <div class="song-artist">${escapeHtml(dailySong.artist)}</div>
+            <div class="song-album">${escapeHtml(dailySong.album || '')}</div>
+            <div class="song-recommendation">${escapeHtml(dailySong.recommendation || '')}</div>
+        </div>
+    `;
+}
 
             // 散落诗行
             if (data.sentence) {
