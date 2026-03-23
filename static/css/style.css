@@ -871,3 +871,30 @@ body.dark-mode .audio-play-btn:hover {
 body.dark-mode .songs-list-mini .song-item-mini {
     border-bottom-color: rgba(255,255,255,0.1);
 }
+body.dark-mode .play-icon {
+    color: #6c91b2;
+}
+body.dark-mode .play-icon:hover {
+    color: #e0a070;
+}
+.audio-play-btn {
+    background: rgba(79, 157, 166, 0.2);
+    border: 1px solid rgba(79, 157, 166, 0.5);
+    border-radius: 30px;
+    padding: 0.3rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: inherit;
+}
+.audio-play-btn:hover {
+    background: rgba(79, 157, 166, 0.4);
+}
+body.dark-mode .audio-play-btn {
+    background: rgba(79, 157, 166, 0.3);
+    border-color: rgba(79, 157, 166, 0.6);
+}
+body.dark-mode .audio-play-btn:hover {
+    background: rgba(79, 157, 166, 0.5);
+}
