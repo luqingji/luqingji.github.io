@@ -27,23 +27,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // 彩蛋（使用传入的日期）
             document.getElementById('easter-egg').textContent = getEasterEgg(date);
 
-            // 歌单展示
-            if (data.songs && data.songs.length > 0) {
-                document.getElementById('song-card').style.display = 'block';
-                const container = document.getElementById('songs-list');
-                container.innerHTML = '';
-                data.songs.forEach(song => {
-                    const div = document.createElement('div');
-                    div.className = 'song-item';
-                    div.innerHTML = `
-                        <div class="song-name">${escapeHtml(song.name)}</div>
-                        <div class="song-artist">${escapeHtml(song.artist)}</div>
-                        <div class="song-album">${escapeHtml(song.album || '未知专辑')}</div>
-                        <div class="song-recommendation">${escapeHtml(song.recommendation || '暂无推荐语')}</div>
-                    `;
-                    container.appendChild(div);
-                });
-            }
+            // 歌单展示（显示歌曲列表+播放图标）
+if (data.songs && data.songs.length > 0) {
+    document.getElementById('song-card').style.display = 'block';
+    const container = document.getElementById('songs-list');
+    container.innerHTML = '';
+    data.songs.forEach(song => {
+        const div = document.createElement('div');
+        div.className = 'song-item';
+        const playLink = song.id ? `https://music.163.com/#/song?id=${song.id}` : null;
+        div.innerHTML = `
+            <div class="song-name">
+                ${escapeHtml(song.name)}
+                ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
+            </div>
+            <div class="song-artist">${escapeHtml(song.artist)}</div>
+            <div class="song-album">${escapeHtml(song.album || '未知专辑')}</div>
+            <div class="song-recommendation">${escapeHtml(song.recommendation || '暂无推荐语')}</div>
+        `;
+        container.appendChild(div);
+    });
+}
 
             // 散落诗行
             if (data.sentence) {
