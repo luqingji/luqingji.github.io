@@ -27,7 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // 彩蛋（使用传入的日期）
             document.getElementById('easter-egg').textContent = getEasterEgg(date);
 
-            // 歌单展示（显示歌曲列表+播放图标）
+            // 在 detail.js 中，找到歌单展示部分，替换为以下代码（其他部分保持不变）
+
+// 歌单展示（显示歌曲列表+播放图标）
 if (data.songs && data.songs.length > 0) {
     document.getElementById('song-card').style.display = 'block';
     const container = document.getElementById('songs-list');
