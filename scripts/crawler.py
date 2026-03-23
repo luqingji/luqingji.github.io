@@ -535,11 +535,10 @@ def generate_summary(data: dict) -> str:
 # ==================== 每日早报 ====================
 import requests
 import time
-import json
 from typing import Optional, Dict, Any
 
 def fetch_zaobao() -> Optional[Dict[str, Any]]:
-    """获取每日早报（ALAPI），增强健壮性，即使数据为空也返回占位结构"""
+    """获取每日早报（ALAPI），根据官方实际返回结构解析"""
     if not ALAPI_TOKEN:
         logger.warning("未设置 ALAPI_TOKEN，跳过早报")
         return None
@@ -548,7 +547,8 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    max_attempts = 2  # 减少重试次数，因为每天只有几次请求
+    # 最多尝试2次，每天只有有限请求次数
+    max_attempts = 2
     for attempt in range(1, max_attempts + 1):
         try:
             url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}&format=json"
@@ -559,71 +559,58 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
                 logger.warning(f"响应内容前200字符: {resp.text[:200]}")
                 continue
 
-            # 解析JSON
             try:
                 data = resp.json()
             except ValueError:
                 logger.error(f"JSON解析失败，原始响应: {resp.text[:500]}")
                 continue
 
-            # 调试：打印完整响应结构（仅DEBUG级别）
-            logger.debug(f"ALAPI 原始响应: {json.dumps(data, ensure_ascii=False)[:500]}")
-
-            if not isinstance(data, dict):
-                logger.warning(f"响应不是JSON对象: {type(data)}")
-                continue
-
-            if not data.get('success'):
+            # 校验响应结构
+            if not isinstance(data, dict) or not data.get('success'):
                 logger.warning(f"接口返回失败: {data.get('message', '未知错误')}")
                 continue
 
             zaobao_data = data.get('data')
             if not zaobao_data or not isinstance(zaobao_data, dict):
                 logger.warning(f"data字段无效: {type(zaobao_data)}")
-                # 即使数据无效，也返回一个空占位，避免前端报错
-                return {"date": "", "news": [], "summary": ""}
+                return {"date": "", "news": [], "weiyu": ""}  # 返回空结构
 
-            # 尝试多种可能的新闻字段名（ALAPI可能使用不同字段）
-            news = zaobao_data.get('news') or zaobao_data.get('list') or zaobao_data.get('items')
-            if not news:
-                logger.warning("早报中未找到新闻列表字段")
-                return {"date": zaobao_data.get('date', ''), "news": [], "summary": ""}
+            # 实际返回的 news 是一个字符串数组
+            news_list = zaobao_data.get('news', [])
+            if not isinstance(news_list, list):
+                logger.warning(f"news字段类型不是列表: {type(news_list)}")
+                return {"date": zaobao_data.get('date', ''), "news": [], "weiyu": ""}
 
-            if not isinstance(news, list):
-                logger.warning(f"新闻字段类型不是列表: {type(news)}")
-                return {"date": zaobao_data.get('date', ''), "news": [], "summary": ""}
-
-            # 过滤有效新闻（必须包含标题）
+            # 将每条新闻字符串转换为前端期望的对象格式
             valid_news = []
-            for item in news:
-                if isinstance(item, dict) and item.get('title'):
+            for item in news_list:
+                if isinstance(item, str) and item.strip():
+                    # 可选：提取序号和内容（前端会直接显示整个字符串）
                     valid_news.append({
-                        "title": item.get('title', ''),
-                        "source": item.get('source', ''),
-                        "summary": item.get('summary', ''),
-                        "url": item.get('url', '')
+                        "title": item,          # 将整条新闻作为标题显示
+                        "content": item,        # 内容相同
+                        "source": "",           # 源信息在字符串中已包含，不单独提取
+                        "summary": "",          # 无需额外摘要
+                        "url": ""               # 无单独链接
                     })
-                else:
-                    logger.debug(f"跳过无效新闻项: {item}")
 
-            # 生成摘要（可选）
-            summary = ""
-            if ENABLE_AI and valid_news:
-                titles = [item['title'] for item in valid_news[:3] if item['title']]
-                if titles:
-                    try:
-                        prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
-                        ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
-                        if ai_resp:
-                            summary = ai_resp.strip('"').strip()
-                    except Exception as e:
-                        logger.error(f"AI摘要生成异常: {e}")
+            # 获取微语（weiyu）
+            weiyu = zaobao_data.get('weiyu', '')
+            if weiyu:
+                # 清理掉可能带有的【微语】前缀
+                weiyu = weiyu.replace('【微语】', '').strip()
+
+            # 可选：如果有图片或音频，也可以保留备用，但前端当前未使用
+            image_url = zaobao_data.get('image', '')
+            audio_url = zaobao_data.get('audio', '')
 
             logger.info(f"早报获取成功，共 {len(valid_news)} 条新闻")
             return {
                 "date": zaobao_data.get('date', ''),
                 "news": valid_news,
-                "summary": summary
+                "weiyu": weiyu,                 # 微语可作为每日一言的补充
+                "image": image_url,             # 保留，未来可能用于分享图
+                "audio": audio_url              # 保留，未来可能添加语音播报
             }
 
         except requests.Timeout:
@@ -641,7 +628,7 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
             time.sleep(wait_time)
 
     logger.error("早报获取失败，返回空数据")
-    return {"date": "", "news": [], "summary": ""}
+    return {"date": "", "news": [], "weiyu": ""}
 # ==================== 原子写入函数 ====================
 def safe_write_json(data: dict, filepath: str):
     """使用临时文件原子写入JSON"""
