@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.0）
-- 模块化设计，增强容错
-- 使用 logging 记录日志
-- 重试机制、原子写入
-- 数据清洗前置
+每日数据爬虫（优化版 v2.1）
+- 新增 ONE · 一个 模块（文章、摄影、问答）
+- 移除历史上的今天相关内容
 """
 
 import os
@@ -55,7 +53,6 @@ FALLBACK_ARTICLES = [
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
 ]
 
-# 较长的备选小说（用于最终降级）
 FALLBACK_NOVELS = [
     {
         "title": "巷口的猫",
@@ -153,7 +150,6 @@ def update_song_library(force: bool = False):
             if name and artist:
                 all_songs.append({"name": name, "artist": artist, "album": album if album else "未知专辑"})
         time.sleep(1)
-    # 去重
     seen = set()
     unique = []
     for s in all_songs:
@@ -161,7 +157,6 @@ def update_song_library(force: bool = False):
         if key not in seen:
             seen.add(key)
             unique.append(s)
-    # 原子写入
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
         json.dump(unique, tmp, ensure_ascii=False, indent=2)
         tmp_path = tmp.name
@@ -428,13 +423,11 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         if not ai_resp:
             continue
 
-        # 清理可能的代码块标记
         if ai_resp.startswith('```json') and ai_resp.endswith('```'):
             ai_resp = ai_resp[7:-3].strip()
         elif ai_resp.startswith('```') and ai_resp.endswith('```'):
             ai_resp = ai_resp[3:-3].strip()
 
-        # 尝试提取JSON
         json_str = extract_json(ai_resp)
         if json_str:
             json_str = clean_json_string(json_str)
@@ -443,7 +436,6 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
                 title = data.get('title', '').strip()
                 content = data.get('content', '').strip()
                 if title and content:
-                    # 去重段落
                     paragraphs = re.split(r'\n\s*\n', content)
                     unique = []
                     for p in paragraphs:
@@ -461,7 +453,6 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
             except json.JSONDecodeError as e:
                 logger.info(f"  × JSON解析失败: {e}，尝试正则提取")
 
-        # 正则直接提取
         title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', ai_resp, re.DOTALL)
         content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', ai_resp, re.DOTALL)
         if title_match and content_match:
@@ -485,7 +476,6 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
         time.sleep(2)
 
-    # 全部失败，使用最长的备选
     fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
     logger.warning(f"  使用备选小说：{fallback['title']}")
     return fallback
@@ -499,7 +489,6 @@ def fetch_novels(n: int = 3) -> List[Dict]:
         if novel:
             novels.append(novel)
         else:
-            # 极端情况，使用默认备选
             novels.append(random.choice(FALLBACK_NOVELS).copy())
         time.sleep(2)
     return novels
@@ -533,12 +522,7 @@ def generate_summary(data: dict) -> str:
         return "今日拾光，愿您有所获。"
 
 # ==================== 每日早报 ====================
-import requests
-import time
-from typing import Optional, Dict, Any
-
-def fetch_zaobao() -> Optional[Dict[str, Any]]:
-    """获取每日早报（ALAPI），根据官方实际返回结构解析"""
+def fetch_zaobao() -> Optional[dict]:
     if not ALAPI_TOKEN:
         logger.warning("未设置 ALAPI_TOKEN，跳过早报")
         return None
@@ -547,7 +531,6 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    # 最多尝试2次，每天只有有限请求次数
     max_attempts = 2
     for attempt in range(1, max_attempts + 1):
         try:
@@ -565,7 +548,6 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
                 logger.error(f"JSON解析失败，原始响应: {resp.text[:500]}")
                 continue
 
-            # 校验响应结构
             if not isinstance(data, dict) or not data.get('success'):
                 logger.warning(f"接口返回失败: {data.get('message', '未知错误')}")
                 continue
@@ -573,44 +555,35 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
             zaobao_data = data.get('data')
             if not zaobao_data or not isinstance(zaobao_data, dict):
                 logger.warning(f"data字段无效: {type(zaobao_data)}")
-                return {"date": "", "news": [], "weiyu": ""}  # 返回空结构
+                return {"date": "", "news": [], "weiyu": ""}
 
-            # 实际返回的 news 是一个字符串数组
             news_list = zaobao_data.get('news', [])
             if not isinstance(news_list, list):
                 logger.warning(f"news字段类型不是列表: {type(news_list)}")
                 return {"date": zaobao_data.get('date', ''), "news": [], "weiyu": ""}
 
-            # 将每条新闻字符串转换为前端期望的对象格式
             valid_news = []
             for item in news_list:
                 if isinstance(item, str) and item.strip():
-                    # 可选：提取序号和内容（前端会直接显示整个字符串）
                     valid_news.append({
-                        "title": item,          # 将整条新闻作为标题显示
-                        "content": item,        # 内容相同
-                        "source": "",           # 源信息在字符串中已包含，不单独提取
-                        "summary": "",          # 无需额外摘要
-                        "url": ""               # 无单独链接
+                        "title": item,
+                        "content": item,
+                        "source": "",
+                        "summary": "",
+                        "url": ""
                     })
 
-            # 获取微语（weiyu）
             weiyu = zaobao_data.get('weiyu', '')
             if weiyu:
-                # 清理掉可能带有的【微语】前缀
                 weiyu = weiyu.replace('【微语】', '').strip()
-
-            # 可选：如果有图片或音频，也可以保留备用，但前端当前未使用
-            image_url = zaobao_data.get('image', '')
-            audio_url = zaobao_data.get('audio', '')
 
             logger.info(f"早报获取成功，共 {len(valid_news)} 条新闻")
             return {
                 "date": zaobao_data.get('date', ''),
                 "news": valid_news,
-                "weiyu": weiyu,                 # 微语可作为每日一言的补充
-                "image": image_url,             # 保留，未来可能用于分享图
-                "audio": audio_url              # 保留，未来可能添加语音播报
+                "weiyu": weiyu,
+                "image": zaobao_data.get('image', ''),
+                "audio": zaobao_data.get('audio', '')
             }
 
         except requests.Timeout:
@@ -629,9 +602,92 @@ def fetch_zaobao() -> Optional[Dict[str, Any]]:
 
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
-# ==================== 原子写入函数 ====================
+
+# ==================== ONE · 一个 模块 ====================
+def fetch_one_article() -> Optional[Dict[str, Any]]:
+    """获取 ONE · 一个 文章"""
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        url = "https://v3.alapi.cn/api/one"
+        payload = {"token": ALAPI_TOKEN, "date": ""}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            logger.warning(f"ONE文章请求失败: HTTP {resp.status_code}")
+            return None
+        data = resp.json()
+        if not data.get('success'):
+            logger.warning(f"ONE文章接口错误: {data.get('message')}")
+            return None
+        article_data = data.get('data', {})
+        return {
+            "title": article_data.get('title', ''),
+            "author": article_data.get('author', ''),
+            "content": article_data.get('content', ''),
+            "url": article_data.get('url', ''),
+            "img_url": article_data.get('img_url', '')
+        }
+    except Exception as e:
+        logger.error(f"ONE文章抓取异常: {e}")
+        return None
+
+def fetch_one_photo() -> Optional[Dict[str, Any]]:
+    """获取 ONE · 一个 摄影"""
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        url = "https://v3.alapi.cn/api/one/photo"
+        payload = {"token": ALAPI_TOKEN, "date": ""}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            logger.warning(f"ONE摄影请求失败: HTTP {resp.status_code}")
+            return None
+        data = resp.json()
+        if not data.get('success'):
+            logger.warning(f"ONE摄影接口错误: {data.get('message')}")
+            return None
+        photo_data = data.get('data', {})
+        return {
+            "title": photo_data.get('title', ''),
+            "author": photo_data.get('author', ''),
+            "image": photo_data.get('image', ''),
+            "description": photo_data.get('description', ''),
+            "url": photo_data.get('url', '')
+        }
+    except Exception as e:
+        logger.error(f"ONE摄影抓取异常: {e}")
+        return None
+
+def fetch_one_question() -> Optional[Dict[str, Any]]:
+    """获取 ONE · 一个 问答"""
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        url = "https://v3.alapi.cn/api/one/question"
+        payload = {"token": ALAPI_TOKEN, "date": ""}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            logger.warning(f"ONE问答请求失败: HTTP {resp.status_code}")
+            return None
+        data = resp.json()
+        if not data.get('success'):
+            logger.warning(f"ONE问答接口错误: {data.get('message')}")
+            return None
+        qa_data = data.get('data', {})
+        return {
+            "question": qa_data.get('question', ''),
+            "answer": qa_data.get('answer', ''),
+            "author": qa_data.get('author', '')
+        }
+    except Exception as e:
+        logger.error(f"ONE问答抓取异常: {e}")
+        return None
+
+# ==================== 原子写入 ====================
 def safe_write_json(data: dict, filepath: str):
-    """使用临时文件原子写入JSON"""
     dirname = os.path.dirname(filepath)
     if dirname:
         os.makedirs(dirname, exist_ok=True)
@@ -642,7 +698,6 @@ def safe_write_json(data: dict, filepath: str):
 
 # ==================== 主函数 ====================
 def main():
-    # 环境变量检查
     if not ENABLE_AI:
         logger.warning("SILICONFLOW_API_KEY 未设置，AI功能关闭")
     if not ALAPI_TOKEN:
@@ -650,7 +705,7 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.0 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.1 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -664,18 +719,21 @@ def main():
         "article": fetch_article(),
         "novels": fetch_novels(3),
         "zaobao": fetch_zaobao(),
+        "one": {
+            "article": fetch_one_article(),
+            "photo": fetch_one_photo(),
+            "question": fetch_one_question()
+        }
     }
 
     summary = generate_summary(today_data)
     today_data['summary'] = summary
     logger.info(f"📝 每日总结：{summary}")
 
-    # 保存今日数据
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
     logger.info("✅ 每日数据已保存")
 
-    # 保存历史数据
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
     hist_dir = os.path.join(data_dir, 'history', y, m)
