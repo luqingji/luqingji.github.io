@@ -19,17 +19,17 @@
 
     <div class="container">
         <div class="hero">
-    <div id="daily-summary" class="daily-summary prominent"></div>
-    <div class="date" id="date"></div>
-    <div id="easter-egg" class="easter-egg"></div>
+            <div id="daily-summary" class="daily-summary prominent"></div>
+            <div class="date" id="date"></div>
+            <div id="easter-egg" class="easter-egg"></div>
         </div>
         <div id="loader" class="loader"></div>
 
-        <!-- 未知旋律卡片（歌单入口） -->
+        <!-- 未知旋律卡片 -->
         <div class="card" id="song-card" style="display: none;">
             <h2>🎵 未知旋律</h2>
-            <div class="songs-info">
-                <div id="songs-count" class="songs-count"></div>
+            <div id="songs-list-mini" class="songs-list-mini"></div>
+            <div class="songs-info" style="text-align: center; margin-top: 1rem;">
                 <a id="songs-link" href="#" class="songs-link">📀 查看完整歌单 →</a>
             </div>
         </div>
@@ -60,25 +60,23 @@
         </div>
 
         <!-- 每日早报卡片 -->
-<div class="card" id="zaobao-card" style="display: none;">
-    <h2>📰 每日早报</h2>
-    <div id="zaobao-weiyu" class="zaobao-summary" style="font-style: italic;"></div>
-    <div id="zaobao-audio" style="margin: 0.5rem 0; text-align: center;">
-        <button id="zaobao-play-btn" class="audio-play-btn" style="display: none;">🔊 语音播报</button>
-        <audio id="zaobao-audio-player" style="display: none;"></audio>
-    </div>
-    <div id="zaobao-list" class="zaobao-list"></div>
-    <div id="zaobao-date" class="zaobao-date"></div>
-</div>
-
-
+        <div class="card" id="zaobao-card" style="display: none;">
+            <h2>📰 每日早报</h2>
+            <div id="zaobao-weiyu" class="zaobao-summary" style="font-style: italic;"></div>
+            <div id="zaobao-audio" style="margin: 0.5rem 0; text-align: center;">
+                <button id="zaobao-play-btn" class="audio-play-btn" style="display: none;">🔊 语音播报</button>
+                <audio id="zaobao-audio-player" style="display: none;"></audio>
+            </div>
+            <div id="zaobao-list" class="zaobao-list"></div>
+            <div id="zaobao-date" class="zaobao-date"></div>
+        </div>
 
         <!-- ONE · 一个 卡片 -->
         <div class="card" id="one-card" style="display: none;">
             <h2>📖 ONE · 一个</h2>
             <div id="one-content"></div>
         </div>
-        
+
         <!-- 虚构抽屉卡片 -->
         <div class="card" id="novel-card" style="display: none;">
             <h2>📚 虚构抽屉</h2>
@@ -91,7 +89,6 @@
         </div>
     </div>
 
-    <!-- 沉浸式模态框 -->
     <div id="immerse-modal" class="immerse-modal">
         <button class="close-immerse" id="close-immerse">✕ 退出沉浸</button>
         <div id="immerse-content" class="immerse-content"></div>
