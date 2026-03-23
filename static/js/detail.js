@@ -1,3 +1,4 @@
+// static/js/detail.js
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const date = urlParams.get('date');
@@ -23,9 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.summary) {
                 document.getElementById('daily-summary').textContent = data.summary;
             }
-            // 使用传入的日期
+            // 彩蛋（使用传入的日期）
             document.getElementById('easter-egg').textContent = getEasterEgg(date);
-            document.getElementById('today-in-history').innerHTML = `📜 历史上的今天：${getTodayInHistory(date)}`;
 
             // 歌单展示
             if (data.songs && data.songs.length > 0) {
@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const div = document.createElement('div');
                     div.className = 'song-item';
                     div.innerHTML = `
-                        <div class="song-name">${song.name}</div>
-                        <div class="song-artist">${song.artist}</div>
-                        <div class="song-album">${song.album || '未知专辑'}</div>
-                        <div class="song-recommendation">${song.recommendation || '暂无推荐语'}</div>
+                        <div class="song-name">${escapeHtml(song.name)}</div>
+                        <div class="song-artist">${escapeHtml(song.artist)}</div>
+                        <div class="song-album">${escapeHtml(song.album || '未知专辑')}</div>
+                        <div class="song-recommendation">${escapeHtml(song.recommendation || '暂无推荐语')}</div>
                     `;
                     container.appendChild(div);
                 });
@@ -94,10 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     itemDiv.className = 'zaobao-item';
                     itemDiv.innerHTML = `
                         <div>
-                            <span class="zaobao-title">${item.title}</span>
-                            <span class="zaobao-source">${item.source || ''}</span>
+                            <span class="zaobao-title">${escapeHtml(item.title)}</span>
+                            <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
                         </div>
-                        <div class="zaobao-summary-text">${item.summary || ''}</div>
+                        <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
                     `;
                     if (item.url) {
                         const titleSpan = itemDiv.querySelector('.zaobao-title');
@@ -118,6 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderNovels(data.novels);
             }
 
+            // ONE · 一个 模块
+            if (data.one) {
+                renderOneModule(data.one);
+            }
+
             document.getElementById('content').style.display = 'block';
         })
         .catch(err => {
@@ -127,8 +132,64 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
+// ==================== ONE 模块渲染 ====================
+function renderOneModule(oneData) {
+    const oneCard = document.getElementById('one-card');
+    const oneContainer = document.getElementById('one-content');
+    oneContainer.innerHTML = '';
+    let hasContent = false;
+
+    // 文章
+    if (oneData.article && oneData.article.content) {
+        hasContent = true;
+        const articleDiv = document.createElement('div');
+        articleDiv.className = 'one-article';
+        const contentHtml = escapeHtml(oneData.article.content).replace(/\n/g, '<br>');
+        articleDiv.innerHTML = `
+            <h3>📝 文章</h3>
+            <div class="one-title">${escapeHtml(oneData.article.title)}</div>
+            <div class="one-author">${escapeHtml(oneData.article.author || '')}</div>
+            <div class="one-content-text">${contentHtml}</div>
+        `;
+        oneContainer.appendChild(articleDiv);
+    }
+
+    // 摄影
+    if (oneData.photo && oneData.photo.image) {
+        hasContent = true;
+        const photoDiv = document.createElement('div');
+        photoDiv.className = 'one-photo';
+        photoDiv.innerHTML = `
+            <h3>📷 摄影</h3>
+            <img src="${oneData.photo.image}" alt="${escapeHtml(oneData.photo.title || 'ONE摄影')}" class="one-photo-img" loading="lazy">
+            <div class="one-title">${escapeHtml(oneData.photo.title || '')}</div>
+            <div class="one-author">${escapeHtml(oneData.photo.author || '')}</div>
+            <div class="one-desc">${escapeHtml(oneData.photo.description || '').replace(/\n/g, '<br>')}</div>
+        `;
+        oneContainer.appendChild(photoDiv);
+    }
+
+    // 问答
+    if (oneData.question && oneData.question.question) {
+        hasContent = true;
+        const qaDiv = document.createElement('div');
+        qaDiv.className = 'one-qa';
+        qaDiv.innerHTML = `
+            <h3>💬 问答</h3>
+            <div class="one-question">${escapeHtml(oneData.question.question)}</div>
+            <div class="one-answer">${escapeHtml(oneData.question.answer || '').replace(/\n/g, '<br>')}</div>
+            ${oneData.question.author ? `<div class="one-author">—— ${escapeHtml(oneData.question.author)}</div>` : ''}
+        `;
+        oneContainer.appendChild(qaDiv);
+    }
+
+    if (hasContent) {
+        oneCard.style.display = 'block';
+    }
+}
+
+// ==================== 小说渲染 ====================
 function renderNovels(novels) {
-    // 与 index.js 中的 renderNovels 相同，可抽离为公共函数
     const container = document.getElementById('novels-container');
     container.innerHTML = '';
     if (!novels || novels.length === 0) {
@@ -148,7 +209,7 @@ function renderNovels(novels) {
 
         const headerDiv = document.createElement('div');
         headerDiv.className = 'novel-header';
-        headerDiv.innerHTML = `<div class="novel-title">${title}</div>`;
+        headerDiv.innerHTML = `<div class="novel-title">${escapeHtml(title)}</div>`;
         const btnGroup = document.createElement('div');
         const speakBtn = document.createElement('button');
         speakBtn.className = 'speak-btn';
@@ -159,8 +220,8 @@ function renderNovels(novels) {
         immerseBtn.textContent = '🔍 沉浸';
         immerseBtn.addEventListener('click', () => {
             const html = `
-                <div class="novel-title" style="font-size:2rem; margin-bottom:1rem;">${title}</div>
-                <div class="novel-content">${paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('')}</div>
+                <div class="novel-title" style="font-size:2rem; margin-bottom:1rem;">${escapeHtml(title)}</div>
+                <div class="novel-content">${paragraphs.map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('')}</div>
                 <div class="novel-stats">${stats}</div>
             `;
             openImmerse(html);
@@ -172,7 +233,7 @@ function renderNovels(novels) {
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'novel-content';
-        contentDiv.innerHTML = paragraphs.map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+        contentDiv.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('');
         novelDiv.appendChild(contentDiv);
 
         const statsDiv = document.createElement('div');
@@ -195,5 +256,16 @@ function renderNovels(novels) {
         novelDiv.appendChild(reviewDiv);
 
         container.appendChild(novelDiv);
+    });
+}
+
+// ==================== 辅助函数（调用 main.js 中的，但为了独立运行保留备用） ====================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
     });
 }
