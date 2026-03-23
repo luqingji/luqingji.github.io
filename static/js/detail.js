@@ -82,35 +82,73 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 早报
-            if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
-                document.getElementById('zaobao-card').style.display = 'block';
-                if (data.zaobao.summary) {
-                    document.getElementById('zaobao-summary').textContent = data.zaobao.summary;
-                }
-                const listContainer = document.getElementById('zaobao-list');
-                listContainer.innerHTML = '';
-                data.zaobao.news.forEach(item => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'zaobao-item';
-                    itemDiv.innerHTML = `
-                        <div>
-                            <span class="zaobao-title">${escapeHtml(item.title)}</span>
-                            <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
-                        </div>
-                        <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
-                    `;
-                    if (item.url) {
-                        const titleSpan = itemDiv.querySelector('.zaobao-title');
-                        titleSpan.style.cursor = 'pointer';
-                        titleSpan.style.color = '#4f9da6';
-                        titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
-                    }
-                    listContainer.appendChild(itemDiv);
-                });
-                if (data.zaobao.date) {
-                    document.getElementById('zaobao-date').textContent = data.zaobao.date;
-                }
+if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
+    document.getElementById('zaobao-card').style.display = 'block';
+    
+    // 显示微语（优先 weiyu，其次 summary）
+    const weiyuEl = document.getElementById('zaobao-weiyu');
+    if (data.zaobao.weiyu) {
+        weiyuEl.textContent = data.zaobao.weiyu;
+        weiyuEl.style.display = 'block';
+    } else if (data.zaobao.summary) {
+        weiyuEl.textContent = data.zaobao.summary;
+        weiyuEl.style.display = 'block';
+    } else {
+        weiyuEl.style.display = 'none';
+    }
+    
+    // 处理音频播放按钮
+    const audioUrl = data.zaobao.audio;
+    const playBtn = document.getElementById('zaobao-play-btn');
+    const audioPlayer = document.getElementById('zaobao-audio-player');
+    if (audioUrl && playBtn && audioPlayer) {
+        audioPlayer.src = audioUrl;
+        playBtn.style.display = 'inline-block';
+        playBtn.onclick = () => {
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playBtn.textContent = '⏸️ 暂停';
+            } else {
+                audioPlayer.pause();
+                playBtn.textContent = '🔊 语音播报';
             }
+        };
+        audioPlayer.onended = () => {
+            playBtn.textContent = '🔊 语音播报';
+        };
+        audioPlayer.onerror = () => {
+            playBtn.style.display = 'none';
+            console.error('早报音频加载失败');
+        };
+    } else if (playBtn) {
+        playBtn.style.display = 'none';
+    }
+    
+    // 新闻列表渲染
+    const listContainer = document.getElementById('zaobao-list');
+    listContainer.innerHTML = '';
+    data.zaobao.news.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'zaobao-item';
+        itemDiv.innerHTML = `
+            <div>
+                <span class="zaobao-title">${escapeHtml(item.title)}</span>
+                <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
+            </div>
+            <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
+        `;
+        if (item.url) {
+            const titleSpan = itemDiv.querySelector('.zaobao-title');
+            titleSpan.style.cursor = 'pointer';
+            titleSpan.style.color = '#4f9da6';
+            titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
+        }
+        listContainer.appendChild(itemDiv);
+    });
+    if (data.zaobao.date) {
+        document.getElementById('zaobao-date').textContent = data.zaobao.date;
+    }
+}
 
             // 小说
             if (data.novels && Array.isArray(data.novels)) {
