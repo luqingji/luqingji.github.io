@@ -2,8 +2,7 @@ name: Daily Update
 
 on:
   schedule:
-    # 每天北京时间 09:00 运行（UTC 01:00）
-    - cron: '0 1 * * *'
+    - cron: '0 1 * * *'   # 每天 UTC 1:00（北京时间 9:00）
   workflow_dispatch:
 
 permissions:
@@ -13,13 +12,20 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -31,10 +37,18 @@ jobs:
           ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
         run: python scripts/crawler.py
 
+      - name: Generate history index
+        run: python scripts/generate_index.py
+
       - name: Commit and push changes
+        if: success()
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/
+          git add data/ static/ pages/ .nojekyll
           git diff --quiet && git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d')"
           git push
+
+      - name: Notify failure
+        if: failure()
+        run: echo "Crawler failed. Check logs."
