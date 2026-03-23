@@ -845,3 +845,29 @@ body.dark-mode .audio-play-btn {
 body.dark-mode .audio-play-btn:hover {
     background: rgba(79, 157, 166, 0.5);
 }
+
+/* 首页迷你歌单样式 */
+.songs-list-mini .song-item-mini {
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+}
+.songs-list-mini .song-name {
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.play-icon {
+    font-size: 1.2rem;
+    text-decoration: none;
+    margin-left: 0.5rem;
+    color: #4f9da6;
+}
+.play-icon:hover {
+    color: #bf6f5a;
+}
+body.dark-mode .songs-list-mini .song-item-mini {
+    border-bottom-color: rgba(255,255,255,0.1);
+}
