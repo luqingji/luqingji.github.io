@@ -16,11 +16,27 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
             // 歌单入口
-            if (data.songs && data.songs.length > 0) {
-                document.getElementById('song-card').style.display = 'block';
-                document.getElementById('songs-count').textContent = `今日歌单 · 共 ${data.songs.length} 首`;
-                document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
-            }
+            // 歌单展示（显示歌曲列表+播放图标）
+if (data.songs && data.songs.length > 0) {
+    document.getElementById('song-card').style.display = 'block';
+    document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
+    const container = document.getElementById('songs-list-mini');
+    container.innerHTML = '';
+    data.songs.forEach(song => {
+        const songDiv = document.createElement('div');
+        songDiv.className = 'song-item-mini';
+        const playLink = song.id ? `https://music.163.com/#/song?id=${song.id}` : null;
+        songDiv.innerHTML = `
+            <div class="song-name">
+                ${escapeHtml(song.name)}
+                ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}
+            </div>
+            <div class="song-artist">${escapeHtml(song.artist)}</div>
+            <div class="song-recommendation">${escapeHtml(song.recommendation || '')}</div>
+        `;
+        container.appendChild(songDiv);
+    });
+}
 
             // 散落诗行
             if (data.sentence) {
