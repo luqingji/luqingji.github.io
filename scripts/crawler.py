@@ -533,47 +533,103 @@ def generate_summary(data: dict) -> str:
         return "今日拾光，愿您有所获。"
 
 # ==================== 每日早报 ====================
-def fetch_zaobao() -> Optional[dict]:
+import requests
+import time
+from typing import Optional, Dict, Any
+
+def fetch_zaobao() -> Optional[Dict[str, Any]]:
+    """获取每日早报（ALAPI），增强健壮性与降级策略"""
     if not ALAPI_TOKEN:
         logger.warning("未设置 ALAPI_TOKEN，跳过早报")
         return None
-    for _ in range(2):
-        try:
-            url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}"
-            resp = requests.get(url, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get('success') and data.get('data'):
-                    zaobao_data = data['data']
-                    if isinstance(zaobao_data, dict):
-                        news = zaobao_data.get('news', [])
-                        # 过滤非字典项
-                        valid_news = [item for item in news if isinstance(item, dict)]
-                        if valid_news:
-                            summary = ""
-                            if ENABLE_AI:
-                                titles = [item.get('title', '') for item in valid_news[:3]]
-                                if titles:
-                                    prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
-                                    ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
-                                    if ai_resp:
-                                        summary = ai_resp.strip('"').strip()
-                            return {
-                                "date": zaobao_data.get('date', ''),
-                                "news": valid_news,
-                                "summary": summary
-                            }
-                    else:
-                        logger.warning(f"早报数据格式异常: {type(zaobao_data)}")
-                else:
-                    logger.warning(f"早报接口返回错误: {data.get('message')}")
-            else:
-                logger.warning(f"早报请求失败: {resp.status_code}")
-        except Exception as e:
-            logger.error(f"获取早报异常: {e}")
-        time.sleep(2)
-    return None
 
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+
+    # 重试配置：最多3次，指数退避
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        try:
+            # 关键修改：添加 format=json 参数
+            url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}&format=json"
+            resp = requests.get(url, headers=headers, timeout=15)
+
+            logger.info(f"早报请求尝试 {attempt}: HTTP {resp.status_code}")
+            if resp.status_code != 200:
+                logger.warning(f"响应内容前200字符: {resp.text[:200]}")
+                continue
+
+            # 解析JSON
+            try:
+                data = resp.json()
+            except ValueError:
+                logger.error(f"JSON解析失败，原始响应: {resp.text[:500]}")
+                continue
+
+            # 验证响应结构
+            if not isinstance(data, dict):
+                logger.warning(f"响应不是JSON对象: {type(data)}")
+                continue
+
+            if not data.get('success'):
+                logger.warning(f"接口返回失败: {data.get('message', '未知错误')}")
+                logger.debug(f"完整错误响应: {data}")
+                continue
+
+            zaobao_data = data.get('data')
+            if not zaobao_data or not isinstance(zaobao_data, dict):
+                logger.warning(f"data字段无效: {type(zaobao_data)}")
+                continue
+
+            news = zaobao_data.get('news', [])
+            if not isinstance(news, list):
+                logger.warning(f"news字段类型错误: {type(news)}")
+                continue
+
+            # 过滤有效新闻（必须包含标题）
+            valid_news = [item for item in news if isinstance(item, dict) and item.get('title')]
+            if not valid_news:
+                logger.info("早报新闻列表为空或无效")
+                return None
+
+            # 生成摘要（可选）
+            summary = ""
+            if ENABLE_AI:
+                titles = [item.get('title', '') for item in valid_news[:3] if item.get('title')]
+                if titles:
+                    try:
+                        prompt = f"请根据以下新闻标题，用一句话概括今日早报的核心主题（20字以内）：{', '.join(titles)}"
+                        ai_resp = call_ai(prompt, max_tokens=50, temperature=0.7, timeout=10)
+                        if ai_resp:
+                            summary = ai_resp.strip('"').strip()
+                    except Exception as e:
+                        logger.error(f"AI摘要生成异常: {e}")
+
+            logger.info("早报获取成功")
+            return {
+                "date": zaobao_data.get('date', ''),
+                "news": valid_news,
+                "summary": summary
+            }
+
+        except requests.Timeout:
+            logger.error(f"早报请求超时 (尝试 {attempt})")
+        except requests.ConnectionError:
+            logger.error(f"早报网络连接错误 (尝试 {attempt})")
+        except requests.RequestException as e:
+            logger.error(f"早报网络异常 (尝试 {attempt}): {e}")
+        except Exception as e:
+            logger.error(f"早报未知异常 (尝试 {attempt}): {e}")
+
+        # 指数退避
+        if attempt < max_attempts:
+            wait_time = 2 ** attempt  # 2,4,8秒
+            logger.info(f"等待 {wait_time} 秒后重试...")
+            time.sleep(wait_time)
+
+    logger.error("早报获取失败，已达最大重试次数")
+    return None
 # ==================== 原子写入函数 ====================
 def safe_write_json(data: dict, filepath: str):
     """使用临时文件原子写入JSON"""
