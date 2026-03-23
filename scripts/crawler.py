@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.2）
-- 新增 ONE · 一个 模块（文章、摄影、问答），并清洗返回的 HTML 内容
-- 移除历史上的今天相关内容
+每日数据爬虫（优化版 v2.3）
+- 保存歌曲网易云ID，用于前端播放
 """
 
 import os
@@ -115,7 +114,7 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 歌曲库 ====================
+# ==================== 歌曲库（保存ID） ====================
 def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -193,7 +192,7 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         if not recommendation:
             recommendation = f"一首来自 {artist} 的动人作品。"
         songs.append({
-            "id": song_id,           # 新增
+            "id": song_id,           # 新增ID
             "name": name,
             "artist": artist,
             "album": album,
@@ -206,7 +205,10 @@ def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
     fallback_songs = [
         {"id": 186016, "name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
         {"id": 141268, "name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
-        # ... 其他歌曲也加上对应的网易云ID
+        {"id": 190017, "name": "海阔天空", "artist": "Beyond", "album": "乐与怒"},
+        {"id": 5252590, "name": "稻香", "artist": "周杰伦", "album": "魔杰座"},
+        {"id": 449833, "name": "平凡之路", "artist": "朴树", "album": "平凡之路"},
+        {"id": 27591777, "name": "岁月神偷", "artist": "金玟岐", "album": "金玟岐作品集"},
     ]
     songs = []
     for i in range(n):
@@ -219,6 +221,10 @@ def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
             "recommendation": f"这首《{s['name']}》是经典之作，值得反复聆听。"
         })
     return songs
+
+# 以下省略其他函数（每日一句、每日一文、小说、总结、早报、ONE模块等），保持不变...
+# 注意：请确保所有其他函数（fetch_sentence、fetch_article等）都保留，未修改的可以沿用原文件。
+# 由于篇幅限制，此处仅展示修改部分。你可以在原文件基础上替换上述三个函数并添加备选歌单中的ID。
 
 # ==================== 每日一句 ====================
 def fetch_sentence() -> dict:
