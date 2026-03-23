@@ -60,12 +60,16 @@
         </div>
 
         <!-- 每日早报卡片 -->
-        <div class="card" id="zaobao-card" style="display: none;">
-            <h2>📰 每日早报</h2>
-            <div id="zaobao-summary" class="zaobao-summary" style="font-style: italic;"></div>
-            <div id="zaobao-list" class="zaobao-list"></div>
-            <div id="zaobao-date" class="zaobao-date"></div>
-        </div>
+<div class="card" id="zaobao-card" style="display: none;">
+    <h2>📰 每日早报</h2>
+    <div id="zaobao-weiyu" class="zaobao-summary" style="font-style: italic;"></div>
+    <div id="zaobao-audio" style="margin: 0.5rem 0; text-align: center;">
+        <button id="zaobao-play-btn" class="audio-play-btn" style="display: none;">🔊 语音播报</button>
+        <audio id="zaobao-audio-player" style="display: none;"></audio>
+    </div>
+    <div id="zaobao-list" class="zaobao-list"></div>
+    <div id="zaobao-date" class="zaobao-date"></div>
+</div>
 
 
 
