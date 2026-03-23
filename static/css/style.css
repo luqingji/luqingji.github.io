@@ -1,1 +1,727 @@
- 
+/* ========== 全局重置 ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Inter", sans-serif;
+    background: linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: #2c3e50;
+    transition: background 0.3s, color 0.3s;
+}
+
+body.dark-mode {
+    background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+    color: #e0e0e0;
+}
+
+/* ========== 容器 ========== */
+.container {
+    max-width: 750px;
+    margin: 0 auto;
+    position: relative;
+}
+
+/* ========== 卡片 ========== */
+.card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    border-radius: 32px;
+    padding: 1.8rem 2rem;
+    margin-bottom: 1.8rem;
+    box-shadow: 0 20px 35px -8px rgba(0, 20, 30, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: transform 0.25s ease, background 0.3s;
+    opacity: 0;
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+body.dark-mode .card {
+    background: rgba(30, 40, 50, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h2 {
+    font-size: 1.8rem;
+    font-weight: 500;
+    margin-bottom: 1.2rem;
+    border-left: 5px solid #4f9da6;
+    padding-left: 0.5rem;
+    color: #1e3c43;
+}
+
+body.dark-mode .card h2 {
+    color: #b0c4de;
+    border-left-color: #4f9da6;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ========== 按钮与交互元素 ========== */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(4px);
+    border: none;
+    border-radius: 40px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 1rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s;
+}
+
+.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+body.dark-mode .theme-toggle {
+    background: rgba(0, 0, 0, 0.5);
+    color: #eee;
+}
+
+.go-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 999;
+    color: white;
+    font-size: 1.5rem;
+    border: none;
+}
+
+.go-top.visible {
+    opacity: 1;
+}
+
+.go-top:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+body.dark-mode .go-top {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ccc;
+}
+
+/* ========== 语音朗读与沉浸按钮 ========== */
+.speak-btn,
+.immerse-btn {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 30px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: inherit;
+    margin-left: 0.5rem;
+}
+
+.speak-btn:hover,
+.immerse-btn:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: scale(0.98);
+}
+
+body.dark-mode .speak-btn,
+body.dark-mode .immerse-btn {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ddd;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.dark-mode .speak-btn:hover,
+body.dark-mode .immerse-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ========== 沉浸模式模态框 ========== */
+.immerse-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.2s;
+}
+
+.immerse-modal.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.immerse-content {
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: 32px;
+    padding: 2rem;
+    color: #eee;
+    font-family: "Inter", sans-serif;
+    line-height: 1.6;
+}
+
+.close-immerse {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 30px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: white;
+    z-index: 10001;
+}
+
+/* ========== 散落诗行 ========== */
+.sentence-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.sentence-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    transition: background 0.2s;
+    color: inherit;
+}
+
+.action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sentence-content {
+    font-size: 1.7rem;
+    font-family: "LXGW WenKai", cursive;
+    text-align: center;
+    margin-bottom: 0.8rem;
+}
+
+.sentence-from {
+    text-align: right;
+    color: #6f8a9c;
+    font-size: 1.1rem;
+}
+
+/* ========== 每日一文 ========== */
+.article-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.article-desc {
+    line-height: 1.8;
+}
+
+.article-author {
+    text-align: right;
+    color: #6b7c8b;
+}
+
+/* ========== 小说卡片 ========== */
+.novels-container {
+    margin-top: 1rem;
+}
+
+.novel-item {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 1.5rem;
+}
+
+.novel-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.novel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.novel-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #1e3c43;
+    border-left: 4px solid #bf6f5a;
+    padding-left: 1rem;
+    margin: 0;
+}
+
+body.dark-mode .novel-title {
+    color: #d0e0f0;
+}
+
+.novel-content {
+    line-height: 1.8;
+    font-size: 1.1rem;
+    text-align: justify;
+}
+
+.novel-content p {
+    margin-bottom: 1.2em;
+    text-indent: 2em;
+}
+
+.novel-content p:last-child {
+    margin-bottom: 0;
+}
+
+.novel-stats {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    text-align: right;
+}
+
+body.dark-mode .novel-stats {
+    color: #9aaebf;
+}
+
+/* AI 书评 */
+.ai-review {
+    margin-top: 0.8rem;
+    font-size: 0.95rem;
+    color: #9b6b43;
+    background: rgba(255, 245, 235, 0.5);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border-left: 3px solid #bf6f5a;
+    font-style: italic;
+}
+
+body.dark-mode .ai-review {
+    background: rgba(80, 60, 50, 0.5);
+    color: #e0c0a0;
+    border-left-color: #e0a070;
+}
+
+/* 早报样式 */
+.zaobao-summary {
+    background: rgba(225, 240, 250, 0.5);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.zaobao-item {
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 0.8rem;
+}
+
+.zaobao-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.zaobao-source {
+    font-size: 0.8rem;
+    color: #6b7c8b;
+    margin-left: 0.5rem;
+}
+
+.zaobao-summary-text {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.2rem;
+}
+
+.zaobao-date {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    text-align: right;
+}
+
+/* 历史页面样式 */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.year-group {
+    margin-bottom: 1.5rem;
+}
+
+.year-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #bf6f5a;
+    border-bottom: 2px solid rgba(191, 111, 90, 0.3);
+    padding-bottom: 0.3rem;
+    margin-bottom: 1rem;
+}
+
+body.dark-mode .year-title {
+    color: #e0a070;
+}
+
+.month-group {
+    margin-left: 1rem;
+    margin-bottom: 1rem;
+}
+
+.month-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #4f9da6;
+    margin-bottom: 0.5rem;
+}
+
+body.dark-mode .month-title {
+    color: #6c91b2;
+}
+
+.day-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-left: 1rem;
+}
+
+.day-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(4px);
+    border-radius: 30px;
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s;
+    text-decoration: none;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.day-card:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    border-color: #4f9da6;
+}
+
+body.dark-mode .day-card {
+    background: rgba(40, 50, 60, 0.7);
+    color: #e0e0e0;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .day-card:hover {
+    background: rgba(60, 80, 100, 0.9);
+}
+
+/* 歌单页面样式 */
+.song-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    border-radius: 32px;
+    padding: 1.5rem;
+    margin-bottom: 1.2rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+body.dark-mode .song-card {
+    background: rgba(30, 40, 50, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
+}
+
+.song-card h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    color: #1e3c43;
+}
+
+body.dark-mode .song-card h3 {
+    color: #d0e0f0;
+}
+
+.song-card .artist {
+    font-size: 1rem;
+    color: #4f5e6b;
+    margin-bottom: 0.2rem;
+}
+
+body.dark-mode .song-card .artist,
+body.dark-mode .song-card .album {
+    color: #aaa;
+}
+
+.song-card .album {
+    font-size: 0.9rem;
+    color: #6b7c8b;
+    margin-bottom: 0.8rem;
+}
+
+.song-card .recommendation {
+    font-style: italic;
+    color: #bf6f5a;
+    background: rgba(255, 235, 220, 0.5);
+    padding: 0.5rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+body.dark-mode .song-card .recommendation {
+    background: rgba(100, 80, 70, 0.5);
+    color: #f0b27a;
+}
+
+/* 通用组件 */
+.loader {
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top: 5px solid #4f9da6;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.toast.show {
+    opacity: 1;
+}
+
+.back-link {
+    display: inline-block;
+    margin-bottom: 2rem;
+    color: #4f9da6;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+body.dark-mode .back-link {
+    color: #4f9da6;
+}
+
+.footer {
+    text-align: center;
+    color: #5d737e;
+    font-size: 0.9rem;
+    margin-top: 2.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    border-radius: 50px;
+}
+
+body.dark-mode .footer {
+    background: rgba(20, 30, 40, 0.5);
+    color: #aaa;
+}
+
+.hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.hero h1 {
+    font-family: "LXGW WenKai", cursive;
+    font-size: 2.8rem;
+    font-weight: 400;
+    color: #1e2f3f;
+    margin-bottom: 0.5rem;
+}
+
+body.dark-mode .hero h1 {
+    color: #d0e0f0;
+}
+
+.date {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    padding: 0.4rem 1.5rem;
+    border-radius: 40px;
+    font-size: 0.95rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.daily-summary {
+    margin-top: 0.8rem;
+    font-size: 1rem;
+    color: #7f8c8d;
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 0.4rem 1rem;
+    border-radius: 40px;
+    backdrop-filter: blur(4px);
+    display: inline-block;
+}
+
+body.dark-mode .daily-summary {
+    color: #c0d0e0;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.easter-egg {
+    text-align: center;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: #b87333;
+    background: rgba(255, 255, 255, 0.3);
+    display: inline-block;
+    padding: 0.2rem 1rem;
+    border-radius: 30px;
+    backdrop-filter: blur(4px);
+}
+
+body.dark-mode .easter-egg {
+    color: #e0b080;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.stats {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    text-align: right;
+    border-top: 1px dashed rgba(0, 0, 0, 0.1);
+    padding-top: 0.8rem;
+}
+
+.meaning {
+    display: none;
+    margin-top: 1.5rem;
+    background: rgba(225, 240, 250, 0.7);
+    padding: 1.2rem 1.5rem;
+    border-radius: 24px;
+    font-style: italic;
+    color: #1e3c43;
+    border-left: 4px solid #4f9da6;
+}
+
+body.dark-mode .meaning {
+    background: rgba(50, 70, 90, 0.7);
+    color: #e0e0e0;
+    border-left-color: #4f9da6;
+}
+
+@media (max-width: 600px) {
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+    .card {
+        padding: 1.5rem;
+    }
+    .sentence-content {
+        font-size: 1.4rem;
+    }
+    .novel-title {
+        font-size: 1.6rem;
+    }
+    .novel-content {
+        font-size: 1rem;
+    }
+    .theme-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+    }
+    .speak-btn,
+    .immerse-btn {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.6rem;
+    }
+    .daily-summary {
+        font-size: 0.9rem;
+    }
+}
