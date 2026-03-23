@@ -725,3 +725,56 @@ body.dark-mode .meaning {
         font-size: 0.9rem;
     }
 }
+
+/* ONE 模块样式 */
+.one-article, .one-photo, .one-qa {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+}
+.one-article:last-child, .one-photo:last-child, .one-qa:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.one-article h3, .one-photo h3, .one-qa h3 {
+    font-size: 1.2rem;
+    color: #4f9da6;
+    margin-bottom: 0.5rem;
+}
+.one-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+}
+.one-author {
+    font-size: 0.9rem;
+    color: #6b7c8b;
+    margin-bottom: 0.5rem;
+}
+.one-content-text, .one-desc, .one-answer {
+    line-height: 1.6;
+    margin: 0.5rem 0;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+.one-photo-img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 0.5rem 0;
+}
+.one-question {
+    font-weight: 600;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+    color: #bf6f5a;
+}
+body.dark-mode .one-article, 
+body.dark-mode .one-photo, 
+body.dark-mode .one-qa {
+    border-bottom-color: rgba(255,255,255,0.1);
+}
+body.dark-mode .one-question {
+    color: #e0a070;
+}
