@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.1）
-- 新增 ONE · 一个 模块（文章、摄影、问答）
+每日数据爬虫（优化版 v2.2）
+- 新增 ONE · 一个 模块（文章、摄影、问答），并清洗返回的 HTML 内容
 - 移除历史上的今天相关内容
 """
 
@@ -603,7 +603,20 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== ONE · 一个 模块 ====================
+# ==================== ONE · 一个 模块（带 HTML 清洗） ====================
+def clean_html(text: str) -> str:
+    """清洗 HTML，提取纯文本，移除特定干扰内容"""
+    if not text:
+        return ""
+    soup = BeautifulSoup(text, 'html.parser')
+    text = soup.get_text(separator='\n')
+    # 移除干扰文本（可根据实际情况增删）
+    text = re.sub(r'这里藏着一张图片，前往应用商店，下载「一个」最新版本查看！', '', text)
+    text = re.sub(r'这里藏着一张图片，前往应用商店，下载「一个」最新版本查看', '', text)
+    # 去除多余空行
+    lines = [line.strip() for line in text.split('\n') if line.strip()]
+    return '\n\n'.join(lines)
+
 def fetch_one_article() -> Optional[Dict[str, Any]]:
     """获取 ONE · 一个 文章"""
     if not ALAPI_TOKEN:
@@ -621,10 +634,13 @@ def fetch_one_article() -> Optional[Dict[str, Any]]:
             logger.warning(f"ONE文章接口错误: {data.get('message')}")
             return None
         article_data = data.get('data', {})
+        content = article_data.get('content', '')
+        if content:
+            content = clean_html(content)
         return {
             "title": article_data.get('title', ''),
             "author": article_data.get('author', ''),
-            "content": article_data.get('content', ''),
+            "content": content,
             "url": article_data.get('url', ''),
             "img_url": article_data.get('img_url', '')
         }
@@ -649,11 +665,14 @@ def fetch_one_photo() -> Optional[Dict[str, Any]]:
             logger.warning(f"ONE摄影接口错误: {data.get('message')}")
             return None
         photo_data = data.get('data', {})
+        description = photo_data.get('description', '')
+        if description:
+            description = clean_html(description)
         return {
             "title": photo_data.get('title', ''),
             "author": photo_data.get('author', ''),
             "image": photo_data.get('image', ''),
-            "description": photo_data.get('description', ''),
+            "description": description,
             "url": photo_data.get('url', '')
         }
     except Exception as e:
@@ -677,9 +696,12 @@ def fetch_one_question() -> Optional[Dict[str, Any]]:
             logger.warning(f"ONE问答接口错误: {data.get('message')}")
             return None
         qa_data = data.get('data', {})
+        answer = qa_data.get('answer', '')
+        if answer:
+            answer = clean_html(answer)
         return {
             "question": qa_data.get('question', ''),
-            "answer": qa_data.get('answer', ''),
+            "answer": answer,
             "author": qa_data.get('author', '')
         }
     except Exception as e:
@@ -705,7 +727,7 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.1 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.2 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
