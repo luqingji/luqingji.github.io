@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
             // 每日一歌（只取第一首歌）
-if (data.songs && data.songs.length > 0) {
+           if (data.songs && data.songs.length > 0) {
     document.getElementById('song-card').style.display = 'block';
     document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
     const dailySong = data.songs[0];  // 取第一首
