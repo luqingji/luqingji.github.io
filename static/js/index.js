@@ -14,14 +14,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayDate = data.date;
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
-            // 每日一歌（只取第一首歌）
+            // 每日一歌：只取第一首歌，并生成播放链接（带降级搜索）
             if (data.songs && data.songs.length > 0) {
                 document.getElementById('song-card').style.display = 'block';
                 document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
                 const dailySong = data.songs[0];
                 const container = document.getElementById('daily-song');
                 container.innerHTML = '';
-                const playLink = dailySong.id ? `https://music.163.com/#/song?id=${dailySong.id}` : null;
+                let playLink = null;
+                if (dailySong.id) {
+                    playLink = `https://music.163.com/#/song?id=${dailySong.id}`;
+                } else if (dailySong.name && dailySong.artist) {
+                    // 降级：搜索链接
+                    const query = encodeURIComponent(`${dailySong.name} ${dailySong.artist}`);
+                    playLink = `https://music.163.com/#/search/m/?s=${query}`;
+                }
                 container.innerHTML = `
                     <div class="daily-song-item">
                         <div class="song-name">
@@ -74,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // 早报
             if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
                 document.getElementById('zaobao-card').style.display = 'block';
-                // 微语
                 const weiyuEl = document.getElementById('zaobao-weiyu');
                 if (data.zaobao.weiyu) {
                     weiyuEl.textContent = data.zaobao.weiyu;
@@ -85,7 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     weiyuEl.style.display = 'none';
                 }
-                // 音频
                 const audioUrl = data.zaobao.audio;
                 const playBtn = document.getElementById('zaobao-play-btn');
                 const audioPlayer = document.getElementById('zaobao-audio-player');
@@ -111,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (playBtn) {
                     playBtn.style.display = 'none';
                 }
-                // 新闻列表
                 const listContainer = document.getElementById('zaobao-list');
                 listContainer.innerHTML = '';
                 data.zaobao.news.forEach(item => {
