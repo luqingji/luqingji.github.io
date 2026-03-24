@@ -2,7 +2,7 @@ name: Daily Update
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 每天 UTC 1:00（北京时间 9:00）
+    - cron: '0 0 * * *'   # 每天 UTC 0:00（北京时间 8:00）
   workflow_dispatch:
 
 permissions:
@@ -28,8 +28,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: |
-          pip install -r scripts/requirements.txt
+        run: pip install -r scripts/requirements.txt
 
       - name: Run crawler
         env:
@@ -45,8 +44,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          mkdir -p static/css static/js   # 确保前端目录存在
-          git add data/ static/ .nojekyll
+          mkdir -p static/css static/js
+          git add data/ static/ .nojekyll index.html
           git diff --quiet && git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d')"
           git push
 
