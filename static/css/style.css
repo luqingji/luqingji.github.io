@@ -898,3 +898,48 @@ body.dark-mode .audio-play-btn {
 body.dark-mode .audio-play-btn:hover {
     background: rgba(79, 157, 166, 0.5);
 }
+
+
+
+
+/* 每日一歌样式 */
+.daily-song-item {
+    padding: 0.5rem 0;
+}
+.daily-song-item .song-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.3rem;
+}
+.daily-song-item .song-artist {
+    font-size: 1rem;
+    color: #4f5e6b;
+    margin-bottom: 0.2rem;
+}
+.daily-song-item .song-album {
+    font-size: 0.9rem;
+    color: #6b7c8b;
+    margin-bottom: 0.5rem;
+}
+.daily-song-item .song-recommendation {
+    font-style: italic;
+    color: #bf6f5a;
+    background: rgba(255,235,220,0.5);
+    padding: 0.5rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+body.dark-mode .daily-song-item .song-artist {
+    color: #aaa;
+}
+body.dark-mode .daily-song-item .song-album {
+    color: #9aaebf;
+}
+body.dark-mode .daily-song-item .song-recommendation {
+    background: rgba(100,80,70,0.5);
+    color: #f0b27a;
+}
