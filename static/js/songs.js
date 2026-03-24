@@ -35,11 +35,18 @@ document.addEventListener('DOMContentLoaded', () => {
             songs.forEach(song => {
                 const card = document.createElement('div');
                 card.className = 'song-card';
+                let playLink = null;
+                if (song.id) {
+                    playLink = `https://music.163.com/#/song?id=${song.id}`;
+                } else if (song.name && song.artist) {
+                    const query = encodeURIComponent(`${song.name} ${song.artist}`);
+                    playLink = `https://music.163.com/#/search/m/?s=${query}`;
+                }
                 card.innerHTML = `
-                    <h3>${song.name}</h3>
-                    <div class="artist">${song.artist}</div>
-                    <div class="album">${song.album || '未知专辑'}</div>
-                    <div class="recommendation">${song.recommendation || '暂无推荐语'}</div>
+                    <h3>${escapeHtml(song.name)} ${playLink ? `<a href="${playLink}" target="_blank" class="play-icon" title="在网易云音乐播放">🎧</a>` : ''}</h3>
+                    <div class="artist">${escapeHtml(song.artist)}</div>
+                    <div class="album">${escapeHtml(song.album || '未知专辑')}</div>
+                    <div class="recommendation">${escapeHtml(song.recommendation || '暂无推荐语')}</div>
                 `;
                 container.appendChild(card);
             });
