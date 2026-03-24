@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.3）
-- 保存歌曲网易云ID，用于前端播放
+每日数据爬虫（优化版 v2.4）
+- 歌曲库自动检测旧格式并更新
+- ONE 模块增加重试与间隔
+- 备选歌曲库包含网易云ID
 """
 
 import os
@@ -124,7 +126,6 @@ def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
             data = resp.json()
             if data.get('code') == 200:
                 songs = data.get('songs', [])
-                # 返回包含 id 的歌曲信息
                 return [{
                     "id": s.get('id'),
                     "name": s.get('name', '').strip(),
@@ -208,7 +209,7 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         if not recommendation:
             recommendation = f"一首来自 {artist} 的动人作品。"
         songs.append({
-            "id": song_id,           # 新增ID
+            "id": song_id,
             "name": name,
             "artist": artist,
             "album": album,
@@ -218,6 +219,7 @@ def fetch_songs(n: int = 6) -> List[Dict]:
     return songs
 
 def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
+    # 备选歌单包含真实网易云ID（从官方链接获取）
     fallback_songs = [
         {"id": 186016, "name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
         {"id": 141268, "name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
@@ -237,10 +239,6 @@ def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
             "recommendation": f"这首《{s['name']}》是经典之作，值得反复聆听。"
         })
     return songs
-
-# 以下省略其他函数（每日一句、每日一文、小说、总结、早报、ONE模块等），保持不变...
-# 注意：请确保所有其他函数（fetch_sentence、fetch_article等）都保留，未修改的可以沿用原文件。
-# 由于篇幅限制，此处仅展示修改部分。你可以在原文件基础上替换上述三个函数并添加备选歌单中的ID。
 
 # ==================== 每日一句 ====================
 def fetch_sentence() -> dict:
@@ -624,110 +622,86 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== ONE · 一个 模块（带 HTML 清洗） ====================
+# ==================== ONE · 一个 模块（带重试和间隔） ====================
 def clean_html(text: str) -> str:
-    """清洗 HTML，提取纯文本，移除特定干扰内容"""
     if not text:
         return ""
     soup = BeautifulSoup(text, 'html.parser')
     text = soup.get_text(separator='\n')
-    # 移除干扰文本（可根据实际情况增删）
     text = re.sub(r'这里藏着一张图片，前往应用商店，下载「一个」最新版本查看！', '', text)
     text = re.sub(r'这里藏着一张图片，前往应用商店，下载「一个」最新版本查看', '', text)
-    # 去除多余空行
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     return '\n\n'.join(lines)
 
-def fetch_one_article() -> Optional[Dict[str, Any]]:
-    """获取 ONE · 一个 文章"""
+def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
+    """通用 ONE 接口请求，带重试和间隔"""
     if not ALAPI_TOKEN:
         return None
-    try:
-        url = "https://v3.alapi.cn/api/one"
-        payload = {"token": ALAPI_TOKEN, "date": ""}
-        headers = {"Content-Type": "application/json"}
-        resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            logger.warning(f"ONE文章请求失败: HTTP {resp.status_code}")
-            return None
-        data = resp.json()
-        if not data.get('success'):
-            logger.warning(f"ONE文章接口错误: {data.get('message')}")
-            return None
-        article_data = data.get('data', {})
-        content = article_data.get('content', '')
-        if content:
-            content = clean_html(content)
-        return {
-            "title": article_data.get('title', ''),
-            "author": article_data.get('author', ''),
-            "content": content,
-            "url": article_data.get('url', ''),
-            "img_url": article_data.get('img_url', '')
-        }
-    except Exception as e:
-        logger.error(f"ONE文章抓取异常: {e}")
+    max_retries = 2
+    for retry in range(max_retries):
+        try:
+            payload = {"token": ALAPI_TOKEN, "date": ""}
+            headers = {"Content-Type": "application/json"}
+            resp = requests.post(url, json=payload, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                logger.warning(f"ONE{name}请求失败: HTTP {resp.status_code}")
+                continue
+            data = resp.json()
+            if not data.get('success'):
+                logger.warning(f"ONE{name}接口错误: {data.get('message')}")
+                # 如果是限流错误，等待更长时间
+                if data.get('code') == 10002 or '请求次数过多' in data.get('message', ''):
+                    time.sleep(5)
+                    continue
+                return None
+            return data.get('data', {})
+        except Exception as e:
+            logger.error(f"ONE{name}抓取异常 (尝试{retry+1}): {e}")
+            time.sleep(2)
+    return None
+
+def fetch_one_article() -> Optional[Dict[str, Any]]:
+    data = _fetch_one_api("https://v3.alapi.cn/api/one", "文章")
+    if not data:
         return None
+    content = data.get('content', '')
+    if content:
+        content = clean_html(content)
+    return {
+        "title": data.get('title', ''),
+        "author": data.get('author', ''),
+        "content": content,
+        "url": data.get('url', ''),
+        "img_url": data.get('img_url', '')
+    }
 
 def fetch_one_photo() -> Optional[Dict[str, Any]]:
-    """获取 ONE · 一个 摄影"""
-    if not ALAPI_TOKEN:
+    data = _fetch_one_api("https://v3.alapi.cn/api/one/photo", "摄影")
+    if not data:
         return None
-    try:
-        url = "https://v3.alapi.cn/api/one/photo"
-        payload = {"token": ALAPI_TOKEN, "date": ""}
-        headers = {"Content-Type": "application/json"}
-        resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            logger.warning(f"ONE摄影请求失败: HTTP {resp.status_code}")
-            return None
-        data = resp.json()
-        if not data.get('success'):
-            logger.warning(f"ONE摄影接口错误: {data.get('message')}")
-            return None
-        photo_data = data.get('data', {})
-        description = photo_data.get('description', '')
-        if description:
-            description = clean_html(description)
-        return {
-            "title": photo_data.get('title', ''),
-            "author": photo_data.get('author', ''),
-            "image": photo_data.get('image', ''),
-            "description": description,
-            "url": photo_data.get('url', '')
-        }
-    except Exception as e:
-        logger.error(f"ONE摄影抓取异常: {e}")
-        return None
+    description = data.get('description', '')
+    if description:
+        description = clean_html(description)
+    return {
+        "title": data.get('title', ''),
+        "author": data.get('author', ''),
+        "image": data.get('image', ''),
+        "description": description,
+        "url": data.get('url', '')
+    }
 
 def fetch_one_question() -> Optional[Dict[str, Any]]:
-    """获取 ONE · 一个 问答"""
-    if not ALAPI_TOKEN:
+    data = _fetch_one_api("https://v3.alapi.cn/api/one/question", "问答")
+    if not data:
         return None
-    try:
-        url = "https://v3.alapi.cn/api/one/question"
-        payload = {"token": ALAPI_TOKEN, "date": ""}
-        headers = {"Content-Type": "application/json"}
-        resp = requests.post(url, json=payload, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            logger.warning(f"ONE问答请求失败: HTTP {resp.status_code}")
-            return None
-        data = resp.json()
-        if not data.get('success'):
-            logger.warning(f"ONE问答接口错误: {data.get('message')}")
-            return None
-        qa_data = data.get('data', {})
-        answer = qa_data.get('answer', '')
-        if answer:
-            answer = clean_html(answer)
-        return {
-            "question": qa_data.get('question', ''),
-            "answer": answer,
-            "author": qa_data.get('author', '')
-        }
-    except Exception as e:
-        logger.error(f"ONE问答抓取异常: {e}")
-        return None
+    answer = data.get('answer', '')
+    if answer:
+        answer = clean_html(answer)
+    return {
+        "question": data.get('question', ''),
+        "answer": answer,
+        "author": data.get('author', '')
+    }
 
 # ==================== 原子写入 ====================
 def safe_write_json(data: dict, filepath: str):
@@ -748,7 +722,7 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.2 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.4 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
