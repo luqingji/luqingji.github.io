@@ -137,11 +137,27 @@ def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
 
 def update_song_library(force: bool = False):
     library_file = os.path.join(data_dir, 'song_library.json')
-    if not force and os.path.exists(library_file):
+    need_update = force
+
+    # 检查现有库是否包含 id 字段
+    if not need_update and os.path.exists(library_file):
+        try:
+            with open(library_file, 'r', encoding='utf-8') as f:
+                lib = json.load(f)
+            # 如果库不为空且第一条歌曲没有 id 字段，则强制更新
+            if lib and 'id' not in lib[0]:
+                logger.info("检测到旧版歌曲库（无ID），将强制更新")
+                need_update = True
+        except:
+            need_update = True
+
+    if not need_update and os.path.exists(library_file):
         mtime = os.path.getmtime(library_file)
         if (time.time() - mtime) < 7 * 24 * 3600:
-            logger.info("歌曲库较新，跳过更新")
+            logger.info("歌曲库较新且包含ID，跳过更新")
             return
+
+    logger.info("正在更新歌曲库...")
     BILLBOARDS = [3778678, 3779629, 19723756, 2884035, 60198, 3812895, 27126504, 71384707, 991319590, 2023401535]
     all_songs = []
     for bid in BILLBOARDS:
