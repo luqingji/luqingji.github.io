@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dailySong.id) {
                     playLink = `https://music.163.com/#/song?id=${dailySong.id}`;
                 } else if (dailySong.name && dailySong.artist) {
-                    // 降级：搜索链接
                     const query = encodeURIComponent(`${dailySong.name} ${dailySong.artist}`);
                     playLink = `https://music.163.com/#/search/m/?s=${query}`;
                 }
