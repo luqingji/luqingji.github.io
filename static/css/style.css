@@ -1008,3 +1008,10 @@ body.dark-mode .play-icon {
 body.dark-mode .play-icon:hover {
     color: #e0a070;
 }
+
+/* 早报列表滚动 */
+.zaobao-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
