@@ -901,7 +901,6 @@ body.dark-mode .audio-play-btn:hover {
 
 
 
-
 /* 每日一歌样式 */
 .daily-song-item {
     padding: 0.5rem 0;
@@ -942,4 +941,70 @@ body.dark-mode .daily-song-item .song-album {
 body.dark-mode .daily-song-item .song-recommendation {
     background: rgba(100,80,70,0.5);
     color: #f0b27a;
+}
+
+/* 歌单列表样式（用于详情页和歌单页） */
+.songs-list .song-item,
+.songs-container .song-card {
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px dashed rgba(0,0,0,0.1);
+}
+.songs-list .song-name,
+.songs-container .song-card h3 {
+    font-weight: 600;
+    font-size: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.songs-list .song-artist,
+.songs-list .song-album,
+.songs-container .artist,
+.songs-container .album {
+    font-size: 0.9rem;
+    color: #6b7c8b;
+}
+.songs-list .song-recommendation,
+.songs-container .recommendation {
+    font-style: italic;
+    color: #bf6f5a;
+    background: rgba(255,235,220,0.5);
+    padding: 0.3rem 0.6rem;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+    display: inline-block;
+}
+body.dark-mode .songs-list .song-item,
+body.dark-mode .songs-container .song-card {
+    border-bottom-color: rgba(255,255,255,0.1);
+}
+body.dark-mode .songs-list .song-artist,
+body.dark-mode .songs-list .song-album,
+body.dark-mode .songs-container .artist,
+body.dark-mode .songs-container .album {
+    color: #aaa;
+}
+body.dark-mode .songs-list .song-recommendation,
+body.dark-mode .songs-container .recommendation {
+    background: rgba(100,80,70,0.5);
+    color: #f0b27a;
+}
+
+/* 播放图标 */
+.play-icon {
+    font-size: 1.2rem;
+    text-decoration: none;
+    margin-left: 0.5rem;
+    color: #4f9da6;
+}
+.play-icon:hover {
+    color: #bf6f5a;
+}
+body.dark-mode .play-icon {
+    color: #6c91b2;
+}
+body.dark-mode .play-icon:hover {
+    color: #e0a070;
 }
