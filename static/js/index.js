@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 加载主数据
     fetch('/data/daily.json?t=' + Date.now())
         .then(res => res.json())
         .then(data => {
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayDate = data.date;
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
-            // 每日一歌：只取第一首歌，并生成播放链接（带降级搜索）
+            // 每日一歌
             if (data.songs && data.songs.length > 0) {
                 document.getElementById('song-card').style.display = 'block';
                 document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
@@ -77,84 +78,83 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('article-stats').textContent = formatStats(articleWords);
             }
 
-            // 早报
-if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
-    document.getElementById('zaobao-card').style.display = 'block';
-    const weiyuEl = document.getElementById('zaobao-weiyu');
-    if (data.zaobao.weiyu) {
-        weiyuEl.textContent = data.zaobao.weiyu;
-        weiyuEl.style.display = 'block';
-    } else if (data.zaobao.summary) {
-        weiyuEl.textContent = data.zaobao.summary;
-        weiyuEl.style.display = 'block';
-    } else {
-        weiyuEl.style.display = 'none';
-    }
+            // 早报（去重+截断）
+            if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
+                document.getElementById('zaobao-card').style.display = 'block';
+                const weiyuEl = document.getElementById('zaobao-weiyu');
+                if (data.zaobao.weiyu) {
+                    weiyuEl.textContent = data.zaobao.weiyu;
+                    weiyuEl.style.display = 'block';
+                } else if (data.zaobao.summary) {
+                    weiyuEl.textContent = data.zaobao.summary;
+                    weiyuEl.style.display = 'block';
+                } else {
+                    weiyuEl.style.display = 'none';
+                }
 
-    // 音频处理（保持不变）
-    const audioUrl = data.zaobao.audio;
-    const playBtn = document.getElementById('zaobao-play-btn');
-    const audioPlayer = document.getElementById('zaobao-audio-player');
-    if (audioUrl && playBtn && audioPlayer) {
-        audioPlayer.src = audioUrl;
-        playBtn.style.display = 'inline-block';
-        playBtn.onclick = () => {
-            if (audioPlayer.paused) {
-                audioPlayer.play();
-                playBtn.textContent = '⏸️ 暂停';
-            } else {
-                audioPlayer.pause();
-                playBtn.textContent = '🔊 语音播报';
+                // 音频
+                const audioUrl = data.zaobao.audio;
+                const playBtn = document.getElementById('zaobao-play-btn');
+                const audioPlayer = document.getElementById('zaobao-audio-player');
+                if (audioUrl && playBtn && audioPlayer) {
+                    audioPlayer.src = audioUrl;
+                    playBtn.style.display = 'inline-block';
+                    playBtn.onclick = () => {
+                        if (audioPlayer.paused) {
+                            audioPlayer.play();
+                            playBtn.textContent = '⏸️ 暂停';
+                        } else {
+                            audioPlayer.pause();
+                            playBtn.textContent = '🔊 语音播报';
+                        }
+                    };
+                    audioPlayer.onended = () => {
+                        playBtn.textContent = '🔊 语音播报';
+                    };
+                    audioPlayer.onerror = () => {
+                        playBtn.style.display = 'none';
+                        console.error('早报音频加载失败');
+                    };
+                } else if (playBtn) {
+                    playBtn.style.display = 'none';
+                }
+
+                // 新闻列表：去重 + 截断
+                const rawNews = data.zaobao.news;
+                const uniqueNews = [];
+                const seenTitles = new Set();
+                for (const item of rawNews) {
+                    if (!seenTitles.has(item.title)) {
+                        seenTitles.add(item.title);
+                        uniqueNews.push(item);
+                    }
+                }
+                const displayNews = uniqueNews.slice(0, 15); // 最多显示15条
+
+                const listContainer = document.getElementById('zaobao-list');
+                listContainer.innerHTML = '';
+                displayNews.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'zaobao-item';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <span class="zaobao-title">${escapeHtml(item.title)}</span>
+                            <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
+                        </div>
+                        <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
+                    `;
+                    if (item.url) {
+                        const titleSpan = itemDiv.querySelector('.zaobao-title');
+                        titleSpan.style.cursor = 'pointer';
+                        titleSpan.style.color = '#4f9da6';
+                        titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
+                    }
+                    listContainer.appendChild(itemDiv);
+                });
+                if (data.zaobao.date) {
+                    document.getElementById('zaobao-date').textContent = data.zaobao.date;
+                }
             }
-        };
-        audioPlayer.onended = () => {
-            playBtn.textContent = '🔊 语音播报';
-        };
-        audioPlayer.onerror = () => {
-            playBtn.style.display = 'none';
-            console.error('早报音频加载失败');
-        };
-    } else if (playBtn) {
-        playBtn.style.display = 'none';
-    }
-
-    // 新闻列表去重 + 截断
-    const rawNews = data.zaobao.news;
-    const uniqueNews = [];
-    const seenTitles = new Set();
-    for (const item of rawNews) {
-        if (!seenTitles.has(item.title)) {
-            seenTitles.add(item.title);
-            uniqueNews.push(item);
-        }
-    }
-    // 只显示前 15 条（可根据需要调整）
-    const displayNews = uniqueNews.slice(0, 15);
-
-    const listContainer = document.getElementById('zaobao-list');
-    listContainer.innerHTML = '';
-    displayNews.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'zaobao-item';
-        itemDiv.innerHTML = `
-            <div>
-                <span class="zaobao-title">${escapeHtml(item.title)}</span>
-                <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
-            </div>
-            <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
-        `;
-        if (item.url) {
-            const titleSpan = itemDiv.querySelector('.zaobao-title');
-            titleSpan.style.cursor = 'pointer';
-            titleSpan.style.color = '#4f9da6';
-            titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
-        }
-        listContainer.appendChild(itemDiv);
-    });
-    if (data.zaobao.date) {
-        document.getElementById('zaobao-date').textContent = data.zaobao.date;
-    }
-}
 
             // 小说
             if (data.novels && Array.isArray(data.novels)) {
@@ -162,7 +162,7 @@ if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
                 renderNovels(data.novels);
             }
 
-            // ONE · 一个 模块
+            // ONE · 一个
             if (data.one) {
                 renderOneModule(data.one);
             }
@@ -172,8 +172,41 @@ if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
             hideLoader();
             showError('数据加载失败，请稍后刷新');
         });
+
+    // 加载统计数据并渲染侧边栏
+    fetch('/data/stats.json?t=' + Date.now())
+        .then(res => res.json())
+        .then(stats => {
+            renderStats(stats);
+        })
+        .catch(err => console.warn('统计加载失败', err));
 });
 
+// 渲染侧边栏统计
+function renderStats(stats) {
+    const leftSidebar = document.getElementById('stats-left');
+    const rightSidebar = document.getElementById('stats-right');
+    if (!leftSidebar || !rightSidebar) return;
+
+    leftSidebar.innerHTML = `
+        <h3>📊 拾光足迹</h3>
+        <div class="stat-item"><span class="stat-label">运行天数</span><span class="stat-number">${stats.total_days || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">推荐歌曲</span><span class="stat-number">${stats.total_songs || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">精选文章</span><span class="stat-number">${stats.total_articles || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">原创小说</span><span class="stat-number">${stats.total_novels || 0}</span></div>
+    `;
+
+    rightSidebar.innerHTML = `
+        <h3>📚 内容印记</h3>
+        <div class="stat-item"><span class="stat-label">总字数</span><span class="stat-number">${(stats.total_words / 10000).toFixed(1)}万</span></div>
+        <div class="stat-item"><span class="stat-label">推荐语字数</span><span class="stat-number">${(stats.total_recommend_words / 1000).toFixed(1)}k</span></div>
+        <div class="stat-item"><span class="stat-label">早报资讯</span><span class="stat-number">${stats.total_news_items || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">ONE精选</span><span class="stat-number">${stats.total_one_items || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">阅读时长</span><span class="stat-number">${stats.read_minutes || 0}分钟</span></div>
+    `;
+}
+
+// ==================== ONE模块渲染 ====================
 function renderOneModule(oneData) {
     const oneCard = document.getElementById('one-card');
     const oneContainer = document.getElementById('one-content');
@@ -226,6 +259,7 @@ function renderOneModule(oneData) {
     }
 }
 
+// ==================== 小说渲染 ====================
 function renderNovels(novels) {
     const container = document.getElementById('novels-container');
     container.innerHTML = '';
