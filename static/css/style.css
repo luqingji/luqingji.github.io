@@ -802,20 +802,28 @@ body.dark-mode .footer {
     }
 }
 
-/* 播放图标样式（修复下划线） */
-.play-icon {
+/* 播放图标样式（强制去除下划线） */
+a.play-icon,
+a.play-icon:link,
+a.play-icon:visited,
+a.play-icon:hover,
+a.play-icon:active {
+    text-decoration: none !important;
     font-size: 1.2rem;
-    text-decoration: none;      /* 关键：去除下划线 */
     margin-left: 0.5rem;
     color: #4f9da6;
     transition: color 0.2s;
 }
-.play-icon:hover {
+a.play-icon:hover {
     color: #bf6f5a;
 }
-body.dark-mode .play-icon {
+body.dark-mode a.play-icon,
+body.dark-mode a.play-icon:link,
+body.dark-mode a.play-icon:visited,
+body.dark-mode a.play-icon:hover,
+body.dark-mode a.play-icon:active {
     color: #6c91b2;
 }
-body.dark-mode .play-icon:hover {
+body.dark-mode a.play-icon:hover {
     color: #e0a070;
 }
