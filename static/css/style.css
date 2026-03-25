@@ -134,30 +134,17 @@ body.dark-mode .go-top {
     color: #ccc;
 }
 
-/* 侧边栏统计卡片 */
+/* 侧边栏统计卡片（桌面端固定，移动端流式） */
 .sidebar {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 260px;
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
     border-radius: 28px;
     padding: 1rem;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.5);
-    z-index: 100;
     transition: opacity 0.3s;
     max-height: 80vh;
     overflow-y: auto;
-}
-
-.sidebar.left {
-    left: 20px;
-}
-
-.sidebar.right {
-    right: 20px;
 }
 
 .sidebar h3 {
@@ -208,11 +195,52 @@ body.dark-mode .sidebar .stat-number {
     color: #f0b27a;
 }
 
-@media (max-width: 1200px) {
+/* 桌面端：固定定位 */
+@media (min-width: 1200px) {
     .sidebar {
-        display: none;
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 260px;
+    }
+    .sidebar.left {
+        left: 20px;
+    }
+    .sidebar.right {
+        right: 20px;
     }
 }
+
+/* 移动端：流式布局，两列并排或堆叠 */
+@media (max-width: 1199px) {
+    .sidebar {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        transform: none;
+        width: 100%;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .sidebar.left, .sidebar.right {
+        width: 100%;
+        margin: 0 0 1rem 0;
+        flex: 1;
+    }
+    /* 让两个侧边栏在同一行水平排列（若屏幕足够宽） */
+    @media (min-width: 768px) {
+        .sidebar.left, .sidebar.right {
+            width: calc(50% - 0.5rem);
+            margin: 0;
+        }
+    }
+}
+
+
 
 /* 每日一歌样式 */
 .daily-song-item {
