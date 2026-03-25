@@ -17,11 +17,8 @@
     <div class="go-top" id="go-top">↑</div>
     <div class="toast" id="toast"></div>
 
-    <!-- 侧边栏统计卡片 -->
-    <div class="sidebar left" id="stats-left"></div>
-    <div class="sidebar right" id="stats-right"></div>
-
     <div class="container">
+        <!-- 主内容区域保持不变 -->
         <div class="hero">
             <div id="daily-summary" class="daily-summary prominent"></div>
             <div class="date" id="date"></div>
@@ -92,6 +89,10 @@
             <a href="/history.html" style="color: #4f9da6; text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
         </div>
     </div>
+
+    <!-- 侧边栏统计卡片（放在主内容之后，桌面端固定定位，移动端流式显示） -->
+    <div class="sidebar left" id="stats-left"></div>
+    <div class="sidebar right" id="stats-right"></div>
 
     <div id="immerse-modal" class="immerse-modal">
         <button class="close-immerse" id="close-immerse">✕ 退出沉浸</button>
