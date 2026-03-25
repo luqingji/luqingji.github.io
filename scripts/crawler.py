@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.4）
-- 歌曲库自动检测旧格式并更新
-- ONE 模块增加重试与间隔
-- 备选歌曲库包含网易云ID
+每日数据爬虫（优化版 v2.5）
+- 自动统计历史数据总量（天数、歌曲、文章、小说、总字数等）
+- 生成 stats.json 供前端侧边栏展示
 """
 
 import os
@@ -145,7 +144,6 @@ def update_song_library(force: bool = False):
         try:
             with open(library_file, 'r', encoding='utf-8') as f:
                 lib = json.load(f)
-            # 如果库不为空且第一条歌曲没有 id 字段，则强制更新
             if lib and 'id' not in lib[0]:
                 logger.info("检测到旧版歌曲库（无ID），将强制更新")
                 need_update = True
@@ -165,7 +163,6 @@ def update_song_library(force: bool = False):
         songs = get_tracks_from_playlist(bid, limit=50)
         all_songs.extend(songs)
         time.sleep(1)
-    # 去重（根据 id）
     seen = set()
     unique = []
     for s in all_songs:
@@ -219,7 +216,6 @@ def fetch_songs(n: int = 6) -> List[Dict]:
     return songs
 
 def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
-    # 备选歌单包含真实网易云ID（从官方链接获取）
     fallback_songs = [
         {"id": 186016, "name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
         {"id": 141268, "name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
@@ -622,7 +618,7 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== ONE · 一个 模块（带重试和间隔） ====================
+# ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
     if not text:
         return ""
@@ -634,7 +630,6 @@ def clean_html(text: str) -> str:
     return '\n\n'.join(lines)
 
 def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
-    """通用 ONE 接口请求，带重试和间隔"""
     if not ALAPI_TOKEN:
         return None
     max_retries = 2
@@ -649,7 +644,6 @@ def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
             data = resp.json()
             if not data.get('success'):
                 logger.warning(f"ONE{name}接口错误: {data.get('message')}")
-                # 如果是限流错误，等待更长时间
                 if data.get('code') == 10002 or '请求次数过多' in data.get('message', ''):
                     time.sleep(5)
                     continue
@@ -713,6 +707,91 @@ def safe_write_json(data: dict, filepath: str):
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
 
+# ==================== 统计生成 ====================
+def generate_stats():
+    """统计历史数据总量，生成 stats.json"""
+    history_dir = os.path.join(data_dir, 'history')
+    if not os.path.exists(history_dir):
+        logger.warning("history目录不存在，无法生成统计")
+        return
+
+    total_days = 0
+    total_songs = 0
+    total_articles = 0
+    total_novels = 0
+    total_words = 0
+    total_recommend_words = 0
+    total_news_items = 0
+    total_one_items = 0
+
+    for root, dirs, files in os.walk(history_dir):
+        for file in files:
+            if file.endswith('.json') and file != 'index.json':
+                filepath = os.path.join(root, file)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    total_days += 1
+
+                    # 歌曲
+                    songs = data.get('songs', [])
+                    if songs:
+                        total_songs += len(songs)
+                        for song in songs:
+                            rec = song.get('recommendation', '')
+                            total_recommend_words += len(rec)
+
+                    # 文章
+                    article = data.get('article')
+                    if article:
+                        total_articles += 1
+                        content = article.get('content', '') or article.get('description', '')
+                        total_words += len(content)
+
+                    # 小说
+                    novels = data.get('novels', [])
+                    if novels:
+                        total_novels += len(novels)
+                        for novel in novels:
+                            content = novel.get('content', '')
+                            total_words += len(content)
+
+                    # 早报新闻条数
+                    zaobao = data.get('zaobao')
+                    if zaobao and zaobao.get('news'):
+                        total_news_items += len(zaobao['news'])
+
+                    # ONE 模块内容
+                    one = data.get('one')
+                    if one:
+                        if one.get('article'):
+                            total_one_items += 1
+                        if one.get('photo'):
+                            total_one_items += 1
+                        if one.get('question'):
+                            total_one_items += 1
+
+                except Exception as e:
+                    logger.error(f"读取历史文件失败 {filepath}: {e}")
+
+    read_minutes = total_words // 300 if total_words else 0
+
+    stats = {
+        "total_days": total_days,
+        "total_songs": total_songs,
+        "total_articles": total_articles,
+        "total_novels": total_novels,
+        "total_words": total_words,
+        "total_recommend_words": total_recommend_words,
+        "total_news_items": total_news_items,
+        "total_one_items": total_one_items,
+        "read_minutes": read_minutes,
+        "last_updated": datetime.now(timezone.utc).isoformat()
+    }
+    stats_file = os.path.join(data_dir, 'stats.json')
+    safe_write_json(stats, stats_file)
+    logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，文章 {total_articles}，小说 {total_novels}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
+
 # ==================== 主函数 ====================
 def main():
     if not ENABLE_AI:
@@ -722,7 +801,7 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.4 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.5 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -756,6 +835,9 @@ def main():
     hist_dir = os.path.join(data_dir, 'history', y, m)
     hist_file = os.path.join(hist_dir, f"{d}.json")
     safe_write_json(today_data, hist_file)
+
+    # 生成统计文件
+    generate_stats()
 
     logger.info("=== 运行完成 ===")
 
