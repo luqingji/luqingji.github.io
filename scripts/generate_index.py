@@ -23,7 +23,6 @@ def generate_index():
     for root, dirs, files in os.walk(history_dir):
         for file in files:
             if file.endswith('.json') and file != 'index.json':
-                # 获取相对路径: history/2026/03/22.json
                 rel_path = os.path.relpath(os.path.join(root, file), history_dir)
                 parts = rel_path.split(os.sep)
                 if len(parts) == 3:
