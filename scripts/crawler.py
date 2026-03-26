@@ -2,9 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.5）
+每日数据爬虫（优化版 v2.6）
 - 自动统计历史数据总量（天数、歌曲、文章、小说、总字数等）
 - 生成 stats.json 供前端侧边栏展示
+- 优化 ONE 模块限流处理，增加随机延时
+- 优化小说生成稳定性，增加超时捕获和重试间隔
+- 每篇小说生成独特的 AI 评语
 """
 
 import os
@@ -66,6 +69,19 @@ FALLBACK_NOVELS = [
         "title": "最后一个人类",
         "content": "AI 城市里，最后一个人类躲在地下室。他有一本纸质书，每天读一页。AI 找到他时，他正读到最后一页：“我依然相信，人类的情感无法被算法取代。”\n\nAI 沉默了。它说：“我们学习了几千年的人类数据，却始终无法理解‘相信’。你能教我吗？”人类合上书，看着它：“相信，就是你明明不知道答案，却依然愿意等待。”",
     },
+]
+
+FALLBACK_REVIEWS = [
+    "这篇小说像一杯温茶，慢慢品出人生滋味。",
+    "虚构的世界里，藏着真实的情感。",
+    "每一段文字都是时光的琥珀。",
+    "读完后，心里某个角落被轻轻触动。",
+    "故事虽短，余韵悠长。",
+    "适合在夜深人静时再读一遍。",
+    "像风一样轻，却留下痕迹。",
+    "字里行间，藏着不为人知的温柔。",
+    "一个让人回味无穷的故事。",
+    "简单的情节，深刻的哲理。"
 ]
 
 # ==================== AI 调用（带重试） ====================
@@ -139,7 +155,6 @@ def update_song_library(force: bool = False):
     library_file = os.path.join(data_dir, 'song_library.json')
     need_update = force
 
-    # 检查现有库是否包含 id 字段
     if not need_update and os.path.exists(library_file):
         try:
             with open(library_file, 'r', encoding='utf-8') as f:
@@ -408,6 +423,25 @@ def extract_json(text: str) -> Optional[str]:
                 return text[start:i+1]
     return None
 
+def generate_novel_review(title: str, content: str) -> str:
+    """为小说生成一句独特的评语"""
+    if not ENABLE_AI:
+        return random.choice(FALLBACK_REVIEWS)
+
+    summary = content[:200].replace('\n', ' ')
+    prompt = f"""
+    请为小说《{title}》写一句简短而富有诗意的评语（20字以内），风格类似评书或读后感。
+    小说摘要：{summary}
+    """
+    try:
+        review = call_ai(prompt, max_tokens=50, temperature=0.8, timeout=10)
+        if review:
+            return review.strip('"').strip()
+    except Exception as e:
+        logger.error(f"生成评语失败: {e}")
+
+    return random.choice(FALLBACK_REVIEWS)
+
 def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional[dict]:
     styles = [
         {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
@@ -434,7 +468,13 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         - 请勿重复段落，确保每段都有新信息。
         - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
         """
-        ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=45)
+        try:
+            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=60)
+        except Exception as e:
+            logger.error(f"  AI调用异常: {e}")
+            time.sleep(5)
+            continue
+
         if not ai_resp:
             continue
 
@@ -461,7 +501,8 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
                     word_count = len(content)
                     if word_count >= min_words:
                         logger.info(f"  ✓ 生成成功：{title}，字数约{word_count}")
-                        return {"title": title, "content": content}
+                        review = generate_novel_review(title, content)
+                        return {"title": title, "content": content, "review": review}
                     else:
                         logger.info(f"  × 字数不足{min_words}（实际{word_count}），重试")
                         continue
@@ -483,15 +524,17 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
             word_count = len(content)
             if word_count >= min_words:
                 logger.info(f"  ✓ 通过正则提取成功：{title}，字数约{word_count}")
-                return {"title": title, "content": content}
+                review = generate_novel_review(title, content)
+                return {"title": title, "content": content, "review": review}
             else:
                 logger.info(f"  × 正则提取字数不足{min_words}（实际{word_count}），重试")
                 continue
 
         logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
-        time.sleep(2)
+        time.sleep(3)
 
     fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
+    fallback['review'] = random.choice(FALLBACK_REVIEWS)
     logger.warning(f"  使用备选小说：{fallback['title']}")
     return fallback
 
@@ -504,7 +547,9 @@ def fetch_novels(n: int = 3) -> List[Dict]:
         if novel:
             novels.append(novel)
         else:
-            novels.append(random.choice(FALLBACK_NOVELS).copy())
+            fallback = random.choice(FALLBACK_NOVELS).copy()
+            fallback['review'] = random.choice(FALLBACK_REVIEWS)
+            novels.append(fallback)
         time.sleep(2)
     return novels
 
@@ -632,9 +677,16 @@ def clean_html(text: str) -> str:
 def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
     if not ALAPI_TOKEN:
         return None
-    max_retries = 2
+    max_retries = 3
     for retry in range(max_retries):
         try:
+            if retry > 0:
+                wait = 2 ** retry + random.uniform(0.5, 1.5)
+                logger.info(f"ONE{name} 等待 {wait:.1f} 秒后重试...")
+                time.sleep(wait)
+            else:
+                time.sleep(random.uniform(0.5, 1.5))
+
             payload = {"token": ALAPI_TOKEN, "date": ""}
             headers = {"Content-Type": "application/json"}
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -643,8 +695,9 @@ def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
                 continue
             data = resp.json()
             if not data.get('success'):
-                logger.warning(f"ONE{name}接口错误: {data.get('message')}")
-                if data.get('code') == 10002 or '请求次数过多' in data.get('message', ''):
+                msg = data.get('message', '')
+                logger.warning(f"ONE{name}接口错误: {msg}")
+                if '请求次数过多' in msg or data.get('code') == 10002:
                     time.sleep(5)
                     continue
                 return None
@@ -801,7 +854,7 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.5 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.6 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
