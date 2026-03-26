@@ -946,3 +946,85 @@ body.dark-mode .day-card:hover {
         font-size: 1.8rem;
     }
 }
+
+/* ========== 历史回顾页头部样式 ========== */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+    gap: 1rem;
+}
+
+.history-header h1 {
+    font-family: "LXGW WenKai", cursive;
+    font-size: 2.5rem;
+    margin: 0;
+    color: #1e2f3f;
+}
+
+body.dark-mode .history-header h1 {
+    color: #d0e0f0;
+}
+
+/* 返回今日按钮样式 */
+.back-today {
+    display: inline-block;
+    background: rgba(79, 157, 166, 0.2);
+    backdrop-filter: blur(4px);
+    padding: 0.4rem 1.2rem;
+    border-radius: 40px;
+    text-decoration: none;
+    color: #4f9da6;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(79, 157, 166, 0.3);
+    white-space: nowrap;
+}
+
+.back-today:hover {
+    background: rgba(79, 157, 166, 0.4);
+    transform: translateY(-1px);
+    color: #2c5f66;
+}
+
+body.dark-mode .back-today {
+    background: rgba(79, 157, 166, 0.3);
+    color: #6c91b2;
+    border-color: rgba(79, 157, 166, 0.5);
+}
+
+body.dark-mode .back-today:hover {
+    background: rgba(79, 157, 166, 0.5);
+    color: #b0d4e0;
+}
+
+/* 副标题样式 */
+.subtitle {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #4f5e6b;
+    font-size: 0.95rem;
+}
+
+body.dark-mode .subtitle {
+    color: #9aaebf;
+}
+
+/* 响应式：小屏幕时标题与按钮可换行 */
+@media (max-width: 600px) {
+    .history-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .history-header h1 {
+        font-size: 1.8rem;
+    }
+    .back-today {
+        font-size: 0.85rem;
+        padding: 0.3rem 1rem;
+    }
+}
