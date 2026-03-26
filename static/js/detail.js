@@ -90,83 +90,80 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // 早报
-if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
-    document.getElementById('zaobao-card').style.display = 'block';
-    const weiyuEl = document.getElementById('zaobao-weiyu');
-    if (data.zaobao.weiyu) {
-        weiyuEl.textContent = data.zaobao.weiyu;
-        weiyuEl.style.display = 'block';
-    } else if (data.zaobao.summary) {
-        weiyuEl.textContent = data.zaobao.summary;
-        weiyuEl.style.display = 'block';
-    } else {
-        weiyuEl.style.display = 'none';
-    }
+            if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
+                document.getElementById('zaobao-card').style.display = 'block';
+                const weiyuEl = document.getElementById('zaobao-weiyu');
+                if (data.zaobao.weiyu) {
+                    weiyuEl.textContent = data.zaobao.weiyu;
+                    weiyuEl.style.display = 'block';
+                } else if (data.zaobao.summary) {
+                    weiyuEl.textContent = data.zaobao.summary;
+                    weiyuEl.style.display = 'block';
+                } else {
+                    weiyuEl.style.display = 'none';
+                }
 
-    // 音频处理（保持不变）
-    const audioUrl = data.zaobao.audio;
-    const playBtn = document.getElementById('zaobao-play-btn');
-    const audioPlayer = document.getElementById('zaobao-audio-player');
-    if (audioUrl && playBtn && audioPlayer) {
-        audioPlayer.src = audioUrl;
-        playBtn.style.display = 'inline-block';
-        playBtn.onclick = () => {
-            if (audioPlayer.paused) {
-                audioPlayer.play();
-                playBtn.textContent = '⏸️ 暂停';
-            } else {
-                audioPlayer.pause();
-                playBtn.textContent = '🔊 语音播报';
+                const audioUrl = data.zaobao.audio;
+                const playBtn = document.getElementById('zaobao-play-btn');
+                const audioPlayer = document.getElementById('zaobao-audio-player');
+                if (audioUrl && playBtn && audioPlayer) {
+                    audioPlayer.src = audioUrl;
+                    playBtn.style.display = 'inline-block';
+                    playBtn.onclick = () => {
+                        if (audioPlayer.paused) {
+                            audioPlayer.play();
+                            playBtn.textContent = '⏸️ 暂停';
+                        } else {
+                            audioPlayer.pause();
+                            playBtn.textContent = '🔊 语音播报';
+                        }
+                    };
+                    audioPlayer.onended = () => {
+                        playBtn.textContent = '🔊 语音播报';
+                    };
+                    audioPlayer.onerror = () => {
+                        playBtn.style.display = 'none';
+                        console.error('早报音频加载失败');
+                    };
+                } else if (playBtn) {
+                    playBtn.style.display = 'none';
+                }
+
+                const rawNews = data.zaobao.news;
+                const uniqueNews = [];
+                const seenTitles = new Set();
+                for (const item of rawNews) {
+                    if (!seenTitles.has(item.title)) {
+                        seenTitles.add(item.title);
+                        uniqueNews.push(item);
+                    }
+                }
+                const displayNews = uniqueNews.slice(0, 15);
+
+                const listContainer = document.getElementById('zaobao-list');
+                listContainer.innerHTML = '';
+                displayNews.forEach(item => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'zaobao-item';
+                    itemDiv.innerHTML = `
+                        <div>
+                            <span class="zaobao-title">${escapeHtml(item.title)}</span>
+                            <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
+                        </div>
+                        <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
+                    `;
+                    if (item.url) {
+                        const titleSpan = itemDiv.querySelector('.zaobao-title');
+                        titleSpan.style.cursor = 'pointer';
+                        titleSpan.style.color = '#4f9da6';
+                        titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
+                    }
+                    listContainer.appendChild(itemDiv);
+                });
+                if (data.zaobao.date) {
+                    document.getElementById('zaobao-date').textContent = data.zaobao.date;
+                }
             }
-        };
-        audioPlayer.onended = () => {
-            playBtn.textContent = '🔊 语音播报';
-        };
-        audioPlayer.onerror = () => {
-            playBtn.style.display = 'none';
-            console.error('早报音频加载失败');
-        };
-    } else if (playBtn) {
-        playBtn.style.display = 'none';
-    }
-
-    // 新闻列表去重 + 截断
-    const rawNews = data.zaobao.news;
-    const uniqueNews = [];
-    const seenTitles = new Set();
-    for (const item of rawNews) {
-        if (!seenTitles.has(item.title)) {
-            seenTitles.add(item.title);
-            uniqueNews.push(item);
-        }
-    }
-    // 只显示前 15 条（可根据需要调整）
-    const displayNews = uniqueNews.slice(0, 15);
-
-    const listContainer = document.getElementById('zaobao-list');
-    listContainer.innerHTML = '';
-    displayNews.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'zaobao-item';
-        itemDiv.innerHTML = `
-            <div>
-                <span class="zaobao-title">${escapeHtml(item.title)}</span>
-                <span class="zaobao-source">${escapeHtml(item.source || '')}</span>
-            </div>
-            <div class="zaobao-summary-text">${escapeHtml(item.summary || '')}</div>
-        `;
-        if (item.url) {
-            const titleSpan = itemDiv.querySelector('.zaobao-title');
-            titleSpan.style.cursor = 'pointer';
-            titleSpan.style.color = '#4f9da6';
-            titleSpan.addEventListener('click', () => window.open(item.url, '_blank'));
-        }
-        listContainer.appendChild(itemDiv);
-    });
-    if (data.zaobao.date) {
-        document.getElementById('zaobao-date').textContent = data.zaobao.date;
-    }
-}
 
             // 小说
             if (data.novels && Array.isArray(data.novels)) {
@@ -174,7 +171,7 @@ if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
                 renderNovels(data.novels);
             }
 
-            // ONE · 一个 模块
+            // ONE · 一个
             if (data.one) {
                 renderOneModule(data.one);
             }
@@ -292,20 +289,26 @@ function renderNovels(novels) {
         statsDiv.textContent = stats;
         novelDiv.appendChild(statsDiv);
 
-        const aiReviews = [
-            "📖 这篇小说像一杯温茶，慢慢品出人生滋味。",
-            "🎭 虚构的世界里，藏着真实的情感。",
-            "🌟 每一段文字都是时光的琥珀。",
-            "💫 读完后，心里某个角落被轻轻触动。",
-            "📜 故事虽短，余韵悠长。",
-            "🌙 适合在夜深人静时再读一遍。",
-            "🍃 像风一样轻，却留下痕迹。"
-        ];
+        const reviewText = novel.review || FALLBACK_REVIEWS[Math.floor(Math.random() * FALLBACK_REVIEWS.length)];
         const reviewDiv = document.createElement('div');
         reviewDiv.className = 'ai-review';
-        reviewDiv.textContent = aiReviews[Math.floor(Math.random() * aiReviews.length)];
+        reviewDiv.textContent = reviewText;
         novelDiv.appendChild(reviewDiv);
 
         container.appendChild(novelDiv);
     });
 }
+
+// 备选评语库（用于前端兜底）
+const FALLBACK_REVIEWS = [
+    "这篇小说像一杯温茶，慢慢品出人生滋味。",
+    "虚构的世界里，藏着真实的情感。",
+    "每一段文字都是时光的琥珀。",
+    "读完后，心里某个角落被轻轻触动。",
+    "故事虽短，余韵悠长。",
+    "适合在夜深人静时再读一遍。",
+    "像风一样轻，却留下痕迹。",
+    "字里行间，藏着不为人知的温柔。",
+    "一个让人回味无穷的故事。",
+    "简单的情节，深刻的哲理。"
+];
