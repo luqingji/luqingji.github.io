@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 加载主数据
     fetch('/data/daily.json?t=' + Date.now())
         .then(res => res.json())
         .then(data => {
@@ -78,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('article-stats').textContent = formatStats(articleWords);
             }
 
-            // 早报（去重+截断）
+            // 早报
             if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
                 document.getElementById('zaobao-card').style.display = 'block';
                 const weiyuEl = document.getElementById('zaobao-weiyu');
@@ -129,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         uniqueNews.push(item);
                     }
                 }
-                const displayNews = uniqueNews.slice(0, 15); // 最多显示15条
+                const displayNews = uniqueNews.slice(0, 15);
 
                 const listContainer = document.getElementById('zaobao-list');
                 listContainer.innerHTML = '';
@@ -173,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('数据加载失败，请稍后刷新');
         });
 
-    // 加载统计数据并渲染侧边栏
+    // 加载统计数据
     fetch('/data/stats.json?t=' + Date.now())
         .then(res => res.json())
         .then(stats => {
@@ -182,31 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => console.warn('统计加载失败', err));
 });
 
-// 渲染侧边栏统计
-function renderStats(stats) {
-    const leftSidebar = document.getElementById('stats-left');
-    const rightSidebar = document.getElementById('stats-right');
-    if (!leftSidebar || !rightSidebar) return;
-
-    leftSidebar.innerHTML = `
-        <h3>📊 拾光足迹</h3>
-        <div class="stat-item"><span class="stat-label">运行天数</span><span class="stat-number">${stats.total_days || 0}</span></div>
-        <div class="stat-item"><span class="stat-label">推荐歌曲</span><span class="stat-number">${stats.total_songs || 0}</span></div>
-        <div class="stat-item"><span class="stat-label">精选文章</span><span class="stat-number">${stats.total_articles || 0}</span></div>
-        <div class="stat-item"><span class="stat-label">原创小说</span><span class="stat-number">${stats.total_novels || 0}</span></div>
-    `;
-
-    rightSidebar.innerHTML = `
-        <h3>📚 内容印记</h3>
-        <div class="stat-item"><span class="stat-label">总字数</span><span class="stat-number">${(stats.total_words / 10000).toFixed(1)}万</span></div>
-        <div class="stat-item"><span class="stat-label">推荐语字数</span><span class="stat-number">${(stats.total_recommend_words / 1000).toFixed(1)}k</span></div>
-        <div class="stat-item"><span class="stat-label">早报资讯</span><span class="stat-number">${stats.total_news_items || 0}</span></div>
-        <div class="stat-item"><span class="stat-label">ONE精选</span><span class="stat-number">${stats.total_one_items || 0}</span></div>
-        <div class="stat-item"><span class="stat-label">阅读时长</span><span class="stat-number">${stats.read_minutes || 0}分钟</span></div>
-    `;
-}
-
-// ==================== ONE模块渲染 ====================
 function renderOneModule(oneData) {
     const oneCard = document.getElementById('one-card');
     const oneContainer = document.getElementById('one-content');
@@ -259,7 +233,6 @@ function renderOneModule(oneData) {
     }
 }
 
-// ==================== 小说渲染 ====================
 function renderNovels(novels) {
     const container = document.getElementById('novels-container');
     container.innerHTML = '';
@@ -312,20 +285,50 @@ function renderNovels(novels) {
         statsDiv.textContent = stats;
         novelDiv.appendChild(statsDiv);
 
-        const aiReviews = [
-            "📖 这篇小说像一杯温茶，慢慢品出人生滋味。",
-            "🎭 虚构的世界里，藏着真实的情感。",
-            "🌟 每一段文字都是时光的琥珀。",
-            "💫 读完后，心里某个角落被轻轻触动。",
-            "📜 故事虽短，余韵悠长。",
-            "🌙 适合在夜深人静时再读一遍。",
-            "🍃 像风一样轻，却留下痕迹。"
-        ];
+        // 使用小说自带的评语，如果没有则用随机备选
+        const reviewText = novel.review || FALLBACK_REVIEWS[Math.floor(Math.random() * FALLBACK_REVIEWS.length)];
         const reviewDiv = document.createElement('div');
         reviewDiv.className = 'ai-review';
-        reviewDiv.textContent = aiReviews[Math.floor(Math.random() * aiReviews.length)];
+        reviewDiv.textContent = reviewText;
         novelDiv.appendChild(reviewDiv);
 
         container.appendChild(novelDiv);
     });
 }
+
+function renderStats(stats) {
+    const leftSidebar = document.getElementById('stats-left');
+    const rightSidebar = document.getElementById('stats-right');
+    if (!leftSidebar || !rightSidebar) return;
+
+    leftSidebar.innerHTML = `
+        <h3>📊 拾光足迹</h3>
+        <div class="stat-item"><span class="stat-label">运行天数</span><span class="stat-number">${stats.total_days || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">推荐歌曲</span><span class="stat-number">${stats.total_songs || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">精选文章</span><span class="stat-number">${stats.total_articles || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">原创小说</span><span class="stat-number">${stats.total_novels || 0}</span></div>
+    `;
+
+    rightSidebar.innerHTML = `
+        <h3>📚 内容印记</h3>
+        <div class="stat-item"><span class="stat-label">总字数</span><span class="stat-number">${(stats.total_words / 10000).toFixed(1)}万</span></div>
+        <div class="stat-item"><span class="stat-label">推荐语字数</span><span class="stat-number">${(stats.total_recommend_words / 1000).toFixed(1)}k</span></div>
+        <div class="stat-item"><span class="stat-label">早报资讯</span><span class="stat-number">${stats.total_news_items || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">ONE精选</span><span class="stat-number">${stats.total_one_items || 0}</span></div>
+        <div class="stat-item"><span class="stat-label">阅读时长</span><span class="stat-number">${stats.read_minutes || 0}分钟</span></div>
+    `;
+}
+
+// 备选评语库（用于前端兜底）
+const FALLBACK_REVIEWS = [
+    "这篇小说像一杯温茶，慢慢品出人生滋味。",
+    "虚构的世界里，藏着真实的情感。",
+    "每一段文字都是时光的琥珀。",
+    "读完后，心里某个角落被轻轻触动。",
+    "故事虽短，余韵悠长。",
+    "适合在夜深人静时再读一遍。",
+    "像风一样轻，却留下痕迹。",
+    "字里行间，藏着不为人知的温柔。",
+    "一个让人回味无穷的故事。",
+    "简单的情节，深刻的哲理。"
+];
