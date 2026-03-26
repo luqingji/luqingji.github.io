@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.6）
+每日数据爬虫（优化版 v2.7）
 - 自动统计历史数据总量（天数、歌曲、文章、小说、总字数等）
 - 生成 stats.json 供前端侧边栏展示
 - 优化 ONE 模块限流处理，增加随机延时
 - 优化小说生成稳定性，增加超时捕获和重试间隔
 - 每篇小说生成独特的 AI 评语
+- 批量获取毒鸡汤和笑话（每天各20条），支持前端随机切换
 """
 
 import os
@@ -663,6 +664,91 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
+# ==================== 心灵毒鸡汤 ====================
+def fetch_soul_soup() -> Optional[Dict[str, str]]:
+    """获取单条心灵毒鸡汤"""
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        url = "https://v3.alapi.cn/api/soul"
+        params = {"token": ALAPI_TOKEN}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success') and data.get('data'):
+                return {
+                    "content": data['data'].get('content', ''),
+                    "author": data['data'].get('author', '')
+                }
+            else:
+                logger.warning(f"毒鸡汤接口错误: {data.get('message')}")
+        else:
+            logger.warning(f"毒鸡汤请求失败: HTTP {resp.status_code}")
+    except Exception as e:
+        logger.error(f"毒鸡汤抓取异常: {e}")
+    return None
+
+def fetch_soul_soup_batch(count: int = 20) -> List[Dict[str, str]]:
+    """批量获取心灵毒鸡汤"""
+    results = []
+    for i in range(count):
+        item = fetch_soul_soup()
+        if item:
+            results.append(item)
+        time.sleep(random.uniform(0.5, 1.5))
+    # 去重（根据内容）
+    seen = set()
+    unique = []
+    for item in results:
+        if item['content'] not in seen:
+            seen.add(item['content'])
+            unique.append(item)
+    logger.info(f"获取毒鸡汤 {len(unique)} 条（去重后）")
+    return unique
+
+# ==================== 笑话大全 ====================
+def fetch_joke() -> Optional[Dict[str, str]]:
+    """获取单条随机笑话"""
+    if not ALAPI_TOKEN:
+        return None
+    try:
+        url = "https://v3.alapi.cn/api/joke/random"
+        params = {"token": ALAPI_TOKEN}
+        headers = {"Content-Type": "application/json"}
+        resp = requests.get(url, headers=headers, params=params, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success') and data.get('data'):
+                return {
+                    "content": data['data'].get('content', ''),
+                    "title": data['data'].get('title', '')
+                }
+            else:
+                logger.warning(f"笑话接口错误: {data.get('message')}")
+        else:
+            logger.warning(f"笑话请求失败: HTTP {resp.status_code}")
+    except Exception as e:
+        logger.error(f"笑话抓取异常: {e}")
+    return None
+
+def fetch_joke_batch(count: int = 20) -> List[Dict[str, str]]:
+    """批量获取随机笑话"""
+    results = []
+    for i in range(count):
+        item = fetch_joke()
+        if item:
+            results.append(item)
+        time.sleep(random.uniform(0.5, 1.5))
+    seen = set()
+    unique = []
+    for item in results:
+        if item['content'] not in seen:
+            seen.add(item['content'])
+            unique.append(item)
+    logger.info(f"获取笑话 {len(unique)} 条（去重后）")
+    return unique
+
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
     if not text:
@@ -854,12 +940,17 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.6 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.7 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
 
     songs = fetch_songs(6)
+    
+    # 批量获取毒鸡汤和笑话
+    souls = fetch_soul_soup_batch(20) if ALAPI_TOKEN else []
+    jokes = fetch_joke_batch(20) if ALAPI_TOKEN else []
+
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -872,7 +963,9 @@ def main():
             "article": fetch_one_article(),
             "photo": fetch_one_photo(),
             "question": fetch_one_question()
-        }
+        },
+        "souls": souls,          # 新增：毒鸡汤列表
+        "jokes": jokes           # 新增：笑话列表
     }
 
     summary = generate_summary(today_data)
