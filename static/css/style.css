@@ -134,7 +134,7 @@ body.dark-mode .go-top {
     color: #ccc;
 }
 
-/* 侧边栏统计卡片（桌面端固定，移动端流式） */
+/* 侧边栏统计卡片 */
 .sidebar {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
@@ -142,6 +142,7 @@ body.dark-mode .go-top {
     padding: 1rem;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.5);
+    z-index: 100;
     transition: opacity 0.3s;
     max-height: 80vh;
     overflow-y: auto;
@@ -195,7 +196,6 @@ body.dark-mode .sidebar .stat-number {
     color: #f0b27a;
 }
 
-/* 桌面端：固定定位 */
 @media (min-width: 1200px) {
     .sidebar {
         position: fixed;
@@ -211,7 +211,6 @@ body.dark-mode .sidebar .stat-number {
     }
 }
 
-/* 移动端：流式布局，两列并排或堆叠 */
 @media (max-width: 1199px) {
     .sidebar {
         position: relative;
@@ -231,7 +230,6 @@ body.dark-mode .sidebar .stat-number {
         margin: 0 0 1rem 0;
         flex: 1;
     }
-    /* 让两个侧边栏在同一行水平排列（若屏幕足够宽） */
     @media (min-width: 768px) {
         .sidebar.left, .sidebar.right {
             width: calc(50% - 0.5rem);
@@ -239,8 +237,6 @@ body.dark-mode .sidebar .stat-number {
         }
     }
 }
-
-
 
 /* 每日一歌样式 */
 .daily-song-item {
@@ -296,6 +292,60 @@ body.dark-mode .daily-song-item .song-recommendation {
     max-height: 400px;
     overflow-y: auto;
     padding-right: 4px;
+}
+
+/* 毒鸡汤 & 笑话样式 */
+.fun-item {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    background: rgba(245, 245, 220, 0.5);
+    border-radius: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+}
+.fun-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+.fun-text {
+    flex: 1;
+    font-style: italic;
+    line-height: 1.5;
+}
+.fun-author, .fun-title {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    margin-top: 0.3rem;
+    text-align: right;
+}
+body.dark-mode .fun-item {
+    background: rgba(80, 70, 60, 0.5);
+}
+body.dark-mode .fun-author,
+body.dark-mode .fun-title {
+    color: #aaa;
+}
+
+/* 刷新按钮 */
+.refresh-btn {
+    background: rgba(79, 157, 166, 0.2);
+    border: 1px solid rgba(79, 157, 166, 0.5);
+    border-radius: 30px;
+    padding: 0.3rem 1rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    color: inherit;
+    margin-top: 0.5rem;
+}
+.refresh-btn:hover {
+    background: rgba(79, 157, 166, 0.4);
+}
+.fun-button-group {
+    text-align: center;
+    margin-top: 0.5rem;
 }
 
 /* 通用样式：散落诗行、墨香盲盒、ONE模块等 */
@@ -766,6 +816,32 @@ body.dark-mode .footer {
     z-index: 10001;
 }
 
+/* 播放图标修复 */
+a.play-icon,
+a.play-icon:link,
+a.play-icon:visited,
+a.play-icon:hover,
+a.play-icon:active {
+    text-decoration: none !important;
+    font-size: 1.2rem;
+    margin-left: 0.5rem;
+    color: #4f9da6;
+    transition: color 0.2s;
+}
+a.play-icon:hover {
+    color: #bf6f5a;
+}
+body.dark-mode a.play-icon,
+body.dark-mode a.play-icon:link,
+body.dark-mode a.play-icon:visited,
+body.dark-mode a.play-icon:hover,
+body.dark-mode a.play-icon:active {
+    color: #6c91b2;
+}
+body.dark-mode a.play-icon:hover {
+    color: #e0a070;
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 0 0.5rem;
@@ -799,232 +875,5 @@ body.dark-mode .footer {
     }
     .daily-summary {
         font-size: 0.9rem;
-    }
-}
-
-/* 播放图标样式（修复下划线） */
-.play-icon {
-    font-size: 1.2rem;
-    text-decoration: none;      /* 关键：去除下划线 */
-    margin-left: 0.5rem;
-    color: #4f9da6;
-    transition: color 0.2s;
-}
-.play-icon:hover {
-    color: #bf6f5a;
-}
-body.dark-mode .play-icon {
-    color: #6c91b2;
-}
-body.dark-mode .play-icon:hover {
-    color: #e0a070;
-}
-
-/* 播放图标样式（强制去除下划线） */
-a.play-icon,
-a.play-icon:link,
-a.play-icon:visited,
-a.play-icon:hover,
-a.play-icon:active {
-    text-decoration: none !important;
-    font-size: 1.2rem;
-    margin-left: 0.5rem;
-    color: #4f9da6;
-    transition: color 0.2s;
-}
-a.play-icon:hover {
-    color: #bf6f5a;
-}
-body.dark-mode a.play-icon,
-body.dark-mode a.play-icon:link,
-body.dark-mode a.play-icon:visited,
-body.dark-mode a.play-icon:hover,
-body.dark-mode a.play-icon:active {
-    color: #6c91b2;
-}
-body.dark-mode a.play-icon:hover {
-    color: #e0a070;
-}
-
-/* ========== 历史回顾页增强样式 ========== */
-
-/* 年份标题渐变 */
-.year-title {
-    font-size: 2rem;
-    font-weight: 600;
-    background: linear-gradient(135deg, #bf6f5a, #4f9da6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    border-bottom: 2px solid rgba(191,111,90,0.3);
-    padding-bottom: 0.3rem;
-    margin-bottom: 1rem;
-    display: inline-block;
-}
-
-body.dark-mode .year-title {
-    background: linear-gradient(135deg, #e0a070, #6c91b2);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    border-bottom-color: rgba(224,160,112,0.4);
-}
-
-/* 月份标题增强 */
-.month-title {
-    font-size: 1.4rem;
-    font-weight: 500;
-    color: #4f9da6;
-    margin-bottom: 0.5rem;
-    letter-spacing: 1px;
-}
-
-.month-count {
-    font-size: 0.9rem;
-    font-weight: normal;
-    color: #7f8c8d;
-    margin-left: 0.5rem;
-}
-
-body.dark-mode .month-title {
-    color: #6c91b2;
-}
-body.dark-mode .month-count {
-    color: #9aaebf;
-}
-
-/* 日期卡片间距优化 */
-.day-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;           /* 增加间距，便于触屏点击 */
-    margin-left: 1rem;
-}
-
-.day-card {
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(4px);
-    border-radius: 40px;
-    padding: 0.6rem 1.4rem;  /* 增大点击区域 */
-    border: 1px solid rgba(255,255,255,0.6);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    transition: all 0.2s;
-    text-decoration: none;
-    color: #2c3e50;
-    font-weight: 500;
-    font-size: 0.95rem;
-}
-
-.day-card:hover {
-    background: rgba(255,255,255,0.9);
-    transform: translateY(-2px);
-    border-color: #4f9da6;
-}
-
-body.dark-mode .day-card {
-    background: rgba(40,50,60,0.7);
-    color: #e0e0e0;
-    border-color: rgba(255,255,255,0.1);
-}
-body.dark-mode .day-card:hover {
-    background: rgba(60,80,100,0.9);
-}
-
-/* 响应式：小屏幕进一步调整间距 */
-@media (max-width: 600px) {
-    .day-list {
-        gap: 0.8rem;
-    }
-    .day-card {
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
-    }
-    .month-title {
-        font-size: 1.2rem;
-    }
-    .year-title {
-        font-size: 1.8rem;
-    }
-}
-
-/* ========== 历史回顾页头部样式 ========== */
-.history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem;
-    gap: 1rem;
-}
-
-.history-header h1 {
-    font-family: "LXGW WenKai", cursive;
-    font-size: 2.5rem;
-    margin: 0;
-    color: #1e2f3f;
-}
-
-body.dark-mode .history-header h1 {
-    color: #d0e0f0;
-}
-
-/* 返回今日按钮样式 */
-.back-today {
-    display: inline-block;
-    background: rgba(79, 157, 166, 0.2);
-    backdrop-filter: blur(4px);
-    padding: 0.4rem 1.2rem;
-    border-radius: 40px;
-    text-decoration: none;
-    color: #4f9da6;
-    font-size: 0.95rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(79, 157, 166, 0.3);
-    white-space: nowrap;
-}
-
-.back-today:hover {
-    background: rgba(79, 157, 166, 0.4);
-    transform: translateY(-1px);
-    color: #2c5f66;
-}
-
-body.dark-mode .back-today {
-    background: rgba(79, 157, 166, 0.3);
-    color: #6c91b2;
-    border-color: rgba(79, 157, 166, 0.5);
-}
-
-body.dark-mode .back-today:hover {
-    background: rgba(79, 157, 166, 0.5);
-    color: #b0d4e0;
-}
-
-/* 副标题样式 */
-.subtitle {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: #4f5e6b;
-    font-size: 0.95rem;
-}
-
-body.dark-mode .subtitle {
-    color: #9aaebf;
-}
-
-/* 响应式：小屏幕时标题与按钮可换行 */
-@media (max-width: 600px) {
-    .history-header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-    .history-header h1 {
-        font-size: 1.8rem;
-    }
-    .back-today {
-        font-size: 0.85rem;
-        padding: 0.3rem 1rem;
     }
 }
