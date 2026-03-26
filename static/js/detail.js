@@ -176,6 +176,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderOneModule(data.one);
             }
 
+            // 每日一笑 & 心灵毒鸡汤（合并卡片）
+            if (data.soul || data.joke) {
+                document.getElementById('fun-card').style.display = 'block';
+                const jokeDiv = document.getElementById('joke-content');
+                const soulDiv = document.getElementById('soul-content');
+                if (data.joke) {
+                    jokeDiv.innerHTML = `
+                        <div class="fun-item">
+                            <div class="fun-icon">😂</div>
+                            <div class="fun-text">${escapeHtml(data.joke)}</div>
+                        </div>
+                    `;
+                    jokeDiv.style.display = 'block';
+                } else {
+                    jokeDiv.style.display = 'none';
+                }
+                if (data.soul) {
+                    soulDiv.innerHTML = `
+                        <div class="fun-item">
+                            <div class="fun-icon">🥀</div>
+                            <div class="fun-text">${escapeHtml(data.soul)}</div>
+                        </div>
+                    `;
+                    soulDiv.style.display = 'block';
+                } else {
+                    soulDiv.style.display = 'none';
+                }
+            }
+
             document.getElementById('content').style.display = 'block';
         })
         .catch(err => {
@@ -185,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
+// ==================== ONE模块渲染 ====================
 function renderOneModule(oneData) {
     const oneCard = document.getElementById('one-card');
     const oneContainer = document.getElementById('one-content');
@@ -237,6 +267,7 @@ function renderOneModule(oneData) {
     }
 }
 
+// ==================== 小说渲染 ====================
 function renderNovels(novels) {
     const container = document.getElementById('novels-container');
     container.innerHTML = '';
