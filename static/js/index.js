@@ -155,6 +155,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // 毒鸡汤
+            let soulList = [];
+            if (data.souls && data.souls.length > 0) {
+                soulList = data.souls;
+                document.getElementById('soul-card').style.display = 'block';
+                updateSoulDisplay();
+                document.getElementById('refresh-soul').onclick = () => updateSoulDisplay();
+            } else if (data.soul) {
+                soulList = [data.soul];
+                document.getElementById('soul-card').style.display = 'block';
+                updateSoulDisplay();
+            }
+
+            function updateSoulDisplay() {
+                if (soulList.length === 0) return;
+                const randomIndex = Math.floor(Math.random() * soulList.length);
+                const soul = soulList[randomIndex];
+                const soulDiv = document.getElementById('soul-content');
+                soulDiv.innerHTML = `
+                    <div class="fun-item">
+                        <div class="fun-icon">💀</div>
+                        <div class="fun-text">${escapeHtml(soul.content)}</div>
+                        ${soul.author ? `<div class="fun-author">—— ${escapeHtml(soul.author)}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            // 笑话
+            let jokeList = [];
+            if (data.jokes && data.jokes.length > 0) {
+                jokeList = data.jokes;
+                document.getElementById('joke-card').style.display = 'block';
+                updateJokeDisplay();
+                document.getElementById('refresh-joke').onclick = () => updateJokeDisplay();
+            } else if (data.joke) {
+                jokeList = [data.joke];
+                document.getElementById('joke-card').style.display = 'block';
+                updateJokeDisplay();
+            }
+
+            function updateJokeDisplay() {
+                if (jokeList.length === 0) return;
+                const randomIndex = Math.floor(Math.random() * jokeList.length);
+                const joke = jokeList[randomIndex];
+                const jokeDiv = document.getElementById('joke-content');
+                jokeDiv.innerHTML = `
+                    <div class="fun-item">
+                        <div class="fun-icon">😂</div>
+                        <div class="fun-text">${escapeHtml(joke.content)}</div>
+                        ${joke.title ? `<div class="fun-title">${escapeHtml(joke.title)}</div>` : ''}
+                    </div>
+                `;
+            }
+
             // 小说
             if (data.novels && Array.isArray(data.novels)) {
                 document.getElementById('novel-card').style.display = 'block';
@@ -285,7 +339,6 @@ function renderNovels(novels) {
         statsDiv.textContent = stats;
         novelDiv.appendChild(statsDiv);
 
-        // 使用小说自带的评语，如果没有则用随机备选
         const reviewText = novel.review || FALLBACK_REVIEWS[Math.floor(Math.random() * FALLBACK_REVIEWS.length)];
         const reviewDiv = document.createElement('div');
         reviewDiv.className = 'ai-review';
@@ -319,7 +372,7 @@ function renderStats(stats) {
     `;
 }
 
-// 备选评语库（用于前端兜底）
+// 备选评语库
 const FALLBACK_REVIEWS = [
     "这篇小说像一杯温茶，慢慢品出人生滋味。",
     "虚构的世界里，藏着真实的情感。",
