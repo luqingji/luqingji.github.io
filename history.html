@@ -14,12 +14,17 @@
 <body>
     <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
     <div class="go-top" id="go-top">↑</div>
+    <div class="toast" id="toast"></div>
+
     <div class="container">
-        <h1>🗂️ 拾光驿站 · 历史回顾</h1>
+        <!-- 新增历史页面头部，标题与返回按钮同行 -->
+        <div class="history-header">
+            <h1>🗂️ 拾光驿站 · 历史回顾</h1>
+            <a href="/" class="back-today">← 返回今日</a>
+        </div>
         <div class="subtitle">点击日期查看当天的完整内容</div>
         <div id="loader" class="loader"></div>
         <div id="timeline" class="timeline" style="display: none;"></div>
-        <a href="/" class="back-link">← 返回今日</a>
     </div>
 </body>
 </html>
