@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // 加载主数据
     fetch('/data/daily.json?t=' + Date.now())
         .then(res => res.json())
         .then(data => {
@@ -14,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayDate = data.date;
             document.getElementById('easter-egg').textContent = getEasterEgg(displayDate);
 
-            // 每日一歌
+            // ==================== 每日一歌 ====================
             if (data.songs && data.songs.length > 0) {
                 document.getElementById('song-card').style.display = 'block';
                 document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
 
-            // 散落诗行
+            // ==================== 散落诗行 ====================
             if (data.sentence) {
                 document.getElementById('sentence-card').style.display = 'block';
                 const sentenceText = data.sentence.content || '';
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('share-sentence-btn').onclick = () => captureCard(document.getElementById('sentence-card'), `拾光驿站_${data.date}.png`);
             }
 
-            // 墨香盲盒
+            // ==================== 墨香盲盒 ====================
             if (data.article) {
                 document.getElementById('article-card').style.display = 'block';
                 document.getElementById('article-title').textContent = data.article.title || '';
@@ -77,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('article-stats').textContent = formatStats(articleWords);
             }
 
-            // 早报
+            // ==================== 每日早报 ====================
             if (data.zaobao && data.zaobao.news && data.zaobao.news.length > 0) {
                 document.getElementById('zaobao-card').style.display = 'block';
                 const weiyuEl = document.getElementById('zaobao-weiyu');
@@ -155,69 +156,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 毒鸡汤
-            let soulList = [];
-            if (data.souls && data.souls.length > 0) {
-                soulList = data.souls;
-                document.getElementById('soul-card').style.display = 'block';
-                updateSoulDisplay();
-                document.getElementById('refresh-soul').onclick = () => updateSoulDisplay();
-            } else if (data.soul) {
-                soulList = [data.soul];
-                document.getElementById('soul-card').style.display = 'block';
-                updateSoulDisplay();
-            }
-
-            function updateSoulDisplay() {
-                if (soulList.length === 0) return;
-                const randomIndex = Math.floor(Math.random() * soulList.length);
-                const soul = soulList[randomIndex];
-                const soulDiv = document.getElementById('soul-content');
-                soulDiv.innerHTML = `
-                    <div class="fun-item">
-                        <div class="fun-icon">💀</div>
-                        <div class="fun-text">${escapeHtml(soul.content)}</div>
-                        ${soul.author ? `<div class="fun-author">—— ${escapeHtml(soul.author)}</div>` : ''}
-                    </div>
-                `;
-            }
-
-            // 笑话
-            let jokeList = [];
-            if (data.jokes && data.jokes.length > 0) {
-                jokeList = data.jokes;
-                document.getElementById('joke-card').style.display = 'block';
-                updateJokeDisplay();
-                document.getElementById('refresh-joke').onclick = () => updateJokeDisplay();
-            } else if (data.joke) {
-                jokeList = [data.joke];
-                document.getElementById('joke-card').style.display = 'block';
-                updateJokeDisplay();
-            }
-
-            function updateJokeDisplay() {
-                if (jokeList.length === 0) return;
-                const randomIndex = Math.floor(Math.random() * jokeList.length);
-                const joke = jokeList[randomIndex];
-                const jokeDiv = document.getElementById('joke-content');
-                jokeDiv.innerHTML = `
-                    <div class="fun-item">
-                        <div class="fun-icon">😂</div>
-                        <div class="fun-text">${escapeHtml(joke.content)}</div>
-                        ${joke.title ? `<div class="fun-title">${escapeHtml(joke.title)}</div>` : ''}
-                    </div>
-                `;
-            }
-
-            // 小说
+            // ==================== 小说 ====================
             if (data.novels && Array.isArray(data.novels)) {
                 document.getElementById('novel-card').style.display = 'block';
                 renderNovels(data.novels);
             }
 
-            // ONE · 一个
+            // ==================== ONE · 一个 ====================
             if (data.one) {
                 renderOneModule(data.one);
+            }
+
+            // ==================== 每日一笑 & 心灵毒鸡汤（合并卡片） ====================
+            if (data.soul || data.joke) {
+                document.getElementById('fun-card').style.display = 'block';
+                const jokeDiv = document.getElementById('joke-content');
+                const soulDiv = document.getElementById('soul-content');
+                if (data.joke) {
+                    jokeDiv.innerHTML = `
+                        <div class="fun-item">
+                            <div class="fun-icon">😂</div>
+                            <div class="fun-text">${escapeHtml(data.joke)}</div>
+                        </div>
+                    `;
+                    jokeDiv.style.display = 'block';
+                } else {
+                    jokeDiv.style.display = 'none';
+                }
+                if (data.soul) {
+                    soulDiv.innerHTML = `
+                        <div class="fun-item">
+                            <div class="fun-icon">🥀</div>
+                            <div class="fun-text">${escapeHtml(data.soul)}</div>
+                        </div>
+                    `;
+                    soulDiv.style.display = 'block';
+                } else {
+                    soulDiv.style.display = 'none';
+                }
             }
         })
         .catch(err => {
@@ -226,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showError('数据加载失败，请稍后刷新');
         });
 
-    // 加载统计数据
+    // 加载统计数据并渲染侧边栏
     fetch('/data/stats.json?t=' + Date.now())
         .then(res => res.json())
         .then(stats => {
@@ -235,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => console.warn('统计加载失败', err));
 });
 
+// ==================== ONE模块渲染 ====================
 function renderOneModule(oneData) {
     const oneCard = document.getElementById('one-card');
     const oneContainer = document.getElementById('one-content');
@@ -287,6 +264,7 @@ function renderOneModule(oneData) {
     }
 }
 
+// ==================== 小说渲染 ====================
 function renderNovels(novels) {
     const container = document.getElementById('novels-container');
     container.innerHTML = '';
@@ -339,6 +317,7 @@ function renderNovels(novels) {
         statsDiv.textContent = stats;
         novelDiv.appendChild(statsDiv);
 
+        // 使用小说自带的评语，如果没有则用随机备选
         const reviewText = novel.review || FALLBACK_REVIEWS[Math.floor(Math.random() * FALLBACK_REVIEWS.length)];
         const reviewDiv = document.createElement('div');
         reviewDiv.className = 'ai-review';
@@ -349,6 +328,7 @@ function renderNovels(novels) {
     });
 }
 
+// ==================== 侧边栏统计 ====================
 function renderStats(stats) {
     const leftSidebar = document.getElementById('stats-left');
     const rightSidebar = document.getElementById('stats-right');
@@ -372,7 +352,7 @@ function renderStats(stats) {
     `;
 }
 
-// 备选评语库
+// 备选评语库（用于前端兜底）
 const FALLBACK_REVIEWS = [
     "这篇小说像一杯温茶，慢慢品出人生滋味。",
     "虚构的世界里，藏着真实的情感。",
