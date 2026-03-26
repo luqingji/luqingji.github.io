@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const timelineEl = document.getElementById('timeline');
             timelineEl.style.display = 'block';
 
-            // 按年份/月份分组
             const grouped = {};
             dates.forEach(date => {
                 const [year, month, day] = date.split('-');
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const year of Object.keys(grouped).sort().reverse()) {
                 const yearDiv = document.createElement('div');
                 yearDiv.className = 'year-group';
-                // 年份标题添加渐变效果（通过CSS实现）
                 yearDiv.innerHTML = `<div class="year-title">${year} 年</div>`;
                 for (const month of Object.keys(grouped[year]).sort().reverse()) {
                     const monthDiv = document.createElement('div');
