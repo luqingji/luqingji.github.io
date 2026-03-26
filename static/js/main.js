@@ -189,7 +189,7 @@ function showError(message, retryCallback = null) {
 document.addEventListener('DOMContentLoaded', () => {
     initDarkMode();
 
-    // 随机渐变背景（可选）
+    // 随机渐变背景
     const gradients = [
         "linear-gradient(145deg, #f9f3e8 0%, #d9e2f0 100%)",
         "linear-gradient(135deg, #e8f0f5 0%, #d0e0e8 100%)",
