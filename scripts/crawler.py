@@ -670,7 +670,7 @@ def generate_daily_joke() -> Optional[str]:
         return "今日无笑话，但愿你笑口常开。"
     prompt = "来一个超级无敌搞笑的每日一笑"
     try:
-        joke = call_ai(prompt, max_tokens=200, temperature=0.9, timeout=15)
+        joke = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=15)
         if joke:
             return joke.strip()
     except Exception as e:
@@ -688,7 +688,7 @@ def generate_soul_soup() -> Optional[str]:
     topic = random.choice(topics)
     prompt = f"来一个心灵毒鸡汤关于{topic}"
     try:
-        soup = call_ai(prompt, max_tokens=150, temperature=0.8, timeout=15)
+        soup = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=15)
         if soup:
             return soup.strip()
     except Exception as e:
