@@ -2,101 +2,275 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>拾光驿站 · 历史详情</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/main.js" defer></script>
-    <script src="/static/js/detail.js" defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e1e2f;
+            padding: 2rem 1rem;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #1e1e2f;
+            text-decoration: none;
+            border-bottom: 1px dotted #e0e4e8;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .daily-summary {
+            font-size: 1.6rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .date {
+            font-size: 0.85rem;
+            color: #8e8e9e;
+        }
+        .easter-egg {
+            font-size: 0.8rem;
+            color: #b0b0c0;
+            margin-top: 0.5rem;
+        }
+        .section {
+            margin: 2rem 0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1rem;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border-bottom: 1px solid #e0e4e8;
+            padding-bottom: 0.2rem;
+        }
+        .song-item, .zaobao-item, .one-article, .one-photo, .one-qa {
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .song-name {
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .song-artist, .song-album, .zaobao-source {
+            font-size: 0.85rem;
+            color: #5b5b6e;
+        }
+        .song-recommendation, .zaobao-summary-text {
+            font-size: 0.9rem;
+            color: #7a7a8c;
+            font-style: italic;
+            margin-top: 0.2rem;
+        }
+        .fun-item {
+            display: flex;
+            gap: 0.8rem;
+            margin: 0.8rem 0;
+        }
+        .fun-icon { font-size: 1.2rem; }
+        .fun-text { flex:1; font-size:0.9rem; color:#5b5b6e; }
+        .novel-item {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #f0f2f5;
+            padding-bottom: 1rem;
+        }
+        .novel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .novel-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        .speak-btn, .immerse-btn, .audio-play-btn {
+            background: none;
+            border: 1px solid #e0e4e8;
+            border-radius: 30px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #b0b0c0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
+        }
+        .loader {
+            text-align: center;
+            padding: 2rem;
+            color: #b0b0c0;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
-    <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
-    <div class="go-top" id="go-top">↑</div>
-    <div class="toast" id="toast"></div>
-
-    <div class="container">
-        <a href="/history.html" class="back-link">← 返回历史回顾</a>
-        <div class="hero">
-            <div id="daily-summary" class="daily-summary prominent"></div>
-            <div class="date" id="date"></div>
-            <div id="easter-egg" class="easter-egg"></div>
+<div class="container">
+    <a href="/history.html" class="back-link">← 返回历史回顾</a>
+    <div class="hero">
+        <div class="daily-summary" id="daily-summary"></div>
+        <div class="date" id="date"></div>
+        <div class="easter-egg" id="easter-egg"></div>
+    </div>
+    <div id="loader" class="loader">⏳ 加载中...</div>
+    <div id="content" style="display:none;">
+        <!-- 歌单 -->
+        <div id="song-card" class="section" style="display:none;">
+            <div class="section-title">🎵 未知旋律</div>
+            <div id="songs-list"></div>
         </div>
-        <div id="loader" class="loader"></div>
-        <div id="content" style="display: none;">
-            <!-- 未知旋律卡片（歌单列表） -->
-            <div class="card" id="song-card" style="display: none;">
-                <h2>🎵 未知旋律</h2>
-                <div id="songs-list" class="songs-list"></div>
-            </div>
-
-            <!-- 散落诗行卡片 -->
-            <div class="card" id="sentence-card" style="display: none;">
-                <div class="sentence-header">
-                    <h2>💭 散落诗行</h2>
-                    <div class="sentence-actions">
-                        <button class="action-btn" id="copy-sentence-btn" title="复制句子">📋</button>
-                        <button class="action-btn" id="share-sentence-btn" title="生成图片">📸</button>
-                    </div>
-                </div>
-                <div class="sentence-content" id="sentence-content"></div>
-                <div class="sentence-from" id="sentence-from"></div>
-                <div class="meaning" id="sentence-meaning"></div>
-            </div>
-
-            <!-- 墨香盲盒卡片 -->
-            <div class="card" id="article-card" style="display: none;">
-                <h2>📖 墨香盲盒</h2>
-                <div class="article-title" id="article-title"></div>
-                <div class="article-desc" id="article-desc"></div>
-                <div class="article-author" id="article-author"></div>
-                <a id="article-link" href="#" target="_blank" style="display: inline-block; margin-top: 1rem; color: #4f9da6; text-decoration: none;">🔗 阅读全文</a>
-                <div class="meaning" id="article-meaning"></div>
-                <div class="stats" id="article-stats"></div>
-            </div>
-
-            <!-- 每日早报卡片 -->
-            <div class="card" id="zaobao-card" style="display: none;">
-                <h2>📰 每日早报</h2>
-                <div id="zaobao-weiyu" class="zaobao-summary" style="font-style: italic;"></div>
-                <div id="zaobao-audio" style="margin: 0.5rem 0; text-align: center;">
-                    <button id="zaobao-play-btn" class="audio-play-btn" style="display: none;">🔊 语音播报</button>
-                    <audio id="zaobao-audio-player" style="display: none;"></audio>
-                </div>
-                <div id="zaobao-list" class="zaobao-list"></div>
-                <div id="zaobao-date" class="zaobao-date"></div>
-            </div>
-
-            <!-- 每日一笑 & 心灵毒鸡汤 卡片（合并） -->
-            <div class="card" id="fun-card" style="display: none;">
-                <h2>😄 每日一笑 · 🥀 心灵毒鸡汤</h2>
-                <div id="joke-content" class="fun-content"></div>
-                <div id="soul-content" class="fun-content"></div>
-            </div>
-
-            <!-- ONE · 一个 卡片 -->
-            <div class="card" id="one-card" style="display: none;">
-                <h2>📖 ONE · 一个</h2>
-                <div id="one-content"></div>
-            </div>
-
-            <!-- 虚构抽屉卡片 -->
-            <div class="card" id="novel-card" style="display: none;">
-                <h2>📚 虚构抽屉</h2>
-                <div id="novels-container" class="novels-container"></div>
+        <!-- 散落诗行 -->
+        <div id="sentence-card" class="section" style="display:none;">
+            <div class="section-title">💭 散落诗行</div>
+            <div id="sentence-content" class="sentence-content"></div>
+            <div id="sentence-from" style="text-align:right; font-size:0.85rem; color:#8e8e9e;"></div>
+            <div id="sentence-meaning" style="margin-top:0.5rem; font-size:0.9rem; color:#5b5b6e;"></div>
+            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                <button class="speak-btn" id="copy-sentence-btn">📋 复制</button>
+                <button class="speak-btn" id="share-sentence-btn">📸 截图</button>
             </div>
         </div>
-        <div class="footer">
-            <div id="update-time"></div>
-            <a href="/history.html" style="color: #4f9da6; text-decoration: none; margin-top: 0.5rem; display: inline-block;">📜 查看历史时间轴</a>
+        <!-- 墨香盲盒 -->
+        <div id="article-card" class="section" style="display:none;">
+            <div class="section-title">📖 墨香盲盒</div>
+            <div id="article-title" class="article-title"></div>
+            <div id="article-desc" class="article-desc"></div>
+            <div id="article-author" class="article-author"></div>
+            <a id="article-link" href="#" target="_blank" style="display:inline-block; margin-top:0.5rem;">🔗 阅读全文</a>
+            <div id="article-meaning" style="margin-top:0.5rem;"></div>
+            <div id="article-stats" class="stats"></div>
+        </div>
+        <!-- 早报 -->
+        <div id="zaobao-card" class="section" style="display:none;">
+            <div class="section-title">📰 每日早报</div>
+            <div id="zaobao-weiyu" class="zaobao-summary-text"></div>
+            <div><button id="zaobao-play-btn" class="audio-play-btn" style="display:none;">🔊 语音播报</button><audio id="zaobao-audio-player"></audio></div>
+            <div id="zaobao-list"></div>
+            <div id="zaobao-date" class="stats"></div>
+        </div>
+        <!-- 笑话毒鸡汤 -->
+        <div id="fun-card" class="section" style="display:none;">
+            <div class="section-title">😄 每日一笑 · 🥀 心灵毒鸡汤</div>
+            <div id="joke-content"></div>
+            <div id="soul-content"></div>
+        </div>
+        <!-- ONE -->
+        <div id="one-card" class="section" style="display:none;">
+            <div class="section-title">📖 ONE · 一个</div>
+            <div id="one-content"></div>
+        </div>
+        <!-- 小说 -->
+        <div id="novel-card" class="section" style="display:none;">
+            <div class="section-title">📚 虚构抽屉</div>
+            <div id="novels-container"></div>
         </div>
     </div>
-
-    <div id="immerse-modal" class="immerse-modal">
-        <button class="close-immerse" id="close-immerse">✕ 退出沉浸</button>
-        <div id="immerse-content" class="immerse-content"></div>
+    <div class="footer">
+        <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 首页</a>
+        <span style="margin:0 0.5rem">·</span>
+        <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
     </div>
+</div>
+<script>
+    // 公共函数（同首页简化）
+    function escapeHtml(str){if(!str)return '';return str.replace(/[&<>]/g,function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;});}
+    function countWords(text){return (text.match(/[\u4e00-\u9fa5]/g)||[]).length+(text.match(/[a-zA-Z]+/g)||[]).length;}
+    function formatStats(words){return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`;}
+    function getEasterEgg(dateStr){const eggs=['✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。','🍂 今日彩蛋：时光不语，静待花开。','📖 今日彩蛋：每一篇小说都是平行宇宙的你。','🎵 今日彩蛋：未知旋律里藏着昨天的故事。','💭 今日彩蛋：散落的诗行，是某人的心事。','🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。','🌙 今日彩蛋：此刻的宁静，胜过万语千言。','☕ 今日彩蛋：读一段文字，饮一杯暖茶。']; let hash=0; let seed=dateStr||new Date().toDateString(); for(let i=0;i<seed.length;i++)hash=((hash<<5)-hash)+seed.charCodeAt(i); return eggs[Math.abs(hash)%eggs.length];}
+    function copyToClipboard(text){navigator.clipboard.writeText(text).then(()=>alert('已复制')).catch(()=>alert('复制失败'));}
+    function captureCard(element,filename){if(typeof html2canvas==='undefined'){alert('截图库未加载');return;}html2canvas(element,{scale:2}).then(canvas=>{let a=document.createElement('a');a.download=filename;a.href=canvas.toDataURL();a.click();});}
+    let currentUtterance=null;
+    function speakText(text){if(!window.speechSynthesis){alert('不支持语音朗读');return;}if(currentUtterance)window.speechSynthesis.cancel();let utterance=new SpeechSynthesisUtterance(text);utterance.lang='zh-CN';currentUtterance=utterance;window.speechSynthesis.speak(utterance);}
+    function openImmerse(html){let modal=document.getElementById('immerse-modal');if(modal){document.getElementById('immerse-content').innerHTML=html;modal.classList.add('active');}}
+    function closeImmerse(){document.getElementById('immerse-modal').classList.remove('active');}
+    function renderOneModule(oneData){let container=document.getElementById('one-content'),card=document.getElementById('one-card'),html='';if(oneData.article&&oneData.article.content)html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;if(oneData.photo&&oneData.photo.image)html+=`<div class="one-photo"><h3>📷 摄影</h3><img src="${oneData.photo.image}" alt="${escapeHtml(oneData.photo.title||'')}" style="max-width:100%; border-radius:8px;"><div class="one-title">${escapeHtml(oneData.photo.title||'')}</div><div class="one-author">${escapeHtml(oneData.photo.author||'')}</div><div class="one-desc">${escapeHtml(oneData.photo.description||'').replace(/\n/g,'<br>')}</div></div>`;if(oneData.question&&oneData.question.question)html+=`<div class="one-qa"><h3>💬 问答</h3><div class="one-question">${escapeHtml(oneData.question.question)}</div><div class="one-answer">${escapeHtml(oneData.question.answer||'').replace(/\n/g,'<br>')}</div>${oneData.question.author?`<div class="one-author">—— ${escapeHtml(oneData.question.author)}</div>`:''}</div>`;if(html){container.innerHTML=html;card.style.display='block';}}
+    function renderNovels(novels){let container=document.getElementById('novels-container'),card=document.getElementById('novel-card'),html='';if(!novels.length){container.innerHTML='<p>暂无小说</p>';card.style.display='block';return;}let fallbackReviews=['这篇小说像一杯温茶，慢慢品出人生滋味。','虚构的世界里，藏着真实的情感。','每一段文字都是时光的琥珀。','读完后，心里某个角落被轻轻触动。','故事虽短，余韵悠长。','适合在夜深人静时再读一遍。','像风一样轻，却留下痕迹。'];novels.forEach(n=>{let title=n.title||'无题',content=(n.content||'').replace(/\\n/g,'\n'),paragraphs=content.split(/\n\s*\n/).filter(p=>p.trim());let stats=formatStats(countWords(paragraphs.join('\n\n')));html+=`<div class="novel-item"><div class="novel-header"><div class="novel-title">${escapeHtml(title)}</div><div><button class="speak-btn" onclick="speakText(\`${escapeHtml(paragraphs.join('\n\n'))}\`)">🔊 朗读</button><button class="immerse-btn" onclick="openImmerse('<div style=\'font-size:1.2rem; margin-bottom:1rem;\'>${escapeHtml(title)}</div><div>${paragraphs.map(p=>`<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')}</div><div>${stats}</div>')">🔍 沉浸</button></div></div><div class="novel-content">${paragraphs.map(p=>`<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')}</div><div class="novel-stats">${stats}</div><div class="ai-review">${escapeHtml(n.review||fallbackReviews[Math.floor(Math.random()*fallbackReviews.length)])}</div></div>`;});container.innerHTML=html;card.style.display='block';}
+    // 数据加载
+    const url=new URLSearchParams(location.search);
+    const date=url.get('date');
+    if(!date){alert('未指定日期'); location.href='/history.html';}
+    const [y,m,d]=date.split('-');
+    fetch(`/data/history/${y}/${m}/${d}.json?t=${Date.now()}`).then(res=>res.json()).then(data=>{
+        document.getElementById('loader').style.display='none';
+        document.getElementById('date').innerHTML=date;
+        if(data.updated_at) document.getElementById('update-time').innerHTML=`更新于 ${new Date(data.updated_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}`;
+        document.getElementById('daily-summary').innerHTML=data.summary||'';
+        document.getElementById('easter-egg').innerHTML=getEasterEgg(date);
+        // 歌单
+        if(data.songs && data.songs.length){
+            document.getElementById('song-card').style.display='block';
+            let list=document.getElementById('songs-list');
+            list.innerHTML='';
+            data.songs.forEach(s=>{
+                let playLink=s.id?`https://music.163.com/#/song?id=${s.id}`:(s.name&&s.artist?`https://music.163.com/#/search/m/?s=${encodeURIComponent(s.name+' '+s.artist)}`:null);
+                list.innerHTML+=`<div class="song-item"><div class="song-name">${escapeHtml(s.name)}${playLink?`<a href="${playLink}" target="_blank" class="play-icon">🎧</a>`:''}</div><div class="song-artist">${escapeHtml(s.artist)}</div><div class="song-album">${escapeHtml(s.album||'')}</div><div class="song-recommendation">${escapeHtml(s.recommendation||'')}</div></div>`;
+            });
+        }
+        // 散落诗行
+        if(data.sentence){
+            document.getElementById('sentence-card').style.display='block';
+            document.getElementById('sentence-content').innerHTML=`「${escapeHtml(data.sentence.content)}」`;
+            document.getElementById('sentence-from').innerHTML=data.sentence.from?`—— ${escapeHtml(data.sentence.from)}`:'';
+            if(data.sentence.meaning){ document.getElementById('sentence-meaning').innerHTML=escapeHtml(data.sentence.meaning); }
+            document.getElementById('copy-sentence-btn').onclick=()=>copyToClipboard(data.sentence.content);
+            document.getElementById('share-sentence-btn').onclick=()=>captureCard(document.getElementById('sentence-card'),`拾光驿站_${date}.png`);
+        }
+        // 墨香盲盒
+        if(data.article){
+            document.getElementById('article-card').style.display='block';
+            document.getElementById('article-title').innerHTML=escapeHtml(data.article.title);
+            let artText=data.article.description||data.article.content||'';
+            document.getElementById('article-desc').innerHTML=escapeHtml(artText);
+            document.getElementById('article-author').innerHTML=data.article.author?`—— ${escapeHtml(data.article.author)}`:'';
+            if(data.article.url) document.getElementById('article-link').href=data.article.url;
+            else document.getElementById('article-link').style.display='none';
+            if(data.article.meaning) document.getElementById('article-meaning').innerHTML=escapeHtml(data.article.meaning);
+            document.getElementById('article-stats').innerHTML=formatStats(countWords(artText));
+        }
+        // 早报
+        if(data.zaobao && data.zaobao.news && data.zaobao.news.length){
+            document.getElementById('zaobao-card').style.display='block';
+            document.getElementById('zaobao-weiyu').innerHTML=data.zaobao.weiyu?escapeHtml(data.zaobao.weiyu):(data.zaobao.summary?escapeHtml(data.zaobao.summary):'');
+            let audio=data.zaobao.audio, btn=document.getElementById('zaobao-play-btn'), player=document.getElementById('zaobao-audio-player');
+            if(audio&&btn&&player){ player.src=audio; btn.style.display='inline-block'; btn.onclick=()=>{if(player.paused){player.play();btn.textContent='⏸️ 暂停';}else{player.pause();btn.textContent='🔊 语音播报';}}; player.onended=()=>btn.textContent='🔊 语音播报';}
+            let listDiv=document.getElementById('zaobao-list'), unique=[], seen=new Set();
+            for(let i of data.zaobao.news){ if(!seen.has(i.title)){ seen.add(i.title); unique.push(i); } }
+            listDiv.innerHTML='';
+            unique.slice(0,15).forEach(i=>{ listDiv.innerHTML+=`<div class="zaobao-item"><div><span class="zaobao-title">${escapeHtml(i.title)}</span><span class="zaobao-source">${escapeHtml(i.source||'')}</span></div><div class="zaobao-summary-text">${escapeHtml(i.summary||'')}</div></div>`; });
+            if(data.zaobao.date) document.getElementById('zaobao-date').innerHTML=data.zaobao.date;
+        }
+        // 笑话毒鸡汤
+        if(data.soul||data.joke){
+            document.getElementById('fun-card').style.display='block';
+            if(data.joke) document.getElementById('joke-content').innerHTML=`<div class="fun-item"><div class="fun-icon">😂</div><div class="fun-text">${escapeHtml(data.joke)}</div></div>`;
+            if(data.soul) document.getElementById('soul-content').innerHTML=`<div class="fun-item"><div class="fun-icon">🥀</div><div class="fun-text">${escapeHtml(data.soul)}</div></div>`;
+        }
+        if(data.one) renderOneModule(data.one);
+        if(data.novels && data.novels.length) renderNovels(data.novels);
+        document.getElementById('content').style.display='block';
+    }).catch(err=>{ console.error(err); document.getElementById('loader').innerHTML='加载失败，可能该日期无数据'; });
+</script>
+<!-- 沉浸模态框 -->
+<div id="immerse-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; visibility:hidden; opacity:0; transition:0.2s; display:flex; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:16px; max-width:90%; max-height:90%; overflow:auto; padding:1.5rem; color:#1e1e2f;">
+        <button onclick="closeImmerse()" style="float:right; background:none; border:none; font-size:1.2rem;">✕</button>
+        <div id="immerse-content"></div>
+    </div>
+</div>
 </body>
 </html>
