@@ -2,24 +2,120 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>拾光驿站 · 今日歌单</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=LXGW+WenKai&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/main.js" defer></script>
-    <script src="/static/js/songs.js" defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e1e2f;
+            padding: 2rem 1rem;
+        }
+        .container { max-width: 700px; margin: 0 auto; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #1e1e2f;
+            text-decoration: none;
+            border-bottom: 1px dotted #e0e4e8;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .song-date {
+            font-size: 0.85rem;
+            color: #8e8e9e;
+            margin-bottom: 1.5rem;
+        }
+        .song-card {
+            border-bottom: 1px solid #f0f2f5;
+            padding: 1rem 0;
+        }
+        .song-card h3 {
+            font-size: 1.2rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .artist, .album {
+            font-size: 0.85rem;
+            color: #5b5b6e;
+            margin-top: 0.2rem;
+        }
+        .recommendation {
+            font-size: 0.9rem;
+            color: #7a7a8c;
+            font-style: italic;
+            margin-top: 0.3rem;
+        }
+        .play-icon {
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-left: 0.5rem;
+            color: #1e1e2f;
+        }
+        .loader {
+            text-align: center;
+            padding: 2rem;
+            color: #b0b0c0;
+        }
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #b0b0c0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
+        }
+    </style>
 </head>
 <body>
-    <button class="theme-toggle" id="theme-toggle">🌙 暗色模式</button>
-    <div class="go-top" id="go-top">↑</div>
-    <div class="container">
-        <a href="/" class="back-link">← 返回主页</a>
-        <h1>🎵 今日歌单</h1>
-        <div id="song-date" class="song-date"></div>
-        <div id="loader" class="loader"></div>
-        <div id="songs-container" style="display: none;"></div>
+<div class="container">
+    <a href="/" class="back-link">← 返回主页</a>
+    <h1>🎵 今日歌单</h1>
+    <div id="song-date" class="song-date"></div>
+    <div id="loader" class="loader">🎶 加载中...</div>
+    <div id="songs-container" style="display:none;"></div>
+    <div class="footer">
+        <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
+        <span style="margin:0 0.5rem">·</span>
+        <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 首页</a>
     </div>
+</div>
+<script>
+    function escapeHtml(str){if(!str)return '';return str.replace(/[&<>]/g,function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;});}
+    const url=new URLSearchParams(location.search);
+    const date=url.get('date');
+    let dataUrl='/data/daily.json', displayDate=null;
+    if(date){ let [y,m,d]=date.split('-'); dataUrl=`/data/history/${y}/${m}/${d}.json`; displayDate=date; }
+    fetch(dataUrl+'?t='+Date.now()).then(res=>res.json()).then(data=>{
+        document.getElementById('loader').style.display='none';
+        let container=document.getElementById('songs-container');
+        container.style.display='block';
+        let showDate=displayDate||data.date;
+        if(showDate){
+            let [y,m,d]=showDate.split('-');
+            document.getElementById('song-date').innerHTML=`${y}年${parseInt(m)}月${parseInt(d)}日`;
+        } else document.getElementById('song-date').style.display='none';
+        let songs=data.songs||(data.song?[data.song]:[]);
+        if(!songs.length){ container.innerHTML='<p>暂无歌单数据</p>'; return; }
+        container.innerHTML='';
+        songs.forEach(s=>{
+            let playLink=s.id?`https://music.163.com/#/song?id=${s.id}`:(s.name&&s.artist?`https://music.163.com/#/search/m/?s=${encodeURIComponent(s.name+' '+s.artist)}`:null);
+            container.innerHTML+=`
+                <div class="song-card">
+                    <h3>${escapeHtml(s.name)}${playLink?`<a href="${playLink}" target="_blank" class="play-icon">🎧</a>`:''}</h3>
+                    <div class="artist">${escapeHtml(s.artist)}</div>
+                    <div class="album">${escapeHtml(s.album||'未知专辑')}</div>
+                    <div class="recommendation">${escapeHtml(s.recommendation||'暂无推荐语')}</div>
+                </div>
+            `;
+        });
+    }).catch(err=>{ document.getElementById('loader').innerHTML='加载失败'; console.error(err); });
+</script>
 </body>
 </html>
