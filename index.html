@@ -185,6 +185,16 @@
         .links a:hover {
             border-bottom-color: #1e1e2f;
         }
+        .loader {
+            text-align: center;
+            padding: 2rem;
+            color: #b0b0c0;
+        }
+        .error-message {
+            text-align: center;
+            color: #e74c3c;
+            margin: 2rem 0;
+        }
         @media (max-width: 600px) {
             .daily-summary { font-size: 1.3rem; }
             .song-name { font-size: 1rem; }
@@ -200,73 +210,8 @@
         <div class="easter-egg" id="easter-egg"></div>
     </div>
 
-    <div id="loader" style="text-align:center; padding:2rem;">⏳ 加载中...</div>
-
-    <div id="content" style="display:none;">
-        <!-- 每日一歌 -->
-        <div id="song-card" class="section" style="display:none;">
-            <div class="section-title">🎵 未知旋律</div>
-            <div id="daily-song"></div>
-            <div style="margin-top:0.5rem;"><a id="songs-link" href="#" class="links" style="font-size:0.85rem;">📀 查看完整歌单 →</a></div>
-        </div>
-
-        <!-- 散落诗行 -->
-        <div id="sentence-card" class="section" style="display:none;">
-            <div class="section-title">💭 散落诗行</div>
-            <div class="sentence-content" id="sentence-content"></div>
-            <div class="sentence-from" id="sentence-from"></div>
-            <div class="meaning" id="sentence-meaning" style="margin-top:0.5rem;"></div>
-            <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
-                <button class="refresh-btn" id="copy-sentence-btn">📋 复制</button>
-                <button class="refresh-btn" id="share-sentence-btn">📸 截图</button>
-            </div>
-        </div>
-
-        <!-- 墨香盲盒 -->
-        <div id="article-card" class="section" style="display:none;">
-            <div class="section-title">📖 墨香盲盒</div>
-            <div class="article-title" id="article-title"></div>
-            <div class="article-desc" id="article-desc"></div>
-            <div class="article-author" id="article-author"></div>
-            <a id="article-link" href="#" target="_blank" style="display:inline-block; margin-top:0.5rem; font-size:0.85rem;">🔗 阅读全文</a>
-            <div class="meaning" id="article-meaning"></div>
-            <div class="stats" id="article-stats"></div>
-        </div>
-
-        <!-- 每日早报 -->
-        <div id="zaobao-card" class="section" style="display:none;">
-            <div class="section-title">📰 每日早报</div>
-            <div id="zaobao-weiyu" class="zaobao-summary-text" style="margin-bottom:0.5rem;"></div>
-            <div id="zaobao-audio" style="margin:0.5rem 0;">
-                <button id="zaobao-play-btn" class="audio-play-btn" style="display:none;">🔊 语音播报</button>
-                <audio id="zaobao-audio-player" style="display:none;"></audio>
-            </div>
-            <div id="zaobao-list"></div>
-            <div id="zaobao-date" class="stats" style="margin-top:0.5rem;"></div>
-        </div>
-
-        <!-- 每日一笑 & 心灵毒鸡汤 -->
-        <div id="fun-card" class="section" style="display:none;">
-            <div class="section-title">😄 每日一笑 · 🥀 心灵毒鸡汤</div>
-            <div id="joke-content"></div>
-            <div id="soul-content"></div>
-        </div>
-
-        <!-- ONE·一个 -->
-        <div id="one-card" class="section" style="display:none;">
-            <div class="section-title">📖 ONE · 一个</div>
-            <div id="one-content"></div>
-        </div>
-
-        <!-- 虚构抽屉 -->
-        <div id="novel-card" class="section" style="display:none;">
-            <div class="section-title">📚 虚构抽屉</div>
-            <div id="novels-container"></div>
-        </div>
-
-        <!-- 统计信息（简洁底部） -->
-        <div id="stats-info" style="margin: 2rem 0 0; font-size:0.8rem; color:#b0b0c0; text-align:center;"></div>
-    </div>
+    <div id="loader" class="loader">⏳ 加载中...</div>
+    <div id="content" style="display:none;"></div>
 
     <div class="footer">
         <div id="update-time"></div>
@@ -280,109 +225,19 @@
 </div>
 
 <script>
-    // 公共函数（从 main.js 简化）
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&')return'&amp;';if(m==='<')return'&lt;';if(m==='>')return'&gt;';return m;}); }
-    function showLoader() { document.getElementById('loader').style.display = 'block'; document.getElementById('content').style.display = 'none'; }
-    function hideLoader() { document.getElementById('loader').style.display = 'none'; document.getElementById('content').style.display = 'block'; }
-    function copyToClipboard(text) { navigator.clipboard.writeText(text).then(()=>alert('已复制')).catch(()=>alert('复制失败')); }
-    function captureCard(element, filename) { if(typeof html2canvas==='undefined'){alert('截图库未加载');return;} html2canvas(element,{scale:2}).then(canvas=>{let a=document.createElement('a');a.download=filename;a.href=canvas.toDataURL();a.click();}).catch(err=>alert('截图失败')); }
+    // 辅助函数
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
     function getEasterEgg(dateStr) { const eggs=['✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。','🍂 今日彩蛋：时光不语，静待花开。','📖 今日彩蛋：每一篇小说都是平行宇宙的你。','🎵 今日彩蛋：未知旋律里藏着昨天的故事。','💭 今日彩蛋：散落的诗行，是某人的心事。','🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。','🌙 今日彩蛋：此刻的宁静，胜过万语千言。','☕ 今日彩蛋：读一段文字，饮一杯暖茶。']; let hash=0; let seed=dateStr||new Date().toDateString(); for(let i=0;i<seed.length;i++) hash=((hash<<5)-hash)+seed.charCodeAt(i); return eggs[Math.abs(hash)%eggs.length]; }
-    let currentUtterance=null; function stopSpeaking(){if(window.speechSynthesis)window.speechSynthesis.cancel();if(currentUtterance)currentUtterance=null;}
-    function speakText(text){if(!window.speechSynthesis){alert('不支持语音朗读');return;}stopSpeaking();let utterance=new SpeechSynthesisUtterance(text);utterance.lang='zh-CN';currentUtterance=utterance;window.speechSynthesis.speak(utterance);}
-    function openImmerse(html){let modal=document.getElementById('immerse-modal');if(modal){document.getElementById('immerse-content').innerHTML=html;modal.classList.add('active');}}
-    function closeImmerse(){document.getElementById('immerse-modal').classList.remove('active');}
-    function renderOneModule(oneData){...}  // 省略，实际代码同之前，但因空间有限，在最终答案中会补全
-    function renderNovels(novels){...}
-    function renderStats(stats){...}
-</script>
+    function copyToClipboard(text) { navigator.clipboard.writeText(text).then(()=>alert('已复制')).catch(()=>alert('复制失败')); }
+    function captureCard(element, filename) { if(typeof html2canvas==='undefined'){alert('截图库未加载');return;} html2canvas(element,{scale:2}).then(canvas=>{let a=document.createElement('a');a.download=filename;a.href=canvas.toDataURL();a.click();}).catch(err=>alert('截图失败')); }
+    let currentUtterance=null;
+    function speakText(text){ if(!window.speechSynthesis){alert('不支持语音朗读');return;} if(currentUtterance)window.speechSynthesis.cancel(); let utterance=new SpeechSynthesisUtterance(text); utterance.lang='zh-CN'; currentUtterance=utterance; window.speechSynthesis.speak(utterance); }
+    function openImmerse(html){ let modal=document.getElementById('immerse-modal'); if(modal){ document.getElementById('immerse-content').innerHTML=html; modal.classList.add('active'); } }
+    function closeImmerse(){ document.getElementById('immerse-modal').classList.remove('active'); }
 
-<!-- 沉浸模态框 -->
-<div id="immerse-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; visibility:hidden; opacity:0; transition:0.2s; display:flex; align-items:center; justify-content:center;">
-    <div style="background:white; border-radius:16px; max-width:90%; max-height:90%; overflow:auto; padding:1.5rem; color:#1e1e2f;">
-        <button onclick="closeImmerse()" style="float:right; background:none; border:none; font-size:1.2rem;">✕</button>
-        <div id="immerse-content"></div>
-    </div>
-</div>
-
-<script>
-    // 完整数据加载（参考原 index.js 简化）
-    fetch('/data/daily.json?t='+Date.now()).then(res=>res.json()).then(data=>{
-        hideLoader();
-        document.getElementById('date').textContent=data.date||'今日';
-        if(data.updated_at) document.getElementById('update-time').textContent=`更新于 ${new Date(data.updated_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}`;
-        document.getElementById('daily-summary').textContent=data.summary||'今日拾光';
-        document.getElementById('easter-egg').textContent=getEasterEgg(data.date);
-
-        // 每日一歌
-        if(data.songs && data.songs.length){
-            document.getElementById('song-card').style.display='block';
-            document.getElementById('songs-link').href=`/songs.html?date=${data.date}`;
-            let s=data.songs[0];
-            let playLink=s.id?`https://music.163.com/#/song?id=${s.id}`:(s.name&&s.artist?`https://music.163.com/#/search/m/?s=${encodeURIComponent(s.name+' '+s.artist)}`:null);
-            document.getElementById('daily-song').innerHTML=`
-                <div class="daily-song-item">
-                    <div class="song-name">${escapeHtml(s.name)}${playLink?`<a href="${playLink}" target="_blank" class="play-icon">🎧</a>`:''}</div>
-                    <div class="song-artist">${escapeHtml(s.artist)}</div>
-                    <div class="song-album">${escapeHtml(s.album||'')}</div>
-                    <div class="song-recommendation">${escapeHtml(s.recommendation||'')}</div>
-                </div>
-            `;
-        }
-        // 散落诗行
-        if(data.sentence){
-            document.getElementById('sentence-card').style.display='block';
-            document.getElementById('sentence-content').innerHTML=`「${escapeHtml(data.sentence.content)}」`;
-            document.getElementById('sentence-from').innerHTML=data.sentence.from?`—— ${escapeHtml(data.sentence.from)}`:'';
-            if(data.sentence.meaning){ document.getElementById('sentence-meaning').innerHTML=escapeHtml(data.sentence.meaning); document.getElementById('sentence-meaning').style.display='block';}
-            document.getElementById('copy-sentence-btn').onclick=()=>copyToClipboard(data.sentence.content);
-            document.getElementById('share-sentence-btn').onclick=()=>captureCard(document.getElementById('sentence-card'),`拾光驿站_${data.date}.png`);
-        }
-        // 墨香盲盒
-        if(data.article){
-            document.getElementById('article-card').style.display='block';
-            document.getElementById('article-title').innerHTML=escapeHtml(data.article.title);
-            let articleText=data.article.description||data.article.content||'';
-            document.getElementById('article-desc').innerHTML=escapeHtml(articleText);
-            document.getElementById('article-author').innerHTML=data.article.author?`—— ${escapeHtml(data.article.author)}`:'';
-            if(data.article.url) document.getElementById('article-link').href=data.article.url;
-            else document.getElementById('article-link').style.display='none';
-            if(data.article.meaning){ document.getElementById('article-meaning').innerHTML=escapeHtml(data.article.meaning); document.getElementById('article-meaning').style.display='block';}
-            document.getElementById('article-stats').innerHTML=formatStats(countWords(articleText));
-        }
-        // 早报
-        if(data.zaobao && data.zaobao.news && data.zaobao.news.length){
-            document.getElementById('zaobao-card').style.display='block';
-            document.getElementById('zaobao-weiyu').innerHTML=data.zaobao.weiyu?escapeHtml(data.zaobao.weiyu):(data.zaobao.summary?escapeHtml(data.zaobao.summary):'');
-            let audio=data.zaobao.audio, btn=document.getElementById('zaobao-play-btn'), player=document.getElementById('zaobao-audio-player');
-            if(audio && btn && player){ player.src=audio; btn.style.display='inline-block'; btn.onclick=()=>{if(player.paused){player.play();btn.textContent='⏸️ 暂停';}else{player.pause();btn.textContent='🔊 语音播报';}}; player.onended=()=>btn.textContent='🔊 语音播报'; player.onerror=()=>btn.style.display='none';}
-            let listDiv=document.getElementById('zaobao-list');
-            let uniqueNews=[], seen=new Set();
-            for(let item of data.zaobao.news){ if(!seen.has(item.title)){ seen.add(item.title); uniqueNews.push(item); } }
-            listDiv.innerHTML='';
-            uniqueNews.slice(0,15).forEach(item=>{
-                listDiv.innerHTML+=`<div class="zaobao-item"><div><span class="zaobao-title">${escapeHtml(item.title)}</span><span class="zaobao-source">${escapeHtml(item.source||'')}</span></div><div class="zaobao-summary-text">${escapeHtml(item.summary||'')}</div></div>`;
-            });
-            if(data.zaobao.date) document.getElementById('zaobao-date').innerHTML=data.zaobao.date;
-        }
-        // 笑话&毒鸡汤
-        if(data.soul || data.joke){
-            document.getElementById('fun-card').style.display='block';
-            if(data.joke) document.getElementById('joke-content').innerHTML=`<div class="fun-item"><div class="fun-icon">😂</div><div class="fun-text">${escapeHtml(data.joke)}</div></div>`;
-            if(data.soul) document.getElementById('soul-content').innerHTML=`<div class="fun-item"><div class="fun-icon">🥀</div><div class="fun-text">${escapeHtml(data.soul)}</div></div>`;
-        }
-        // ONE
-        if(data.one) renderOneModule(data.one);
-        // 小说
-        if(data.novels && data.novels.length) renderNovels(data.novels);
-        // 统计
-        fetch('/data/stats.json?t='+Date.now()).then(r=>r.json()).then(stats=>{
-            let info=`📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 创作 ${stats.total_novels||0} 篇小说 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
-            document.getElementById('stats-info').innerHTML=info;
-        }).catch(e=>console.warn);
-    }).catch(err=>{ console.error(err); hideLoader(); alert('数据加载失败'); });
-
+    // 模块渲染函数
     function renderOneModule(oneData){
         let container=document.getElementById('one-content'), card=document.getElementById('one-card'), html='';
         if(oneData.article && oneData.article.content) html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;
@@ -401,6 +256,157 @@
         });
         container.innerHTML=html; card.style.display='block';
     }
+
+    // 数据加载
+    fetch('/data/daily.json?t='+Date.now())
+        .then(res => {
+            if(!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        })
+        .then(data => {
+            // 隐藏加载器，显示内容容器
+            document.getElementById('loader').style.display = 'none';
+            const contentDiv = document.getElementById('content');
+            contentDiv.style.display = 'block';
+            contentDiv.innerHTML = `
+                <!-- 每日一歌 -->
+                <div id="song-card" class="section" style="display:none;"><div class="section-title">🎵 未知旋律</div><div id="daily-song"></div><div style="margin-top:0.5rem;"><a id="songs-link" href="#" class="links" style="font-size:0.85rem;">📀 查看完整歌单 →</a></div></div>
+                <!-- 散落诗行 -->
+                <div id="sentence-card" class="section" style="display:none;"><div class="section-title">💭 散落诗行</div><div class="sentence-content" id="sentence-content"></div><div class="sentence-from" id="sentence-from"></div><div class="meaning" id="sentence-meaning" style="margin-top:0.5rem;"></div><div style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button class="refresh-btn" id="copy-sentence-btn">📋 复制</button><button class="refresh-btn" id="share-sentence-btn">📸 截图</button></div></div>
+                <!-- 墨香盲盒 -->
+                <div id="article-card" class="section" style="display:none;"><div class="section-title">📖 墨香盲盒</div><div class="article-title" id="article-title"></div><div class="article-desc" id="article-desc"></div><div class="article-author" id="article-author"></div><a id="article-link" href="#" target="_blank" style="display:inline-block; margin-top:0.5rem;">🔗 阅读全文</a><div class="meaning" id="article-meaning"></div><div class="stats" id="article-stats"></div></div>
+                <!-- 早报 -->
+                <div id="zaobao-card" class="section" style="display:none;"><div class="section-title">📰 每日早报</div><div id="zaobao-weiyu" class="zaobao-summary-text"></div><div><button id="zaobao-play-btn" class="audio-play-btn" style="display:none;">🔊 语音播报</button><audio id="zaobao-audio-player"></audio></div><div id="zaobao-list"></div><div id="zaobao-date" class="stats"></div></div>
+                <!-- 每日一笑&毒鸡汤 -->
+                <div id="fun-card" class="section" style="display:none;"><div class="section-title">😄 每日一笑 · 🥀 心灵毒鸡汤</div><div id="joke-content"></div><div id="soul-content"></div></div>
+                <!-- ONE -->
+                <div id="one-card" class="section" style="display:none;"><div class="section-title">📖 ONE · 一个</div><div id="one-content"></div></div>
+                <!-- 小说 -->
+                <div id="novel-card" class="section" style="display:none;"><div class="section-title">📚 虚构抽屉</div><div id="novels-container"></div></div>
+                <div id="stats-info" style="margin: 2rem 0 0; font-size:0.8rem; color:#b0b0c0; text-align:center;"></div>
+            `;
+
+            // 填充基础数据
+            document.getElementById('date').textContent = data.date || '今日';
+            if(data.updated_at) document.getElementById('update-time').textContent = `更新于 ${new Date(data.updated_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}`;
+            document.getElementById('daily-summary').textContent = data.summary || '今日拾光';
+            document.getElementById('easter-egg').textContent = getEasterEgg(data.date);
+
+            // 每日一歌
+            if(data.songs && data.songs.length){
+                const card = document.getElementById('song-card');
+                card.style.display = 'block';
+                document.getElementById('songs-link').href = `/songs.html?date=${data.date}`;
+                const s = data.songs[0];
+                const playLink = s.id ? `https://music.163.com/#/song?id=${s.id}` : (s.name && s.artist ? `https://music.163.com/#/search/m/?s=${encodeURIComponent(s.name+' '+s.artist)}` : null);
+                document.getElementById('daily-song').innerHTML = `
+                    <div class="daily-song-item">
+                        <div class="song-name">${escapeHtml(s.name)}${playLink?`<a href="${playLink}" target="_blank" class="play-icon">🎧</a>`:''}</div>
+                        <div class="song-artist">${escapeHtml(s.artist)}</div>
+                        <div class="song-album">${escapeHtml(s.album||'')}</div>
+                        <div class="song-recommendation">${escapeHtml(s.recommendation||'')}</div>
+                    </div>
+                `;
+            }
+
+            // 散落诗行
+            if(data.sentence){
+                const card = document.getElementById('sentence-card');
+                card.style.display = 'block';
+                document.getElementById('sentence-content').innerHTML = `「${escapeHtml(data.sentence.content)}」`;
+                document.getElementById('sentence-from').innerHTML = data.sentence.from ? `—— ${escapeHtml(data.sentence.from)}` : '';
+                if(data.sentence.meaning){
+                    document.getElementById('sentence-meaning').innerHTML = escapeHtml(data.sentence.meaning);
+                    document.getElementById('sentence-meaning').style.display = 'block';
+                }
+                document.getElementById('copy-sentence-btn').onclick = () => copyToClipboard(data.sentence.content);
+                document.getElementById('share-sentence-btn').onclick = () => captureCard(card, `拾光驿站_${data.date}.png`);
+            }
+
+            // 墨香盲盒
+            if(data.article){
+                const card = document.getElementById('article-card');
+                card.style.display = 'block';
+                document.getElementById('article-title').innerHTML = escapeHtml(data.article.title);
+                const articleText = data.article.description || data.article.content || '';
+                document.getElementById('article-desc').innerHTML = escapeHtml(articleText);
+                document.getElementById('article-author').innerHTML = data.article.author ? `—— ${escapeHtml(data.article.author)}` : '';
+                if(data.article.url) document.getElementById('article-link').href = data.article.url;
+                else document.getElementById('article-link').style.display = 'none';
+                if(data.article.meaning){
+                    document.getElementById('article-meaning').innerHTML = escapeHtml(data.article.meaning);
+                    document.getElementById('article-meaning').style.display = 'block';
+                }
+                document.getElementById('article-stats').innerHTML = formatStats(countWords(articleText));
+            }
+
+            // 早报
+            if(data.zaobao && data.zaobao.news && data.zaobao.news.length){
+                const card = document.getElementById('zaobao-card');
+                card.style.display = 'block';
+                document.getElementById('zaobao-weiyu').innerHTML = data.zaobao.weiyu ? escapeHtml(data.zaobao.weiyu) : (data.zaobao.summary ? escapeHtml(data.zaobao.summary) : '');
+                const audio = data.zaobao.audio, btn = document.getElementById('zaobao-play-btn'), player = document.getElementById('zaobao-audio-player');
+                if(audio && btn && player){
+                    player.src = audio;
+                    btn.style.display = 'inline-block';
+                    btn.onclick = () => {
+                        if(player.paused){
+                            player.play();
+                            btn.textContent = '⏸️ 暂停';
+                        } else {
+                            player.pause();
+                            btn.textContent = '🔊 语音播报';
+                        }
+                    };
+                    player.onended = () => btn.textContent = '🔊 语音播报';
+                    player.onerror = () => btn.style.display = 'none';
+                }
+                const listDiv = document.getElementById('zaobao-list');
+                const uniqueNews = [], seen = new Set();
+                for(let item of data.zaobao.news){
+                    if(!seen.has(item.title)){
+                        seen.add(item.title);
+                        uniqueNews.push(item);
+                    }
+                }
+                listDiv.innerHTML = '';
+                uniqueNews.slice(0,15).forEach(item => {
+                    listDiv.innerHTML += `<div class="zaobao-item"><div><span class="zaobao-title">${escapeHtml(item.title)}</span><span class="zaobao-source">${escapeHtml(item.source||'')}</span></div><div class="zaobao-summary-text">${escapeHtml(item.summary||'')}</div></div>`;
+                });
+                if(data.zaobao.date) document.getElementById('zaobao-date').innerHTML = data.zaobao.date;
+            }
+
+            // 笑话&毒鸡汤
+            if(data.soul || data.joke){
+                const card = document.getElementById('fun-card');
+                card.style.display = 'block';
+                if(data.joke) document.getElementById('joke-content').innerHTML = `<div class="fun-item"><div class="fun-icon">😂</div><div class="fun-text">${escapeHtml(data.joke)}</div></div>`;
+                if(data.soul) document.getElementById('soul-content').innerHTML = `<div class="fun-item"><div class="fun-icon">🥀</div><div class="fun-text">${escapeHtml(data.soul)}</div></div>`;
+            }
+
+            // ONE
+            if(data.one) renderOneModule(data.one);
+            // 小说
+            if(data.novels && data.novels.length) renderNovels(data.novels);
+
+            // 统计信息
+            fetch('/data/stats.json?t='+Date.now()).then(r=>r.json()).then(stats => {
+                const info = `📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 创作 ${stats.total_novels||0} 篇小说 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
+                document.getElementById('stats-info').innerHTML = info;
+            }).catch(e => console.warn('统计加载失败', e));
+        })
+        .catch(err => {
+            console.error('数据加载失败', err);
+            document.getElementById('loader').innerHTML = `<div class="error-message">❌ 加载失败: ${err.message}<br>请检查网络或稍后重试</div>`;
+        });
 </script>
+
+<!-- 沉浸模态框 -->
+<div id="immerse-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; visibility:hidden; opacity:0; transition:0.2s; display:flex; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:16px; max-width:90%; max-height:90%; overflow:auto; padding:1.5rem; color:#1e1e2f;">
+        <button onclick="closeImmerse()" style="float:right; background:none; border:none; font-size:1.2rem;">✕</button>
+        <div id="immerse-content"></div>
+    </div>
+</div>
 </body>
 </html>
