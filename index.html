@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>拾光驿站 · 诗与歌的相遇</title>
+    <title>拾光驿站 · 简洁主页</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,8 +13,8 @@
             line-height: 1.5;
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: center;
             padding: 2rem 1rem;
         }
         .container {
@@ -23,10 +23,11 @@
             text-align: center;
         }
         .daily-summary {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 500;
-            letter-spacing: -0.01em;
+            letter-spacing: -0.02em;
             margin-bottom: 0.5rem;
+            color: #1e1e2f;
         }
         .date {
             font-size: 0.85rem;
@@ -38,6 +39,14 @@
             color: #b0b0c0;
             margin-bottom: 2rem;
         }
+        .stats {
+            font-size: 0.85rem;
+            color: #5b5b6e;
+            margin: 2rem 0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1rem;
+            display: inline-block;
+        }
         .links {
             display: flex;
             flex-wrap: wrap;
@@ -48,74 +57,107 @@
         .links a {
             color: #1e1e2f;
             text-decoration: none;
-            font-size: 1rem;
-            border-bottom: 1px dotted transparent;
-            transition: border-color 0.2s;
+            font-size: 0.95rem;
+            border-bottom: 1px dotted #e0e4e8;
         }
         .links a:hover {
             border-bottom-color: #1e1e2f;
         }
-        .stats {
-            font-size: 0.8rem;
-            color: #b0b0c0;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid #f0f2f5;
-        }
         .footer {
-            margin-top: 2rem;
             font-size: 0.75rem;
             color: #b0b0c0;
+            margin-top: 2rem;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
         }
-        @media (max-width: 600px) {
-            .daily-summary { font-size: 1.4rem; }
+        .loader {
+            font-size: 0.9rem;
+            color: #b0b0c0;
+            margin: 1rem 0;
+        }
+        .error {
+            color: #e74c3c;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 480px) {
+            .daily-summary { font-size: 1.5rem; }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="daily-summary" id="daily-summary">✨ 今日拾光</div>
-    <div class="date" id="date"></div>
-    <div class="easter-egg" id="easter-egg"></div>
+    <div id="daily-summary" class="daily-summary">✨ 今日拾光</div>
+    <div id="date" class="date"></div>
+    <div id="easter-egg" class="easter-egg"></div>
+
+    <div id="stats" class="stats"></div>
 
     <div class="links">
-        <a href="/detail.html?type=songs">🎵 完整歌单</a>
-        <a href="/detail.html?type=zaobao">📰 每日早报</a>
-        <a href="/detail.html?type=one">📖 ONE · 一个</a>
-        <a href="/detail.html?type=novels">📚 虚构抽屉</a>
+        <a href="/daily.html">📖 今日详情</a>
         <a href="/history.html">📜 历史回顾</a>
+        <a href="/songs.html">🎵 完整歌单</a>
     </div>
 
-    <div class="stats" id="stats-info"></div>
-    <div class="footer">© 拾光驿站 · 每日诗意</div>
+    <div class="footer">
+        <div id="update-time"></div>
+        <div>© 拾光驿站 · 每日诗意</div>
+    </div>
 </div>
 
 <script>
-    // 获取当日数据并填充
-    fetch('/data/daily.json?t=' + Date.now())
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('daily-summary').textContent = data.summary || '今日拾光';
-            document.getElementById('date').textContent = data.date || '今日';
-            // 彩蛋基于日期
-            const getEasterEgg = (dateStr) => {
-                const eggs = ['✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。','🍂 今日彩蛋：时光不语，静待花开。','📖 今日彩蛋：每一篇小说都是平行宇宙的你。','🎵 今日彩蛋：未知旋律里藏着昨天的故事。','💭 今日彩蛋：散落的诗行，是某人的心事。','🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。','🌙 今日彩蛋：此刻的宁静，胜过万语千言。','☕ 今日彩蛋：读一段文字，饮一杯暖茶。'];
-                let hash = 0, seed = dateStr || new Date().toDateString();
-                for(let i=0;i<seed.length;i++) hash = ((hash<<5)-hash)+seed.charCodeAt(i);
-                return eggs[Math.abs(hash)%eggs.length];
-            };
-            document.getElementById('easter-egg').textContent = getEasterEgg(data.date);
-        })
-        .catch(err => console.error('加载失败', err));
+    async function loadHomeData() {
+        try {
+            const res = await fetch('/data/daily.json?t=' + Date.now());
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
 
-    // 加载统计信息
-    fetch('/data/stats.json?t=' + Date.now())
-        .then(res => res.json())
-        .then(stats => {
-            const info = `📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 创作 ${stats.total_novels||0} 篇小说 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
-            document.getElementById('stats-info').innerHTML = info;
-        })
-        .catch(e => console.warn('统计加载失败', e));
+            document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
+            document.getElementById('date').innerHTML = data.date || '';
+            document.getElementById('easter-egg').innerHTML = getEasterEgg(data.date);
+            if (data.updated_at) {
+                const beijingTime = new Date(data.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+                document.getElementById('update-time').innerHTML = `更新于 ${beijingTime}`;
+            }
+        } catch (err) {
+            console.error('加载每日数据失败', err);
+            document.getElementById('daily-summary').innerHTML = '✨ 今日拾光';
+            document.getElementById('date').innerHTML = '';
+            document.getElementById('easter-egg').innerHTML = '✨ 加载失败，请稍后重试';
+        }
+
+        try {
+            const statsRes = await fetch('/data/stats.json?t=' + Date.now());
+            if (statsRes.ok) {
+                const stats = await statsRes.json();
+                const statsText = `📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 创作 ${stats.total_novels||0} 篇小说 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
+                document.getElementById('stats').innerHTML = statsText;
+            } else {
+                document.getElementById('stats').innerHTML = '📊 统计加载中...';
+            }
+        } catch (err) {
+            console.warn('统计加载失败', err);
+            document.getElementById('stats').innerHTML = '📊 统计暂不可用';
+        }
+    }
+
+    function getEasterEgg(dateStr) {
+        const eggs = [
+            "✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
+            "🍂 今日彩蛋：时光不语，静待花开。",
+            "📖 今日彩蛋：每一篇小说都是平行宇宙的你。",
+            "🎵 今日彩蛋：未知旋律里藏着昨天的故事。",
+            "💭 今日彩蛋：散落的诗行，是某人的心事。",
+            "🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
+            "🌙 今日彩蛋：此刻的宁静，胜过万语千言。",
+            "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
+        ];
+        let hash = 0;
+        let seed = dateStr || new Date().toDateString();
+        for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        return eggs[Math.abs(hash) % eggs.length];
+    }
+
+    loadHomeData();
 </script>
 </body>
 </html>
