@@ -284,7 +284,7 @@
 </div>
 
 <script>
-    // 辅助函数
+    // ==================== 辅助函数 ====================
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
@@ -298,7 +298,7 @@
     document.getElementById('close-immerse')?.addEventListener('click', closeImmerse);
     document.getElementById('immerse-modal')?.addEventListener('click', (e) => { if (e.target === document.getElementById('immerse-modal')) closeImmerse(); });
 
-    // 模块渲染函数（与 daily.html 保持一致）
+    // ==================== 模块渲染函数 ====================
     function renderOneModule(oneData){
         let container=document.getElementById('one-content'), card=document.getElementById('one-card'), html='';
         if(oneData.article && oneData.article.content) html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;
@@ -306,6 +306,7 @@
         if(oneData.question && oneData.question.question) html+=`<div class="one-qa"><h3>💬 问答</h3><div class="one-question">${escapeHtml(oneData.question.question)}</div><div class="one-answer">${escapeHtml(oneData.question.answer||'').replace(/\n/g,'<br>')}</div>${oneData.question.author?`<div class="one-author">—— ${escapeHtml(oneData.question.author)}</div>`:''}</div>`;
         if(html){ container.innerHTML=html; card.style.display='block'; }
     }
+
     function renderNovels(novels){
         let container=document.getElementById('novels-container'), card=document.getElementById('novel-card'), html='';
         if(!novels.length){ container.innerHTML='<p>暂无小说</p>'; card.style.display='block'; return; }
@@ -346,7 +347,7 @@
         }));
     }
 
-    // 加载历史数据
+    // ==================== 数据加载 ====================
     const urlParams = new URLSearchParams(window.location.search);
     const date = urlParams.get('date');
     if (!date) {
@@ -378,7 +379,7 @@
                 <div id="one-card" class="section" style="display:none;"><div class="section-title">📖 ONE · 一个</div><div id="one-content"></div></div>
                 <!-- 小说 -->
                 <div id="novel-card" class="section" style="display:none;"><div class="section-title">📚 虚构抽屉</div><div id="novels-container"></div></div>
-                <!-- 新增模块 -->
+                <!-- 新增深度模块 -->
                 <div id="question-card" class="section thought-module" style="display:none;"><div class="section-title">💡 每日思考题</div><div class="question-text" id="question-text"></div></div>
                 <div id="trivia-card" class="section trivia-module" style="display:none;"><div class="section-title">📚 知识卡片</div><div class="trivia-text" id="trivia-text"></div></div>
                 <div id="puzzle-card" class="section puzzle-module" style="display:none;"><div class="section-title">🤔 推理题</div><div class="puzzle-question" id="puzzle-question"></div><div class="puzzle-answer" id="puzzle-answer"></div><button id="puzzle-answer-btn" class="answer-btn" style="display:none;">🔍 显示答案</button></div>
