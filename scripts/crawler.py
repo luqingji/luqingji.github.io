@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.8）
+每日数据爬虫（优化版 v2.9）
 - 自动统计历史数据总量
 - 生成 stats.json 供前端侧边栏展示
 - 优化 ONE 模块限流处理
 - 小说生成独特的 AI 评语
 - 使用 AI 生成每日一笑和心灵毒鸡汤（随机主题）
+- 使用 AI 生成每日彩蛋（诗意、温馨、鼓励性短句）
 """
 
 import os
@@ -82,6 +83,17 @@ FALLBACK_REVIEWS = [
     "字里行间，藏着不为人知的温柔。",
     "一个让人回味无穷的故事。",
     "简单的情节，深刻的哲理。"
+]
+
+STATIC_EASTER_EGGS = [
+    "✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
+    "🍂 今日彩蛋：时光不语，静待花开。",
+    "📖 今日彩蛋：每一篇小说都是平行宇宙的你。",
+    "🎵 今日彩蛋：未知旋律里藏着昨天的故事。",
+    "💭 今日彩蛋：散落的诗行，是某人的心事。",
+    "🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
+    "🌙 今日彩蛋：此刻的宁静，胜过万语千言。",
+    "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
 ]
 
 # ==================== AI 调用（带重试） ====================
@@ -695,6 +707,22 @@ def generate_soul_soup() -> Optional[str]:
         logger.error(f"生成毒鸡汤失败: {e}")
     return f"关于{topic}，有时需要一点毒鸡汤才能清醒。"
 
+# ==================== AI 生成彩蛋 ====================
+def generate_easter_egg() -> str:
+    """使用 AI 生成一条诗意、温馨、鼓励性的彩蛋短句"""
+    if not ENABLE_AI:
+        return random.choice(STATIC_EASTER_EGGS)
+    prompt = "请写一句诗意、温馨、鼓励性的短句（20字以内），用于网站的每日彩蛋。"
+    try:
+        egg = call_ai(prompt, max_tokens=50, temperature=0.9, timeout=10)
+        if egg:
+            # 去除可能的多余引号和换行
+            return egg.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成彩蛋失败: {e}")
+    # 降级到静态彩蛋
+    return random.choice(STATIC_EASTER_EGGS)
+
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
     if not text:
@@ -886,16 +914,15 @@ def main():
 
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.8 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v2.9 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
 
     songs = fetch_songs(6)
-    
-    # 生成毒鸡汤和笑话（AI）
     joke = generate_daily_joke()
     soul = generate_soul_soup()
+    easter = generate_easter_egg()
 
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
@@ -911,7 +938,8 @@ def main():
             "question": fetch_one_question()
         },
         "joke": joke,
-        "soul": soul
+        "soul": soul,
+        "easter": easter
     }
 
     summary = generate_summary(today_data)
