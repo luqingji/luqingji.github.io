@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v2.9）
-- 自动统计历史数据总量
-- 生成 stats.json 供前端侧边栏展示
-- 优化 ONE 模块限流处理
-- 小说生成独特的 AI 评语
-- 使用 AI 生成每日一笑和心灵毒鸡汤（随机主题）
-- 使用 AI 生成每日彩蛋（诗意、温馨、鼓励性短句）
+每日数据爬虫（优化版 v3.0）
+- 新增 DeepSeek 模型模块：每日思考题、冷知识、深度评语
+- Qwen2.5 负责创意写作
+- 其他功能保持不变
 """
 
 import os
@@ -37,7 +34,11 @@ logger = logging.getLogger(__name__)
 API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app"
 SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
-SILICONFLOW_MODEL = os.environ.get('SILICONFLOW_MODEL', 'Qwen/Qwen2.5-7B-Instruct')
+
+# 模型分配
+MODEL_WRITING = 'Qwen/Qwen2.5-7B-Instruct'          # 创意写作
+MODEL_THINKING = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B'  # 深度思考
+
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')
 
@@ -96,9 +97,13 @@ STATIC_EASTER_EGGS = [
     "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
 ]
 
-# ==================== AI 调用（带重试） ====================
+FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
+FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
+FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
+
+# ==================== AI 调用（支持模型选择） ====================
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 30) -> Optional[str]:
+def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 30, model: str = None) -> Optional[str]:
     if not ENABLE_AI:
         return None
     headers = {
@@ -106,7 +111,7 @@ def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeou
         "Content-Type": "application/json"
     }
     payload = {
-        "model": SILICONFLOW_MODEL,
+        "model": model if model else MODEL_WRITING,  # 默认写作模型
         "messages": [
             {"role": "system", "content": "你是一位资深音乐/文学/生活品味家，擅长用温暖、富有哲理的文字创作。"},
             {"role": "user", "content": prompt}
@@ -143,7 +148,7 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 歌曲库（保存ID） ====================
+# ==================== 歌曲库（保持不变） ====================
 def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -166,7 +171,6 @@ def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
 def update_song_library(force: bool = False):
     library_file = os.path.join(data_dir, 'song_library.json')
     need_update = force
-
     if not need_update and os.path.exists(library_file):
         try:
             with open(library_file, 'r', encoding='utf-8') as f:
@@ -176,13 +180,11 @@ def update_song_library(force: bool = False):
                 need_update = True
         except:
             need_update = True
-
     if not need_update and os.path.exists(library_file):
         mtime = os.path.getmtime(library_file)
         if (time.time() - mtime) < 7 * 24 * 3600:
             logger.info("歌曲库较新且包含ID，跳过更新")
             return
-
     logger.info("正在更新歌曲库...")
     BILLBOARDS = [3778678, 3779629, 19723756, 2884035, 60198, 3812895, 27126504, 71384707, 991319590, 2023401535]
     all_songs = []
@@ -208,20 +210,17 @@ def fetch_songs(n: int = 6) -> List[Dict]:
     if not os.path.exists(library_file):
         logger.warning("歌曲库不存在，使用备选歌单")
         return fetch_songs_ai_fallback(n)
-
     with open(library_file, 'r', encoding='utf-8') as f:
         library = json.load(f)
     if not library:
         logger.warning("歌曲库为空，使用备选歌单")
         return fetch_songs_ai_fallback(n)
-
     if len(library) < n:
         selected = random.sample(library, len(library))
         while len(selected) < n:
             selected += random.sample(library, min(n - len(selected), len(library)))
     else:
         selected = random.sample(library, n)
-
     songs = []
     for item in selected:
         name = item['name']
@@ -283,7 +282,6 @@ def fetch_sentence() -> dict:
                     return enrich_with_ai("sentence", result)
         except Exception as e:
             logger.error(f"ALAPI 获取失败: {e}")
-
     try:
         url = "https://v1.hitokoto.cn/"
         resp = requests.get(url, timeout=5)
@@ -297,7 +295,6 @@ def fetch_sentence() -> dict:
             return enrich_with_ai("sentence", result)
     except Exception as e:
         logger.error(f"原有一言接口异常: {e}")
-
     logger.warning("所有来源均失败，使用备选句子")
     result = random.choice(FALLBACK_SENTENCES).copy()
     return enrich_with_ai("sentence", result)
@@ -316,7 +313,6 @@ def fetch_article() -> dict:
         except Exception as e:
             logger.error(f"源 {source_func.__name__} 失败: {e}")
             continue
-
     logger.warning("所有来源均失败，使用备选文章")
     result = random.choice(FALLBACK_ARTICLES).copy()
     return enrich_with_ai("article", result)
@@ -408,7 +404,7 @@ def fetch_wikipedia() -> Optional[dict]:
         logger.error(f"维基百科抓取异常: {e}")
         return None
 
-# ==================== 每日小说 ====================
+# ==================== 每日小说（使用写作模型） ====================
 def clean_json_string(s: str) -> str:
     s = s.strip()
     if s.startswith('\ufeff'):
@@ -436,22 +432,20 @@ def extract_json(text: str) -> Optional[str]:
     return None
 
 def generate_novel_review(title: str, content: str) -> str:
-    """为小说生成一句独特的评语"""
+    """为小说生成一句独特的评语（使用思考模型）"""
     if not ENABLE_AI:
         return random.choice(FALLBACK_REVIEWS)
-
     summary = content[:200].replace('\n', ' ')
     prompt = f"""
     请为小说《{title}》写一句简短而富有诗意的评语（20字以内），风格类似评书或读后感。
     小说摘要：{summary}
     """
     try:
-        review = call_ai(prompt, max_tokens=50, temperature=0.8, timeout=10)
+        review = call_ai(prompt, max_tokens=50, temperature=0.8, timeout=10, model=MODEL_THINKING)
         if review:
             return review.strip('"').strip()
     except Exception as e:
         logger.error(f"生成评语失败: {e}")
-
     return random.choice(FALLBACK_REVIEWS)
 
 def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional[dict]:
@@ -481,20 +475,17 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
         """
         try:
-            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=60)
+            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=60, model=MODEL_WRITING)
         except Exception as e:
             logger.error(f"  AI调用异常: {e}")
             time.sleep(5)
             continue
-
         if not ai_resp:
             continue
-
         if ai_resp.startswith('```json') and ai_resp.endswith('```'):
             ai_resp = ai_resp[7:-3].strip()
         elif ai_resp.startswith('```') and ai_resp.endswith('```'):
             ai_resp = ai_resp[3:-3].strip()
-
         json_str = extract_json(ai_resp)
         if json_str:
             json_str = clean_json_string(json_str)
@@ -520,7 +511,6 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
                         continue
             except json.JSONDecodeError as e:
                 logger.info(f"  × JSON解析失败: {e}，尝试正则提取")
-
         title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', ai_resp, re.DOTALL)
         content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', ai_resp, re.DOTALL)
         if title_match and content_match:
@@ -541,10 +531,8 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
             else:
                 logger.info(f"  × 正则提取字数不足{min_words}（实际{word_count}），重试")
                 continue
-
         logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
         time.sleep(3)
-
     fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
     fallback['review'] = random.choice(FALLBACK_REVIEWS)
     logger.warning(f"  使用备选小说：{fallback['title']}")
@@ -565,7 +553,7 @@ def fetch_novels(n: int = 3) -> List[Dict]:
         time.sleep(2)
     return novels
 
-# ==================== 每日总结 ====================
+# ==================== 每日总结（使用写作模型） ====================
 def generate_summary(data: dict) -> str:
     if not ENABLE_AI:
         return "今日拾光，愿您有所获。"
@@ -587,7 +575,7 @@ def generate_summary(data: dict) -> str:
     每日一文：《{article_title}》
     每日小说：{novels_str}
     """
-    ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, timeout=20)
+    ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, timeout=20, model=MODEL_WRITING)
     if ai_resp:
         return ai_resp.strip('"').strip()
     else:
@@ -598,42 +586,34 @@ def fetch_zaobao() -> Optional[dict]:
     if not ALAPI_TOKEN:
         logger.warning("未设置 ALAPI_TOKEN，跳过早报")
         return None
-
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
-
     max_attempts = 2
     for attempt in range(1, max_attempts + 1):
         try:
             url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}&format=json"
             resp = requests.get(url, headers=headers, timeout=15)
-
             logger.info(f"早报请求尝试 {attempt}: HTTP {resp.status_code}")
             if resp.status_code != 200:
                 logger.warning(f"响应内容前200字符: {resp.text[:200]}")
                 continue
-
             try:
                 data = resp.json()
             except ValueError:
                 logger.error(f"JSON解析失败，原始响应: {resp.text[:500]}")
                 continue
-
             if not isinstance(data, dict) or not data.get('success'):
                 logger.warning(f"接口返回失败: {data.get('message', '未知错误')}")
                 continue
-
             zaobao_data = data.get('data')
             if not zaobao_data or not isinstance(zaobao_data, dict):
                 logger.warning(f"data字段无效: {type(zaobao_data)}")
                 return {"date": "", "news": [], "weiyu": ""}
-
             news_list = zaobao_data.get('news', [])
             if not isinstance(news_list, list):
                 logger.warning(f"news字段类型不是列表: {type(news_list)}")
                 return {"date": zaobao_data.get('date', ''), "news": [], "weiyu": ""}
-
             valid_news = []
             for item in news_list:
                 if isinstance(item, str) and item.strip():
@@ -644,11 +624,9 @@ def fetch_zaobao() -> Optional[dict]:
                         "summary": "",
                         "url": ""
                     })
-
             weiyu = zaobao_data.get('weiyu', '')
             if weiyu:
                 weiyu = weiyu.replace('【微语】', '').strip()
-
             logger.info(f"早报获取成功，共 {len(valid_news)} 条新闻")
             return {
                 "date": zaobao_data.get('date', ''),
@@ -657,7 +635,6 @@ def fetch_zaobao() -> Optional[dict]:
                 "image": zaobao_data.get('image', ''),
                 "audio": zaobao_data.get('audio', '')
             }
-
         except requests.Timeout:
             logger.error(f"早报请求超时 (尝试 {attempt})")
         except requests.ConnectionError:
@@ -666,23 +643,21 @@ def fetch_zaobao() -> Optional[dict]:
             logger.error(f"早报网络异常 (尝试 {attempt}): {e}")
         except Exception as e:
             logger.error(f"早报未知异常 (尝试 {attempt}): {e}")
-
         if attempt < max_attempts:
             wait_time = 2 ** attempt
             logger.info(f"等待 {wait_time} 秒后重试...")
             time.sleep(wait_time)
-
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== AI 生成毒鸡汤和笑话 ====================
+# ==================== AI 生成毒鸡汤和笑话（使用写作模型） ====================
 def generate_daily_joke() -> Optional[str]:
     """使用 AI 生成每日一笑"""
     if not ENABLE_AI:
         return "今日无笑话，但愿你笑口常开。"
     prompt = "来一个超级无敌搞笑的每日一笑"
     try:
-        joke = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=15)
+        joke = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=15, model=MODEL_WRITING)
         if joke:
             return joke.strip()
     except Exception as e:
@@ -693,35 +668,69 @@ def generate_soul_soup() -> Optional[str]:
     """使用 AI 生成心灵毒鸡汤，随机主题"""
     if not ENABLE_AI:
         return "生活不易，但你是最棒的。"
-    topics = [
-        "努力", "选择", "坚持", "自我", "真相",
-        "现状", "未来", "面对", "苦难"
-    ]
+    topics = ["努力", "选择", "坚持", "自我", "真相", "现状", "未来", "面对", "苦难"]
     topic = random.choice(topics)
     prompt = f"来一个心灵毒鸡汤关于{topic}"
     try:
-        soup = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=15)
+        soup = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=15, model=MODEL_WRITING)
         if soup:
             return soup.strip()
     except Exception as e:
         logger.error(f"生成毒鸡汤失败: {e}")
     return f"关于{topic}，有时需要一点毒鸡汤才能清醒。"
 
-# ==================== AI 生成彩蛋 ====================
 def generate_easter_egg() -> str:
     """使用 AI 生成一条诗意、温馨、鼓励性的彩蛋短句"""
     if not ENABLE_AI:
         return random.choice(STATIC_EASTER_EGGS)
     prompt = "请写一句诗意、温馨、鼓励性的短句（20字以内），用于网站的每日彩蛋。"
     try:
-        egg = call_ai(prompt, max_tokens=50, temperature=0.9, timeout=10)
+        egg = call_ai(prompt, max_tokens=50, temperature=0.9, timeout=10, model=MODEL_WRITING)
         if egg:
-            # 去除可能的多余引号和换行
             return egg.strip('"\'').strip()
     except Exception as e:
         logger.error(f"生成彩蛋失败: {e}")
-    # 降级到静态彩蛋
     return random.choice(STATIC_EASTER_EGGS)
+
+# ==================== 新增深度思考模块（使用 DeepSeek 模型） ====================
+def generate_daily_question() -> str:
+    """使用 DeepSeek 模型生成每日思考题"""
+    if not ENABLE_AI:
+        return FALLBACK_QUESTION
+    prompt = "请提出一个引人深思的开放式问题（不超过50字），主题可以是人生、科技、社会、自我成长等。"
+    try:
+        question = call_ai(prompt, max_tokens=100, temperature=0.9, timeout=15, model=MODEL_THINKING)
+        if question:
+            return question.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成思考题失败: {e}")
+    return FALLBACK_QUESTION
+
+def generate_daily_trivia() -> str:
+    """使用 DeepSeek 模型生成每日冷知识/知识卡片"""
+    if not ENABLE_AI:
+        return FALLBACK_TRIVIA
+    prompt = "请提供一个有趣、冷门的知识点（不超过80字），可以是科学、历史、文化等任何领域。"
+    try:
+        trivia = call_ai(prompt, max_tokens=150, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        if trivia:
+            return trivia.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成冷知识失败: {e}")
+    return FALLBACK_TRIVIA
+
+def generate_deep_review(summary_text: str) -> str:
+    """使用 DeepSeek 模型为当日内容生成一段深度评语（可选）"""
+    if not ENABLE_AI:
+        return FALLBACK_DEEP_REVIEW
+    prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
+    try:
+        review = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=15, model=MODEL_THINKING)
+        if review:
+            return review.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成深度评语失败: {e}")
+    return FALLBACK_DEEP_REVIEW
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -746,7 +755,6 @@ def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
                 time.sleep(wait)
             else:
                 time.sleep(random.uniform(0.5, 1.5))
-
             payload = {"token": ALAPI_TOKEN, "date": ""}
             headers = {"Content-Type": "application/json"}
             resp = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -822,12 +830,10 @@ def safe_write_json(data: dict, filepath: str):
 
 # ==================== 统计生成 ====================
 def generate_stats():
-    """统计历史数据总量，生成 stats.json"""
     history_dir = os.path.join(data_dir, 'history')
     if not os.path.exists(history_dir):
         logger.warning("history目录不存在，无法生成统计")
         return
-
     total_days = 0
     total_songs = 0
     total_articles = 0
@@ -836,7 +842,6 @@ def generate_stats():
     total_recommend_words = 0
     total_news_items = 0
     total_one_items = 0
-
     for root, dirs, files in os.walk(history_dir):
         for file in files:
             if file.endswith('.json') and file != 'index.json':
@@ -845,36 +850,26 @@ def generate_stats():
                     with open(filepath, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     total_days += 1
-
-                    # 歌曲
                     songs = data.get('songs', [])
                     if songs:
                         total_songs += len(songs)
                         for song in songs:
                             rec = song.get('recommendation', '')
                             total_recommend_words += len(rec)
-
-                    # 文章
                     article = data.get('article')
                     if article:
                         total_articles += 1
                         content = article.get('content', '') or article.get('description', '')
                         total_words += len(content)
-
-                    # 小说
                     novels = data.get('novels', [])
                     if novels:
                         total_novels += len(novels)
                         for novel in novels:
                             content = novel.get('content', '')
                             total_words += len(content)
-
-                    # 早报新闻条数
                     zaobao = data.get('zaobao')
                     if zaobao and zaobao.get('news'):
                         total_news_items += len(zaobao['news'])
-
-                    # ONE 模块内容
                     one = data.get('one')
                     if one:
                         if one.get('article'):
@@ -883,12 +878,9 @@ def generate_stats():
                             total_one_items += 1
                         if one.get('question'):
                             total_one_items += 1
-
                 except Exception as e:
                     logger.error(f"读取历史文件失败 {filepath}: {e}")
-
     read_minutes = total_words // 300 if total_words else 0
-
     stats = {
         "total_days": total_days,
         "total_songs": total_songs,
@@ -911,19 +903,19 @@ def main():
         logger.warning("SILICONFLOW_API_KEY 未设置，AI功能关闭")
     if not ALAPI_TOKEN:
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
-
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v2.9 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.0 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
-
     update_song_library(force=False)
-
     songs = fetch_songs(6)
     joke = generate_daily_joke()
     soul = generate_soul_soup()
     easter = generate_easter_egg()
-
+    # 新增深度思考模块
+    daily_question = generate_daily_question()
+    daily_trivia = generate_daily_trivia()
+    # 深度评语基于每日总结生成（将在获得总结后调用，但总结依赖于其他数据，可先用占位）
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -939,26 +931,26 @@ def main():
         },
         "joke": joke,
         "soul": soul,
-        "easter": easter
+        "easter": easter,
+        "question": daily_question,
+        "trivia": daily_trivia,
     }
-
     summary = generate_summary(today_data)
     today_data['summary'] = summary
+    # 生成深度评语（基于每日总结）
+    deep_review = generate_deep_review(summary)
+    today_data['deep_review'] = deep_review
     logger.info(f"📝 每日总结：{summary}")
-
+    logger.info(f"💡 深度评语：{deep_review}")
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
     logger.info("✅ 每日数据已保存")
-
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
     hist_dir = os.path.join(data_dir, 'history', y, m)
     hist_file = os.path.join(hist_dir, f"{d}.json")
     safe_write_json(today_data, hist_file)
-
-    # 生成统计文件
     generate_stats()
-
     logger.info("=== 运行完成 ===")
 
 if __name__ == "__main__":
