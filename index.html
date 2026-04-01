@@ -22,6 +22,7 @@
             width: 100%;
             text-align: center;
         }
+        /* 核心标题 */
         .daily-summary {
             font-size: 2rem;
             font-weight: 500;
@@ -29,58 +30,59 @@
             margin-bottom: 0.5rem;
             color: #1e1e2f;
         }
-        .date {
+        /* 日期和彩蛋 */
+        .date, .easter-egg {
             font-size: 0.85rem;
             color: #8e8e9e;
-            margin-bottom: 0.5rem;
         }
         .easter-egg {
-            font-size: 0.8rem;
-            color: #b0b0c0;
-            margin-bottom: 2rem;
+            margin-top: 0.2rem;
+            margin-bottom: 1rem;
         }
+        /* 统计信息区块（上下加细线） */
         .stats {
             font-size: 0.85rem;
             color: #5b5b6e;
             margin: 2rem 0;
+            padding: 0.8rem 0;
             border-top: 1px solid #f0f2f5;
-            padding-top: 1rem;
+            border-bottom: 1px solid #f0f2f5;
             display: inline-block;
+            width: 100%;
+            text-align: center;
         }
+        /* 导航链接 */
         .links {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 1.5rem;
-            margin: 2rem 0;
+            gap: 2rem;
+            margin: 2rem 0 1rem;
         }
         .links a {
             color: #1e1e2f;
             text-decoration: none;
-            font-size: 0.95rem;
+            font-size: 1rem;
             border-bottom: 1px dotted #e0e4e8;
+            padding-bottom: 0.2rem;
+            transition: border-color 0.2s;
         }
         .links a:hover {
             border-bottom-color: #1e1e2f;
         }
+        /* 底部版权 */
         .footer {
             font-size: 0.75rem;
             color: #b0b0c0;
-            margin-top: 2rem;
+            margin-top: 2.5rem;
+            padding-top: 1rem;
             border-top: 1px solid #f0f2f5;
-            padding-top: 1.5rem;
         }
-        .loader {
-            font-size: 0.9rem;
-            color: #b0b0c0;
-            margin: 1rem 0;
-        }
-        .error {
-            color: #e74c3c;
-            font-size: 0.85rem;
-        }
+        /* 手机适配 */
         @media (max-width: 480px) {
             .daily-summary { font-size: 1.5rem; }
+            .stats { font-size: 0.75rem; margin: 1.5rem 0; }
+            .links a { font-size: 0.9rem; gap: 1.2rem; }
         }
     </style>
 </head>
