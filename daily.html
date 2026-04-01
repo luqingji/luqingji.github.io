@@ -134,7 +134,7 @@
             flex-wrap: wrap;
             gap: 0.5rem;
         }
-        .speak-btn, .immerse-btn, .refresh-btn, .audio-play-btn {
+        .speak-btn, .immerse-btn, .refresh-btn, .audio-play-btn, .answer-btn {
             background: none;
             border: 1px solid #e0e4e8;
             border-radius: 30px;
@@ -145,7 +145,7 @@
             color: #7a7a8c;
             transition: all 0.2s;
         }
-        .speak-btn:hover, .immerse-btn:hover, .refresh-btn:hover, .audio-play-btn:hover {
+        .speak-btn:hover, .immerse-btn:hover, .refresh-btn:hover, .audio-play-btn:hover, .answer-btn:hover {
             background: #f5f7f9;
             border-color: #cbd0d6;
             color: #1e1e2f;
@@ -191,8 +191,18 @@
             color: #e74c3c;
             margin: 2rem 0;
         }
-
-        /* 沉浸模态框 */
+        .puzzle-answer {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #7a7a8c;
+            display: none;
+        }
+        .thought-module, .trivia-module, .puzzle-module, .deep-review-module {
+            margin: 1.5rem 0;
+        }
+        .question-text, .trivia-text, .deep-review-text {
+            color: #5b5b6e;
+        }
         .immerse-modal {
             position: fixed;
             top: 0;
@@ -239,18 +249,9 @@
         .close-immerse:hover {
             background: rgba(0,0,0,0.7);
         }
-        /* 新增模块样式 */
-        .thought-module, .trivia-module, .deep-review-module {
-            margin: 1.5rem 0;
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-        .thought-module .section-title, .trivia-module .section-title, .deep-review-module .section-title {
-            margin-bottom: 0.5rem;
-        }
-        .question-text, .trivia-text, .deep-review-text {
-            color: #5b5b6e;
-            font-style: normal;
+        @media (max-width: 600px) {
+            .daily-summary { font-size: 1.3rem; }
+            .thought-module, .trivia-module, .puzzle-module, .deep-review-module { margin: 1rem 0; }
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -276,14 +277,13 @@
     </div>
 </div>
 
-<!-- 沉浸模态框 -->
 <div id="immerse-modal" class="immerse-modal">
     <button class="close-immerse" id="close-immerse">✕ 退出</button>
     <div id="immerse-content" class="immerse-content"></div>
 </div>
 
 <script>
-    // 辅助函数（与之前相同）
+    // 辅助函数
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
@@ -297,7 +297,7 @@
     document.getElementById('close-immerse')?.addEventListener('click', closeImmerse);
     document.getElementById('immerse-modal')?.addEventListener('click', (e) => { if (e.target === document.getElementById('immerse-modal')) closeImmerse(); });
 
-    // 模块渲染函数（与之前相同，但增加新模块）
+    // 模块渲染函数
     function renderOneModule(oneData){
         let container=document.getElementById('one-content'), card=document.getElementById('one-card'), html='';
         if(oneData.article && oneData.article.content) html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;
@@ -373,10 +373,11 @@
                 <!-- 新增深度思考模块 -->
                 <div id="question-card" class="section thought-module" style="display:none;"><div class="section-title">💡 每日思考题</div><div class="question-text" id="question-text"></div></div>
                 <div id="trivia-card" class="section trivia-module" style="display:none;"><div class="section-title">📚 知识卡片</div><div class="trivia-text" id="trivia-text"></div></div>
+                <div id="puzzle-card" class="section puzzle-module" style="display:none;"><div class="section-title">🤔 推理题</div><div class="puzzle-question" id="puzzle-question"></div><div class="puzzle-answer" id="puzzle-answer"></div><button id="puzzle-answer-btn" class="answer-btn" style="display:none;">🔍 显示答案</button></div>
                 <div id="deep-review-card" class="section deep-review-module" style="display:none;"><div class="section-title">✨ 深度评语</div><div class="deep-review-text" id="deep-review-text"></div></div>
             `;
 
-            // 基础数据填充
+            // 填充基础数据
             document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
             document.getElementById('date').innerHTML = data.date || '';
             document.getElementById('easter-egg').innerHTML = getEasterEgg(data.date);
@@ -480,19 +481,36 @@
 
             // 新增深度思考模块
             if(data.question){
-                const qCard = document.getElementById('question-card');
+                document.getElementById('question-card').style.display = 'block';
                 document.getElementById('question-text').innerHTML = escapeHtml(data.question);
-                qCard.style.display = 'block';
             }
             if(data.trivia){
-                const tCard = document.getElementById('trivia-card');
+                document.getElementById('trivia-card').style.display = 'block';
                 document.getElementById('trivia-text').innerHTML = escapeHtml(data.trivia);
-                tCard.style.display = 'block';
             }
             if(data.deep_review){
-                const dCard = document.getElementById('deep-review-card');
+                document.getElementById('deep-review-card').style.display = 'block';
                 document.getElementById('deep-review-text').innerHTML = escapeHtml(data.deep_review);
-                dCard.style.display = 'block';
+            }
+            if(data.puzzle && data.puzzle.question){
+                const puzzleCard = document.getElementById('puzzle-card');
+                document.getElementById('puzzle-question').innerHTML = `🤔 推理题：${escapeHtml(data.puzzle.question)}`;
+                if(data.puzzle.answer){
+                    document.getElementById('puzzle-answer').innerHTML = `答案：${escapeHtml(data.puzzle.answer)}`;
+                    const btn = document.getElementById('puzzle-answer-btn');
+                    btn.style.display = 'inline-block';
+                    btn.onclick = () => {
+                        const answerDiv = document.getElementById('puzzle-answer');
+                        if (answerDiv.style.display === 'none' || answerDiv.style.display === '') {
+                            answerDiv.style.display = 'block';
+                            btn.textContent = '🙈 隐藏答案';
+                        } else {
+                            answerDiv.style.display = 'none';
+                            btn.textContent = '🔍 显示答案';
+                        }
+                    };
+                }
+                puzzleCard.style.display = 'block';
             }
         })
         .catch(err => {
