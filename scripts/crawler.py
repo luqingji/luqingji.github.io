@@ -749,7 +749,6 @@ def generate_daily_puzzle() -> Dict[str, str]:
     try:
         resp = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=20, model=MODEL_THINKING)
         if resp:
-            # 尝试解析JSON
             resp = resp.strip()
             if resp.startswith('```json') and resp.endswith('```'):
                 resp = resp[7:-3].strip()
