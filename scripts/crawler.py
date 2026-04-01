@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.0）
-- 新增 DeepSeek 模型模块：每日思考题、冷知识、深度评语
-- Qwen2.5 负责创意写作
-- 其他功能保持不变
+每日数据爬虫（优化版 v3.1）
+- 新增推理题模块（使用 DeepSeek 模型）
+- 保持多模型分工：Qwen2.5 负责写作，DeepSeek 负责思考题、冷知识、推理题、深度评语
 """
 
 import os
@@ -87,19 +86,23 @@ FALLBACK_REVIEWS = [
 ]
 
 STATIC_EASTER_EGGS = [
-    "✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
-    "🍂 今日彩蛋：时光不语，静待花开。",
-    "📖 今日彩蛋：每一篇小说都是平行宇宙的你。",
-    "🎵 今日彩蛋：未知旋律里藏着昨天的故事。",
-    "💭 今日彩蛋：散落的诗行，是某人的心事。",
-    "🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
-    "🌙 今日彩蛋：此刻的宁静，胜过万语千言。",
-    "☕ 今日彩蛋：读一段文字，饮一杯暖茶。"
+    "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
+    "🥚 今日彩蛋：时光不语，静待花开。",
+    "🥚 今日彩蛋：每一篇小说都是平行宇宙的你。",
+    "🥚 今日彩蛋：未知旋律里藏着昨天的故事。",
+    "🥚 今日彩蛋：散落的诗行，是某人的心事。",
+    "🥚 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
+    "🥚 今日彩蛋：此刻的宁静，胜过万语千言。",
+    "🥚 今日彩蛋：读一段文字，饮一杯暖茶。"
 ]
 
 FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
 FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
 FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
+FALLBACK_PUZZLE = {
+    "question": "三个人去住店，每人10元，老板说优惠5元，服务员藏了2元，每人退回1元，实际每人花了9元，3×9=27，加上服务员藏2元=29，还有1元去哪了？",
+    "answer": "这是一道逻辑误导题，实际支出27元已经包含了服务员的2元，不应再加2元。"
+}
 
 # ==================== AI 调用（支持模型选择） ====================
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -111,7 +114,7 @@ def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeou
         "Content-Type": "application/json"
     }
     payload = {
-        "model": model if model else MODEL_WRITING,  # 默认写作模型
+        "model": model if model else MODEL_WRITING,
         "messages": [
             {"role": "system", "content": "你是一位资深音乐/文学/生活品味家，擅长用温暖、富有哲理的文字创作。"},
             {"role": "user", "content": prompt}
@@ -148,7 +151,7 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 歌曲库（保持不变） ====================
+# ==================== 歌曲库（保存ID） ====================
 def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -692,7 +695,7 @@ def generate_easter_egg() -> str:
         logger.error(f"生成彩蛋失败: {e}")
     return random.choice(STATIC_EASTER_EGGS)
 
-# ==================== 新增深度思考模块（使用 DeepSeek 模型） ====================
+# ==================== 深度思考模块（使用 DeepSeek 模型） ====================
 def generate_daily_question() -> str:
     """使用 DeepSeek 模型生成每日思考题"""
     if not ENABLE_AI:
@@ -720,7 +723,7 @@ def generate_daily_trivia() -> str:
     return FALLBACK_TRIVIA
 
 def generate_deep_review(summary_text: str) -> str:
-    """使用 DeepSeek 模型为当日内容生成一段深度评语（可选）"""
+    """使用 DeepSeek 模型为当日内容生成一段深度评语"""
     if not ENABLE_AI:
         return FALLBACK_DEEP_REVIEW
     prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
@@ -731,6 +734,36 @@ def generate_deep_review(summary_text: str) -> str:
     except Exception as e:
         logger.error(f"生成深度评语失败: {e}")
     return FALLBACK_DEEP_REVIEW
+
+def generate_daily_puzzle() -> Dict[str, str]:
+    """使用 DeepSeek 模型生成每日推理题（问题+答案）"""
+    if not ENABLE_AI:
+        return FALLBACK_PUZZLE
+    prompt = """
+    请生成一个有趣的推理题，包含问题和答案。要求：
+    - 问题不超过100字，答案不超过80字
+    - 题目可以是逻辑推理、数学谜题、情境推理等
+    - 答案需要清晰解释
+    请以JSON格式输出，例如：{"question": "...", "answer": "..."}
+    """
+    try:
+        resp = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=20, model=MODEL_THINKING)
+        if resp:
+            # 尝试解析JSON
+            resp = resp.strip()
+            if resp.startswith('```json') and resp.endswith('```'):
+                resp = resp[7:-3].strip()
+            elif resp.startswith('```') and resp.endswith('```'):
+                resp = resp[3:-3].strip()
+            data = json.loads(resp)
+            if isinstance(data, dict) and 'question' in data and 'answer' in data:
+                return {
+                    "question": data['question'].strip(),
+                    "answer": data['answer'].strip()
+                }
+    except Exception as e:
+        logger.error(f"生成推理题失败: {e}")
+    return FALLBACK_PUZZLE
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -905,17 +938,21 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.0 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.1 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
+
     update_song_library(force=False)
+
     songs = fetch_songs(6)
     joke = generate_daily_joke()
     soul = generate_soul_soup()
     easter = generate_easter_egg()
-    # 新增深度思考模块
+
+    # 深度思考模块
     daily_question = generate_daily_question()
     daily_trivia = generate_daily_trivia()
-    # 深度评语基于每日总结生成（将在获得总结后调用，但总结依赖于其他数据，可先用占位）
+    daily_puzzle = generate_daily_puzzle()
+
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -934,22 +971,28 @@ def main():
         "easter": easter,
         "question": daily_question,
         "trivia": daily_trivia,
+        "puzzle": daily_puzzle
     }
+
     summary = generate_summary(today_data)
     today_data['summary'] = summary
-    # 生成深度评语（基于每日总结）
     deep_review = generate_deep_review(summary)
     today_data['deep_review'] = deep_review
+
     logger.info(f"📝 每日总结：{summary}")
     logger.info(f"💡 深度评语：{deep_review}")
+    logger.info(f"🤔 推理题：{daily_puzzle['question'][:50]}...")
+
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
     logger.info("✅ 每日数据已保存")
+
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
     hist_dir = os.path.join(data_dir, 'history', y, m)
     hist_file = os.path.join(hist_dir, f"{d}.json")
     safe_write_json(today_data, hist_file)
+
     generate_stats()
     logger.info("=== 运行完成 ===")
 
