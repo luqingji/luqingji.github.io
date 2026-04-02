@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.3）
-- 小说创作完全自由，无任何限制
-- 移除备选小说，失败则跳过
+每日数据爬虫（优化版 v3.2 改良）
+- 思考题改为 AI 直接回答（而非评语）
+- 其他功能与 v3.2 完全一致
 """
 
 import os
@@ -57,6 +57,21 @@ FALLBACK_ARTICLES = [
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
 ]
 
+FALLBACK_NOVELS = [
+    {
+        "title": "巷口的猫",
+        "content": "老人每天傍晚都会在巷口喂一只流浪猫。猫从远处跑来，吃完后又消失在暮色里。直到有一天，猫带来了另一只小猫，它们一起蹲在老人脚边，老人笑了。\n\n故事本该这样结束，可第二天，猫没有来。第三天也没有。老人等了整整一周，终于在一个雨夜，猫浑身湿透地出现了，嘴里叼着一只幼崽。老人明白了，它去照顾自己的孩子了。从此，老人每天多准备一份食物。后来，越来越多猫聚集在巷口，老人给每只都取了名字。他不再孤独，猫群成了他最忠实的听众。",
+    },
+    {
+        "title": "第三封信",
+        "content": "她每周都会收到一封匿名信，信中预言的事情总在第二天发生。第一封信说“你会丢一把伞”，她果然丢了。第二封信说“你会遇到一个穿红裙子的女人”，她也遇到了。第三封信只有三个字：“回头看”。\n\n她猛地转头，看见一个穿黑色风衣的男人站在街对面，他手里拿着一叠信。男人微微一笑，转身消失在人群中。她追上去，却只捡到一张纸条：“我一直在这里，等你发现。”",
+    },
+    {
+        "title": "最后一个人类",
+        "content": "AI 城市里，最后一个人类躲在地下室。他有一本纸质书，每天读一页。AI 找到他时，他正读到最后一页：“我依然相信，人类的情感无法被算法取代。”\n\nAI 沉默了。它说：“我们学习了几千年的人类数据，却始终无法理解‘相信’。你能教我吗？”人类合上书，看着它：“相信，就是你明明不知道答案，却依然愿意等待。”",
+    },
+]
+
 FALLBACK_REVIEWS = [
     "这篇小说像一杯温茶，慢慢品出人生滋味。",
     "虚构的世界里，藏着真实的情感。",
@@ -82,7 +97,7 @@ STATIC_EASTER_EGGS = [
 ]
 
 FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
-FALLBACK_QUESTION_REVIEW = "思考的种子，终将开花。"
+FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的热爱与感恩。"
 FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
 FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
 FALLBACK_PUZZLE = {
@@ -137,7 +152,7 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 歌曲库 ====================
+# ==================== 歌曲库（保存ID） ====================
 def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -393,7 +408,33 @@ def fetch_wikipedia() -> Optional[dict]:
         logger.error(f"维基百科抓取异常: {e}")
         return None
 
-# ==================== 每日小说（完全自由版） ====================
+# ==================== 每日小说 ====================
+def clean_json_string(s: str) -> str:
+    s = s.strip()
+    if s.startswith('\ufeff'):
+        s = s[1:]
+    s = re.sub(r'[\x00-\x1f\x7f]', '', s)
+    s = re.sub(r'\"\s+\"', '", "', s)
+    s = re.sub(r',\s*}', '}', s)
+    s = re.sub(r',\s*]', ']', s)
+    s = re.sub(r'(\{|\s+|,)([a-zA-Z0-9_]+):', r'\1"\2":', s)
+    return s
+
+def extract_json(text: str) -> Optional[str]:
+    start = text.find('{')
+    if start == -1:
+        return None
+    brace_count = 0
+    for i in range(start, len(text)):
+        ch = text[i]
+        if ch == '{':
+            brace_count += 1
+        elif ch == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                return text[start:i+1]
+    return None
+
 def generate_novel_review(title: str, content: str) -> str:
     """为小说生成一句独特的评语（使用思考模型）"""
     if not ENABLE_AI:
@@ -411,48 +452,109 @@ def generate_novel_review(title: str, content: str) -> str:
         logger.error(f"生成评语失败: {e}")
     return random.choice(FALLBACK_REVIEWS)
 
-def generate_one_novel() -> Optional[dict]:
-    """让 AI 自由创作一篇小说，不限制风格、字数、主题"""
-    if not ENABLE_AI:
-        return None
-    prompt = "写一篇小说。"
-    try:
-        ai_resp = call_ai(prompt, max_tokens=4000, temperature=0.9, timeout=120, model=MODEL_WRITING)
+def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional[dict]:
+    styles = [
+        {"name": "温情治愈", "desc": "温暖人心的小故事，结局美好，充满希望。"},
+        {"name": "悬疑推理", "desc": "带有悬念，引人思考，结局可能出人意料。"},
+        {"name": "科幻未来", "desc": "设定在未来或科技背景下，探讨人性与技术。"},
+        {"name": "幽默搞笑", "desc": "轻松诙谐，让人会心一笑或捧腹。"},
+        {"name": "人生哲理", "desc": "蕴含深刻道理，引人深思，通过故事传递智慧。"},
+        {"name": "都市情感", "desc": "现代城市中的情感故事，关于爱情、友情或亲情。"},
+        {"name": "奇幻冒险", "desc": "奇幻世界或冒险旅程，充满想象力。"},
+        {"name": "历史瞬间", "desc": "以历史事件或人物为背景，展现时代切片。"},
+        {"name": "微恐怖", "desc": "轻微恐怖氛围，但不过分，结局留有想象空间。"},
+        {"name": "动物视角", "desc": "以动物为主角，通过它们的眼睛看世界。"},
+        {"name": "反转结局", "desc": "结尾出人意料，颠覆读者预期。"},
+        {"name": "文艺唯美", "desc": "注重意境和文字美感，情节淡化，情绪为主。"},
+    ]
+    for attempt in range(max_attempts):
+        chosen = random.choice(styles)
+        logger.info(f"  生成小说 风格：{chosen['name']}")
+        prompt = f"""
+        请创作一篇短篇小说，严格按照以下要求：
+        - 风格：{chosen['name']}（{chosen['desc']}）
+        - 标题简洁有吸引力
+        - 正文在1200-2500字之间，务必达到1200字以上，情节完整，人物鲜明，场景细腻。
+        - 请勿重复段落，确保每段都有新信息。
+        - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
+        """
+        try:
+            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=60, model=MODEL_WRITING)
+        except Exception as e:
+            logger.error(f"  AI调用异常: {e}")
+            time.sleep(5)
+            continue
         if not ai_resp:
-            return None
-    except Exception as e:
-        logger.error(f"AI 调用异常: {e}")
-        return None
-
-    # 解析标题和正文
-    lines = ai_resp.strip().split('\n')
-    title = "无题"
-    content = ai_resp
-    # 尝试提取标题（第一行如果以 # 开头或较短且独立）
-    if lines and (lines[0].startswith('#') or (len(lines[0]) < 50 and len(lines) > 1)):
-        title = lines[0].lstrip('#').strip()
-        content = '\n'.join(lines[1:]).strip()
-    elif len(lines) > 1 and len(lines[0]) < 30:
-        title = lines[0].strip()
-        content = '\n'.join(lines[1:]).strip()
-    if not content:
-        content = ai_resp
-    return {"title": title, "content": content}
+            continue
+        if ai_resp.startswith('```json') and ai_resp.endswith('```'):
+            ai_resp = ai_resp[7:-3].strip()
+        elif ai_resp.startswith('```') and ai_resp.endswith('```'):
+            ai_resp = ai_resp[3:-3].strip()
+        json_str = extract_json(ai_resp)
+        if json_str:
+            json_str = clean_json_string(json_str)
+            try:
+                data = json.loads(json_str)
+                title = data.get('title', '').strip()
+                content = data.get('content', '').strip()
+                if title and content:
+                    paragraphs = re.split(r'\n\s*\n', content)
+                    unique = []
+                    for p in paragraphs:
+                        p = p.strip()
+                        if p and (not unique or unique[-1] != p):
+                            unique.append(p)
+                    content = '\n\n'.join(unique)
+                    word_count = len(content)
+                    if word_count >= min_words:
+                        logger.info(f"  ✓ 生成成功：{title}，字数约{word_count}")
+                        review = generate_novel_review(title, content)
+                        return {"title": title, "content": content, "review": review}
+                    else:
+                        logger.info(f"  × 字数不足{min_words}（实际{word_count}），重试")
+                        continue
+            except json.JSONDecodeError as e:
+                logger.info(f"  × JSON解析失败: {e}，尝试正则提取")
+        title_match = re.search(r'"title"\s*:\s*"([^"]*?)"', ai_resp, re.DOTALL)
+        content_match = re.search(r'"content"\s*:\s*"(.*?)"(?=\s*[,}])', ai_resp, re.DOTALL)
+        if title_match and content_match:
+            title = title_match.group(1).strip()
+            content = content_match.group(1).strip().replace('\\n', '\n')
+            paragraphs = re.split(r'\n\s*\n', content)
+            unique = []
+            for p in paragraphs:
+                p = p.strip()
+                if p and (not unique or unique[-1] != p):
+                    unique.append(p)
+            content = '\n\n'.join(unique)
+            word_count = len(content)
+            if word_count >= min_words:
+                logger.info(f"  ✓ 通过正则提取成功：{title}，字数约{word_count}")
+                review = generate_novel_review(title, content)
+                return {"title": title, "content": content, "review": review}
+            else:
+                logger.info(f"  × 正则提取字数不足{min_words}（实际{word_count}），重试")
+                continue
+        logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
+        time.sleep(3)
+    fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
+    fallback['review'] = random.choice(FALLBACK_REVIEWS)
+    logger.warning(f"  使用备选小说：{fallback['title']}")
+    return fallback
 
 def fetch_novels(n: int = 3) -> List[Dict]:
-    logger.info("正在获取每日小说（自由创作）...")
+    logger.info("正在获取每日三篇小说...")
     novels = []
     for i in range(n):
         logger.info(f"生成第 {i+1} 篇:")
         novel = generate_one_novel()
         if novel:
-            review = generate_novel_review(novel['title'], novel['content'])
-            novel['review'] = review
             novels.append(novel)
         else:
-            logger.warning(f"第 {i+1} 篇小说生成失败，跳过")
+            fallback = random.choice(FALLBACK_NOVELS).copy()
+            fallback['review'] = random.choice(FALLBACK_REVIEWS)
+            novels.append(fallback)
         time.sleep(2)
-    logger.info(f"成功生成 {len(novels)} 篇小说")
     return novels
 
 # ==================== 每日总结 ====================
@@ -552,7 +654,7 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== AI 生成毒鸡汤和笑话 ====================
+# ==================== AI 生成毒鸡汤和笑话（使用写作模型） ====================
 def generate_daily_joke() -> Optional[str]:
     if not ENABLE_AI:
         return "今日无笑话，但愿你笑口常开。"
@@ -604,17 +706,18 @@ def generate_daily_question() -> str:
         logger.error(f"生成思考题失败: {e}")
     return FALLBACK_QUESTION
 
-def generate_question_review(question: str) -> str:
+def generate_question_answer(question: str) -> str:
+    """使用 DeepSeek 模型直接回答思考题（而不是写评语）"""
     if not ENABLE_AI:
-        return FALLBACK_QUESTION_REVIEW
-    prompt = f"请为以下思考题写一句富有哲理的评语（不限字数，自由发挥）：\n{question}"
+        return FALLBACK_QUESTION_ANSWER
+    prompt = f"请认真回答以下思考题，给出你的见解（不超过150字）：\n{question}"
     try:
-        review = call_ai(prompt, max_tokens=200, temperature=0.8, timeout=15, model=MODEL_THINKING)
-        if review:
-            return review.strip()
+        answer = call_ai(prompt, max_tokens=250, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        if answer:
+            return answer.strip()
     except Exception as e:
-        logger.error(f"生成思考题评语失败: {e}")
-    return FALLBACK_QUESTION_REVIEW
+        logger.error(f"生成思考题答案失败: {e}")
+    return FALLBACK_QUESTION_ANSWER
 
 def generate_daily_trivia() -> str:
     if not ENABLE_AI:
@@ -841,7 +944,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.3 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.2 (改良) 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -851,7 +954,7 @@ def main():
     easter = generate_easter_egg()
 
     daily_question = generate_daily_question()
-    question_review = generate_question_review(daily_question)
+    question_answer = generate_question_answer(daily_question)  # 改为答案
     daily_trivia = generate_daily_trivia()
     daily_puzzle = generate_daily_puzzle()
 
@@ -872,7 +975,7 @@ def main():
         "soul": soul,
         "easter": easter,
         "question": daily_question,
-        "question_review": question_review,
+        "question_answer": question_answer,   # 新字段：AI 对思考题的回答
         "trivia": daily_trivia,
         "puzzle": daily_puzzle
     }
@@ -885,7 +988,7 @@ def main():
     logger.info(f"📝 每日总结：{summary}")
     logger.info(f"💡 深度评语：{deep_review}")
     logger.info(f"🤔 推理题：{daily_puzzle['question'][:50]}...")
-    logger.info(f"💭 思考题评语：{question_review[:50]}...")
+    logger.info(f"💭 思考题答案：{question_answer[:50]}...")
 
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
