@@ -283,11 +283,26 @@
 </div>
 
 <script>
-    // 辅助函数
+    // ==================== 辅助函数 ====================
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
-    function getEasterEgg(dateStr) { const eggs=['✨ 今日彩蛋：再读一遍，或许会发现隐藏的温柔。','🍂 今日彩蛋：时光不语，静待花开。','📖 今日彩蛋：每一篇小说都是平行宇宙的你。','🎵 今日彩蛋：未知旋律里藏着昨天的故事。','💭 今日彩蛋：散落的诗行，是某人的心事。','🌟 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。','🌙 今日彩蛋：此刻的宁静，胜过万语千言。','☕ 今日彩蛋：读一段文字，饮一杯暖茶。']; let hash=0; let seed=dateStr||new Date().toDateString(); for(let i=0;i<seed.length;i++) hash=((hash<<5)-hash)+seed.charCodeAt(i); return eggs[Math.abs(hash)%eggs.length]; }
+    // 静态彩蛋数组（降级使用）
+    const staticEasterEggs = [
+        "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
+        "🥚 今日彩蛋：时光不语，静待花开。",
+        "🥚 今日彩蛋：每一篇小说都是平行宇宙的你。",
+        "🥚 今日彩蛋：未知旋律里藏着昨天的故事。",
+        "🥚 今日彩蛋：散落的诗行，是某人的心事。",
+        "🥚 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
+        "🥚 今日彩蛋：此刻的宁静，胜过万语千言。",
+        "🥚 今日彩蛋：读一段文字，饮一杯暖茶。"
+    ];
+    function getStaticEasterEgg(dateStr) {
+        let hash = 0, seed = dateStr || new Date().toDateString();
+        for (let i = 0; i < seed.length; i++) hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        return staticEasterEggs[Math.abs(hash) % staticEasterEggs.length];
+    }
     function copyToClipboard(text) { navigator.clipboard.writeText(text).then(()=>alert('已复制')).catch(()=>alert('复制失败')); }
     function captureCard(element, filename) { if(typeof html2canvas==='undefined'){alert('截图库未加载');return;} html2canvas(element,{scale:2}).then(canvas=>{let a=document.createElement('a');a.download=filename;a.href=canvas.toDataURL();a.click();}).catch(err=>alert('截图失败')); }
     let currentUtterance=null;
@@ -297,7 +312,7 @@
     document.getElementById('close-immerse')?.addEventListener('click', closeImmerse);
     document.getElementById('immerse-modal')?.addEventListener('click', (e) => { if (e.target === document.getElementById('immerse-modal')) closeImmerse(); });
 
-    // 模块渲染函数
+    // ==================== 模块渲染函数 ====================
     function renderOneModule(oneData){
         let container=document.getElementById('one-content'), card=document.getElementById('one-card'), html='';
         if(oneData.article && oneData.article.content) html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;
@@ -305,6 +320,7 @@
         if(oneData.question && oneData.question.question) html+=`<div class="one-qa"><h3>💬 问答</h3><div class="one-question">${escapeHtml(oneData.question.question)}</div><div class="one-answer">${escapeHtml(oneData.question.answer||'').replace(/\n/g,'<br>')}</div>${oneData.question.author?`<div class="one-author">—— ${escapeHtml(oneData.question.author)}</div>`:''}</div>`;
         if(html){ container.innerHTML=html; card.style.display='block'; }
     }
+
     function renderNovels(novels){
         let container=document.getElementById('novels-container'), card=document.getElementById('novel-card'), html='';
         if(!novels.length){ container.innerHTML='<p>暂无小说</p>'; card.style.display='block'; return; }
@@ -345,7 +361,7 @@
         }));
     }
 
-    // 数据加载
+    // ==================== 数据加载 ====================
     fetch('/data/daily.json?t='+Date.now())
         .then(res => {
             if(!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -377,10 +393,12 @@
                 <div id="deep-review-card" class="section deep-review-module" style="display:none;"><div class="section-title">✨ 深度评语</div><div class="deep-review-text" id="deep-review-text"></div></div>
             `;
 
-            // 填充基础数据
+            // 基础数据
             document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
             document.getElementById('date').innerHTML = data.date || '';
-            document.getElementById('easter-egg').innerHTML = getEasterEgg(data.date);
+            // 彩蛋：优先使用 AI 生成的 easter，否则降级静态
+            const easter = data.easter || getStaticEasterEgg(data.date);
+            document.getElementById('easter-egg').innerHTML = easter;
 
             // 每日一歌
             if(data.songs && data.songs.length){
