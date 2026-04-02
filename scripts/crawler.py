@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.1）
-- 新增推理题模块（使用 DeepSeek 模型）
+每日数据爬虫（优化版 v3.2）
+- 新增思考题评语（使用 DeepSeek 模型）
 - 保持多模型分工：Qwen2.5 负责写作，DeepSeek 负责思考题、冷知识、推理题、深度评语
 """
 
@@ -97,6 +97,7 @@ STATIC_EASTER_EGGS = [
 ]
 
 FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
+FALLBACK_QUESTION_REVIEW = "思考的种子，终将开花。"
 FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
 FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
 FALLBACK_PUZZLE = {
@@ -709,6 +710,19 @@ def generate_daily_question() -> str:
         logger.error(f"生成思考题失败: {e}")
     return FALLBACK_QUESTION
 
+def generate_question_review(question: str) -> str:
+    """使用 DeepSeek 模型为思考题生成一句评语"""
+    if not ENABLE_AI:
+        return FALLBACK_QUESTION_REVIEW
+    prompt = f"请为以下思考题写一句富有哲理的评语（不限字数，自由发挥）：\n{question}"
+    try:
+        review = call_ai(prompt, max_tokens=200, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        if review:
+            return review.strip()
+    except Exception as e:
+        logger.error(f"生成思考题评语失败: {e}")
+    return FALLBACK_QUESTION_REVIEW
+
 def generate_daily_trivia() -> str:
     """使用 DeepSeek 模型生成每日冷知识/知识卡片"""
     if not ENABLE_AI:
@@ -937,7 +951,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.1 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.2 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -949,6 +963,7 @@ def main():
 
     # 深度思考模块
     daily_question = generate_daily_question()
+    question_review = generate_question_review(daily_question)
     daily_trivia = generate_daily_trivia()
     daily_puzzle = generate_daily_puzzle()
 
@@ -969,6 +984,7 @@ def main():
         "soul": soul,
         "easter": easter,
         "question": daily_question,
+        "question_review": question_review,   # 新增
         "trivia": daily_trivia,
         "puzzle": daily_puzzle
     }
@@ -981,6 +997,7 @@ def main():
     logger.info(f"📝 每日总结：{summary}")
     logger.info(f"💡 深度评语：{deep_review}")
     logger.info(f"🤔 推理题：{daily_puzzle['question'][:50]}...")
+    logger.info(f"💭 思考题评语：{question_review[:50]}...")
 
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
