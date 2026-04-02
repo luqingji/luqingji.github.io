@@ -5,8 +5,254 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>拾光驿站 · 历史详情</title>
     <style>
-        /* 样式与 daily.html 完全相同，此处省略以节省篇幅 */
-        /* 实际使用时，请复制 daily.html 中的完整 style 部分 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e1e2f;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .daily-summary {
+            font-size: 1.6rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: #1e1e2f;
+            margin-bottom: 0.5rem;
+        }
+        .date {
+            font-size: 0.85rem;
+            color: #8e8e9e;
+        }
+        .easter-egg {
+            font-size: 0.8rem;
+            color: #b0b0c0;
+            margin-top: 0.5rem;
+        }
+        .section {
+            margin: 2rem 0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            letter-spacing: -0.2px;
+            color: #1e1e2f;
+            margin-bottom: 1rem;
+            display: inline-block;
+            border-bottom: 1px solid #e0e4e8;
+            padding-bottom: 0.2rem;
+        }
+        .daily-song-item {
+            margin: 1rem 0;
+        }
+        .song-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .song-artist, .song-album {
+            font-size: 0.85rem;
+            color: #5b5b6e;
+        }
+        .song-recommendation {
+            font-size: 0.9rem;
+            color: #7a7a8c;
+            font-style: italic;
+            margin-top: 0.3rem;
+        }
+        .play-icon {
+            text-decoration: none;
+            font-size: 1rem;
+            color: #1e1e2f;
+            margin-left: 0.3rem;
+        }
+        .play-icon:hover { color: #000; }
+        .sentence-content {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin: 1rem 0;
+            color: #2c3e50;
+        }
+        .sentence-from {
+            font-size: 0.85rem;
+            color: #8e8e9e;
+            text-align: right;
+        }
+        .meaning, .ai-review, .zaobao-summary-text, .song-recommendation, .one-content-text {
+            font-size: 0.9rem;
+            color: #5b5b6e;
+        }
+        .article-title, .novel-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin: 0.5rem 0;
+        }
+        .article-desc, .novel-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #2c3e50;
+        }
+        .stats {
+            font-size: 0.8rem;
+            color: #b0b0c0;
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        .zaobao-item, .song-item, .one-article, .one-photo, .one-qa {
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .zaobao-title, .song-name {
+            font-weight: 500;
+        }
+        .fun-item {
+            display: flex;
+            gap: 0.8rem;
+            margin: 1rem 0;
+            align-items: flex-start;
+        }
+        .fun-icon { font-size: 1.2rem; }
+        .fun-text { flex: 1; font-size: 0.9rem; color: #5b5b6e; }
+        .novel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .speak-btn, .immerse-btn, .refresh-btn, .audio-play-btn, .answer-btn {
+            background: none;
+            border: 1px solid #e0e4e8;
+            border-radius: 30px;
+            padding: 0.2rem 0.7rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-family: inherit;
+            color: #7a7a8c;
+            transition: all 0.2s;
+        }
+        .speak-btn:hover, .immerse-btn:hover, .refresh-btn:hover, .audio-play-btn:hover, .answer-btn:hover {
+            background: #f5f7f9;
+            border-color: #cbd0d6;
+            color: #1e1e2f;
+        }
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #b0b0c0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #1e1e2f;
+            text-decoration: none;
+            border-bottom: 1px dotted #e0e4e8;
+        }
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .links a {
+            color: #1e1e2f;
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-bottom: 1px dotted transparent;
+        }
+        .links a:hover {
+            border-bottom-color: #1e1e2f;
+        }
+        .loader {
+            text-align: center;
+            padding: 2rem;
+            color: #b0b0c0;
+        }
+        .error-message {
+            text-align: center;
+            color: #e74c3c;
+            margin: 2rem 0;
+        }
+        .puzzle-answer {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #7a7a8c;
+            display: none;
+        }
+        .thought-module, .trivia-module, .puzzle-module, .deep-review-module {
+            margin: 1.5rem 0;
+        }
+        .question-text, .trivia-text, .deep-review-text {
+            color: #5b5b6e;
+        }
+        .immerse-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .immerse-modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .immerse-content {
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+            background: #fff;
+            border-radius: 24px;
+            padding: 1.5rem;
+            color: #1e1e2f;
+            font-family: inherit;
+            line-height: 1.6;
+        }
+        .close-immerse {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-radius: 30px;
+            padding: 6px 14px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: white;
+            z-index: 10001;
+        }
+        .close-immerse:hover {
+            background: rgba(0,0,0,0.7);
+        }
+        @media (max-width: 600px) {
+            .daily-summary { font-size: 1.3rem; }
+            .thought-module, .trivia-module, .puzzle-module, .deep-review-module { margin: 1rem 0; }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -38,7 +284,7 @@
 </div>
 
 <script>
-    // ==================== 辅助函数（与 daily.html 相同） ====================
+    // ==================== 辅助函数 ====================
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
@@ -66,9 +312,54 @@
     document.getElementById('close-immerse')?.addEventListener('click', closeImmerse);
     document.getElementById('immerse-modal')?.addEventListener('click', (e) => { if (e.target === document.getElementById('immerse-modal')) closeImmerse(); });
 
-    // 模块渲染函数（与 daily.html 相同，此处省略）
-    function renderOneModule(oneData){ /* ... */ }
-    function renderNovels(novels){ /* ... */ }
+    // ==================== 模块渲染函数 ====================
+    function renderOneModule(oneData){
+        let container=document.getElementById('one-content'), card=document.getElementById('one-card'), html='';
+        if(oneData.article && oneData.article.content) html+=`<div class="one-article"><h3>📝 文章</h3><div class="one-title">${escapeHtml(oneData.article.title)}</div><div class="one-author">${escapeHtml(oneData.article.author||'')}</div><div class="one-content-text">${escapeHtml(oneData.article.content).replace(/\n/g,'<br>')}</div></div>`;
+        if(oneData.photo && oneData.photo.image) html+=`<div class="one-photo"><h3>📷 摄影</h3><img src="${oneData.photo.image}" alt="${escapeHtml(oneData.photo.title||'')}" style="max-width:100%; border-radius:8px;"><div class="one-title">${escapeHtml(oneData.photo.title||'')}</div><div class="one-author">${escapeHtml(oneData.photo.author||'')}</div><div class="one-desc">${escapeHtml(oneData.photo.description||'').replace(/\n/g,'<br>')}</div></div>`;
+        if(oneData.question && oneData.question.question) html+=`<div class="one-qa"><h3>💬 问答</h3><div class="one-question">${escapeHtml(oneData.question.question)}</div><div class="one-answer">${escapeHtml(oneData.question.answer||'').replace(/\n/g,'<br>')}</div>${oneData.question.author?`<div class="one-author">—— ${escapeHtml(oneData.question.author)}</div>`:''}</div>`;
+        if(html){ container.innerHTML=html; card.style.display='block'; }
+    }
+
+    function renderNovels(novels){
+        let container=document.getElementById('novels-container'), card=document.getElementById('novel-card'), html='';
+        if(!novels.length){ container.innerHTML='<p>暂无小说</p>'; card.style.display='block'; return; }
+        let fallbackReviews=['这篇小说像一杯温茶，慢慢品出人生滋味。','虚构的世界里，藏着真实的情感。','每一段文字都是时光的琥珀。','读完后，心里某个角落被轻轻触动。','故事虽短，余韵悠长。','适合在夜深人静时再读一遍。','像风一样轻，却留下痕迹。'];
+        novels.forEach((n, idx) => {
+            let title=n.title||'无题', content=(n.content||'').replace(/\\n/g,'\n'), paragraphs=content.split(/\n\s*\n/).filter(p=>p.trim());
+            let stats=formatStats(countWords(paragraphs.join('\n\n')));
+            let novelId = `novel-${idx}`;
+            html+=`<div class="novel-item" id="${novelId}">
+                <div class="novel-header">
+                    <div class="novel-title">${escapeHtml(title)}</div>
+                    <div>
+                        <button class="speak-btn" data-text="${escapeHtml(paragraphs.join('\n\n'))}">🔊 朗读</button>
+                        <button class="immerse-btn" data-novel-id="${novelId}">🔍 沉浸</button>
+                    </div>
+                </div>
+                <div class="novel-content">${paragraphs.map(p=>`<p>${escapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('')}</div>
+                <div class="novel-stats">${stats}</div>
+                <div class="ai-review">${escapeHtml(n.review||fallbackReviews[Math.floor(Math.random()*fallbackReviews.length)])}</div>
+            </div>`;
+        });
+        container.innerHTML=html;
+        card.style.display='block';
+        document.querySelectorAll('.speak-btn').forEach(btn => btn.addEventListener('click', () => { const text = btn.getAttribute('data-text'); if(text) speakText(text); }));
+        document.querySelectorAll('.immerse-btn').forEach(btn => btn.addEventListener('click', () => {
+            const novelId = btn.getAttribute('data-novel-id');
+            const novelDiv = document.getElementById(novelId);
+            if(novelDiv){
+                const titleElem = novelDiv.querySelector('.novel-title');
+                const contentElem = novelDiv.querySelector('.novel-content');
+                const statsElem = novelDiv.querySelector('.novel-stats');
+                const title = titleElem ? titleElem.innerText : '';
+                const contentHtml = contentElem ? contentElem.innerHTML : '';
+                const stats = statsElem ? statsElem.innerText : '';
+                const modalHtml = `<div style="font-size:1.2rem; margin-bottom:1rem;">${escapeHtml(title)}</div><div>${contentHtml}</div><div style="margin-top:1rem; font-size:0.8rem; color:#b0b0c0;">${stats}</div>`;
+                openImmerse(modalHtml);
+            }
+        }));
+    }
 
     // ==================== 数据加载 ====================
     const urlParams = new URLSearchParams(window.location.search);
@@ -112,7 +403,6 @@
             // 基础数据
             document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
             document.getElementById('date').innerHTML = data.date || '';
-            // 彩蛋：优先使用 AI 生成的 easter，否则降级静态
             const easter = data.easter || getStaticEasterEgg(data.date);
             document.getElementById('easter-egg').innerHTML = easter;
 
