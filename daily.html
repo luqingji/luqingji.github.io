@@ -203,6 +203,12 @@
         .question-text, .trivia-text, .deep-review-text {
             color: #5b5b6e;
         }
+        .question-review {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #7a7a8c;
+            font-style: italic;
+        }
         .immerse-modal {
             position: fixed;
             top: 0;
@@ -287,7 +293,6 @@
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     function countWords(text) { return (text.match(/[\u4e00-\u9fa5]/g)||[]).length + (text.match(/[a-zA-Z]+/g)||[]).length; }
     function formatStats(words) { return `${words} 字 · 约 ${Math.ceil(words/250)} 分钟阅读`; }
-    // 静态彩蛋数组（降级使用）
     const staticEasterEggs = [
         "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
         "🥚 今日彩蛋：时光不语，静待花开。",
@@ -387,7 +392,7 @@
                 <!-- 小说 -->
                 <div id="novel-card" class="section" style="display:none;"><div class="section-title">📚 虚构抽屉</div><div id="novels-container"></div></div>
                 <!-- 新增深度思考模块 -->
-                <div id="question-card" class="section thought-module" style="display:none;"><div class="section-title">💡 每日思考题</div><div class="question-text" id="question-text"></div></div>
+                <div id="question-card" class="section thought-module" style="display:none;"><div class="section-title">💡 每日思考题</div><div class="question-text" id="question-text"></div><div class="question-review" id="question-review"></div></div>
                 <div id="trivia-card" class="section trivia-module" style="display:none;"><div class="section-title">📚 知识卡片</div><div class="trivia-text" id="trivia-text"></div></div>
                 <div id="puzzle-card" class="section puzzle-module" style="display:none;"><div class="section-title">🤔 推理题</div><div class="puzzle-question" id="puzzle-question"></div><div class="puzzle-answer" id="puzzle-answer"></div><button id="puzzle-answer-btn" class="answer-btn" style="display:none;">🔍 显示答案</button></div>
                 <div id="deep-review-card" class="section deep-review-module" style="display:none;"><div class="section-title">✨ 深度评语</div><div class="deep-review-text" id="deep-review-text"></div></div>
@@ -396,7 +401,6 @@
             // 基础数据
             document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
             document.getElementById('date').innerHTML = data.date || '';
-            // 彩蛋：优先使用 AI 生成的 easter，否则降级静态
             const easter = data.easter || getStaticEasterEgg(data.date);
             document.getElementById('easter-egg').innerHTML = easter;
 
@@ -501,6 +505,11 @@
             if(data.question){
                 document.getElementById('question-card').style.display = 'block';
                 document.getElementById('question-text').innerHTML = escapeHtml(data.question);
+                if(data.question_review){
+                    document.getElementById('question-review').innerHTML = `✨ 评语：${escapeHtml(data.question_review)}`;
+                } else {
+                    document.getElementById('question-review').style.display = 'none';
+                }
             }
             if(data.trivia){
                 document.getElementById('trivia-card').style.display = 'block';
