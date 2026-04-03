@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.4）
-- 推理题、冷知识自动去重（基于最近7天历史）
-- 思考题由 AI 直接回答
-- 其他功能与 v3.2 保持一致
+每日数据爬虫（优化版 v3.5）
+- 推理题自动验证（AI 校验逻辑），无效则重试，最终使用备选题库
+- 冷知识、推理题基于最近7天历史去重
+- 其他功能与 v3.4 一致
 """
 
 import os
@@ -101,10 +101,26 @@ FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
 FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的热爱与感恩。"
 FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
 FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
-FALLBACK_PUZZLE = {
-    "question": "三个人去住店，每人10元，老板说优惠5元，服务员藏了2元，每人退回1元，实际每人花了9元，3×9=27，加上服务员藏2元=29，还有1元去哪了？",
-    "answer": "这是一道逻辑误导题，实际支出27元已经包含了服务员的2元，不应再加2元。"
-}
+
+# 正确且经典的备选推理题（当AI生成多次无效时使用）
+FALLBACK_PUZZLES = [
+    {
+        "question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？",
+        "answer": "丙是说真话的人。"
+    },
+    {
+        "question": "三个盒子，一个装有苹果，一个装有橘子，一个装有苹果和橘子。每个盒子上都贴了一个标签，但所有标签都是错的。你只能打开一个盒子，如何确定每个盒子里装的是什么？",
+        "answer": "打开贴有'苹果和橘子'的盒子。如果里面是苹果，则贴'橘子'的盒子一定是苹果和橘子，贴'苹果'的盒子一定是橘子。"
+    },
+    {
+        "question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？",
+        "answer": "A是骑士。"
+    },
+    {
+        "question": "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？",
+        "answer": "如果某人看到两顶黑帽子，那么他可以立刻知道自己戴的是白帽。但没有人立即回答，说明没有人看到两顶黑帽。因此最多只有一顶黑帽。如果某人看到一顶黑帽，他会想：如果我戴的是黑帽，那么对方会看到两顶黑帽，对方就会立刻回答。但对方没有立即回答，所以我戴的只能是白帽。"
+    }
+]
 
 # ==================== AI 调用（支持模型选择） ====================
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -754,6 +770,7 @@ def is_duplicate_trivia(trivia: str, history_trivias: list) -> bool:
     """判断冷知识是否与历史重复"""
     return trivia in history_trivias
 
+# ==================== 推理题生成与验证 ====================
 def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     """单次生成推理题（原有逻辑）"""
     if not ENABLE_AI:
@@ -783,19 +800,50 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
         logger.error(f"生成推理题失败: {e}")
     return None
 
+def validate_puzzle(question: str, answer: str) -> bool:
+    """使用 AI 验证推理题是否正确（逻辑自洽、有唯一解）"""
+    if not ENABLE_AI:
+        return True  # 无法验证时默认通过
+    prompt = f"""
+    请判断以下推理题及其答案是否正确。要求：
+    - 题目必须有唯一正确答案
+    - 答案必须逻辑自洽，没有矛盾
+    - 如果题目无解或答案错误，请回答"错误"，否则回答"正确"
+    
+    题目：{question}
+    答案：{answer}
+    
+    只输出"正确"或"错误"。
+    """
+    try:
+        resp = call_ai(prompt, max_tokens=10, temperature=0, timeout=10, model=MODEL_THINKING)
+        if resp and "正确" in resp:
+            return True
+    except Exception as e:
+        logger.error(f"验证推理题失败: {e}")
+    return False
+
 def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
-    """生成不重复的推理题"""
+    """生成不重复且逻辑正确的推理题"""
     history_puzzles, _ = get_recent_history(7)
     for attempt in range(max_retries):
         puzzle = _generate_puzzle_once()
-        if puzzle and not is_duplicate_puzzle(puzzle['question'], history_puzzles):
+        if not puzzle:
+            continue
+        # 去重检查
+        if is_duplicate_puzzle(puzzle['question'], history_puzzles):
+            logger.info(f"推理题与历史重复，第{attempt+1}次重试")
+            time.sleep(1)
+            continue
+        # 逻辑验证
+        if validate_puzzle(puzzle['question'], puzzle['answer']):
             logger.info(f"生成推理题成功，问题：{puzzle['question'][:50]}...")
             return puzzle
-        logger.info(f"推理题与历史重复，第{attempt+1}次重试")
-        time.sleep(1)
-    # 重试后仍重复，返回备选
-    logger.warning("推理题重试后仍重复，使用备选题")
-    return FALLBACK_PUZZLE
+        else:
+            logger.info(f"推理题逻辑错误，第{attempt+1}次重试")
+            time.sleep(1)
+    logger.warning("推理题重试后仍无效，使用备选题")
+    return random.choice(FALLBACK_PUZZLES)
 
 def _generate_trivia_once() -> Optional[str]:
     """单次生成冷知识"""
@@ -1008,7 +1056,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.4 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.5 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
