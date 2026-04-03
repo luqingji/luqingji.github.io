@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.2 改良）
-- 思考题改为 AI 直接回答（而非评语）
-- 其他功能与 v3.2 完全一致
+每日数据爬虫（优化版 v3.4）
+- 推理题、冷知识自动去重（基于最近7天历史）
+- 思考题由 AI 直接回答
+- 其他功能与 v3.2 保持一致
 """
 
 import os
@@ -707,7 +708,6 @@ def generate_daily_question() -> str:
     return FALLBACK_QUESTION
 
 def generate_question_answer(question: str) -> str:
-    """使用 DeepSeek 模型直接回答思考题（而不是写评语）"""
     if not ENABLE_AI:
         return FALLBACK_QUESTION_ANSWER
     prompt = f"请认真回答以下思考题，给出你的见解（不超过150字）：\n{question}"
@@ -719,33 +719,45 @@ def generate_question_answer(question: str) -> str:
         logger.error(f"生成思考题答案失败: {e}")
     return FALLBACK_QUESTION_ANSWER
 
-def generate_daily_trivia() -> str:
-    if not ENABLE_AI:
-        return FALLBACK_TRIVIA
-    prompt = "请提供一个有趣、冷门的知识点（不超过80字），可以是科学、历史、文化等任何领域。"
-    try:
-        trivia = call_ai(prompt, max_tokens=150, temperature=0.8, timeout=15, model=MODEL_THINKING)
-        if trivia:
-            return trivia.strip('"\'').strip()
-    except Exception as e:
-        logger.error(f"生成冷知识失败: {e}")
-    return FALLBACK_TRIVIA
+# ==================== 去重辅助函数 ====================
+def get_recent_history(days: int = 7) -> tuple:
+    """获取最近 N 天的历史数据中的推理题问题和冷知识内容"""
+    index_path = os.path.join(data_dir, 'history', 'index.json')
+    if not os.path.exists(index_path):
+        return [], []
+    with open(index_path, 'r', encoding='utf-8') as f:
+        all_dates = json.load(f)
+    # 取最近 days 天（按日期倒序）
+    recent_dates = all_dates[:days]
+    puzzles = []
+    trivias = []
+    for date_str in recent_dates:
+        y, m, d = date_str.split('-')
+        hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
+        if os.path.exists(hist_file):
+            try:
+                with open(hist_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                if data.get('puzzle', {}).get('question'):
+                    puzzles.append(data['puzzle']['question'])
+                if data.get('trivia'):
+                    trivias.append(data['trivia'])
+            except Exception as e:
+                logger.warning(f"读取历史文件失败 {hist_file}: {e}")
+    return puzzles, trivias
 
-def generate_deep_review(summary_text: str) -> str:
-    if not ENABLE_AI:
-        return FALLBACK_DEEP_REVIEW
-    prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
-    try:
-        review = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=15, model=MODEL_THINKING)
-        if review:
-            return review.strip('"\'').strip()
-    except Exception as e:
-        logger.error(f"生成深度评语失败: {e}")
-    return FALLBACK_DEEP_REVIEW
+def is_duplicate_puzzle(question: str, history_puzzles: list) -> bool:
+    """判断推理题问题是否与历史重复（完全相等）"""
+    return question in history_puzzles
 
-def generate_daily_puzzle() -> Dict[str, str]:
+def is_duplicate_trivia(trivia: str, history_trivias: list) -> bool:
+    """判断冷知识是否与历史重复"""
+    return trivia in history_trivias
+
+def _generate_puzzle_once() -> Optional[Dict[str, str]]:
+    """单次生成推理题（原有逻辑）"""
     if not ENABLE_AI:
-        return FALLBACK_PUZZLE
+        return None
     prompt = """
     请生成一个有趣的推理题，包含问题和答案。要求：
     - 问题不超过100字，答案不超过80字
@@ -769,7 +781,59 @@ def generate_daily_puzzle() -> Dict[str, str]:
                 }
     except Exception as e:
         logger.error(f"生成推理题失败: {e}")
+    return None
+
+def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
+    """生成不重复的推理题"""
+    history_puzzles, _ = get_recent_history(7)
+    for attempt in range(max_retries):
+        puzzle = _generate_puzzle_once()
+        if puzzle and not is_duplicate_puzzle(puzzle['question'], history_puzzles):
+            logger.info(f"生成推理题成功，问题：{puzzle['question'][:50]}...")
+            return puzzle
+        logger.info(f"推理题与历史重复，第{attempt+1}次重试")
+        time.sleep(1)
+    # 重试后仍重复，返回备选
+    logger.warning("推理题重试后仍重复，使用备选题")
     return FALLBACK_PUZZLE
+
+def _generate_trivia_once() -> Optional[str]:
+    """单次生成冷知识"""
+    if not ENABLE_AI:
+        return None
+    prompt = "请提供一个有趣、冷门的知识点（不超过80字），可以是科学、历史、文化等任何领域。"
+    try:
+        trivia = call_ai(prompt, max_tokens=150, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        if trivia:
+            return trivia.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成冷知识失败: {e}")
+    return None
+
+def generate_daily_trivia(max_retries: int = 5) -> str:
+    """生成不重复的冷知识"""
+    _, history_trivias = get_recent_history(7)
+    for attempt in range(max_retries):
+        trivia = _generate_trivia_once()
+        if trivia and not is_duplicate_trivia(trivia, history_trivias):
+            logger.info(f"生成冷知识成功：{trivia[:50]}...")
+            return trivia
+        logger.info(f"冷知识与历史重复，第{attempt+1}次重试")
+        time.sleep(1)
+    logger.warning("冷知识重试后仍重复，使用备选知识")
+    return FALLBACK_TRIVIA
+
+def generate_deep_review(summary_text: str) -> str:
+    if not ENABLE_AI:
+        return FALLBACK_DEEP_REVIEW
+    prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
+    try:
+        review = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=15, model=MODEL_THINKING)
+        if review:
+            return review.strip('"\'').strip()
+    except Exception as e:
+        logger.error(f"生成深度评语失败: {e}")
+    return FALLBACK_DEEP_REVIEW
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -944,7 +1008,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.2 (改良) 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.4 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -954,7 +1018,7 @@ def main():
     easter = generate_easter_egg()
 
     daily_question = generate_daily_question()
-    question_answer = generate_question_answer(daily_question)  # 改为答案
+    question_answer = generate_question_answer(daily_question)
     daily_trivia = generate_daily_trivia()
     daily_puzzle = generate_daily_puzzle()
 
@@ -975,7 +1039,7 @@ def main():
         "soul": soul,
         "easter": easter,
         "question": daily_question,
-        "question_answer": question_answer,   # 新字段：AI 对思考题的回答
+        "question_answer": question_answer,
         "trivia": daily_trivia,
         "puzzle": daily_puzzle
     }
