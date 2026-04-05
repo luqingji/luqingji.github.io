@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <title>拾光驿站 · 今日详情</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -204,7 +203,7 @@
         .question-text, .trivia-text, .deep-review-text {
             color: #5b5b6e;
         }
-        .question-review {
+        .question-answer {
             margin-top: 0.5rem;
             font-size: 0.85rem;
             color: #7a7a8c;
@@ -367,6 +366,28 @@
         }));
     }
 
+    // ==================== 滚动定位功能 ====================
+    function scrollToHash() {
+        const hash = window.location.hash;
+        if (hash === '#zaobao') {
+            const zaobaoCard = document.getElementById('zaobao-card');
+            if (zaobaoCard) {
+                zaobaoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                zaobaoCard.style.transition = 'background 0.5s';
+                zaobaoCard.style.backgroundColor = '#fef9e6';
+                setTimeout(() => { zaobaoCard.style.backgroundColor = ''; }, 1500);
+            }
+        } else if (hash === '#one') {
+            const oneCard = document.getElementById('one-card');
+            if (oneCard) {
+                oneCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                oneCard.style.transition = 'background 0.5s';
+                oneCard.style.backgroundColor = '#fef9e6';
+                setTimeout(() => { oneCard.style.backgroundColor = ''; }, 1500);
+            }
+        }
+    }
+
     // ==================== 数据加载 ====================
     fetch('/data/daily.json?t='+Date.now())
         .then(res => {
@@ -384,20 +405,16 @@
                 <div id="sentence-card" class="section" style="display:none;"><div class="section-title">💭 散落诗行</div><div class="sentence-content" id="sentence-content"></div><div class="sentence-from" id="sentence-from"></div><div class="meaning" id="sentence-meaning" style="margin-top:0.5rem;"></div><div style="display:flex; gap:0.5rem; margin-top:0.5rem;"><button class="refresh-btn" id="copy-sentence-btn">📋 复制</button><button class="refresh-btn" id="share-sentence-btn">📸 截图</button></div></div>
                 <!-- 墨香盲盒 -->
                 <div id="article-card" class="section" style="display:none;"><div class="section-title">📖 墨香盲盒</div><div class="article-title" id="article-title"></div><div class="article-desc" id="article-desc"></div><div class="article-author" id="article-author"></div><a id="article-link" href="#" target="_blank" style="display:inline-block; margin-top:0.5rem;">🔗 阅读全文</a><div class="meaning" id="article-meaning"></div><div class="stats" id="article-stats"></div></div>
-                <!-- 早报 -->
+                <!-- 每日早报 -->
                 <div id="zaobao-card" class="section" style="display:none;"><div class="section-title">📰 每日早报</div><div id="zaobao-weiyu" class="zaobao-summary-text"></div><div><button id="zaobao-play-btn" class="audio-play-btn" style="display:none;">🔊 语音播报</button><audio id="zaobao-audio-player"></audio></div><div id="zaobao-list"></div><div id="zaobao-date" class="stats"></div></div>
                 <!-- 每日一笑&毒鸡汤 -->
                 <div id="fun-card" class="section" style="display:none;"><div class="section-title">😄 每日一笑 · 🥀 心灵毒鸡汤</div><div id="joke-content"></div><div id="soul-content"></div></div>
-                <!-- ONE -->
+                <!-- ONE · 一个 -->
                 <div id="one-card" class="section" style="display:none;"><div class="section-title">📖 ONE · 一个</div><div id="one-content"></div></div>
                 <!-- 小说 -->
                 <div id="novel-card" class="section" style="display:none;"><div class="section-title">📚 虚构抽屉</div><div id="novels-container"></div></div>
                 <!-- 新增深度思考模块 -->
-                <div id="question-card" class="section thought-module" style="display:none;">
-    <div class="section-title">💡 每日思考题</div>
-    <div class="question-text" id="question-text"></div>
-    <div class="question-answer" id="question-answer" style="margin-top: 0.5rem; font-size: 0.85rem; color: #7a7a8c; font-style: italic;"></div>
-</div>
+                <div id="question-card" class="section thought-module" style="display:none;"><div class="section-title">💡 每日思考题</div><div class="question-text" id="question-text"></div><div class="question-answer" id="question-answer"></div></div>
                 <div id="trivia-card" class="section trivia-module" style="display:none;"><div class="section-title">📚 知识卡片</div><div class="trivia-text" id="trivia-text"></div></div>
                 <div id="puzzle-card" class="section puzzle-module" style="display:none;"><div class="section-title">🤔 推理题</div><div class="puzzle-question" id="puzzle-question"></div><div class="puzzle-answer" id="puzzle-answer"></div><button id="puzzle-answer-btn" class="answer-btn" style="display:none;">🔍 显示答案</button></div>
                 <div id="deep-review-card" class="section deep-review-module" style="display:none;"><div class="section-title">✨ 深度评语</div><div class="deep-review-text" id="deep-review-text"></div></div>
@@ -507,15 +524,15 @@
             if(data.novels && data.novels.length) renderNovels(data.novels);
 
             // 新增深度思考模块
-            if (data.question) {
-    document.getElementById('question-card').style.display = 'block';
-    document.getElementById('question-text').innerHTML = escapeHtml(data.question);
-    if (data.question_answer) {
-        document.getElementById('question-answer').innerHTML = `🤖 AI 答：${escapeHtml(data.question_answer)}`;
-    } else {
-        document.getElementById('question-answer').style.display = 'none';
-    }
-}
+            if(data.question){
+                document.getElementById('question-card').style.display = 'block';
+                document.getElementById('question-text').innerHTML = escapeHtml(data.question);
+                if(data.question_answer){
+                    document.getElementById('question-answer').innerHTML = `🤖 AI 答：${escapeHtml(data.question_answer)}`;
+                } else {
+                    document.getElementById('question-answer').style.display = 'none';
+                }
+            }
             if(data.trivia){
                 document.getElementById('trivia-card').style.display = 'block';
                 document.getElementById('trivia-text').innerHTML = escapeHtml(data.trivia);
@@ -544,6 +561,9 @@
                 }
                 puzzleCard.style.display = 'block';
             }
+
+            // 滚动到指定锚点（必须在模块渲染之后）
+            scrollToHash();
         })
         .catch(err => {
             console.error('加载失败', err);
