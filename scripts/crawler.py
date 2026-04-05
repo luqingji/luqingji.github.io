@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.6）
-- 推理题：14天历史去重 + 避免与昨天重复 + 逻辑验证
-- 冷知识：14天历史去重
-- 其他功能与 v3.5 一致
+每日数据爬虫（优化版 v3.7）
+- 推理题类型多样化（逻辑、数学、情境、数字、空间等）
+- 扩充备选题库
+- 14天历史去重 + 避免与昨天重复 + 逻辑验证
 """
 
 import os
@@ -36,8 +36,8 @@ SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 
 # 模型分配
-MODEL_WRITING = 'Qwen/Qwen2.5-7B-Instruct'          # 创意写作
-MODEL_THINKING = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B'  # 深度思考
+MODEL_WRITING = 'Qwen/Qwen2.5-7B-Instruct'
+MODEL_THINKING = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B'
 
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')
@@ -102,24 +102,20 @@ FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的�
 FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
 FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
 
-# 正确且经典的备选推理题（当AI生成多次无效时使用）
+# 丰富多样的备选推理题（涵盖不同题型）
 FALLBACK_PUZZLES = [
-    {
-        "question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？",
-        "answer": "丙是说真话的人。"
-    },
-    {
-        "question": "三个盒子，一个装有苹果，一个装有橘子，一个装有苹果和橘子。每个盒子上都贴了一个标签，但所有标签都是错的。你只能打开一个盒子，如何确定每个盒子里装的是什么？",
-        "answer": "打开贴有'苹果和橘子'的盒子。如果里面是苹果，则贴'橘子'的盒子一定是苹果和橘子，贴'苹果'的盒子一定是橘子。"
-    },
-    {
-        "question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？",
-        "answer": "A是骑士。"
-    },
-    {
-        "question": "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？",
-        "answer": "如果某人看到两顶黑帽子，那么他可以立刻知道自己戴的是白帽。但没有人立即回答，说明没有人看到两顶黑帽。因此最多只有一顶黑帽。如果某人看到一顶黑帽，他会想：如果我戴的是黑帽，那么对方会看到两顶黑帽，对方就会立刻回答。但对方没有立即回答，所以我戴的只能是白帽。"
-    }
+    # 逻辑推理
+    {"question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？", "answer": "丙是说真话的人。"},
+    {"question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？", "answer": "A是骑士。"},
+    # 数学谜题
+    {"question": "三个盒子，一个装有苹果，一个装有橘子，一个装有苹果和橘子。每个盒子上都贴了一个标签，但所有标签都是错的。你只能打开一个盒子，如何确定每个盒子里装的是什么？", "answer": "打开贴有'苹果和橘子'的盒子。如果里面是苹果，则贴'橘子'的盒子一定是苹果和橘子，贴'苹果'的盒子一定是橘子。"},
+    {"question": "一个数字，加上它的二分之一等于9，这个数字是多少？", "answer": "6。因为6 + 3 = 9。"},
+    # 情境推理
+    {"question": "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？", "answer": "如果某人看到两顶黑帽子，那么他可以立刻知道自己戴的是白帽。但没有人立即回答，说明没有人看到两顶黑帽。因此最多只有一顶黑帽。如果某人看到一顶黑帽，他会想：如果我戴的是黑帽，那么对方会看到两顶黑帽，对方就会立刻回答。但对方没有立即回答，所以我戴的只能是白帽。"},
+    {"question": "一个人走进酒吧，向酒保要了一杯水。酒保却突然拔出一把枪对准他。那人说“谢谢”然后走了出去。为什么？", "answer": "那人打嗝，要水是为了治打嗝；酒保用枪吓他，他一惊，打嗝就好了，所以道谢离开。"},
+    # 数字逻辑
+    {"question": "如果1=3，2=3，3=5，4=4，5=4，那么6=？", "answer": "3。因为数字的英文单词字母个数：one(3), two(3), three(5), four(4), five(4), six(3)。"},
+    {"question": "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？", "answer": "29天。因为第30天是第29天的两倍。"},
 ]
 
 # ==================== AI 调用（支持模型选择） ====================
@@ -453,7 +449,6 @@ def extract_json(text: str) -> Optional[str]:
     return None
 
 def generate_novel_review(title: str, content: str) -> str:
-    """为小说生成一句独特的评语（使用思考模型）"""
     if not ENABLE_AI:
         return random.choice(FALLBACK_REVIEWS)
     summary = content[:200].replace('\n', ' ')
@@ -737,13 +732,11 @@ def generate_question_answer(question: str) -> str:
 
 # ==================== 去重辅助函数 ====================
 def get_recent_history(days: int = 14) -> tuple:
-    """获取最近 N 天的历史数据中的推理题问题和冷知识内容"""
     index_path = os.path.join(data_dir, 'history', 'index.json')
     if not os.path.exists(index_path):
         return [], []
     with open(index_path, 'r', encoding='utf-8') as f:
         all_dates = json.load(f)
-    # 取最近 days 天（按日期倒序）
     recent_dates = all_dates[:days]
     puzzles = []
     trivias = []
@@ -763,15 +756,12 @@ def get_recent_history(days: int = 14) -> tuple:
     return puzzles, trivias
 
 def is_duplicate_puzzle(question: str, history_puzzles: list) -> bool:
-    """判断推理题问题是否与历史重复（完全相等）"""
     return question in history_puzzles
 
 def is_duplicate_trivia(trivia: str, history_trivias: list) -> bool:
-    """判断冷知识是否与历史重复"""
     return trivia in history_trivias
 
 def get_yesterdays_puzzle() -> Optional[str]:
-    """获取昨天的推理题问题（用于避免连续重复）"""
     yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     y, m, d = yesterday.split('-')
     hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
@@ -784,20 +774,25 @@ def get_yesterdays_puzzle() -> Optional[str]:
             logger.warning(f"读取昨天历史文件失败: {e}")
     return None
 
-# ==================== 推理题生成与验证 ====================
+# ==================== 推理题生成与验证（多样化） ====================
+PUZZLE_TYPES = [
+    "逻辑推理", "数学谜题", "情境推理", "数字逻辑", "空间想象", "脑筋急转弯"
+]
+
 def _generate_puzzle_once() -> Optional[Dict[str, str]]:
-    """单次生成推理题（原有逻辑）"""
+    """单次生成推理题，随机选择题型"""
     if not ENABLE_AI:
         return None
-    prompt = """
-    请生成一个有趣的推理题，包含问题和答案。要求：
+    puzzle_type = random.choice(PUZZLE_TYPES)
+    prompt = f"""
+    请生成一个有趣的{puzzle_type}题，包含问题和答案。要求：
     - 问题不超过100字，答案不超过80字
-    - 题目可以是逻辑推理、数学谜题、情境推理等
+    - 题目必须属于{puzzle_type}类型，不要总是出“骑士与无赖”类题目
     - 答案需要清晰解释
-    请以JSON格式输出，例如：{"question": "...", "answer": "..."}
+    请以JSON格式输出，例如：{{"question": "...", "answer": "..."}}
     """
     try:
-        resp = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=20, model=MODEL_THINKING)
+        resp = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=20, model=MODEL_THINKING)
         if resp:
             resp = resp.strip()
             if resp.startswith('```json') and resp.endswith('```'):
@@ -815,9 +810,8 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     return None
 
 def validate_puzzle(question: str, answer: str) -> bool:
-    """使用 AI 验证推理题是否正确（逻辑自洽、有唯一解）"""
     if not ENABLE_AI:
-        return True  # 无法验证时默认通过
+        return True
     prompt = f"""
     请判断以下推理题及其答案是否正确。要求：
     - 题目必须有唯一正确答案
@@ -838,26 +832,22 @@ def validate_puzzle(question: str, answer: str) -> bool:
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
-    """生成不重复且逻辑正确的推理题，并避免与昨天重复"""
-    history_puzzles, _ = get_recent_history(14)  # 扩大到14天
+    history_puzzles, _ = get_recent_history(14)
     yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
         puzzle = _generate_puzzle_once()
         if not puzzle:
             continue
-        # 与历史去重
         if is_duplicate_puzzle(puzzle['question'], history_puzzles):
             logger.info(f"推理题与历史重复，第{attempt+1}次重试")
             time.sleep(1)
             continue
-        # 与昨天去重
         if yesterday_question and puzzle['question'] == yesterday_question:
             logger.info(f"推理题与昨天重复，第{attempt+1}次重试")
             time.sleep(1)
             continue
-        # 逻辑验证
         if validate_puzzle(puzzle['question'], puzzle['answer']):
-            logger.info(f"生成推理题成功，问题：{puzzle['question'][:50]}...")
+            logger.info(f"生成推理题成功，类型：{puzzle['question'][:50]}...")
             return puzzle
         else:
             logger.info(f"推理题逻辑错误，第{attempt+1}次重试")
@@ -866,7 +856,6 @@ def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
     return random.choice(FALLBACK_PUZZLES)
 
 def _generate_trivia_once() -> Optional[str]:
-    """单次生成冷知识"""
     if not ENABLE_AI:
         return None
     prompt = "请提供一个有趣、冷门的知识点（不超过80字），可以是科学、历史、文化等任何领域。"
@@ -879,7 +868,6 @@ def _generate_trivia_once() -> Optional[str]:
     return None
 
 def generate_daily_trivia(max_retries: int = 5) -> str:
-    """生成不重复的冷知识"""
     _, history_trivias = get_recent_history(14)
     for attempt in range(max_retries):
         trivia = _generate_trivia_once()
@@ -1076,7 +1064,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.6 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.7 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
