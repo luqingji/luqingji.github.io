@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.5）
-- 推理题自动验证（AI 校验逻辑），无效则重试，最终使用备选题库
-- 冷知识、推理题基于最近7天历史去重
-- 其他功能与 v3.4 一致
+每日数据爬虫（优化版 v3.6）
+- 推理题：14天历史去重 + 避免与昨天重复 + 逻辑验证
+- 冷知识：14天历史去重
+- 其他功能与 v3.5 一致
 """
 
 import os
@@ -736,7 +736,7 @@ def generate_question_answer(question: str) -> str:
     return FALLBACK_QUESTION_ANSWER
 
 # ==================== 去重辅助函数 ====================
-def get_recent_history(days: int = 7) -> tuple:
+def get_recent_history(days: int = 14) -> tuple:
     """获取最近 N 天的历史数据中的推理题问题和冷知识内容"""
     index_path = os.path.join(data_dir, 'history', 'index.json')
     if not os.path.exists(index_path):
@@ -769,6 +769,20 @@ def is_duplicate_puzzle(question: str, history_puzzles: list) -> bool:
 def is_duplicate_trivia(trivia: str, history_trivias: list) -> bool:
     """判断冷知识是否与历史重复"""
     return trivia in history_trivias
+
+def get_yesterdays_puzzle() -> Optional[str]:
+    """获取昨天的推理题问题（用于避免连续重复）"""
+    yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    y, m, d = yesterday.split('-')
+    hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
+    if os.path.exists(hist_file):
+        try:
+            with open(hist_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get('puzzle', {}).get('question')
+        except Exception as e:
+            logger.warning(f"读取昨天历史文件失败: {e}")
+    return None
 
 # ==================== 推理题生成与验证 ====================
 def _generate_puzzle_once() -> Optional[Dict[str, str]]:
@@ -824,15 +838,21 @@ def validate_puzzle(question: str, answer: str) -> bool:
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
-    """生成不重复且逻辑正确的推理题"""
-    history_puzzles, _ = get_recent_history(7)
+    """生成不重复且逻辑正确的推理题，并避免与昨天重复"""
+    history_puzzles, _ = get_recent_history(14)  # 扩大到14天
+    yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
         puzzle = _generate_puzzle_once()
         if not puzzle:
             continue
-        # 去重检查
+        # 与历史去重
         if is_duplicate_puzzle(puzzle['question'], history_puzzles):
             logger.info(f"推理题与历史重复，第{attempt+1}次重试")
+            time.sleep(1)
+            continue
+        # 与昨天去重
+        if yesterday_question and puzzle['question'] == yesterday_question:
+            logger.info(f"推理题与昨天重复，第{attempt+1}次重试")
             time.sleep(1)
             continue
         # 逻辑验证
@@ -860,7 +880,7 @@ def _generate_trivia_once() -> Optional[str]:
 
 def generate_daily_trivia(max_retries: int = 5) -> str:
     """生成不重复的冷知识"""
-    _, history_trivias = get_recent_history(7)
+    _, history_trivias = get_recent_history(14)
     for attempt in range(max_retries):
         trivia = _generate_trivia_once()
         if trivia and not is_duplicate_trivia(trivia, history_trivias):
@@ -1056,7 +1076,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.5 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.6 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
