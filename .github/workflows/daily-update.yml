@@ -31,10 +31,17 @@ jobs:
         run: pip install -r scripts/requirements.txt
 
       - name: Run crawler
+        id: crawler
         env:
           SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
           ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
-        run: python scripts/crawler.py
+        run: |
+          python scripts/crawler.py
+          # 提取数据用于钉钉通知
+          echo "SUMMARY=$(jq -r '.summary' data/daily.json)" >> $GITHUB_ENV
+          echo "ARTICLE_TITLE=$(jq -r '.article.title' data/daily.json)" >> $GITHUB_ENV
+          echo "QUESTION=$(jq -r '.question' data/daily.json)" >> $GITHUB_ENV
+          echo "DATE=$(jq -r '.date' data/daily.json)" >> $GITHUB_ENV
 
       - name: Generate history index
         run: python scripts/generate_index.py
@@ -49,6 +56,56 @@ jobs:
           git diff --quiet && git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d')"
           git push
 
-      - name: Notify failure
+      - name: Send success notification to DingTalk
+        if: success()
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          SUMMARY: ${{ env.SUMMARY }}
+          ARTICLE_TITLE: ${{ env.ARTICLE_TITLE }}
+          QUESTION: ${{ env.QUESTION }}
+          DATE: ${{ env.DATE }}
+        run: |
+          timestamp="$(( $(date +%s) * 1000 ))"
+          sign=$(printf "$timestamp\n$DINGTALK_SECRET" | openssl dgst -hmac -sha256 -binary | base64 -w 0)
+          MESSAGE=$(cat <<EOF
+          {
+            "msgtype": "markdown",
+            "markdown": {
+              "title": "📮 拾光驿站 · 每日报告",
+              "text": "## 📮 拾光驿站 · 每日报告\n\n**日期**：$DATE\n\n## 📝 每日总结\n> $SUMMARY\n\n---\n\n## 📊 今日统计\n- **📖 文章**：$ARTICLE_TITLE\n- **🎵 歌单**：今日推荐6首歌曲\n- **📚 小说**：今日更新3篇小说\n- **💬 思考题**：$QUESTION\n\n---\n\n> ✨ 美好的一天，从诗意与思考开始。\n> [点击查看详情](https://${{ github.repository_owner }}.github.io)"
+            },
+            "at": {
+              "isAtAll": false
+            }
+          }
+          EOF
+          )
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"timestamp\":$timestamp,\"sign\":\"$sign\",\"msg\":$MESSAGE}" \
+            $DINGTALK_WEBHOOK
+
+      - name: Send failure notification to DingTalk
         if: failure()
-        run: echo "Crawler failed. Check logs."
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        run: |
+          timestamp="$(( $(date +%s) * 1000 ))"
+          sign=$(printf "$timestamp\n$DINGTALK_SECRET" | openssl dgst -hmac -sha256 -binary | base64 -w 0)
+          MESSAGE=$(cat <<EOF
+          {
+            "msgtype": "markdown",
+            "markdown": {
+              "title": "❌ 拾光驿站 · 更新失败",
+              "text": "## ❌ 拾光驿站 · 每日更新失败\n\n爬虫运行出现问题，请检查 [GitHub Actions 日志](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})。"
+            },
+            "at": {
+              "isAtAll": false
+            }
+          }
+          EOF
+          )
+          curl -X POST -H "Content-Type: application/json" \
+            -d "{\"timestamp\":$timestamp,\"sign\":\"$sign\",\"msg\":$MESSAGE}" \
+            $DINGTALK_WEBHOOK
