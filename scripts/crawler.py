@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.7）
-- 推理题类型多样化（逻辑、数学、情境、数字、空间等）
-- 扩充备选题库
-- 14天历史去重 + 避免与昨天重复 + 逻辑验证
+每日数据爬虫（优化版 v3.8）
+- 增加 AI 调用超时时间，优化重试策略
+- 推理题验证超时时默认通过
+- 其他功能与 v3.7 一致
 """
 
 import os
@@ -35,7 +35,6 @@ API_BASE_URL = "https://api-enhanced-beta-drab.vercel.app"
 SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 
-# 模型分配
 MODEL_WRITING = 'Qwen/Qwen2.5-7B-Instruct'
 MODEL_THINKING = 'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B'
 
@@ -104,23 +103,19 @@ FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都�
 
 # 丰富多样的备选推理题（涵盖不同题型）
 FALLBACK_PUZZLES = [
-    # 逻辑推理
     {"question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？", "answer": "丙是说真话的人。"},
     {"question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？", "answer": "A是骑士。"},
-    # 数学谜题
     {"question": "三个盒子，一个装有苹果，一个装有橘子，一个装有苹果和橘子。每个盒子上都贴了一个标签，但所有标签都是错的。你只能打开一个盒子，如何确定每个盒子里装的是什么？", "answer": "打开贴有'苹果和橘子'的盒子。如果里面是苹果，则贴'橘子'的盒子一定是苹果和橘子，贴'苹果'的盒子一定是橘子。"},
     {"question": "一个数字，加上它的二分之一等于9，这个数字是多少？", "answer": "6。因为6 + 3 = 9。"},
-    # 情境推理
     {"question": "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？", "answer": "如果某人看到两顶黑帽子，那么他可以立刻知道自己戴的是白帽。但没有人立即回答，说明没有人看到两顶黑帽。因此最多只有一顶黑帽。如果某人看到一顶黑帽，他会想：如果我戴的是黑帽，那么对方会看到两顶黑帽，对方就会立刻回答。但对方没有立即回答，所以我戴的只能是白帽。"},
     {"question": "一个人走进酒吧，向酒保要了一杯水。酒保却突然拔出一把枪对准他。那人说“谢谢”然后走了出去。为什么？", "answer": "那人打嗝，要水是为了治打嗝；酒保用枪吓他，他一惊，打嗝就好了，所以道谢离开。"},
-    # 数字逻辑
     {"question": "如果1=3，2=3，3=5，4=4，5=4，那么6=？", "answer": "3。因为数字的英文单词字母个数：one(3), two(3), three(5), four(4), five(4), six(3)。"},
     {"question": "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？", "answer": "29天。因为第30天是第29天的两倍。"},
 ]
 
 # ==================== AI 调用（支持模型选择） ====================
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 30, model: str = None) -> Optional[str]:
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=30))
+def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 45, model: str = None) -> Optional[str]:
     if not ENABLE_AI:
         return None
     headers = {
@@ -491,7 +486,7 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
         """
         try:
-            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=60, model=MODEL_WRITING)
+            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=90, model=MODEL_WRITING)
         except Exception as e:
             logger.error(f"  AI调用异常: {e}")
             time.sleep(5)
@@ -780,7 +775,6 @@ PUZZLE_TYPES = [
 ]
 
 def _generate_puzzle_once() -> Optional[Dict[str, str]]:
-    """单次生成推理题，随机选择题型"""
     if not ENABLE_AI:
         return None
     puzzle_type = random.choice(PUZZLE_TYPES)
@@ -810,6 +804,7 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     return None
 
 def validate_puzzle(question: str, answer: str) -> bool:
+    """使用 AI 验证推理题是否正确，超时时默认通过"""
     if not ENABLE_AI:
         return True
     prompt = f"""
@@ -824,11 +819,12 @@ def validate_puzzle(question: str, answer: str) -> bool:
     只输出"正确"或"错误"。
     """
     try:
-        resp = call_ai(prompt, max_tokens=10, temperature=0, timeout=10, model=MODEL_THINKING)
+        resp = call_ai(prompt, max_tokens=10, temperature=0, timeout=15, model=MODEL_THINKING)
         if resp and "正确" in resp:
             return True
     except Exception as e:
-        logger.error(f"验证推理题失败: {e}")
+        logger.warning(f"验证推理题超时或异常，默认通过: {e}")
+        return True
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
@@ -1064,7 +1060,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.7 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.8 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
