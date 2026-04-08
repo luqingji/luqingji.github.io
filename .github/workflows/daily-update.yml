@@ -37,11 +37,15 @@ jobs:
           ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
         run: |
           python scripts/crawler.py
-          # 提取数据用于钉钉通知
-          echo "SUMMARY=$(jq -r '.summary' data/daily.json)" >> $GITHUB_ENV
-          echo "ARTICLE_TITLE=$(jq -r '.article.title' data/daily.json)" >> $GITHUB_ENV
-          echo "QUESTION=$(jq -r '.question' data/daily.json)" >> $GITHUB_ENV
-          echo "DATE=$(jq -r '.date' data/daily.json)" >> $GITHUB_ENV
+          if [ $? -eq 0 ] && [ -f data/daily.json ]; then
+            echo "CRAWLER_SUCCESS=true" >> $GITHUB_ENV
+            echo "SUMMARY=$(jq -r '.summary' data/daily.json)" >> $GITHUB_ENV
+            echo "ARTICLE_TITLE=$(jq -r '.article.title' data/daily.json)" >> $GITHUB_ENV
+            echo "QUESTION=$(jq -r '.question' data/daily.json)" >> $GITHUB_ENV
+            echo "DATE=$(jq -r '.date' data/daily.json)" >> $GITHUB_ENV
+          else
+            echo "CRAWLER_SUCCESS=false" >> $GITHUB_ENV
+          fi
 
       - name: Generate history index
         run: python scripts/generate_index.py
@@ -57,7 +61,7 @@ jobs:
           git push
 
       - name: Send success notification to DingTalk
-        if: success()
+        if: success() && env.CRAWLER_SUCCESS == 'true'
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
@@ -66,31 +70,61 @@ jobs:
           QUESTION: ${{ env.QUESTION }}
           DATE: ${{ env.DATE }}
         run: |
+          if [ -z "$DINGTALK_WEBHOOK" ] || [ -z "$DINGTALK_SECRET" ]; then
+            echo "钉钉配置缺失，跳过通知"
+            exit 0
+          fi
           timestamp="$(( $(date +%s) * 1000 ))"
           sign=$(printf "$timestamp\n$DINGTALK_SECRET" | openssl dgst -hmac -sha256 -binary | base64 -w 0)
-          MESSAGE=$(cat <<EOF
-          {
-            "msgtype": "markdown",
-            "markdown": {
-              "title": "📮 拾光驿站 · 每日报告",
-              "text": "## 📮 拾光驿站 · 每日报告\n\n**日期**：$DATE\n\n## 📝 每日总结\n> $SUMMARY\n\n---\n\n## 📊 今日统计\n- **📖 文章**：$ARTICLE_TITLE\n- **🎵 歌单**：今日推荐6首歌曲\n- **📚 小说**：今日更新3篇小说\n- **💬 思考题**：$QUESTION\n\n---\n\n> ✨ 美好的一天，从诗意与思考开始。\n> [点击查看详情](https://${{ github.repository_owner }}.github.io)"
-            },
-            "at": {
-              "isAtAll": false
-            }
-          }
+          # 消息文本中必须包含“拾光驿站”关键词
+          TEXT=$(cat <<EOF
+          ## 📮 拾光驿站 · 每日报告
+
+          **日期**：$DATE
+
+          ## 📝 每日总结
+          > $SUMMARY
+
+          ---
+
+          ## 📊 今日统计
+          - **📖 文章**：$ARTICLE_TITLE
+          - **🎵 歌单**：今日推荐6首歌曲
+          - **📚 小说**：今日更新3篇小说
+          - **💬 思考题**：$QUESTION
+
+          ---
+
+          > ✨ 拾光驿站，美好的一天从诗意与思考开始。
+          > [点击查看详情](https://${{ github.repository_owner }}.github.io)
           EOF
           )
+          # 使用 jq 转义文本
+          TEXT_JSON=$(echo "$TEXT" | jq -Rsa .)
+          PAYLOAD=$(jq -n --arg text "$TEXT_JSON" '{
+            msgtype: "markdown",
+            markdown: {
+              title: "📮 拾光驿站 · 每日报告",
+              text: $text
+            },
+            at: {
+              isAtAll: false
+            }
+          }')
           curl -X POST -H "Content-Type: application/json" \
-            -d "{\"timestamp\":$timestamp,\"sign\":\"$sign\",\"msg\":$MESSAGE}" \
+            -d "{\"timestamp\":$timestamp,\"sign\":\"$sign\",\"msg\":$PAYLOAD}" \
             $DINGTALK_WEBHOOK
 
       - name: Send failure notification to DingTalk
-        if: failure()
+        if: failure() || env.CRAWLER_SUCCESS == 'false'
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         run: |
+          if [ -z "$DINGTALK_WEBHOOK" ] || [ -z "$DINGTALK_SECRET" ]; then
+            echo "钉钉配置缺失，跳过通知"
+            exit 0
+          fi
           timestamp="$(( $(date +%s) * 1000 ))"
           sign=$(printf "$timestamp\n$DINGTALK_SECRET" | openssl dgst -hmac -sha256 -binary | base64 -w 0)
           MESSAGE=$(cat <<EOF
