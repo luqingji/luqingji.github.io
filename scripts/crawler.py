@@ -702,28 +702,47 @@ def generate_easter_egg() -> str:
 
 # ==================== 深度思考模块（使用 DeepSeek 模型） ====================
 def generate_daily_question() -> str:
+    """生成一个有趣的逻辑推理题（有故事背景、唯一答案）"""
     if not ENABLE_AI:
-        return FALLBACK_QUESTION
-    prompt = "请提出一个引人深思的开放式问题（不超过50字），主题可以是人生、科技、社会、自我成长等。"
+        return "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？"
+    prompt = """
+请创作一个原创的、有趣的逻辑推理题，要求：
+- 有具体的故事背景（如囚犯、岛民、帽子、盒子等）
+- 题目必须包含明确的逻辑条件，答案唯一且可通过推理得出
+- 可以是概率题、真假话推理、数字谜题、逻辑谜题等
+- 字数控制在150字以内
+- 只输出题目，不要包含答案
+
+示例风格（不要抄袭）：
+“三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？”
+"""
     try:
-        question = call_ai(prompt, max_tokens=100, temperature=0.9, timeout=15, model=MODEL_THINKING)
+        question = call_ai(prompt, max_tokens=200, temperature=0.9, timeout=20, model=MODEL_THINKING)
         if question:
-            return question.strip('"\'').strip()
+            return question.strip()
     except Exception as e:
-        logger.error(f"生成思考题失败: {e}")
-    return FALLBACK_QUESTION
+        logger.error(f"生成逻辑推理题失败: {e}")
+    return "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？"
 
 def generate_question_answer(question: str) -> str:
+    """根据生成的逻辑推理题，给出清晰的答案和解析"""
     if not ENABLE_AI:
-        return FALLBACK_QUESTION_ANSWER
-    prompt = f"请认真回答以下思考题，给出你的见解（不超过150字）：\n{question}"
+        return "根据逻辑推理，正确答案需要结合条件分析。"
+    prompt = f"""
+请为以下逻辑推理题给出正确答案和详细的解析（不超过200字）。要求：
+- 答案必须正确，与题目条件一致
+- 解析要清晰，分步骤解释推理过程
+- 如果是概率题，要说明概率变化的原因
+
+题目：{question}
+"""
     try:
-        answer = call_ai(prompt, max_tokens=250, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        answer = call_ai(prompt, max_tokens=300, temperature=0.7, timeout=20, model=MODEL_THINKING)
         if answer:
             return answer.strip()
     except Exception as e:
         logger.error(f"生成思考题答案失败: {e}")
-    return FALLBACK_QUESTION_ANSWER
+    return "请参考逻辑推理：根据条件，正确答案是……（请查看AI生成的解析）"
 
 # ==================== 去重辅助函数 ====================
 def get_recent_history(days: int = 14) -> tuple:
