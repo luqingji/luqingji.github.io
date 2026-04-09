@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.8）
-- 增加 AI 调用超时时间，优化重试策略
-- 推理题验证超时时默认通过
-- 其他功能与 v3.7 一致
+每日数据爬虫（优化版 v3.9）
+- 思考题、推理题 AI 生成失败时从备选库随机选取，保证每日不同
+- 增加 AI 调用超时和重试策略
+- 其他功能与 v3.8 一致
 """
 
 import os
@@ -96,12 +96,19 @@ STATIC_EASTER_EGGS = [
     "🥚 今日彩蛋：读一段文字，饮一杯暖茶。"
 ]
 
-FALLBACK_QUESTION = "今天的问题：你如何定义自己的幸福？"
-FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的热爱与感恩。"
-FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
-FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
+# 备选思考题列表（逻辑推理类，经典问题）
+FALLBACK_QUESTIONS = [
+    "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？",
+    "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？",
+    "有两个箱子，一个装有红球，一个装有蓝球，但箱子上的标签都贴错了。你只能从其中一个箱子中取出一个球，如何确定哪个箱子装什么颜色？",
+    "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？",
+    "一个数字，加上它的二分之一等于9，这个数字是多少？",
+    "一个人走进酒吧，向酒保要了一杯水。酒保却突然拔出一把枪对准他。那人说“谢谢”然后走了出去。为什么？",
+    "如果1=3，2=3，3=5，4=4，5=4，那么6=？",
+    "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？",
+]
 
-# 丰富多样的备选推理题（涵盖不同题型）
+# 备选推理题（已在之前定义，确保多个）
 FALLBACK_PUZZLES = [
     {"question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？", "answer": "丙是说真话的人。"},
     {"question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？", "answer": "A是骑士。"},
@@ -112,6 +119,10 @@ FALLBACK_PUZZLES = [
     {"question": "如果1=3，2=3，3=5，4=4，5=4，那么6=？", "answer": "3。因为数字的英文单词字母个数：one(3), two(3), three(5), four(4), five(4), six(3)。"},
     {"question": "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？", "answer": "29天。因为第30天是第29天的两倍。"},
 ]
+
+FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的热爱与感恩。"
+FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
+FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
 
 # ==================== AI 调用（支持模型选择） ====================
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=30))
@@ -702,39 +713,40 @@ def generate_easter_egg() -> str:
 
 # ==================== 深度思考模块（使用 DeepSeek 模型） ====================
 def generate_daily_question() -> str:
-    """生成一个有趣的逻辑推理题（有故事背景、唯一答案）"""
+    """生成一个有趣的逻辑推理题，失败时从备选库随机选择"""
     if not ENABLE_AI:
-        return "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？"
+        logger.warning("AI未启用，使用备选思考题库")
+        return random.choice(FALLBACK_QUESTIONS)
     prompt = """
-请创作一个原创的、有趣的逻辑推理题，要求：
-- 有具体的故事背景（如囚犯、岛民、帽子、盒子等）
+请创作一个原创的、有趣的逻辑推理题（不要抄袭经典的三囚犯问题）。要求：
+- 有具体的故事背景
 - 题目必须包含明确的逻辑条件，答案唯一且可通过推理得出
-- 可以是概率题、真假话推理、数字谜题、逻辑谜题等
+- 可以是概率题、真假话推理、数字谜题等
 - 字数控制在150字以内
 - 只输出题目，不要包含答案
-
-示例风格（不要抄袭）：
-“三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？”
 """
     try:
-        question = call_ai(prompt, max_tokens=200, temperature=0.9, timeout=20, model=MODEL_THINKING)
+        question = call_ai(prompt, max_tokens=200, temperature=0.9, timeout=30, model=MODEL_THINKING)
         if question:
+            logger.info("思考题生成成功")
             return question.strip()
     except Exception as e:
-        logger.error(f"生成逻辑推理题失败: {e}")
-    return "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？"
+        logger.error(f"生成思考题失败: {e}")
+    logger.warning("思考题使用备选库随机选择")
+    return random.choice(FALLBACK_QUESTIONS)
 
 def generate_question_answer(question: str) -> str:
-    """根据生成的逻辑推理题，给出清晰的答案和解析"""
+    """根据生成的逻辑推理题，给出答案和解析"""
     if not ENABLE_AI:
-        return "根据逻辑推理，正确答案需要结合条件分析。"
+        return "请参考逻辑推理：正确答案需要结合条件分析。"
     prompt = f"""
-请为以下逻辑推理题给出正确答案和详细的解析（不超过200字）。要求：
+请为以下逻辑推理题给出正确答案和详细的解析（不超过200字）：
+{question}
+
+要求：
 - 答案必须正确，与题目条件一致
 - 解析要清晰，分步骤解释推理过程
 - 如果是概率题，要说明概率变化的原因
-
-题目：{question}
 """
     try:
         answer = call_ai(prompt, max_tokens=300, temperature=0.7, timeout=20, model=MODEL_THINKING)
@@ -742,7 +754,7 @@ def generate_question_answer(question: str) -> str:
             return answer.strip()
     except Exception as e:
         logger.error(f"生成思考题答案失败: {e}")
-    return "请参考逻辑推理：根据条件，正确答案是……（请查看AI生成的解析）"
+    return "根据逻辑推理，正确答案是……（请参考AI生成的详细解析）"
 
 # ==================== 去重辅助函数 ====================
 def get_recent_history(days: int = 14) -> tuple:
@@ -847,6 +859,7 @@ def validate_puzzle(question: str, answer: str) -> bool:
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
+    """生成不重复且逻辑正确的推理题，失败时从备选库随机选择"""
     history_puzzles, _ = get_recent_history(14)
     yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
@@ -862,12 +875,12 @@ def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
             time.sleep(1)
             continue
         if validate_puzzle(puzzle['question'], puzzle['answer']):
-            logger.info(f"生成推理题成功，类型：{puzzle['question'][:50]}...")
+            logger.info(f"生成推理题成功")
             return puzzle
         else:
             logger.info(f"推理题逻辑错误，第{attempt+1}次重试")
             time.sleep(1)
-    logger.warning("推理题重试后仍无效，使用备选题")
+    logger.warning("推理题重试后仍无效，使用随机备选题")
     return random.choice(FALLBACK_PUZZLES)
 
 def _generate_trivia_once() -> Optional[str]:
@@ -1079,7 +1092,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.8 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v3.9 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
