@@ -38,11 +38,22 @@ jobs:
         run: |
           python scripts/crawler.py
           if [ $? -eq 0 ] && [ -f data/daily.json ]; then
+            # 使用 heredoc 避免特殊字符问题
+            summary=$(jq -r '.summary' data/daily.json | tr -d '\n\r')
+            article_title=$(jq -r '.article.title' data/daily.json | tr -d '\n\r')
+            question=$(jq -r '.question' data/daily.json | tr -d '\n\r')
+            date=$(jq -r '.date' data/daily.json | tr -d '\n\r')
             echo "CRAWLER_SUCCESS=true" >> $GITHUB_ENV
-            echo "SUMMARY=$(jq -r '.summary' data/daily.json)" >> $GITHUB_ENV
-            echo "ARTICLE_TITLE=$(jq -r '.article.title' data/daily.json)" >> $GITHUB_ENV
-            echo "QUESTION=$(jq -r '.question' data/daily.json)" >> $GITHUB_ENV
-            echo "DATE=$(jq -r '.date' data/daily.json)" >> $GITHUB_ENV
+            echo "SUMMARY<<EOF" >> $GITHUB_ENV
+            echo "$summary" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "ARTICLE_TITLE<<EOF" >> $GITHUB_ENV
+            echo "$article_title" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "QUESTION<<EOF" >> $GITHUB_ENV
+            echo "$question" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "DATE=$date" >> $GITHUB_ENV
           else
             echo "CRAWLER_SUCCESS=false" >> $GITHUB_ENV
           fi
@@ -69,92 +80,11 @@ jobs:
           ARTICLE_TITLE: ${{ env.ARTICLE_TITLE }}
           QUESTION: ${{ env.QUESTION }}
           DATE: ${{ env.DATE }}
-        run: |
-          python3 <<EOF
-          import requests
-          import json
-          import time
-          import hmac
-          import hashlib
-          import base64
-          import os
-
-          webhook = os.environ['DINGTALK_WEBHOOK']
-          secret = os.environ['DINGTALK_SECRET']
-          timestamp = str(round(time.time() * 1000))
-          sign = base64.b64encode(hmac.new(secret.encode('utf-8'), (timestamp + '\n' + secret).encode('utf-8'), hashlib.sha256).digest()).decode('utf-8')
-
-          text = f"""
-          ## 📮 拾光驿站 · 每日报告
-
-          **日期**：{os.environ['DATE']}
-
-          ## 📝 每日总结
-          > {os.environ['SUMMARY']}
-
-          ---
-
-          ## 📊 今日统计
-          - **📖 文章**：{os.environ['ARTICLE_TITLE']}
-          - **🎵 歌单**：今日推荐6首歌曲
-          - **📚 小说**：今日更新3篇小说
-          - **💬 思考题**：{os.environ['QUESTION']}
-
-          ---
-
-          > ✨ 拾光驿站，美好的一天从诗意与思考开始。
-          > [点击查看详情](https://luqingji.github.io)
-          """
-          payload = {
-              "msgtype": "markdown",
-              "markdown": {
-                  "title": "📮 拾光驿站 · 每日报告",
-                  "text": text
-              },
-              "at": {
-                  "isAtAll": False
-              }
-          }
-          url = f"{webhook}?timestamp={timestamp}&sign={sign}"
-          resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-          print(resp.status_code, resp.text)
-          if resp.status_code != 200:
-              exit(1)
-          EOF
+        run: python scripts/dingtalk.py success
 
       - name: Send failure notification to DingTalk
         if: failure() || env.CRAWLER_SUCCESS == 'false'
         env:
           DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        run: |
-          python3 <<EOF
-          import requests
-          import json
-          import time
-          import hmac
-          import hashlib
-          import base64
-          import os
-
-          webhook = os.environ['DINGTALK_WEBHOOK']
-          secret = os.environ['DINGTALK_SECRET']
-          timestamp = str(round(time.time() * 1000))
-          sign = base64.b64encode(hmac.new(secret.encode('utf-8'), (timestamp + '\n' + secret).encode('utf-8'), hashlib.sha256).digest()).decode('utf-8')
-
-          payload = {
-              "msgtype": "markdown",
-              "markdown": {
-                  "title": "❌ 拾光驿站 · 更新失败",
-                  "text": "## ❌ 拾光驿站 · 每日更新失败\n\n爬虫运行出现问题，请检查 [GitHub Actions 日志](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})。"
-              },
-              "at": {
-                  "isAtAll": False
-              }
-          }
-          url = f"{webhook}?timestamp={timestamp}&sign={sign}"
-          resp = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-          print(resp.status_code, resp.text)
-          if resp.status_code != 200:
-              exit(1)
-          EOF
+        run: python scripts/dingtalk.py failure
