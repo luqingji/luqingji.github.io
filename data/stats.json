@@ -1,12 +1,12 @@
 {
-  "total_days": 20,
-  "total_songs": 120,
-  "total_articles": 20,
-  "total_novels": 60,
-  "total_words": 98076,
-  "total_recommend_words": 4956,
-  "total_news_items": 300,
-  "total_one_items": 60,
-  "read_minutes": 326,
-  "last_updated": "2026-04-11T23:48:25.578521+00:00"
+  "total_days": 21,
+  "total_songs": 126,
+  "total_articles": 21,
+  "total_novels": 63,
+  "total_words": 102774,
+  "total_recommend_words": 5192,
+  "total_news_items": 315,
+  "total_one_items": 63,
+  "read_minutes": 342,
+  "last_updated": "2026-04-12T23:46:56.366388+00:00"
 }
