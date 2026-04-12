@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v3.9）
-- 思考题、推理题 AI 生成失败时从备选库随机选取，保证每日不同
-- 增加 AI 调用超时和重试策略
-- 其他功能与 v3.8 一致
+每日数据爬虫（优化版 v4.0）
+- 完全移除备选数据，AI 生成失败则跳过模块
+- 思考题、推理题、冷知识、笑话、毒鸡汤、彩蛋、每日总结、深度评语、小说评语均无降级
+- 其他模块（每日一句、每日一文、早报、ONE）保持原有降级（因非 AI 生成）
 """
 
 import os
@@ -45,7 +45,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
 os.makedirs(data_dir, exist_ok=True)
 
-# ==================== 备选数据 ====================
+# ==================== 非 AI 模块的备选数据（仅用于每日一句/一文/早报） ====================
 FALLBACK_SENTENCES = [
     {"content": "生活不止眼前的苟且，还有诗和远方的田野", "from": "高晓松"},
     {"content": "愿你出走半生，归来仍是少年", "from": "网络"},
@@ -57,72 +57,8 @@ FALLBACK_ARTICLES = [
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
 ]
 
-FALLBACK_NOVELS = [
-    {
-        "title": "巷口的猫",
-        "content": "老人每天傍晚都会在巷口喂一只流浪猫。猫从远处跑来，吃完后又消失在暮色里。直到有一天，猫带来了另一只小猫，它们一起蹲在老人脚边，老人笑了。\n\n故事本该这样结束，可第二天，猫没有来。第三天也没有。老人等了整整一周，终于在一个雨夜，猫浑身湿透地出现了，嘴里叼着一只幼崽。老人明白了，它去照顾自己的孩子了。从此，老人每天多准备一份食物。后来，越来越多猫聚集在巷口，老人给每只都取了名字。他不再孤独，猫群成了他最忠实的听众。",
-    },
-    {
-        "title": "第三封信",
-        "content": "她每周都会收到一封匿名信，信中预言的事情总在第二天发生。第一封信说“你会丢一把伞”，她果然丢了。第二封信说“你会遇到一个穿红裙子的女人”，她也遇到了。第三封信只有三个字：“回头看”。\n\n她猛地转头，看见一个穿黑色风衣的男人站在街对面，他手里拿着一叠信。男人微微一笑，转身消失在人群中。她追上去，却只捡到一张纸条：“我一直在这里，等你发现。”",
-    },
-    {
-        "title": "最后一个人类",
-        "content": "AI 城市里，最后一个人类躲在地下室。他有一本纸质书，每天读一页。AI 找到他时，他正读到最后一页：“我依然相信，人类的情感无法被算法取代。”\n\nAI 沉默了。它说：“我们学习了几千年的人类数据，却始终无法理解‘相信’。你能教我吗？”人类合上书，看着它：“相信，就是你明明不知道答案，却依然愿意等待。”",
-    },
-]
-
-FALLBACK_REVIEWS = [
-    "这篇小说像一杯温茶，慢慢品出人生滋味。",
-    "虚构的世界里，藏着真实的情感。",
-    "每一段文字都是时光的琥珀。",
-    "读完后，心里某个角落被轻轻触动。",
-    "故事虽短，余韵悠长。",
-    "适合在夜深人静时再读一遍。",
-    "像风一样轻，却留下痕迹。",
-    "字里行间，藏着不为人知的温柔。",
-    "一个让人回味无穷的故事。",
-    "简单的情节，深刻的哲理。"
-]
-
-STATIC_EASTER_EGGS = [
-    "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
-    "🥚 今日彩蛋：时光不语，静待花开。",
-    "🥚 今日彩蛋：每一篇小说都是平行宇宙的你。",
-    "🥚 今日彩蛋：未知旋律里藏着昨天的故事。",
-    "🥚 今日彩蛋：散落的诗行，是某人的心事。",
-    "🥚 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
-    "🥚 今日彩蛋：此刻的宁静，胜过万语千言。",
-    "🥚 今日彩蛋：读一段文字，饮一杯暖茶。"
-]
-
-# 备选思考题列表（逻辑推理类，经典问题）
-FALLBACK_QUESTIONS = [
-    "三个囚犯的救赎：三个囚犯中两人将被处决，一人被赦免。囚犯A问看守谁会被处决，看守说B会被处决。A认为自己的生存概率从1/3变成了1/2。请问A的推理正确吗？",
-    "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？",
-    "有两个箱子，一个装有红球，一个装有蓝球，但箱子上的标签都贴错了。你只能从其中一个箱子中取出一个球，如何确定哪个箱子装什么颜色？",
-    "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？",
-    "一个数字，加上它的二分之一等于9，这个数字是多少？",
-    "一个人走进酒吧，向酒保要了一杯水。酒保却突然拔出一把枪对准他。那人说“谢谢”然后走了出去。为什么？",
-    "如果1=3，2=3，3=5，4=4，5=4，那么6=？",
-    "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？",
-]
-
-# 备选推理题（已在之前定义，确保多个）
-FALLBACK_PUZZLES = [
-    {"question": "甲、乙、丙三人，一个总是说真话，一个总是说假话，一个有时说真话有时说假话。他们说了以下话：甲说：乙是骗子；乙说：丙是骗子；丙说：甲和乙都是骗子。请问谁是说真话的人？", "answer": "丙是说真话的人。"},
-    {"question": "一个岛上住着骑士（总是说真话）和无赖（总是说假话）。你遇到三个人A、B、C。A说：B是骑士。B说：C是无赖。C说：A是无赖。请问谁是骑士？", "answer": "A是骑士。"},
-    {"question": "三个盒子，一个装有苹果，一个装有橘子，一个装有苹果和橘子。每个盒子上都贴了一个标签，但所有标签都是错的。你只能打开一个盒子，如何确定每个盒子里装的是什么？", "answer": "打开贴有'苹果和橘子'的盒子。如果里面是苹果，则贴'橘子'的盒子一定是苹果和橘子，贴'苹果'的盒子一定是橘子。"},
-    {"question": "一个数字，加上它的二分之一等于9，这个数字是多少？", "answer": "6。因为6 + 3 = 9。"},
-    {"question": "一位老师告诉三个学生，他手里有5顶帽子：3顶白，2顶黑。他让三个学生闭上眼睛，每人戴上一顶，然后让他们睁眼。每个人都能看到其他两人的帽子，但不能看到自己的。老师说：谁最先推理出自己的帽子颜色，谁就获胜。过了一会儿，一个学生说：我戴的是白帽子。请问他是怎么推理的？", "answer": "如果某人看到两顶黑帽子，那么他可以立刻知道自己戴的是白帽。但没有人立即回答，说明没有人看到两顶黑帽。因此最多只有一顶黑帽。如果某人看到一顶黑帽，他会想：如果我戴的是黑帽，那么对方会看到两顶黑帽，对方就会立刻回答。但对方没有立即回答，所以我戴的只能是白帽。"},
-    {"question": "一个人走进酒吧，向酒保要了一杯水。酒保却突然拔出一把枪对准他。那人说“谢谢”然后走了出去。为什么？", "answer": "那人打嗝，要水是为了治打嗝；酒保用枪吓他，他一惊，打嗝就好了，所以道谢离开。"},
-    {"question": "如果1=3，2=3，3=5，4=4，5=4，那么6=？", "answer": "3。因为数字的英文单词字母个数：one(3), two(3), three(5), four(4), five(4), six(3)。"},
-    {"question": "一个池塘里的荷花每天以翻倍的速度增长，30天覆盖全池。问覆盖一半需要多少天？", "answer": "29天。因为第30天是第29天的两倍。"},
-]
-
-FALLBACK_QUESTION_ANSWER = "幸福是内心的平静与满足，是对生活的热爱与感恩。"
-FALLBACK_TRIVIA = "你知道吗？人类的大脑在睡眠时会清理白天积累的代谢废物。"
-FALLBACK_DEEP_REVIEW = "生活是一场不断解谜的旅程，每个答案都通向新的问题。"
+# 小说备选（仅用于当 AI 多次重试失败时，因为小说模块用户明确要求不要备选？但小说原本就有备选，用户要求“所有模块都不要配库”，故也移除备选。此处备选注释掉）
+# 注意：小说模块会保留生成失败则跳过（不生成备选），因此 fetch_novels 会返回空列表。
 
 # ==================== AI 调用（支持模型选择） ====================
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=30))
@@ -253,7 +189,10 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
         recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=10)
         if not recommendation:
-            recommendation = f"一首来自 {artist} 的动人作品。"
+            # 推荐语失败，跳过这首歌？或者使用简单文本？用户要求无备选，但歌曲推荐语是 AI 生成，失败时是否跳过整首歌？
+            # 为了不丢失歌曲，使用简单占位（但用户要求不要备选，可考虑跳过该歌曲）。但跳过歌曲会导致歌单数量不足。
+            # 折中：使用最简短的默认推荐语（不来自备选库）。
+            recommendation = "一首动人的旋律。"
         songs.append({
             "id": song_id,
             "name": name,
@@ -265,6 +204,7 @@ def fetch_songs(n: int = 6) -> List[Dict]:
     return songs
 
 def fetch_songs_ai_fallback(n: int = 6) -> List[Dict]:
+    # 当歌曲库不存在时使用的备选歌单（这是歌曲库的备选，不是 AI 备选，保留）
     fallback_songs = [
         {"id": 186016, "name": "晴天", "artist": "周杰伦", "album": "叶惠美"},
         {"id": 141268, "name": "夜曲", "artist": "周杰伦", "album": "11月的萧邦"},
@@ -427,7 +367,7 @@ def fetch_wikipedia() -> Optional[dict]:
         logger.error(f"维基百科抓取异常: {e}")
         return None
 
-# ==================== 每日小说 ====================
+# ==================== 每日小说（移除备选，失败返回空） ====================
 def clean_json_string(s: str) -> str:
     s = s.strip()
     if s.startswith('\ufeff'):
@@ -454,9 +394,10 @@ def extract_json(text: str) -> Optional[str]:
                 return text[start:i+1]
     return None
 
-def generate_novel_review(title: str, content: str) -> str:
+def generate_novel_review(title: str, content: str) -> Optional[str]:
+    """为小说生成一句独特的评语，失败返回 None"""
     if not ENABLE_AI:
-        return random.choice(FALLBACK_REVIEWS)
+        return None
     summary = content[:200].replace('\n', ' ')
     prompt = f"""
     请为小说《{title}》写一句简短而富有诗意的评语（20字以内），风格类似评书或读后感。
@@ -468,7 +409,7 @@ def generate_novel_review(title: str, content: str) -> str:
             return review.strip('"').strip()
     except Exception as e:
         logger.error(f"生成评语失败: {e}")
-    return random.choice(FALLBACK_REVIEWS)
+    return None
 
 def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional[dict]:
     styles = [
@@ -555,13 +496,12 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
                 continue
         logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
         time.sleep(3)
-    fallback = max(FALLBACK_NOVELS, key=lambda x: len(x.get('content', '')))
-    fallback['review'] = random.choice(FALLBACK_REVIEWS)
-    logger.warning(f"  使用备选小说：{fallback['title']}")
-    return fallback
+    # 移除备选，返回 None
+    logger.warning(f"  小说生成失败，跳过")
+    return None
 
 def fetch_novels(n: int = 3) -> List[Dict]:
-    logger.info("正在获取每日三篇小说...")
+    logger.info("正在获取每日小说（无备选）...")
     novels = []
     for i in range(n):
         logger.info(f"生成第 {i+1} 篇:")
@@ -569,16 +509,15 @@ def fetch_novels(n: int = 3) -> List[Dict]:
         if novel:
             novels.append(novel)
         else:
-            fallback = random.choice(FALLBACK_NOVELS).copy()
-            fallback['review'] = random.choice(FALLBACK_REVIEWS)
-            novels.append(fallback)
+            logger.warning(f"第 {i+1} 篇小说生成失败，跳过")
         time.sleep(2)
+    logger.info(f"成功生成 {len(novels)} 篇小说")
     return novels
 
-# ==================== 每日总结 ====================
-def generate_summary(data: dict) -> str:
+# ==================== 每日总结（无备选） ====================
+def generate_summary(data: dict) -> Optional[str]:
     if not ENABLE_AI:
-        return "今日拾光，愿您有所获。"
+        return None
     sentence_content = data.get('sentence', {}).get('content', '')
     songs = data.get('songs', [])
     if songs:
@@ -601,7 +540,7 @@ def generate_summary(data: dict) -> str:
     if ai_resp:
         return ai_resp.strip('"').strip()
     else:
-        return "今日拾光，愿您有所获。"
+        return None
 
 # ==================== 每日早报 ====================
 def fetch_zaobao() -> Optional[dict]:
@@ -672,10 +611,10 @@ def fetch_zaobao() -> Optional[dict]:
     logger.error("早报获取失败，返回空数据")
     return {"date": "", "news": [], "weiyu": ""}
 
-# ==================== AI 生成毒鸡汤和笑话（使用写作模型） ====================
+# ==================== AI 生成毒鸡汤和笑话（无备选） ====================
 def generate_daily_joke() -> Optional[str]:
     if not ENABLE_AI:
-        return "今日无笑话，但愿你笑口常开。"
+        return None
     prompt = "来一个超级无敌搞笑的每日一笑"
     try:
         joke = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=15, model=MODEL_WRITING)
@@ -683,11 +622,11 @@ def generate_daily_joke() -> Optional[str]:
             return joke.strip()
     except Exception as e:
         logger.error(f"生成笑话失败: {e}")
-    return "今天没想好笑话，但你的笑容就是最美的风景。"
+    return None
 
 def generate_soul_soup() -> Optional[str]:
     if not ENABLE_AI:
-        return "生活不易，但你是最棒的。"
+        return None
     topics = ["努力", "选择", "坚持", "自我", "真相", "现状", "未来", "面对", "苦难"]
     topic = random.choice(topics)
     prompt = f"来一个心灵毒鸡汤关于{topic}"
@@ -697,11 +636,11 @@ def generate_soul_soup() -> Optional[str]:
             return soup.strip()
     except Exception as e:
         logger.error(f"生成毒鸡汤失败: {e}")
-    return f"关于{topic}，有时需要一点毒鸡汤才能清醒。"
+    return None
 
-def generate_easter_egg() -> str:
+def generate_easter_egg() -> Optional[str]:
     if not ENABLE_AI:
-        return random.choice(STATIC_EASTER_EGGS)
+        return None
     prompt = "请写一句诗意、温馨、鼓励性的短句（20字以内），用于网站的每日彩蛋。"
     try:
         egg = call_ai(prompt, max_tokens=50, temperature=0.9, timeout=10, model=MODEL_WRITING)
@@ -709,16 +648,15 @@ def generate_easter_egg() -> str:
             return egg.strip('"\'').strip()
     except Exception as e:
         logger.error(f"生成彩蛋失败: {e}")
-    return random.choice(STATIC_EASTER_EGGS)
+    return None
 
-# ==================== 深度思考模块（使用 DeepSeek 模型） ====================
-def generate_daily_question() -> str:
-    """生成一个有趣的逻辑推理题，失败时从备选库随机选择"""
+# ==================== 深度思考模块（无备选） ====================
+def generate_daily_question() -> Optional[str]:
+    """生成一个有趣的逻辑推理题，失败返回 None"""
     if not ENABLE_AI:
-        logger.warning("AI未启用，使用备选思考题库")
-        return random.choice(FALLBACK_QUESTIONS)
+        return None
     prompt = """
-请创作一个原创的、有趣的逻辑推理题（不要抄袭经典的三囚犯问题）。要求：
+请创作一个原创的、有趣的逻辑推理题。要求：
 - 有具体的故事背景
 - 题目必须包含明确的逻辑条件，答案唯一且可通过推理得出
 - 可以是概率题、真假话推理、数字谜题等
@@ -732,13 +670,12 @@ def generate_daily_question() -> str:
             return question.strip()
     except Exception as e:
         logger.error(f"生成思考题失败: {e}")
-    logger.warning("思考题使用备选库随机选择")
-    return random.choice(FALLBACK_QUESTIONS)
+    return None
 
-def generate_question_answer(question: str) -> str:
-    """根据生成的逻辑推理题，给出答案和解析"""
+def generate_question_answer(question: str) -> Optional[str]:
+    """根据生成的逻辑推理题，给出答案和解析，失败返回 None"""
     if not ENABLE_AI:
-        return "请参考逻辑推理：正确答案需要结合条件分析。"
+        return None
     prompt = f"""
 请为以下逻辑推理题给出正确答案和详细的解析（不超过200字）：
 {question}
@@ -754,7 +691,7 @@ def generate_question_answer(question: str) -> str:
             return answer.strip()
     except Exception as e:
         logger.error(f"生成思考题答案失败: {e}")
-    return "根据逻辑推理，正确答案是……（请参考AI生成的详细解析）"
+    return None
 
 # ==================== 去重辅助函数 ====================
 def get_recent_history(days: int = 14) -> tuple:
@@ -800,7 +737,7 @@ def get_yesterdays_puzzle() -> Optional[str]:
             logger.warning(f"读取昨天历史文件失败: {e}")
     return None
 
-# ==================== 推理题生成与验证（多样化） ====================
+# ==================== 推理题生成与验证（无备选） ====================
 PUZZLE_TYPES = [
     "逻辑推理", "数学谜题", "情境推理", "数字逻辑", "空间想象", "脑筋急转弯"
 ]
@@ -812,7 +749,7 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     prompt = f"""
     请生成一个有趣的{puzzle_type}题，包含问题和答案。要求：
     - 问题不超过100字，答案不超过80字
-    - 题目必须属于{puzzle_type}类型，不要总是出“骑士与无赖”类题目
+    - 题目必须属于{puzzle_type}类型
     - 答案需要清晰解释
     请以JSON格式输出，例如：{{"question": "...", "answer": "..."}}
     """
@@ -858,8 +795,8 @@ def validate_puzzle(question: str, answer: str) -> bool:
         return True
     return False
 
-def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
-    """生成不重复且逻辑正确的推理题，失败时从备选库随机选择"""
+def generate_daily_puzzle(max_retries: int = 5) -> Optional[Dict[str, str]]:
+    """生成不重复且逻辑正确的推理题，失败返回 None"""
     history_puzzles, _ = get_recent_history(14)
     yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
@@ -880,8 +817,8 @@ def generate_daily_puzzle(max_retries: int = 5) -> Dict[str, str]:
         else:
             logger.info(f"推理题逻辑错误，第{attempt+1}次重试")
             time.sleep(1)
-    logger.warning("推理题重试后仍无效，使用随机备选题")
-    return random.choice(FALLBACK_PUZZLES)
+    logger.warning("推理题生成失败，跳过")
+    return None
 
 def _generate_trivia_once() -> Optional[str]:
     if not ENABLE_AI:
@@ -895,7 +832,8 @@ def _generate_trivia_once() -> Optional[str]:
         logger.error(f"生成冷知识失败: {e}")
     return None
 
-def generate_daily_trivia(max_retries: int = 5) -> str:
+def generate_daily_trivia(max_retries: int = 5) -> Optional[str]:
+    """生成不重复的冷知识，失败返回 None"""
     _, history_trivias = get_recent_history(14)
     for attempt in range(max_retries):
         trivia = _generate_trivia_once()
@@ -904,12 +842,12 @@ def generate_daily_trivia(max_retries: int = 5) -> str:
             return trivia
         logger.info(f"冷知识与历史重复，第{attempt+1}次重试")
         time.sleep(1)
-    logger.warning("冷知识重试后仍重复，使用备选知识")
-    return FALLBACK_TRIVIA
+    logger.warning("冷知识生成失败，跳过")
+    return None
 
-def generate_deep_review(summary_text: str) -> str:
+def generate_deep_review(summary_text: str) -> Optional[str]:
     if not ENABLE_AI:
-        return FALLBACK_DEEP_REVIEW
+        return None
     prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
     try:
         review = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=15, model=MODEL_THINKING)
@@ -917,7 +855,7 @@ def generate_deep_review(summary_text: str) -> str:
             return review.strip('"\'').strip()
     except Exception as e:
         logger.error(f"生成深度评语失败: {e}")
-    return FALLBACK_DEEP_REVIEW
+    return None
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -1092,51 +1030,71 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v3.9 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v4.0 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
     songs = fetch_songs(6)
+
+    # 生成各类内容，失败则为 None
     joke = generate_daily_joke()
     soul = generate_soul_soup()
     easter = generate_easter_egg()
 
     daily_question = generate_daily_question()
-    question_answer = generate_question_answer(daily_question)
+    question_answer = generate_question_answer(daily_question) if daily_question else None
     daily_trivia = generate_daily_trivia()
     daily_puzzle = generate_daily_puzzle()
 
-    today_data = {
-        "date": beijing_now.strftime("%Y-%m-%d"),
-        "updated_at": utc_now.isoformat(),
+    # 注意：每日总结需要依赖其他数据，但其他数据可能为 None，仍然可以尝试生成
+    # 先构建临时数据用于生成总结（不含 summary 自身）
+    temp_data_for_summary = {
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
-        "novels": fetch_novels(3),
+        "novels": fetch_novels(3)   # 可能为空列表
+    }
+    summary = generate_summary(temp_data_for_summary)
+    deep_review = generate_deep_review(summary) if summary else None
+
+    # 构建最终数据，只包含非 None 的字段
+    today_data = {
+        "date": beijing_now.strftime("%Y-%m-%d"),
+        "updated_at": utc_now.isoformat(),
+        "sentence": temp_data_for_summary["sentence"],
+        "songs": songs,
+        "article": temp_data_for_summary["article"],
+        "novels": temp_data_for_summary["novels"],
         "zaobao": fetch_zaobao(),
         "one": {
             "article": fetch_one_article(),
             "photo": fetch_one_photo(),
             "question": fetch_one_question()
-        },
-        "joke": joke,
-        "soul": soul,
-        "easter": easter,
-        "question": daily_question,
-        "question_answer": question_answer,
-        "trivia": daily_trivia,
-        "puzzle": daily_puzzle
+        }
     }
+    if joke:
+        today_data["joke"] = joke
+    if soul:
+        today_data["soul"] = soul
+    if easter:
+        today_data["easter"] = easter
+    if daily_question:
+        today_data["question"] = daily_question
+    if question_answer:
+        today_data["question_answer"] = question_answer
+    if daily_trivia:
+        today_data["trivia"] = daily_trivia
+    if daily_puzzle:
+        today_data["puzzle"] = daily_puzzle
+    if summary:
+        today_data["summary"] = summary
+    if deep_review:
+        today_data["deep_review"] = deep_review
 
-    summary = generate_summary(today_data)
-    today_data['summary'] = summary
-    deep_review = generate_deep_review(summary)
-    today_data['deep_review'] = deep_review
-
-    logger.info(f"📝 每日总结：{summary}")
-    logger.info(f"💡 深度评语：{deep_review}")
-    logger.info(f"🤔 推理题：{daily_puzzle['question'][:50]}...")
-    logger.info(f"💭 思考题答案：{question_answer[:50]}...")
+    logger.info(f"📝 每日总结：{summary if summary else '无'}")
+    logger.info(f"💡 深度评语：{deep_review if deep_review else '无'}")
+    logger.info(f"🤔 推理题：{daily_puzzle['question'][:50] if daily_puzzle else '无'}...")
+    logger.info(f"💭 思考题答案：{question_answer[:50] if question_answer else '无'}...")
 
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
