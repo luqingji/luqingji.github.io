@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v4.2）
+每日数据爬虫（优化版 v4.3）
 - 根据模型类型动态设置超时：DeepSeek 90秒，Qwen 60秒，小说生成 120秒
 - 增强重试等待时间
 - 无备选降级，AI 失败则跳过模块
+- 思考题/推理题要求中等难度以上、非经典、原创
+- 扩大历史去重范围至30天，避免重复
 """
 
 import os
@@ -66,9 +68,7 @@ def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeou
     """
     if not ENABLE_AI:
         return None
-    # 确定使用的模型
     used_model = model if model else MODEL_WRITING
-    # 动态超时
     if timeout is None:
         if used_model == MODEL_THINKING:
             timeout = 90
@@ -104,7 +104,7 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
         content = raw_data.get('content', '')
         from_ = raw_data.get('from', '')
         prompt = f"请为这句话写一段简短的解读（50-100字）：\n\n“{content}” —— {from_}"
-        meaning = call_ai(prompt, max_tokens=150, timeout=30)  # 短任务，30秒足够
+        meaning = call_ai(prompt, max_tokens=150, timeout=30)
         if meaning:
             raw_data['meaning'] = meaning
     elif item_type == "article":
@@ -196,7 +196,7 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         album = item.get('album', '未知专辑')
         song_id = item.get('id')
         prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
-        recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=20)  # 短任务
+        recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=20)
         if not recommendation:
             recommendation = "一首动人的旋律。"  # 极简降级，无备选库
         songs.append({
@@ -409,7 +409,7 @@ def generate_novel_review(title: str, content: str) -> Optional[str]:
     小说摘要：{summary}
     """
     try:
-        review = call_ai(prompt, max_tokens=50, temperature=0.8, model=MODEL_THINKING)  # 使用 DeepSeek 评语
+        review = call_ai(prompt, max_tokens=50, temperature=0.8, model=MODEL_THINKING)
         if review:
             return review.strip('"').strip()
     except Exception as e:
@@ -654,29 +654,54 @@ def generate_easter_egg() -> Optional[str]:
         logger.error(f"生成彩蛋失败: {e}")
     return None
 
-# ==================== 深度思考模块（无备选） ====================
+# ==================== 深度思考模块（无备选，提高难度） ====================
+def get_recent_questions(days: int = 30) -> List[str]:
+    """获取最近 N 天的思考题问题（用于去重）"""
+    index_path = os.path.join(data_dir, 'history', 'index.json')
+    if not os.path.exists(index_path):
+        return []
+    with open(index_path, 'r', encoding='utf-8') as f:
+        all_dates = json.load(f)
+    recent_dates = all_dates[:days]
+    questions = []
+    for date_str in recent_dates:
+        y, m, d = date_str.split('-')
+        hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
+        if os.path.exists(hist_file):
+            try:
+                with open(hist_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                if data.get('question'):
+                    questions.append(data['question'])
+            except:
+                pass
+    return questions
+
 def generate_daily_question() -> Optional[str]:
+    """生成中等难度以上、非经典、原创的逻辑推理题"""
     if not ENABLE_AI:
         return None
+    history_questions = get_recent_questions(30)  # 去重范围30天
     prompt = """
-请创作一个原创的、有趣的逻辑推理题。要求：
-- 有具体的故事背景
+请创作一个**中等难度以上、有趣、非经典**的逻辑推理题。要求：
+- 有具体的故事背景（避免纯粹数学公式）
 - 题目必须包含明确的逻辑条件，答案唯一且可通过推理得出
-- 可以是概率题、真假话推理、数字谜题等
+- 不要出“骑士与无赖”、“三囚犯”、“帽子问题”、“荷花增长”、“数字字母个数”等常见经典题
+- 可以是概率题、真假话推理、数字谜题、情境推理等
 - 字数控制在150字以内
 - 只输出题目，不要包含答案
 """
-    try:
+    for attempt in range(3):  # 最多尝试3次，避免重复
         question = call_ai(prompt, max_tokens=200, temperature=0.9, model=MODEL_THINKING)
-        if question:
+        if question and question not in history_questions:
             logger.info("思考题生成成功")
             return question.strip()
-    except Exception as e:
-        logger.error(f"生成思考题失败: {e}")
+        logger.warning(f"思考题与历史重复或无效，第{attempt+1}次重试")
+    logger.error("思考题生成失败，跳过")
     return None
 
 def generate_question_answer(question: str) -> Optional[str]:
-    if not ENABLE_AI:
+    if not ENABLE_AI or not question:
         return None
     prompt = f"""
 请为以下逻辑推理题给出正确答案和详细的解析（不超过200字）：
@@ -695,8 +720,8 @@ def generate_question_answer(question: str) -> Optional[str]:
         logger.error(f"生成思考题答案失败: {e}")
     return None
 
-# ==================== 去重辅助函数 ====================
-def get_recent_history(days: int = 14) -> tuple:
+# ==================== 去重辅助函数（用于推理题） ====================
+def get_recent_history(days: int = 30) -> tuple:
     index_path = os.path.join(data_dir, 'history', 'index.json')
     if not os.path.exists(index_path):
         return [], []
@@ -739,7 +764,7 @@ def get_yesterdays_puzzle() -> Optional[str]:
             logger.warning(f"读取昨天历史文件失败: {e}")
     return None
 
-# ==================== 推理题生成与验证（无备选） ====================
+# ==================== 推理题生成与验证（提高难度） ====================
 PUZZLE_TYPES = [
     "逻辑推理", "数学谜题", "情境推理", "数字逻辑", "空间想象", "脑筋急转弯"
 ]
@@ -749,12 +774,12 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
         return None
     puzzle_type = random.choice(PUZZLE_TYPES)
     prompt = f"""
-    请生成一个有趣的{puzzle_type}题，包含问题和答案。要求：
-    - 问题不超过100字，答案不超过80字
-    - 题目必须属于{puzzle_type}类型
-    - 答案需要清晰解释
-    请以JSON格式输出，例如：{{"question": "...", "answer": "..."}}
-    """
+请生成一个**原创、中等难度以上、有趣**的{puzzle_type}题，包含问题和答案。要求：
+- 题目必须属于{puzzle_type}类型，避免常见的经典题（如“帽子问题”、“骑士与无赖”、“三囚犯”、“荷花增长”、“数字字母个数”等）
+- 问题不超过100字，答案不超过80字
+- 答案需要清晰解释
+- 请以JSON格式输出，例如：{{"question": "...", "answer": "..."}}
+"""
     try:
         resp = call_ai(prompt, max_tokens=300, temperature=0.9, model=MODEL_THINKING)
         if resp:
@@ -797,7 +822,8 @@ def validate_puzzle(question: str, answer: str) -> bool:
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Optional[Dict[str, str]]:
-    history_puzzles, _ = get_recent_history(14)
+    """生成不重复且逻辑正确的推理题，失败返回 None"""
+    history_puzzles, _ = get_recent_history(30)  # 扩大到30天
     yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
         puzzle = _generate_puzzle_once()
@@ -833,7 +859,7 @@ def _generate_trivia_once() -> Optional[str]:
     return None
 
 def generate_daily_trivia(max_retries: int = 5) -> Optional[str]:
-    _, history_trivias = get_recent_history(14)
+    _, history_trivias = get_recent_history(30)
     for attempt in range(max_retries):
         trivia = _generate_trivia_once()
         if trivia and not is_duplicate_trivia(trivia, history_trivias):
@@ -845,7 +871,7 @@ def generate_daily_trivia(max_retries: int = 5) -> Optional[str]:
     return None
 
 def generate_deep_review(summary_text: str) -> Optional[str]:
-    if not ENABLE_AI:
+    if not ENABLE_AI or not summary_text:
         return None
     prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
     try:
@@ -1029,7 +1055,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v4.2 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v4.3 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
