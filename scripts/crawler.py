@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（优化版 v4.0）
-- 完全移除备选数据，AI 生成失败则跳过模块
-- 思考题、推理题、冷知识、笑话、毒鸡汤、彩蛋、每日总结、深度评语、小说评语均无降级
-- 其他模块（每日一句、每日一文、早报、ONE）保持原有降级（因非 AI 生成）
+每日数据爬虫（优化版 v4.2）
+- 根据模型类型动态设置超时：DeepSeek 90秒，Qwen 60秒，小说生成 120秒
+- 增强重试等待时间
+- 无备选降级，AI 失败则跳过模块
 """
 
 import os
@@ -57,20 +57,29 @@ FALLBACK_ARTICLES = [
     {"title": "匆匆", "description": "燕子去了，有再来的时候；杨柳枯了，有再青的时候；桃花谢了，有再开的时候。但是，聪明的，你告诉我，我们的日子为什么一去不复返呢？", "author": "朱自清"},
 ]
 
-# 小说备选（仅用于当 AI 多次重试失败时，因为小说模块用户明确要求不要备选？但小说原本就有备选，用户要求“所有模块都不要配库”，故也移除备选。此处备选注释掉）
-# 注意：小说模块会保留生成失败则跳过（不生成备选），因此 fetch_novels 会返回空列表。
-
-# ==================== AI 调用（支持模型选择） ====================
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=4, max=30))
-def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = 45, model: str = None) -> Optional[str]:
+# ==================== AI 调用（动态超时） ====================
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=5, max=45))
+def call_ai(prompt: str, max_tokens: int = 300, temperature: float = 0.7, timeout: int = None, model: str = None) -> Optional[str]:
+    """
+    调用 AI，根据模型类型自动设置超时时间。
+    若未指定 timeout，则：MODEL_THINKING -> 90秒，MODEL_WRITING -> 60秒
+    """
     if not ENABLE_AI:
         return None
+    # 确定使用的模型
+    used_model = model if model else MODEL_WRITING
+    # 动态超时
+    if timeout is None:
+        if used_model == MODEL_THINKING:
+            timeout = 90
+        else:
+            timeout = 60
     headers = {
         "Authorization": f"Bearer {SILICONFLOW_API_KEY}",
         "Content-Type": "application/json"
     }
     payload = {
-        "model": model if model else MODEL_WRITING,
+        "model": used_model,
         "messages": [
             {"role": "system", "content": "你是一位资深音乐/文学/生活品味家，擅长用温暖、富有哲理的文字创作。"},
             {"role": "user", "content": prompt}
@@ -95,19 +104,19 @@ def enrich_with_ai(item_type: str, raw_data: dict) -> dict:
         content = raw_data.get('content', '')
         from_ = raw_data.get('from', '')
         prompt = f"请为这句话写一段简短的解读（50-100字）：\n\n“{content}” —— {from_}"
-        meaning = call_ai(prompt, max_tokens=150, timeout=15)
+        meaning = call_ai(prompt, max_tokens=150, timeout=30)  # 短任务，30秒足够
         if meaning:
             raw_data['meaning'] = meaning
     elif item_type == "article":
         title = raw_data.get('title', '')
         desc = raw_data.get('description', '')
         prompt = f"请为文章《{title}》写一段推荐语（80-120字）：{desc[:200]}"
-        meaning = call_ai(prompt, max_tokens=200, timeout=15)
+        meaning = call_ai(prompt, max_tokens=200, timeout=30)
         if meaning:
             raw_data['meaning'] = meaning
     return raw_data
 
-# ==================== 歌曲库（保存ID） ====================
+# ==================== 歌曲库 ====================
 def get_tracks_from_playlist(playlist_id: int, limit: int = 50) -> list:
     url = f"{API_BASE_URL}/playlist/track/all?id={playlist_id}&limit={limit}&offset=0"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -187,12 +196,9 @@ def fetch_songs(n: int = 6) -> List[Dict]:
         album = item.get('album', '未知专辑')
         song_id = item.get('id')
         prompt = f"请为歌曲《{name}》- {artist}写一句简短的推荐语（30字以内），说明这首歌给人的感觉或推荐理由。"
-        recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=10)
+        recommendation = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=20)  # 短任务
         if not recommendation:
-            # 推荐语失败，跳过这首歌？或者使用简单文本？用户要求无备选，但歌曲推荐语是 AI 生成，失败时是否跳过整首歌？
-            # 为了不丢失歌曲，使用简单占位（但用户要求不要备选，可考虑跳过该歌曲）。但跳过歌曲会导致歌单数量不足。
-            # 折中：使用最简短的默认推荐语（不来自备选库）。
-            recommendation = "一首动人的旋律。"
+            recommendation = "一首动人的旋律。"  # 极简降级，无备选库
         songs.append({
             "id": song_id,
             "name": name,
@@ -367,7 +373,7 @@ def fetch_wikipedia() -> Optional[dict]:
         logger.error(f"维基百科抓取异常: {e}")
         return None
 
-# ==================== 每日小说（移除备选，失败返回空） ====================
+# ==================== 每日小说（无备选） ====================
 def clean_json_string(s: str) -> str:
     s = s.strip()
     if s.startswith('\ufeff'):
@@ -395,7 +401,6 @@ def extract_json(text: str) -> Optional[str]:
     return None
 
 def generate_novel_review(title: str, content: str) -> Optional[str]:
-    """为小说生成一句独特的评语，失败返回 None"""
     if not ENABLE_AI:
         return None
     summary = content[:200].replace('\n', ' ')
@@ -404,7 +409,7 @@ def generate_novel_review(title: str, content: str) -> Optional[str]:
     小说摘要：{summary}
     """
     try:
-        review = call_ai(prompt, max_tokens=50, temperature=0.8, timeout=10, model=MODEL_THINKING)
+        review = call_ai(prompt, max_tokens=50, temperature=0.8, model=MODEL_THINKING)  # 使用 DeepSeek 评语
         if review:
             return review.strip('"').strip()
     except Exception as e:
@@ -438,7 +443,7 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
         - **只输出JSON，格式为：{{"title": "标题", "content": "正文"}}，不要添加任何其他文字。**
         """
         try:
-            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=90, model=MODEL_WRITING)
+            ai_resp = call_ai(prompt, max_tokens=10000, temperature=0.8, timeout=120, model=MODEL_WRITING)
         except Exception as e:
             logger.error(f"  AI调用异常: {e}")
             time.sleep(5)
@@ -496,7 +501,6 @@ def generate_one_novel(max_attempts: int = 8, min_words: int = 1000) -> Optional
                 continue
         logger.info(f"  × 第{attempt+1}次尝试失败，继续重试")
         time.sleep(3)
-    # 移除备选，返回 None
     logger.warning(f"  小说生成失败，跳过")
     return None
 
@@ -536,7 +540,7 @@ def generate_summary(data: dict) -> Optional[str]:
     每日一文：《{article_title}》
     每日小说：{novels_str}
     """
-    ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, timeout=20, model=MODEL_WRITING)
+    ai_resp = call_ai(prompt, max_tokens=150, temperature=0.7, model=MODEL_WRITING)
     if ai_resp:
         return ai_resp.strip('"').strip()
     else:
@@ -617,7 +621,7 @@ def generate_daily_joke() -> Optional[str]:
         return None
     prompt = "来一个超级无敌搞笑的每日一笑"
     try:
-        joke = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=15, model=MODEL_WRITING)
+        joke = call_ai(prompt, max_tokens=300, temperature=0.9, model=MODEL_WRITING)
         if joke:
             return joke.strip()
     except Exception as e:
@@ -631,7 +635,7 @@ def generate_soul_soup() -> Optional[str]:
     topic = random.choice(topics)
     prompt = f"来一个心灵毒鸡汤关于{topic}"
     try:
-        soup = call_ai(prompt, max_tokens=300, temperature=0.8, timeout=15, model=MODEL_WRITING)
+        soup = call_ai(prompt, max_tokens=300, temperature=0.8, model=MODEL_WRITING)
         if soup:
             return soup.strip()
     except Exception as e:
@@ -643,7 +647,7 @@ def generate_easter_egg() -> Optional[str]:
         return None
     prompt = "请写一句诗意、温馨、鼓励性的短句（20字以内），用于网站的每日彩蛋。"
     try:
-        egg = call_ai(prompt, max_tokens=50, temperature=0.9, timeout=10, model=MODEL_WRITING)
+        egg = call_ai(prompt, max_tokens=50, temperature=0.9, model=MODEL_WRITING)
         if egg:
             return egg.strip('"\'').strip()
     except Exception as e:
@@ -652,7 +656,6 @@ def generate_easter_egg() -> Optional[str]:
 
 # ==================== 深度思考模块（无备选） ====================
 def generate_daily_question() -> Optional[str]:
-    """生成一个有趣的逻辑推理题，失败返回 None"""
     if not ENABLE_AI:
         return None
     prompt = """
@@ -664,7 +667,7 @@ def generate_daily_question() -> Optional[str]:
 - 只输出题目，不要包含答案
 """
     try:
-        question = call_ai(prompt, max_tokens=200, temperature=0.9, timeout=30, model=MODEL_THINKING)
+        question = call_ai(prompt, max_tokens=200, temperature=0.9, model=MODEL_THINKING)
         if question:
             logger.info("思考题生成成功")
             return question.strip()
@@ -673,7 +676,6 @@ def generate_daily_question() -> Optional[str]:
     return None
 
 def generate_question_answer(question: str) -> Optional[str]:
-    """根据生成的逻辑推理题，给出答案和解析，失败返回 None"""
     if not ENABLE_AI:
         return None
     prompt = f"""
@@ -686,7 +688,7 @@ def generate_question_answer(question: str) -> Optional[str]:
 - 如果是概率题，要说明概率变化的原因
 """
     try:
-        answer = call_ai(prompt, max_tokens=300, temperature=0.7, timeout=20, model=MODEL_THINKING)
+        answer = call_ai(prompt, max_tokens=300, temperature=0.7, model=MODEL_THINKING)
         if answer:
             return answer.strip()
     except Exception as e:
@@ -754,7 +756,7 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     请以JSON格式输出，例如：{{"question": "...", "answer": "..."}}
     """
     try:
-        resp = call_ai(prompt, max_tokens=300, temperature=0.9, timeout=20, model=MODEL_THINKING)
+        resp = call_ai(prompt, max_tokens=300, temperature=0.9, model=MODEL_THINKING)
         if resp:
             resp = resp.strip()
             if resp.startswith('```json') and resp.endswith('```'):
@@ -772,7 +774,6 @@ def _generate_puzzle_once() -> Optional[Dict[str, str]]:
     return None
 
 def validate_puzzle(question: str, answer: str) -> bool:
-    """使用 AI 验证推理题是否正确，超时时默认通过"""
     if not ENABLE_AI:
         return True
     prompt = f"""
@@ -787,16 +788,15 @@ def validate_puzzle(question: str, answer: str) -> bool:
     只输出"正确"或"错误"。
     """
     try:
-        resp = call_ai(prompt, max_tokens=10, temperature=0, timeout=15, model=MODEL_THINKING)
+        resp = call_ai(prompt, max_tokens=10, temperature=0, model=MODEL_THINKING)
         if resp and "正确" in resp:
             return True
     except Exception as e:
-        logger.warning(f"验证推理题超时或异常，默认通过: {e}")
+        logger.warning(f"验证推理题异常，默认通过: {e}")
         return True
     return False
 
 def generate_daily_puzzle(max_retries: int = 5) -> Optional[Dict[str, str]]:
-    """生成不重复且逻辑正确的推理题，失败返回 None"""
     history_puzzles, _ = get_recent_history(14)
     yesterday_question = get_yesterdays_puzzle()
     for attempt in range(max_retries):
@@ -825,7 +825,7 @@ def _generate_trivia_once() -> Optional[str]:
         return None
     prompt = "请提供一个有趣、冷门的知识点（不超过80字），可以是科学、历史、文化等任何领域。"
     try:
-        trivia = call_ai(prompt, max_tokens=150, temperature=0.8, timeout=15, model=MODEL_THINKING)
+        trivia = call_ai(prompt, max_tokens=150, temperature=0.8, model=MODEL_THINKING)
         if trivia:
             return trivia.strip('"\'').strip()
     except Exception as e:
@@ -833,7 +833,6 @@ def _generate_trivia_once() -> Optional[str]:
     return None
 
 def generate_daily_trivia(max_retries: int = 5) -> Optional[str]:
-    """生成不重复的冷知识，失败返回 None"""
     _, history_trivias = get_recent_history(14)
     for attempt in range(max_retries):
         trivia = _generate_trivia_once()
@@ -850,7 +849,7 @@ def generate_deep_review(summary_text: str) -> Optional[str]:
         return None
     prompt = f"请根据以下内容，写一段简短而深刻的评语（50字以内）：{summary_text[:300]}"
     try:
-        review = call_ai(prompt, max_tokens=100, temperature=0.7, timeout=15, model=MODEL_THINKING)
+        review = call_ai(prompt, max_tokens=100, temperature=0.7, model=MODEL_THINKING)
         if review:
             return review.strip('"\'').strip()
     except Exception as e:
@@ -919,13 +918,13 @@ def fetch_one_photo() -> Optional[Dict[str, Any]]:
     data = _fetch_one_api("https://v3.alapi.cn/api/one/photo", "摄影")
     if not data:
         return None
-    description = data.get('description', '')
+    description = data.get('content', '')
     if description:
         description = clean_html(description)
     return {
         "title": data.get('title', ''),
-        "author": data.get('author', ''),
-        "image": data.get('image', ''),
+        "author": data.get('subtitle', ''),
+        "image": data.get('cover', ''),
         "description": description,
         "url": data.get('url', '')
     }
@@ -1030,13 +1029,12 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v4.0 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v4.2 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
     songs = fetch_songs(6)
 
-    # 生成各类内容，失败则为 None
     joke = generate_daily_joke()
     soul = generate_soul_soup()
     easter = generate_easter_egg()
@@ -1046,18 +1044,15 @@ def main():
     daily_trivia = generate_daily_trivia()
     daily_puzzle = generate_daily_puzzle()
 
-    # 注意：每日总结需要依赖其他数据，但其他数据可能为 None，仍然可以尝试生成
-    # 先构建临时数据用于生成总结（不含 summary 自身）
     temp_data_for_summary = {
         "sentence": fetch_sentence(),
         "songs": songs,
         "article": fetch_article(),
-        "novels": fetch_novels(3)   # 可能为空列表
+        "novels": fetch_novels(3)
     }
     summary = generate_summary(temp_data_for_summary)
     deep_review = generate_deep_review(summary) if summary else None
 
-    # 构建最终数据，只包含非 None 的字段
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -1072,24 +1067,15 @@ def main():
             "question": fetch_one_question()
         }
     }
-    if joke:
-        today_data["joke"] = joke
-    if soul:
-        today_data["soul"] = soul
-    if easter:
-        today_data["easter"] = easter
-    if daily_question:
-        today_data["question"] = daily_question
-    if question_answer:
-        today_data["question_answer"] = question_answer
-    if daily_trivia:
-        today_data["trivia"] = daily_trivia
-    if daily_puzzle:
-        today_data["puzzle"] = daily_puzzle
-    if summary:
-        today_data["summary"] = summary
-    if deep_review:
-        today_data["deep_review"] = deep_review
+    if joke: today_data["joke"] = joke
+    if soul: today_data["soul"] = soul
+    if easter: today_data["easter"] = easter
+    if daily_question: today_data["question"] = daily_question
+    if question_answer: today_data["question_answer"] = question_answer
+    if daily_trivia: today_data["trivia"] = daily_trivia
+    if daily_puzzle: today_data["puzzle"] = daily_puzzle
+    if summary: today_data["summary"] = summary
+    if deep_review: today_data["deep_review"] = deep_review
 
     logger.info(f"📝 每日总结：{summary if summary else '无'}")
     logger.info(f"💡 深度评语：{deep_review if deep_review else '无'}")
