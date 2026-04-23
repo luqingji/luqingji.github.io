@@ -30,50 +30,25 @@
             margin-bottom: 1rem;
             color: #1e1e2f;
         }
-        .thought-module {
-            font-size: 0.95rem;
-            color: #5b5b6e;
-            font-style: italic;
-            margin: 0.5rem 0 1rem;
-            padding: 0.2rem 0;
-        }
-        .trivia-module {
-            font-size: 0.9rem;
-            color: #5b5b6e;
-            margin: 1rem 0 1.5rem;
-            line-height: 1.5;
-        }
-        .puzzle-module {
-            margin: 1rem 0;
-            font-size: 0.9rem;
-            color: #5b5b6e;
-        }
-        .puzzle-question {
-            font-style: normal;
-            margin-bottom: 0.3rem;
-        }
-        .puzzle-answer {
-            margin-top: 0.3rem;
+        .easter-egg {
             font-size: 0.85rem;
-            color: #7a7a8c;
-            display: none;
+            background: linear-gradient(135deg, #e67e22, #f1c40f, #2ecc71);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin: 0.5rem 0 0.2rem;
+            line-height: 1.4;
         }
-        .answer-btn {
-            background: none;
-            border: 1px solid #e0e4e8;
-            border-radius: 30px;
-            padding: 0.2rem 0.8rem;
-            font-size: 0.7rem;
-            cursor: pointer;
-            font-family: inherit;
-            color: #7a7a8c;
-            margin-top: 0.3rem;
-            transition: all 0.2s;
-        }
-        .answer-btn:hover {
-            background: #f5f7f9;
-            border-color: #cbd0d6;
-            color: #1e1e2f;
+        .stats {
+            font-size: 0.85rem;
+            color: #5b5b6e;
+            margin: 1.5rem 0 1rem;
+            padding: 0.8rem 0;
+            border-top: 1px solid #f0f2f5;
+            border-bottom: 1px solid #f0f2f5;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
         }
         .links {
             display: flex;
@@ -93,26 +68,6 @@
         .links a:hover {
             border-bottom-color: #1e1e2f;
         }
-        .stats {
-            font-size: 0.85rem;
-            color: #5b5b6e;
-            margin: 1.5rem 0 1rem;
-            padding: 0.8rem 0;
-            border-top: 1px solid #f0f2f5;
-            border-bottom: 1px solid #f0f2f5;
-            display: inline-block;
-            width: 100%;
-            text-align: center;
-        }
-        .easter-egg {
-            font-size: 0.85rem;
-            background: linear-gradient(135deg, #e67e22, #f1c40f, #2ecc71);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            margin: 0.5rem 0 0.2rem;
-            line-height: 1.4;
-        }
         .footer {
             font-size: 0.75rem;
             color: #b0b0c0;
@@ -124,7 +79,6 @@
             .daily-summary { font-size: 1.5rem; }
             .stats { font-size: 0.75rem; margin: 1rem 0; }
             .links a { font-size: 0.85rem; gap: 1rem; }
-            .thought-module, .trivia-module, .puzzle-module { font-size: 0.85rem; }
             .easter-egg { font-size: 0.8rem; }
         }
     </style>
@@ -132,22 +86,13 @@
 <body>
 <div class="container">
     <div id="daily-summary" class="daily-summary">✨ 今日拾光</div>
-    <div id="question-card" class="thought-module" style="display:none;"></div>
-    <div id="puzzle-card" class="puzzle-module" style="display:none;">
-        <div class="puzzle-question" id="puzzle-question"></div>
-        <div class="puzzle-answer" id="puzzle-answer"></div>
-        <button id="puzzle-answer-btn" class="answer-btn" style="display:none;">🔍 显示答案</button>
-    </div>
-    <div id="trivia-card" class="trivia-module" style="display:none;"></div>
+    <div id="easter-egg" class="easter-egg"></div>
     <div class="links">
         <a href="/daily.html">📖 今日内容</a>
         <a href="/history.html">📜 历史回顾</a>
         <a href="/songs.html">🎵 今日歌单</a>
-        <a href="/daily.html#zaobao">📰 今日早报</a>
-        <a href="/daily.html#one">📖 ONE·一个</a>
     </div>
     <div id="stats" class="stats"></div>
-    <div id="easter-egg" class="easter-egg"></div>
     <div class="footer">
         <div id="update-time"></div>
         <div>© 拾光驿站 · 每日诗意</div>
@@ -159,7 +104,7 @@
     const staticEasterEggs = [
         "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
         "🥚 今日彩蛋：时光不语，静待花开。",
-        "🥚 今日彩蛋：每一篇小说都是平行宇宙的你。",
+        "🥚 今日彩蛋：每一段文字都是时光的琥珀。",
         "🥚 今日彩蛋：未知旋律里藏着昨天的故事。",
         "🥚 今日彩蛋：散落的诗行，是某人的心事。",
         "🥚 今日彩蛋：你正在阅读的，是宇宙送给你的礼物。",
@@ -185,39 +130,6 @@
                 const beijingTime = new Date(data.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
                 document.getElementById('update-time').innerHTML = `更新于 ${beijingTime}`;
             }
-
-            if (data.question) {
-                const qDiv = document.getElementById('question-card');
-                qDiv.innerHTML = `💡 思考题：${escapeHtml(data.question)}`;
-                qDiv.style.display = 'block';
-            }
-
-            if (data.puzzle && data.puzzle.question) {
-                const puzzleCard = document.getElementById('puzzle-card');
-                document.getElementById('puzzle-question').innerHTML = `🤔 推理题：${escapeHtml(data.puzzle.question)}`;
-                if (data.puzzle.answer) {
-                    document.getElementById('puzzle-answer').innerHTML = `答案：${escapeHtml(data.puzzle.answer)}`;
-                    const btn = document.getElementById('puzzle-answer-btn');
-                    btn.style.display = 'inline-block';
-                    btn.onclick = () => {
-                        const answerDiv = document.getElementById('puzzle-answer');
-                        if (answerDiv.style.display === 'none' || answerDiv.style.display === '') {
-                            answerDiv.style.display = 'block';
-                            btn.textContent = '🙈 隐藏答案';
-                        } else {
-                            answerDiv.style.display = 'none';
-                            btn.textContent = '🔍 显示答案';
-                        }
-                    };
-                }
-                puzzleCard.style.display = 'block';
-            }
-
-            if (data.trivia) {
-                const tDiv = document.getElementById('trivia-card');
-                tDiv.innerHTML = `📚 冷知识：${escapeHtml(data.trivia)}`;
-                tDiv.style.display = 'block';
-            }
         } catch (err) {
             console.error('加载每日数据失败', err);
             document.getElementById('daily-summary').innerHTML = '✨ 今日拾光';
@@ -228,7 +140,7 @@
             const statsRes = await fetch('/data/stats.json?t=' + Date.now());
             if (statsRes.ok) {
                 const stats = await statsRes.json();
-                const statsText = `📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 创作 ${stats.total_novels||0} 篇小说 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
+                const statsText = `📊 已运行 ${stats.total_days||0} 天 · 推荐 ${stats.total_songs||0} 首歌 · 收录 ${stats.total_articles||0} 篇文章 · 总字数 ${(stats.total_words/10000||0).toFixed(1)} 万`;
                 document.getElementById('stats').innerHTML = statsText;
             } else {
                 document.getElementById('stats').innerHTML = '📊 统计加载中...';
