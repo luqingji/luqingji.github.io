@@ -1,11 +1,11 @@
 {
-  "total_days": 1,
-  "total_songs": 6,
-  "total_articles": 1,
-  "total_words": 17,
-  "total_recommend_words": 90,
-  "total_news_items": 15,
-  "total_one_items": 3,
-  "read_minutes": 0,
-  "last_updated": "2026-04-23T14:15:15.837716+00:00"
+  "total_days": 2,
+  "total_songs": 12,
+  "total_articles": 2,
+  "total_words": 453,
+  "total_recommend_words": 306,
+  "total_news_items": 30,
+  "total_one_items": 6,
+  "read_minutes": 1,
+  "last_updated": "2026-04-23T23:53:27.313833+00:00"
 }
