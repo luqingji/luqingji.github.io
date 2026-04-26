@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.0）
+每日数据爬虫（精简版 v5.0 + ONE 存档）
 - 只保留：每日总结、早报、ONE·一个、歌单、彩蛋
-- 移除：小说、思考题、推理题、冷知识、毒鸡汤、笑话、深度评语
+- 新增：记录 ONE 文章标题到 data/one_articles.json
 """
 
 import os
@@ -572,6 +572,35 @@ def safe_write_json(data: dict, filepath: str):
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
 
+# ==================== ONE 文章存档 ====================
+def update_one_archive(date: str, title: str):
+    """记录 ONE 文章标题到存档文件"""
+    if not title:
+        return
+    archive_file = os.path.join(data_dir, 'one_articles.json')
+    # 读取现有数据
+    if os.path.exists(archive_file):
+        with open(archive_file, 'r', encoding='utf-8') as f:
+            try:
+                archive = json.load(f)
+            except:
+                archive = []
+    else:
+        archive = []
+    # 检查是否已存在该日期的记录
+    existing = [item for item in archive if item.get('date') == date]
+    if existing:
+        existing[0]['title'] = title
+    else:
+        archive.append({"date": date, "title": title})
+    # 按日期排序（倒序）
+    archive.sort(key=lambda x: x['date'], reverse=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(archive, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, archive_file)
+    logger.info(f"已记录 ONE 文章：{date} - {title}")
+
 # ==================== 统计生成 ====================
 def generate_stats():
     history_dir = os.path.join(data_dir, 'history')
@@ -648,17 +677,24 @@ def main():
     songs = fetch_songs(6)
     easter = generate_easter_egg()
 
+    sentence = fetch_sentence()
+    article = fetch_article()
+    zaobao = fetch_zaobao()
+    one_article = fetch_one_article()
+    one_photo = fetch_one_photo()
+    one_question = fetch_one_question()
+
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
-        "sentence": fetch_sentence(),
+        "sentence": sentence,
         "songs": songs,
-        "article": fetch_article(),
-        "zaobao": fetch_zaobao(),
+        "article": article,
+        "zaobao": zaobao,
         "one": {
-            "article": fetch_one_article(),
-            "photo": fetch_one_photo(),
-            "question": fetch_one_question()
+            "article": one_article,
+            "photo": one_photo,
+            "question": one_question
         },
         "easter": easter
     }
@@ -670,6 +706,10 @@ def main():
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
     logger.info("✅ 每日数据已保存")
+
+    # 记录 ONE 文章标题到存档
+    if one_article and one_article.get('title'):
+        update_one_archive(today_data['date'], one_article['title'])
 
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
