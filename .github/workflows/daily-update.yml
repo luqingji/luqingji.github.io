@@ -2,7 +2,7 @@ name: Daily Update
 
 on:
   schedule:
-    - cron: '0 23 * * *'   # 每天 UTC 23:00（北京时间 7:00）
+    - cron: '0 23 * * *'
   workflow_dispatch:
 
 permissions:
@@ -38,22 +38,10 @@ jobs:
         run: |
           python scripts/crawler.py
           if [ $? -eq 0 ] && [ -f data/daily.json ]; then
-            # 使用 heredoc 避免特殊字符问题
-            summary=$(jq -r '.summary' data/daily.json | tr -d '\n\r')
-            article_title=$(jq -r '.article.title' data/daily.json | tr -d '\n\r')
-            question=$(jq -r '.question' data/daily.json | tr -d '\n\r')
-            date=$(jq -r '.date' data/daily.json | tr -d '\n\r')
             echo "CRAWLER_SUCCESS=true" >> $GITHUB_ENV
-            echo "SUMMARY<<EOF" >> $GITHUB_ENV
-            echo "$summary" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-            echo "ARTICLE_TITLE<<EOF" >> $GITHUB_ENV
-            echo "$article_title" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-            echo "QUESTION<<EOF" >> $GITHUB_ENV
-            echo "$question" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-            echo "DATE=$date" >> $GITHUB_ENV
+            echo "SUMMARY=$(jq -r '.summary' data/daily.json)" >> $GITHUB_ENV
+            echo "ARTICLE_TITLE=$(jq -r '.article.title' data/daily.json)" >> $GITHUB_ENV
+            echo "DATE=$(jq -r '.date' data/daily.json)" >> $GITHUB_ENV
           else
             echo "CRAWLER_SUCCESS=false" >> $GITHUB_ENV
           fi
@@ -61,13 +49,16 @@ jobs:
       - name: Generate history index
         run: python scripts/generate_index.py
 
+      - name: Generate one archive page
+        run: python scripts/generate_one_archive.py
+
       - name: Commit and push changes
         if: success()
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           mkdir -p static/css static/js
-          git add data/ static/ .nojekyll index.html daily.html detail.html history.html songs.html
+          git add data/ static/ .nojekyll index.html daily.html detail.html history.html songs.html one_archive.html
           git diff --quiet && git diff --staged --quiet || git commit -m "Daily update: $(date +'%Y-%m-%d')"
           git push
 
@@ -78,7 +69,6 @@ jobs:
           DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
           SUMMARY: ${{ env.SUMMARY }}
           ARTICLE_TITLE: ${{ env.ARTICLE_TITLE }}
-          QUESTION: ${{ env.QUESTION }}
           DATE: ${{ env.DATE }}
         run: python scripts/dingtalk.py success
 
