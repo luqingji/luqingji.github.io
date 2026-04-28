@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>拾光驿站 · 光·影集</title>
+    <link rel="stylesheet" href="/static/css/photos.css">
+    <script src="/static/js/photos.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 返回主页</a>
+        <h1>📷 光·影集</h1>
+        <div class="subtitle">每日摄影 · 拾光记忆</div>
+        <div id="loader" class="loader">⏳ 加载中...</div>
+        <div id="photo-grid" class="photo-grid" style="display:none;"></div>
+        <div class="footer">
+            <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 首页</a>
+            <span style="margin:0 0.5rem">·</span>
+            <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
+        </div>
+    </div>
+
+    <div id="lightbox" class="lightbox" style="display:none;">
+        <button class="close-lightbox">&times;</button>
+        <button class="prev">&lsaquo;</button>
+        <button class="next">&rsaquo;</button>
+        <div class="lightbox-content">
+            <img id="lightbox-img" src="" alt="">
+            <div class="lightbox-caption">
+                <div class="caption-title"></div>
+                <div class="caption-author"></div>
+                <div class="caption-date"></div>
+                <div class="caption-desc"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
