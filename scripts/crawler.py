@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.1）
+每日数据爬虫（精简版 v5.2）
 - 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
 - 移除：小说、思考题、推理题、冷知识、毒鸡汤、笑话、深度评语
 - 新增：自动收录 ONE·摄影到照片墙
+- 修复：统计中的总字数只计算文章纯文本字数
 """
 
 import os
@@ -610,7 +611,7 @@ def safe_write_json(data: dict, filepath: str):
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
 
-# ==================== 统计生成 ====================
+# ==================== 统计生成（已修复字数统计） ====================
 def generate_stats():
     history_dir = os.path.join(data_dir, 'history')
     if not os.path.exists(history_dir):
@@ -641,7 +642,10 @@ def generate_stats():
                     if article:
                         total_articles += 1
                         content = article.get('content', '') or article.get('description', '')
-                        total_words += len(content)
+                        if content:
+                            # 去除 HTML 标签
+                            content = re.sub(r'<[^>]+>', '', content)
+                            total_words += len(content)
                     zaobao = data.get('zaobao')
                     if zaobao and zaobao.get('news'):
                         total_news_items += len(zaobao['news'])
@@ -679,7 +683,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v5.1 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v5.2 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
