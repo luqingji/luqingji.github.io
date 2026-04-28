@@ -3,9 +3,9 @@
 
 """
 每日数据爬虫（精简版 v5.1）
-- 只保留：每日总结、早报、ONE·一个、歌单、彩蛋
-- 新增照片墙：自动收录每日 ONE·摄影图片
+- 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
 - 移除：小说、思考题、推理题、冷知识、毒鸡汤、笑话、深度评语
+- 新增：自动收录 ONE·摄影到照片墙
 """
 
 import os
@@ -477,6 +477,43 @@ def generate_easter_egg() -> str:
         logger.error(f"生成彩蛋失败: {e}")
     return random.choice(STATIC_EASTER_EGGS)
 
+# ==================== 照片墙记录 ====================
+def update_photo_wall(date: str, photo_data: dict):
+    """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
+    photo_file = os.path.join(data_dir, 'photos.json')
+    if os.path.exists(photo_file):
+        with open(photo_file, 'r', encoding='utf-8') as f:
+            try:
+                photos = json.load(f)
+            except:
+                photos = []
+    else:
+        photos = []
+    existing = [p for p in photos if p.get('date') == date]
+    if existing:
+        existing[0].update({
+            "title": photo_data.get('title', ''),
+            "author": photo_data.get('author', ''),
+            "description": photo_data.get('description', ''),
+            "image": photo_data.get('image', ''),
+            "src": photo_data.get('image', '')
+        })
+    else:
+        photos.append({
+            "date": date,
+            "title": photo_data.get('title', ''),
+            "author": photo_data.get('author', ''),
+            "description": photo_data.get('description', ''),
+            "image": photo_data.get('image', ''),
+            "src": photo_data.get('image', '')
+        })
+    photos.sort(key=lambda x: x['date'], reverse=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(photos, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, photo_file)
+    logger.info(f"已添加/更新照片墙：{date} - {photo_data.get('title', '')}")
+
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
     if not text:
@@ -562,44 +599,6 @@ def fetch_one_question() -> Optional[Dict[str, Any]]:
         "answer": answer,
         "author": data.get('author', '')
     }
-
-# ==================== 照片墙记录 ====================
-def update_photo_wall(date: str, photo_data: dict):
-    """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
-    photo_file = os.path.join(data_dir, 'photos.json')
-    if os.path.exists(photo_file):
-        with open(photo_file, 'r', encoding='utf-8') as f:
-            try:
-                photos = json.load(f)
-            except:
-                photos = []
-    else:
-        photos = []
-    # 避免重复添加同一天的照片
-    existing = [p for p in photos if p.get('date') == date]
-    if existing:
-        existing[0].update({
-            "title": photo_data.get('title', ''),
-            "author": photo_data.get('author', ''),
-            "description": photo_data.get('description', ''),
-            "image": photo_data.get('image', ''),
-            "src": photo_data.get('image', '')
-        })
-    else:
-        photos.append({
-            "date": date,
-            "title": photo_data.get('title', ''),
-            "author": photo_data.get('author', ''),
-            "description": photo_data.get('description', ''),
-            "image": photo_data.get('image', ''),
-            "src": photo_data.get('image', '')
-        })
-    photos.sort(key=lambda x: x['date'], reverse=True)
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
-        json.dump(photos, tmp, ensure_ascii=False, indent=2)
-        tmp_path = tmp.name
-    os.replace(tmp_path, photo_file)
-    logger.info(f"已添加/更新照片墙：{date} - {photo_data.get('title', '')}")
 
 # ==================== 原子写入 ====================
 def safe_write_json(data: dict, filepath: str):
@@ -687,6 +686,11 @@ def main():
     songs = fetch_songs(6)
     easter = generate_easter_egg()
 
+    # 获取 ONE 模块（文章、摄影、问答）
+    one_article = fetch_one_article()
+    one_photo = fetch_one_photo()
+    one_question = fetch_one_question()
+
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
@@ -695,9 +699,9 @@ def main():
         "article": fetch_article(),
         "zaobao": fetch_zaobao(),
         "one": {
-            "article": fetch_one_article(),
-            "photo": fetch_one_photo(),
-            "question": fetch_one_question()
+            "article": one_article,
+            "photo": one_photo,
+            "question": one_question
         },
         "easter": easter
     }
@@ -707,7 +711,6 @@ def main():
     logger.info(f"📝 每日总结：{summary}")
 
     # 记录 ONE·摄影到照片墙
-    one_photo = today_data.get('one', {}).get('photo')
     if one_photo and one_photo.get('image'):
         update_photo_wall(today_data['date'], one_photo)
 
