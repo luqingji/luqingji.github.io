@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.0 + ONE 存档）
+每日数据爬虫（精简版 v5.1）
 - 只保留：每日总结、早报、ONE·一个、歌单、彩蛋
-- 新增：记录 ONE 文章标题到 data/one_articles.json
+- 新增照片墙：自动收录每日 ONE·摄影图片
+- 移除：小说、思考题、推理题、冷知识、毒鸡汤、笑话、深度评语
 """
 
 import os
@@ -562,6 +563,44 @@ def fetch_one_question() -> Optional[Dict[str, Any]]:
         "author": data.get('author', '')
     }
 
+# ==================== 照片墙记录 ====================
+def update_photo_wall(date: str, photo_data: dict):
+    """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
+    photo_file = os.path.join(data_dir, 'photos.json')
+    if os.path.exists(photo_file):
+        with open(photo_file, 'r', encoding='utf-8') as f:
+            try:
+                photos = json.load(f)
+            except:
+                photos = []
+    else:
+        photos = []
+    # 避免重复添加同一天的照片
+    existing = [p for p in photos if p.get('date') == date]
+    if existing:
+        existing[0].update({
+            "title": photo_data.get('title', ''),
+            "author": photo_data.get('author', ''),
+            "description": photo_data.get('description', ''),
+            "image": photo_data.get('image', ''),
+            "src": photo_data.get('image', '')
+        })
+    else:
+        photos.append({
+            "date": date,
+            "title": photo_data.get('title', ''),
+            "author": photo_data.get('author', ''),
+            "description": photo_data.get('description', ''),
+            "image": photo_data.get('image', ''),
+            "src": photo_data.get('image', '')
+        })
+    photos.sort(key=lambda x: x['date'], reverse=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(photos, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, photo_file)
+    logger.info(f"已添加/更新照片墙：{date} - {photo_data.get('title', '')}")
+
 # ==================== 原子写入 ====================
 def safe_write_json(data: dict, filepath: str):
     dirname = os.path.dirname(filepath)
@@ -571,35 +610,6 @@ def safe_write_json(data: dict, filepath: str):
         json.dump(data, tmp, ensure_ascii=False, indent=2)
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
-
-# ==================== ONE 文章存档 ====================
-def update_one_archive(date: str, title: str):
-    """记录 ONE 文章标题到存档文件"""
-    if not title:
-        return
-    archive_file = os.path.join(data_dir, 'one_articles.json')
-    # 读取现有数据
-    if os.path.exists(archive_file):
-        with open(archive_file, 'r', encoding='utf-8') as f:
-            try:
-                archive = json.load(f)
-            except:
-                archive = []
-    else:
-        archive = []
-    # 检查是否已存在该日期的记录
-    existing = [item for item in archive if item.get('date') == date]
-    if existing:
-        existing[0]['title'] = title
-    else:
-        archive.append({"date": date, "title": title})
-    # 按日期排序（倒序）
-    archive.sort(key=lambda x: x['date'], reverse=True)
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
-        json.dump(archive, tmp, ensure_ascii=False, indent=2)
-        tmp_path = tmp.name
-    os.replace(tmp_path, archive_file)
-    logger.info(f"已记录 ONE 文章：{date} - {title}")
 
 # ==================== 统计生成 ====================
 def generate_stats():
@@ -670,31 +680,24 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v5.0 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v5.1 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
     songs = fetch_songs(6)
     easter = generate_easter_egg()
 
-    sentence = fetch_sentence()
-    article = fetch_article()
-    zaobao = fetch_zaobao()
-    one_article = fetch_one_article()
-    one_photo = fetch_one_photo()
-    one_question = fetch_one_question()
-
     today_data = {
         "date": beijing_now.strftime("%Y-%m-%d"),
         "updated_at": utc_now.isoformat(),
-        "sentence": sentence,
+        "sentence": fetch_sentence(),
         "songs": songs,
-        "article": article,
-        "zaobao": zaobao,
+        "article": fetch_article(),
+        "zaobao": fetch_zaobao(),
         "one": {
-            "article": one_article,
-            "photo": one_photo,
-            "question": one_question
+            "article": fetch_one_article(),
+            "photo": fetch_one_photo(),
+            "question": fetch_one_question()
         },
         "easter": easter
     }
@@ -703,13 +706,14 @@ def main():
     today_data['summary'] = summary
     logger.info(f"📝 每日总结：{summary}")
 
+    # 记录 ONE·摄影到照片墙
+    one_photo = today_data.get('one', {}).get('photo')
+    if one_photo and one_photo.get('image'):
+        update_photo_wall(today_data['date'], one_photo)
+
     output_file = os.path.join(data_dir, 'daily.json')
     safe_write_json(today_data, output_file)
     logger.info("✅ 每日数据已保存")
-
-    # 记录 ONE 文章标题到存档
-    if one_article and one_article.get('title'):
-        update_one_archive(today_data['date'], one_article['title'])
 
     date_str = today_data["date"]
     y, m, d = date_str.split('-')
