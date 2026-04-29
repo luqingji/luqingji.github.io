@@ -197,7 +197,7 @@
             const easter = data.easter || getStaticEasterEgg(data.date);
             document.getElementById('easter-egg').innerHTML = easter;
 
-            // 每日一歌（只取第一首）
+            // 每日一歌
             if(data.songs && data.songs.length){
                 const card = document.getElementById('song-card');
                 card.style.display = 'block';
@@ -284,7 +284,7 @@
             // ONE
             if(data.one) renderOneModule(data.one);
 
-            // 执行锚点滚动（必须在模块渲染之后）
+            // 执行锚点滚动
             scrollToHash();
         })
         .catch(err => {
