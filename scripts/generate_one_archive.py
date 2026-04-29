@@ -144,7 +144,8 @@ def generate_archive_page():
             for item in sorted(grouped[year][month], key=lambda x: x['date'], reverse=True):
                 date_str = item['date']
                 title = item['title']
-                html += f'                <li class="article-item"><a href="/daily.html?date={date_str}#one" class="article-link"><span class="article-date">{date_str}</span> {title}</a></li>\n'
+                # 关键修改：链接改为 detail.html?date=... 并锚定到 one 模块
+                html += f'                <li class="article-item"><a href="/detail.html?date={date_str}#one" class="article-link"><span class="article-date">{date_str}</span> {title}</a></li>\n'
             html += '            </ul>\n        </div>\n'
         html += '    </div>\n'
     html += f'''
