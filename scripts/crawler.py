@@ -5,7 +5,7 @@
 每日数据爬虫（精简版 v5.3）
 - 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
 - 新增：自动记录 ONE 文章标题到 one_articles.json
-- 修复：统计字数只计算文章纯文本
+- 统计：总字数统计 ONE 文章纯文本字数
 """
 
 import os
@@ -479,7 +479,7 @@ def generate_easter_egg() -> str:
 
 # ==================== ONE 文章存档 ====================
 def update_one_archive(date: str, title: str):
-    """记录 ONE 文章标题到存档文件"""
+    """记录 ONE 文章标题到 one_articles.json"""
     if not title:
         return
     archive_file = os.path.join(data_dir, 'one_articles.json')
@@ -491,13 +491,11 @@ def update_one_archive(date: str, title: str):
                 archive = []
     else:
         archive = []
-    # 检查是否已存在该日期的记录
     existing = [item for item in archive if item.get('date') == date]
     if existing:
         existing[0]['title'] = title
     else:
         archive.append({"date": date, "title": title})
-    # 按日期排序（最新的在前）
     archive.sort(key=lambda x: x['date'], reverse=True)
     with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
         json.dump(archive, tmp, ensure_ascii=False, indent=2)
@@ -638,7 +636,7 @@ def safe_write_json(data: dict, filepath: str):
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
 
-# ==================== 统计生成（已修复字数统计） ====================
+# ==================== 统计生成（修改为统计 ONE 文章字数） ====================
 def generate_stats():
     history_dir = os.path.join(data_dir, 'history')
     if not os.path.exists(history_dir):
@@ -665,10 +663,11 @@ def generate_stats():
                         for song in songs:
                             rec = song.get('recommendation', '')
                             total_recommend_words += len(rec)
-                    article = data.get('article')
-                    if article:
+                    # 统计 ONE 文章字数
+                    one_article = data.get('one', {}).get('article')
+                    if one_article and one_article.get('content'):
                         total_articles += 1
-                        content = article.get('content', '') or article.get('description', '')
+                        content = one_article.get('content', '')
                         if content:
                             content = re.sub(r'<[^>]+>', '', content)
                             total_words += len(content)
@@ -699,7 +698,7 @@ def generate_stats():
     }
     stats_file = os.path.join(data_dir, 'stats.json')
     safe_write_json(stats, stats_file)
-    logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，文章 {total_articles}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
+    logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，ONE文章数 {total_articles}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
 
 # ==================== 主函数 ====================
 def main():
@@ -740,7 +739,7 @@ def main():
     today_data['summary'] = summary
     logger.info(f"📝 每日总结：{summary}")
 
-    # 记录 ONE 文章标题
+    # 记录 ONE 文章标题到存档
     if one_article and one_article.get('title'):
         update_one_archive(today_data['date'], one_article['title'])
 
