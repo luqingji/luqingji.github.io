@@ -2,11 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.2）
+每日数据爬虫（精简版 v5.3）
 - 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
-- 移除：小说、思考题、推理题、冷知识、毒鸡汤、笑话、深度评语
-- 新增：自动收录 ONE·摄影到照片墙
-- 修复：统计中的总字数只计算文章纯文本字数
+- 新增：自动记录 ONE 文章标题到 one_articles.json
+- 修复：统计字数只计算文章纯文本
 """
 
 import os
@@ -478,6 +477,34 @@ def generate_easter_egg() -> str:
         logger.error(f"生成彩蛋失败: {e}")
     return random.choice(STATIC_EASTER_EGGS)
 
+# ==================== ONE 文章存档 ====================
+def update_one_archive(date: str, title: str):
+    """记录 ONE 文章标题到存档文件"""
+    if not title:
+        return
+    archive_file = os.path.join(data_dir, 'one_articles.json')
+    if os.path.exists(archive_file):
+        with open(archive_file, 'r', encoding='utf-8') as f:
+            try:
+                archive = json.load(f)
+            except:
+                archive = []
+    else:
+        archive = []
+    # 检查是否已存在该日期的记录
+    existing = [item for item in archive if item.get('date') == date]
+    if existing:
+        existing[0]['title'] = title
+    else:
+        archive.append({"date": date, "title": title})
+    # 按日期排序（最新的在前）
+    archive.sort(key=lambda x: x['date'], reverse=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(archive, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, archive_file)
+    logger.info(f"已记录 ONE 文章：{date} - {title}")
+
 # ==================== 照片墙记录 ====================
 def update_photo_wall(date: str, photo_data: dict):
     """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
@@ -643,7 +670,6 @@ def generate_stats():
                         total_articles += 1
                         content = article.get('content', '') or article.get('description', '')
                         if content:
-                            # 去除 HTML 标签
                             content = re.sub(r'<[^>]+>', '', content)
                             total_words += len(content)
                     zaobao = data.get('zaobao')
@@ -683,7 +709,7 @@ def main():
         logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
     utc_now = datetime.now(timezone.utc)
     beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v5.2 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v5.3 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -713,6 +739,10 @@ def main():
     summary = generate_summary(today_data)
     today_data['summary'] = summary
     logger.info(f"📝 每日总结：{summary}")
+
+    # 记录 ONE 文章标题
+    if one_article and one_article.get('title'):
+        update_one_archive(today_data['date'], one_article['title'])
 
     # 记录 ONE·摄影到照片墙
     if one_photo and one_photo.get('image'):
