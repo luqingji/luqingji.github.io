@@ -1078,3 +1078,59 @@ body.dark-mode a.play-icon:hover {
         font-size: 0.9rem;
     }
 }
+
+/* 最新评论模块 */
+.latest-comments {
+    margin: 2rem 0 1rem;
+    padding: 1.2rem 0;
+    border-top: 1px solid #f0f2f5;
+    border-bottom: 1px solid #f0f2f5;
+}
+.latest-comments h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+    color: #1e1e2f;
+}
+.comments-list {
+    list-style: none;
+    padding: 0;
+}
+.comment-item {
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    border-left: 2px solid #e0e4e8;
+    padding-left: 0.6rem;
+}
+.comment-author {
+    font-weight: 500;
+    color: #4f9da6;
+}
+.comment-text {
+    color: #5b5b6e;
+    word-break: break-word;
+}
+.comment-date {
+    font-size: 0.7rem;
+    color: #b0b0c0;
+    margin-left: 0.5rem;
+}
+.comment-loading, .comment-error {
+    color: #b0b0c0;
+    font-size: 0.8rem;
+    text-align: center;
+}
+body.dark-mode .latest-comments {
+    border-top-color: rgba(255,255,255,0.1);
+    border-bottom-color: rgba(255,255,255,0.1);
+}
+body.dark-mode .comment-item {
+    border-left-color: rgba(255,255,255,0.2);
+}
+body.dark-mode .comment-text {
+    color: #aaa;
+}
+body.dark-mode .comment-date {
+    color: #7a7a8c;
+}
