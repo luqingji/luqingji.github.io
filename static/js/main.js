@@ -211,3 +211,42 @@ document.addEventListener('DOMContentLoaded', () => {
         goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     }
 });
+
+// ==================== 最新评论（从 Cusdis API 获取） ====================
+async function loadLatestComments() {
+    const container = document.getElementById('latest-comments-list');
+    if (!container) return;
+    const appId = '4778f79b-72df-4b7e-b282-a0015d090acd';   // 你的 App ID
+    const pageId = 'guestbook';   // 与留言板的 data-page-id 一致
+    const apiUrl = `https://cusdis.com/api/widget/${appId}/get?page_id=${pageId}`;
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('API请求失败');
+        const data = await response.json();
+        let comments = data.data?.comments || [];
+        // 只显示已审核的评论
+        comments = comments.filter(c => c.status === 'approved');
+        // 按创建时间倒序，取前5条
+        comments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const latest = comments.slice(0, 5);
+        if (latest.length === 0) {
+            container.innerHTML = '<li class="comment-item">暂无留言，来做第一个留言的人吧</li>';
+            return;
+        }
+        container.innerHTML = latest.map(comment => `
+            <li class="comment-item">
+                <span class="comment-author">${escapeHtml(comment.name || '匿名')}</span>
+                <span class="comment-date">${new Date(comment.created_at).toLocaleDateString()}</span>
+                <div class="comment-text">${escapeHtml(comment.text).substring(0, 80)}${comment.text.length > 80 ? '…' : ''}</div>
+            </li>
+        `).join('');
+    } catch (error) {
+        console.error('加载最新评论失败', error);
+        container.innerHTML = '<li class="comment-item">暂时无法加载评论，请稍后刷新</li>';
+    }
+}
+
+// 页面加载完成后调用
+if (document.getElementById('latest-comments-list')) {
+    loadLatestComments();
+}
