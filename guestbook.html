@@ -37,6 +37,20 @@
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }
+        /* 让评论区自然撑开，无内部滚动条 */
+        #cusdis_thread {
+            height: auto !important;
+            overflow: visible !important;
+        }
+        /* 覆盖 Cusdis 内部可能的高度限制 */
+        .cusdis-root {
+            height: auto !important;
+            overflow: visible !important;
+        }
+        .cusdis-container {
+            height: auto !important;
+            overflow: visible !important;
+        }
         .footer {
             margin-top: 3rem;
             text-align: center;
