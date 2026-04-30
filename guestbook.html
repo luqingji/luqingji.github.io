@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>拾光驿站 · 留言板</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1e1e2f;
+            line-height: 1.5;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: #1e1e2f;
+            text-decoration: none;
+            border-bottom: 1px dotted #e0e4e8;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            text-align: center;
+            color: #8e8e9e;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #b0b0c0;
+            border-top: 1px solid #f0f2f5;
+            padding-top: 1.5rem;
+        }
+        @media (max-width: 480px) {
+            h1 { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/" class="back-link">← 返回主页</a>
+    <h1>📝 拾光留言簿</h1>
+    <div class="subtitle">留下你的足迹，分享你的想法</div>
+
+    <!-- Cusdis 评论区 -->
+    <div id="cusdis_thread"
+        data-host="https://cusdis.com"
+        data-app-id="4778f79b-72df-4b7e-b282-a0015d090acd"
+        data-page-id="guestbook"
+        data-page-url="https://luqingji.github.io/guestbook.html"
+        data-page-title="拾光驿站 · 留言板">
+    </div>
+    <script async defer src="https://cusdis.com/js/cusdis.es.js"></script>
+
+    <div class="footer">
+        <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 拾光驿站</a>
+        <span style="margin:0 0.5rem">·</span>
+        <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
+    </div>
+</div>
+</body>
+</html>
