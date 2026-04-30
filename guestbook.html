@@ -37,19 +37,20 @@
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }
-        /* 让评论区自然撑开，无内部滚动条 */
-        #cusdis_thread {
+        /* 强制评论区容器和内部元素不限制高度 */
+        #cusdis_thread,
+        .cusdis-root,
+        .cusdis-container,
+        iframe {
             height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
             overflow: visible !important;
         }
-        /* 覆盖 Cusdis 内部可能的高度限制 */
-        .cusdis-root {
-            height: auto !important;
-            overflow: visible !important;
-        }
-        .cusdis-container {
-            height: auto !important;
-            overflow: visible !important;
+        /* 如果 Cusdis 使用 iframe，确保 iframe 高度由内容撑开 */
+        iframe.cusdis-iframe {
+            height: 100% !important;
+            min-height: 600px; /* 给一个最小高度，避免闪烁，实际会被内容撑开 */
         }
         .footer {
             margin-top: 3rem;
@@ -70,7 +71,6 @@
     <h1>📝 拾光留言簿</h1>
     <div class="subtitle">留下你的足迹，分享你的想法</div>
 
-    <!-- Cusdis 评论区 -->
     <div id="cusdis_thread"
         data-host="https://cusdis.com"
         data-app-id="4778f79b-72df-4b7e-b282-a0015d090acd"
@@ -86,5 +86,29 @@
         <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
     </div>
 </div>
+
+<script>
+    // 动态调整 Cusdis 可能产生的 iframe 高度
+    function adjustCusdisHeight() {
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            if (iframe.src && iframe.src.includes('cusdis')) {
+                iframe.style.height = 'auto';
+                iframe.style.minHeight = '0';
+                iframe.style.maxHeight = 'none';
+                iframe.style.overflow = 'visible';
+                // 监听 iframe 内容加载完成后的高度变化
+                iframe.addEventListener('load', function() {
+                    this.style.height = 'auto';
+                });
+            }
+        });
+    }
+    // 监听 DOM 变化，确保动态添加的 iframe 也被处理
+    const observer = new MutationObserver(() => adjustCusdisHeight());
+    observer.observe(document.body, { childList: true, subtree: true });
+    // 初始调用
+    adjustCusdisHeight();
+</script>
 </body>
 </html>
