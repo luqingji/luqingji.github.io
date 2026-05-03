@@ -1,62 +1,63 @@
 {
   "date": "2026-05-03",
-  "updated_at": "2026-05-03T07:05:19.466478+00:00",
+  "updated_at": "2026-05-03T08:42:26.295073+00:00",
   "sentence": {
-    "content": "恨人神之道殊兮，怨盛年之莫当。",
-    "from": "洛神赋",
-    "meaning": "这句出自《洛神赋》的话，表达了主人公对美好却难以触及的理想的深深遗憾。洛神之美超凡脱俗，却终不可得，正所谓“恨人神之道殊兮”，感叹人与神之间境界的鸿沟，以及“怨盛年之莫当”，惋惜自己正值盛年却无缘与之相遇。这种无奈与向往交织的情感，让人感受到一种深邃的美学追求与悲剧色彩。"
+    "content": "温柔正确的人总是难以生存，因为这世界既不温柔，也不正确",
+    "from": "我的青春恋爱物语果然有问题",
+    "meaning": "这句话深刻揭示了理想与现实的矛盾。那些温柔真诚的情感，，在这复杂而冷漠的世界里，，往往会遭遇挫折。青春恋爱物语中的美好愿景，在往往被现实的风雨所冲刷。"
   },
   "songs": [
     {
-      "id": 3368421969,
-      "name": "Sinos De Natal 2 (圣诞铃声2)",
-      "artist": "sleepyyer",
-      "album": "Sinos De Natal 2 (圣诞铃声2)",
-      "recommendation": "圣诞的温暖低语。"
+      "id": 25480736,
+      "name": "Arioso (Adagio in G) from Cantata BWV 156 (Arr. Lloyd Webber)",
+      "artist": "Julian Lloyd Webber",
+      "album": "Baroque Adagios",
+      "recommendation": "这是一首如诗般悠长、如梦般静谧的小提琴独奏，引人沉醉于纯净而深邃的情感之中。"
     },
     {
-      "id": 3366156622,
-      "name": "Hypa",
-      "artist": "Silva Bumpa",
-      "album": "Hypa",
-      "recommendation": "《Hypa》是一首充满神秘与自由气息的电子乐，让人仿佛穿梭于未知世界的冒险之中。"
+      "id": 2744855938,
+      "name": "Gets Like That",
+      "artist": "Max Dean",
+      "album": "The Finest EP",
+      "recommendation": "这首歌曲充满了梦幻与情感，旋律悠扬，让人沉醉其中，仿佛置身于一个温柔的梦里。"
     },
     {
-      "id": 3371305927,
-      "name": "映青灯",
-      "artist": "铁痕电台-MSR",
-      "album": "承霆",
-      "recommendation": "这首《映青灯》如同夜空中最温柔的光，抚慰心灵的伤痕，让人在静谧中感悟生命的意义。"
+      "id": 3351323662,
+      "name": "Warawara",
+      "artist": "Adam Ten",
+      "album": "Warawara",
+      "recommendation": "《Warawara》是一首充满神秘与东方风情的旋律，Adam Ten用吉他编织出悠远的叙事，引人深思又心生向往。"
     },
     {
-      "id": 3352825378,
-      "name": "人先出来",
-      "artist": "Higher Brothers",
-      "album": "最高",
-      "recommendation": "Higher Brothers以独特说唱风格，融合东方韵味，《人先出来》让人感受到强烈的个性表达与深厚文化底蕴。"
+      "id": 3362498630,
+      "name": "迎春花",
+      "artist": "黄星瑞RA",
+      "album": "迎春花",
+      "recommendation": "《迎春花》如晨光破晓，温暖而明亮，唤醒心中的希望与梦想。"
     },
     {
-      "id": 1482129315,
-      "name": "舒伯特小夜曲",
-      "artist": "舒伯特小夜曲",
-      "album": "Schubert Serenade",
-      "recommendation": "纯净夜 iht"
+      "id": 1428702979,
+      "name": "Savage",
+      "artist": "Megan Thee Stallion",
+      "album": "Suga",
+      "recommendation": "暗潮涌动的夜曲。"
     },
     {
-      "id": 355992,
-      "name": "追梦赤子心",
-      "artist": "GALA",
-      "album": "追梦痴子心",
-      "recommendation": "激昂旋律中蕴含纯粹梦想，激励你我勇往直前，无惧风雨。"
+      "id": 1459888393,
+      "name": "The Woo",
+      "artist": "Pop Smoke",
+      "album": "Shoot For The Stars Aim For The Moon",
+      "recommendation": "这是一首融合Trap节奏与丰富情感的力作，Pop Smoke用声音讲述街头故事，让人一听难忘。"
     }
   ],
   "article": {
-    "title": "增肥4000",
-    "description": "《增肥4000》 是美国动画喜剧《南方公园》的第2集，于1997年8月20日通过喜剧中心频道在美国首播。在这一集里，南方公园小镇上的居民对凯思琳·李·吉福德即将来访感到非常激动，但几个孩子的3年级老师加里森先生因童年时的一桩恩怨计划暗杀镇上的贵客。与此同时，埃里克·卡特曼在购买名为“增肥4000”的健美补充剂后成了严重的肥胖症患者。\n",
-    "url": "https://zh.wikipedia.org/wiki/%E5%A2%9E%E8%82%A54000",
-    "author": "维基百科",
-    "source": "维基百科",
-    "meaning": "《增肥4000》是《南方公园》中的一颗笑料与深度并存的璀璨明珠。这一集巧妙地将讽刺与幽默交织，不仅以荒诞的情节揭示了成人世界的复杂性，更以滑稽的方式探讨了外貌焦虑、童年恩怨等深刻主题。在欢笑中反思，在反思中寻觅一丝温暖。如果你渴望在欢声笑语中洞察人性，那么《增肥4000》定不会让你失望。"
+    "title": "我为什么永远难以与祥林嫂共情？",
+    "description": "我为什么永远难以与祥林嫂共情？",
+    "content": "",
+    "author": "知乎日报",
+    "url": "https://daily.zhihu.com/story/9789364",
+    "source": "知乎日报",
+    "meaning": "在鲁迅的经典笔下，祥林嫂是一个令人同情却难以共情的角色。本文作者以细腻入微的笔触，探讨了为何在面对祥林嫂的不幸时，我们的心灵却难以产生共鸣。文章不仅仅是对文学作品的解读，更是一次对人性深处情感障碍的深刻剖析。它引导我们思考共情的本质，以及在复杂的人际关系中，我们真正的需要与可能。"
   },
   "zaobao": {
     "date": "2026-05-03",
@@ -192,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "在每个黎明之初，记得微笑，因为每一天都是新的诗篇。",
-  "summary": "岁月独殇，世事两忘。"
+  "easter": "每一步都照亮夜归的路，勇敢前行，星光与你同在。",
+  "summary": "世不配温柔，"
 }
