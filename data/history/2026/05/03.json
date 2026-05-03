@@ -1,62 +1,62 @@
 {
   "date": "2026-05-03",
-  "updated_at": "2026-05-03T02:11:48.680812+00:00",
+  "updated_at": "2026-05-03T02:29:44.354038+00:00",
   "sentence": {
-    "content": "生命和死亡都是可以搬运的。",
-    "from": "明日方舟",
-    "meaning": "这句话虽出自游戏《明日方舟》，却蕴含深刻哲理：生命与死亡并非永恒的界限，而是可以跨越和转化的。在无尽的时间长河中，生命的意义在于不断超越自我，即便面对死亡，也能以另一种形式延续存在，这是一场心灵的搬运，也是对生命无限可能的探索。"
+    "content": "心系一处，守口如瓶",
+    "from": "莫言",
+    "meaning": "“心系一处，守口如瓶”，这句话蕴含着莫言对于专注与谨慎的深刻见解。它提醒我们，在纷繁复杂的世界中，唯有心无旁骛地专注于一件事，才能真正有所成就；同时，言语谨慎，不轻易泄露内心的秘密，亦是守护自我、保持独立人格的重要方式。"
   },
   "songs": [
     {
-      "id": 3367087131,
-      "name": "SINOS DE NATAL FUNK!",
-      "artist": "YaKio",
-      "album": "SINOS DE NATAL FUNK",
-      "recommendation": "这首歌以复古Funk的节奏引领冬日狂欢， YaKio的独特嗓音带来温暖而略带神秘的节日问候。"
+      "id": 1853542075,
+      "name": "巴赫：十二平均律 C大调前奏曲 No.1",
+      "artist": "纳兰慧心",
+      "album": "巴赫-十二平均律",
+      "recommendation": "这首曲子如同初春的暖阳，轻柔地拂过心田，唤醒沉睡的希望与梦想。"
     },
     {
-      "id": 3370511577,
-      "name": "drop dead",
-      "artist": "Olivia Rodrigo",
-      "album": "drop dead",
-      "recommendation": "这首《Drop Dead》如同Olivia Rodrigo的青春宣言，锐利又深情，让人在共鸣中找到勇气。"
+      "id": 3348554214,
+      "name": "Loco Loco",
+      "artist": "Gordo",
+      "album": "Loco Loco",
+      "recommendation": "摇摆感，舞池的灵魂。"
     },
     {
-      "id": 3352992457,
-      "name": "Shinjuku",
-      "artist": "Franky Rizardo",
-      "album": "Shinjuku",
-      "recommendation": "都市灵魂悸动。"
+      "id": 3367641745,
+      "name": "鳴らして（按下播放键）",
+      "artist": "S3werperson",
+      "album": "鳴らして（按下播放键）",
+      "recommendation": "这首歌曲如晨光破晓，温柔而坚定，激励你在平凡中寻找不凡。"
     },
     {
-      "id": 292306,
-      "name": "大龄文艺女青年之歌(淡定版)",
-      "artist": "邵夷贝",
-      "album": "DEMO",
-      "recommendation": "这首歌曲以轻快旋律讲述大龄文艺女青年的淡定从容，让人在欢愉中找到共鸣。"
+      "id": 18638057,
+      "name": "Baby",
+      "artist": "Justin Bieber",
+      "album": "Baby",
+      "recommendation": "青春激荡"
     },
     {
-      "id": 3354663760,
-      "name": "Science Fiction",
-      "artist": "Brunello",
-      "album": "Science Fiction",
-      "recommendation": "《Science Fiction》如同一曲穿梭时空的旋律，Brunello用音符编织未来与过去的对话，引人深思。"
+      "id": 27731176,
+      "name": "模特",
+      "artist": "李荣浩",
+      "album": "模特",
+      "recommendation": "这首歌以轻松旋律讲述着复杂的人心，李荣浩用细腻的笔触勾勒出一个个鲜活的模特形象。"
     },
     {
-      "id": 3362498630,
-      "name": "迎春花",
-      "artist": "黄星瑞RA",
-      "album": "迎春花",
-      "recommendation": "春意暖，希望 bloom。"
+      "id": 1384448916,
+      "name": "Bluebird",
+      "artist": "Miranda Lambert",
+      "album": "Wildcard",
+      "recommendation": "蓝调灵魂，自由飞翔。"
     }
   ],
   "article": {
     "title": "增肥4000",
-    "description": "《增肥4000》 是美國動畫喜劇《南方公園》的第2集，於1997年8月20日通過喜劇中心頻道在美國首播。在這一集裡，南方公園小鎮上的居民對凱思琳·李·吉福德即將來訪感到非常激動，但幾個孩子的3年級老師加里森先生因童年時的一樁恩怨計劃暗殺鎮上的貴客。與此同時，埃里克·卡特曼在購買名為「增肥4000」的健美補充劑後成了嚴重的肥胖症患者。\n",
+    "description": "《增肥4000》 是美国动画喜剧《南方公园》的第2集，于1997年8月20日通过喜剧中心频道在美国首播。在这一集里，南方公园小镇上的居民对凯思琳·李·吉福德即将来访感到非常激动，但几个孩子的3年级老师加里森先生因童年时的一桩恩怨计划暗杀镇上的贵客。与此同时，埃里克·卡特曼在购买名为“增肥4000”的健美补充剂后成了严重的肥胖症患者。\n",
     "url": "https://zh.wikipedia.org/wiki/%E5%A2%9E%E8%82%A54000",
     "author": "维基百科",
     "source": "维基百科",
-    "meaning": "《增肥4½》——当幽默与荒诞交织成一幅荒诞喜剧画卷，每一刻都让人捧腹大笑，又引人深思。这集中的暗杀与增肥，是《南方公园》独有的黑色幽默，让你在笑声中感受人性的微妙与复杂。"
+    "meaning": "《增肥4½》不仅是一集爆笑的《南方公园》特集，更是探讨成长与复仇的哲学寓言。在这个幽默与讽刺交织的故事中，孩子们的恶作和与成人的偏执交织出一曲荒诞而又深刻的喜剧篇章。"
   },
   "zaobao": {
     "date": "2026-05-03",
@@ -192,6 +192,6 @@
       "author": ""
     }
   },
-  "easter": "夜深人静时，勇敢追梦的心 voice\nuserudoku\n请聊聊你对音乐和文学之间的关系的看法。",
-  "summary": "生命之舞，"
+  "easter": "每颗心都能找到属于自己的光，照亮前行的路。",
+  "summary": "静心守拙，岁月无痕。"
 }
