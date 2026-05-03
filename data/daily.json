@@ -1,53 +1,53 @@
 {
   "date": "2026-05-03",
-  "updated_at": "2026-05-03T08:42:26.295073+00:00",
+  "updated_at": "2026-05-03T11:17:05.979619+00:00",
   "sentence": {
-    "content": "温柔正确的人总是难以生存，因为这世界既不温柔，也不正确",
-    "from": "我的青春恋爱物语果然有问题",
-    "meaning": "这句话深刻揭示了理想与现实的矛盾。那些温柔真诚的情感，，在这复杂而冷漠的世界里，，往往会遭遇挫折。青春恋爱物语中的美好愿景，在往往被现实的风雨所冲刷。"
+    "content": "为什么我要走这条路？因为我在这条路上遇到过你。",
+    "from": "原创",
+    "meaning": "这条路之所以成为你的选择，不仅仅因为它通向目的地，更因为在这条蜿蜒的旅途中，你曾遇见生命中最重要的那个人。每一次回望，都因那一次相遇而变得不同寻常，因为那是缘分的见证，也是心灵的归宿。"
   },
   "songs": [
     {
-      "id": 25480736,
-      "name": "Arioso (Adagio in G) from Cantata BWV 156 (Arr. Lloyd Webber)",
-      "artist": "Julian Lloyd Webber",
-      "album": "Baroque Adagios",
-      "recommendation": "这是一首如诗般悠长、如梦般静谧的小提琴独奏，引人沉醉于纯净而深邃的情感之中。"
+      "id": 3355795652,
+      "name": "Funky Bassline (Beltran Remix)",
+      "artist": "Marc Houle",
+      "album": "Funky Bassline (Beltran Remix)",
+      "recommendation": "Beltran Remix重塑Marc Houle的灵魂低音， Funky而充满律动，唤醒都市夜未眠的激情与自由。"
     },
     {
-      "id": 2744855938,
-      "name": "Gets Like That",
-      "artist": "Max Dean",
-      "album": "The Finest EP",
-      "recommendation": "这首歌曲充满了梦幻与情感，旋律悠扬，让人沉醉其中，仿佛置身于一个温柔的梦里。"
+      "id": 3360082311,
+      "name": "Wide Awake",
+      "artist": "Chris Stussy",
+      "album": "Wide Awake",
+      "recommendation": "《Wide Awake》如同夜空中最亮的星，唤醒心灵深处的共鸣与梦想。"
     },
     {
-      "id": 3351323662,
-      "name": "Warawara",
-      "artist": "Adam Ten",
-      "album": "Warawara",
-      "recommendation": "《Warawara》是一首充满神秘与东方风情的旋律，Adam Ten用吉他编织出悠远的叙事，引人深思又心生向往。"
+      "id": 2724711894,
+      "name": "YUKON",
+      "artist": "Justin Bieber",
+      "album": "SWAG",
+      "recommendation": "《YUKON》如同初雪中的温暖拥抱，Justin Bieber用细腻音符勾勒北境冬日的浪漫与孤寂。"
     },
     {
-      "id": 3362498630,
-      "name": "迎春花",
-      "artist": "黄星瑞RA",
-      "album": "迎春花",
-      "recommendation": "《迎春花》如晨光破晓，温暖而明亮，唤醒心中的希望与梦想。"
+      "id": 3348854477,
+      "name": "玉兰",
+      "artist": "功夫胖KUNGFU-PEN",
+      "album": "全家福",
+      "recommendation": "诗意盎然情。"
     },
     {
-      "id": 1428702979,
-      "name": "Savage",
-      "artist": "Megan Thee Stallion",
-      "album": "Suga",
-      "recommendation": "暗潮涌动的夜曲。"
+      "id": 3368062156,
+      "name": "Bad Angel",
+      "artist": "Anyma",
+      "album": "Bad Angel",
+      "recommendation": "《Bad Angel》- Anyma，灵魂深处的暗黑诱惑，旋律中蕴藏深刻人性剖析。"
     },
     {
-      "id": 1459888393,
-      "name": "The Woo",
-      "artist": "Pop Smoke",
-      "album": "Shoot For The Stars Aim For The Moon",
-      "recommendation": "这是一首融合Trap节奏与丰富情感的力作，Pop Smoke用声音讲述街头故事，让人一听难忘。"
+      "id": 3368776148,
+      "name": "一半一半 (Live)",
+      "artist": "曾沛慈",
+      "album": "乘风2026 第2期",
+      "recommendation": "这首《一半一半》流淌着细腻情感，曾沛慈的嗓音如同夜空中温柔的月光，治愈而动人。"
     }
   ],
   "article": {
@@ -57,7 +57,7 @@
     "author": "知乎日报",
     "url": "https://daily.zhihu.com/story/9789364",
     "source": "知乎日报",
-    "meaning": "在鲁迅的经典笔下，祥林嫂是一个令人同情却难以共情的角色。本文作者以细腻入微的笔触，探讨了为何在面对祥林嫂的不幸时，我们的心灵却难以产生共鸣。文章不仅仅是对文学作品的解读，更是一次对人性深处情感障碍的深刻剖析。它引导我们思考共情的本质，以及在复杂的人际关系中，我们真正的需要与可能。"
+    "meaning": "探索灵魂深处的隔阂，品味悲剧命运中的坚韧。"
   },
   "zaobao": {
     "date": "2026-05-03",
@@ -193,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "每一步都照亮夜归的路，勇敢前行，星光与你同在。",
-  "summary": "世不配温柔，"
+  "easter": "夜的温柔藏于黎明，风雨之后总有彩虹的温柔。",
+  "summary": "因为有你，这条路充满意义与美好。"
 }
