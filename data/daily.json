@@ -1,53 +1,53 @@
 {
   "date": "2026-05-04",
-  "updated_at": "2026-05-04T11:47:59.400053+00:00",
+  "updated_at": "2026-05-04T12:17:28.898907+00:00",
   "sentence": {
-    "content": "荷尔蒙决定一见钟情，多巴胺决定天长地久。",
-    "from": "网易云",
-    "meaning": "这句话巧妙地将生物学中的的荷尔蒙和多巴胺与情感体验相联系，荷尔蒙的瞬时激情犹如初遇时的怦然心动，多巴胺的持续愉悦则象征着长久的伴的甜蜜与温暖。"
+    "content": "梦想是一个天真的词，实现梦想是一个残酷的词",
+    "from": "哆啦A梦",
+    "meaning": "这句话虽源自哆啦A梦，梦之巻，与梦的约定，梦之巻，，梦之约定，梦之巻A，梦之巻A，梦之约，梦之�卷A，梦之巻A，梦之约A梦之巻A，梦之巻A，梦之约，梦之巻A梦之巻A，梦之约，梦之巻A梦之巻A,梦之约，梦之巻A，梦之巻A梦之巻A梦之巻A，梦之�卷A梦之巻A梦之巻A梦之巻AA梦"
   },
   "songs": [
     {
-      "id": 29150369,
-      "name": "Gyménopédie N°1",
-      "artist": "Ophélie Gaillard",
-      "album": "Dreams",
-      "recommendation": "如同晨光初破晓，Ophélie Gaillard的《Gyménopédie N°1》温柔唤醒心灵的每一个角落。"
+      "id": 3371368970,
+      "name": "Call Me（打给我）",
+      "artist": "ayin印",
+      "album": "Swag&Dollar",
+      "recommendation": "梦幻中的呼唤。"
     },
     {
-      "id": 27598898,
-      "name": "Pathetique III",
-      "artist": "Cuba Percussion",
-      "album": "Classic Meets Cuba",
-      "recommendation": "这首《Pathetique III》以古巴打击乐的激情与深邃，带你领略灵魂深处的律动与共鸣。"
+      "id": 3370890116,
+      "name": "SpringThing",
+      "artist": "Veda",
+      "album": "SpringThing",
+      "recommendation": "春日温柔梦"
     },
     {
-      "id": 3353377881,
-      "name": "Loaded Gun",
-      "artist": "CID",
-      "album": "Loaded Gun",
-      "recommendation": "硬核而不失温柔。"
+      "id": 3370668863,
+      "name": "披星戴月",
+      "artist": "Lil Witch",
+      "album": "GOOD KID MAD CITY",
+      "recommendation": "星夜不息梦。"
     },
     {
-      "id": 2714181789,
-      "name": "Folded",
-      "artist": "Kehlani",
-      "album": "Folded",
-      "recommendation": "灵魂治愈"
+      "id": 3368402699,
+      "name": "PINKY UP",
+      "artist": "KATSEYE",
+      "album": "PINKY UP",
+      "recommendation": "梦幻电子，心跳共鸣。"
     },
     {
-      "id": 3373113236,
-      "name": "あぶく",
-      "artist": "ヨルシカ",
-      "album": "あぶく",
-      "recommendation": "《あぶく》- ヨルシカ，如烟雾般飘渺而迷离，细腻描绘梦境与现实的边界。"
+      "id": 3371365502,
+      "name": "Wet（湿了）",
+      "artist": "ayin印",
+      "album": "Swag&Dollar",
+      "recommendation": "治愈雨夜的心声，洗净心灵的尘埃。"
     },
     {
-      "id": 3353140748,
-      "name": "FEVER DREAM",
-      "artist": "Alex Warren",
-      "album": "FEVER DREAM",
-      "recommendation": "梦境般的迷醉感"
+      "id": 3367654493,
+      "name": "小看我了",
+      "artist": "布瑞吉Bridge",
+      "album": "77%",
+      "recommendation": "这首歌曲以独特的说唱风格和直白的歌词，让人感受到布瑞吉Bridge的个性魅力与音乐态度。"
     }
   ],
   "article": {
@@ -57,7 +57,7 @@
     "author": "知乎日报",
     "url": "https://daily.zhihu.com/story/9789393",
     "source": "知乎日报",
-    "meaning": "在万物有灵的自然之中，，大象用它那庞大的身躯与细腻情感交织的故事。这不仅仅是一则趣味问答，更是探索生命奥秘、感悟生活哲思的启程之章。"
+    "meaning": "这不仅仅是一篇关于象的文章，更是一则关于生活哲理的探索。让我们跟随作者的笔触，一同踏上这场关于大象、关于自然、更关于生活的奇妙旅程吧。"
   },
   "zaobao": {
     "date": "2026-05-04",
@@ -193,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "在每个平凡的日子里种下理想的种子，总有绽放的那天。",
-  "summary": "情动瞬间，荷尔蒙燃，多巴胺守候长远。"
+  "easter": "每一束光，都是生活温柔的提示，愿你心中常有光。",
+  "summary": "梦想之路，甜蜜与苦涩交织。"
 }
