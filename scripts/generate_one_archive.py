@@ -10,6 +10,11 @@ data_dir = os.path.join(script_dir, '..', 'data')
 archive_file = os.path.join(data_dir, 'one_articles.json')
 output_file = os.path.join(script_dir, '..', 'one_archive.html')
 
+def history_file_exists(date: str) -> bool:
+    y, m, d = date.split('-')
+    hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
+    return os.path.exists(hist_file)
+
 def generate_archive_page():
     if not os.path.exists(archive_file):
         print("没有找到 ONE 文章存档，跳过生成")
@@ -20,9 +25,15 @@ def generate_archive_page():
         print("存档为空")
         return
 
+    # 过滤：只保留有历史 JSON 文件的日期
+    valid_articles = [item for item in articles if history_file_exists(item['date'])]
+    if not valid_articles:
+        print("没有可用的历史数据，放弃生成")
+        return
+
     # 按年月分组
     grouped = {}
-    for item in articles:
+    for item in valid_articles:
         date = item['date']
         year = date[:4]
         month = date[5:7]
@@ -32,14 +43,13 @@ def generate_archive_page():
             grouped[year][month] = []
         grouped[year][month].append(item)
 
-    # 生成 HTML
     html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <title>拾光驿站 · 精选文摘</title>
+    <title>隅 · 精选文摘</title>
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{
@@ -144,13 +154,12 @@ def generate_archive_page():
             for item in sorted(grouped[year][month], key=lambda x: x['date'], reverse=True):
                 date_str = item['date']
                 title = item['title']
-                # 关键：链接到 detail.html 并带上日期参数和锚点
                 html += f'                <li class="article-item"><a href="/detail.html?date={date_str}#one" class="article-link"><span class="article-date">{date_str}</span> {title}</a></li>\n'
             html += '            </ul>\n        </div>\n'
         html += '    </div>\n'
     html += f'''
     <div class="footer">
-        <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 拾光驿站</a>
+        <a href="/" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">🏠 隅</a>
         <span style="margin:0 0.5rem">·</span>
         <a href="/history.html" style="color:#1e1e2f; text-decoration:none; border-bottom:1px dotted #e0e4e8;">📜 历史回顾</a>
     </div>
@@ -160,7 +169,7 @@ def generate_archive_page():
 
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html)
-    print(f"已生成精选文摘页面：{output_file}")
+    print(f"已生成精选文摘页面，共 {len(valid_articles)} 条有效文章")
 
 if __name__ == "__main__":
     generate_archive_page()
