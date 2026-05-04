@@ -1,62 +1,63 @@
 {
   "date": "2026-05-04",
-  "updated_at": "2026-05-03T23:53:32.264503+00:00",
+  "updated_at": "2026-05-04T09:47:51.249271+00:00",
   "sentence": {
-    "content": "如果忘记你那么容易，那我爱你干嘛！",
+    "content": "某些人喜好名利是“好大喜功”，某些人喜好名利是“人之常情”。",
     "from": "原创",
-    "meaning": "这句话用一种幽默而直率的方式表达了深沉的情感。它暗示了爱情中的依恋与挣扎，即使是最温柔的放手，也比忘记一个人要困难得多。爱的意义，在于即使心中有无数个可能替代你的选择，但真正爱你的人，依旧让你难以忘怀。"
+    "meaning": "有些人追逐名利，源于一种积极入世的态度，是“好大喜功”；而另一些人则是因为社会惯性和现实压力，显得更为平淡无奇，足，怪，异，为“人之常情”。"
   },
   "songs": [
     {
-      "id": 3369706758,
-      "name": "The Reason to Smile（微笑的理由）",
-      "artist": "Lia（莉亚）",
-      "album": "The Reason to Smile（微笑的理由）",
-      "recommendation": "治愈系微笑之歌。"
+      "id": 3371384373,
+      "name": "那你在哪",
+      "artist": "Gokevin",
+      "album": "那你在哪",
+      "recommendation": "《那你在哪》如同夜空中的一抹温柔，Gokevin用旋律与歌词讲述着关于等待与寻找的美好故事。"
     },
     {
-      "id": 3371704751,
-      "name": "淡淡的就会顺顺的",
-      "artist": "4444",
-      "album": "淡淡的就会顺顺的",
-      "recommendation": "细腻情感，淡然流露，让人沉醉 antioxid"
+      "id": 3366156622,
+      "name": "Hypa",
+      "artist": "Silva Bumpa",
+      "album": "Hypa",
+      "recommendation": "迷幻森林梦境"
     },
     {
-      "id": 3368217843,
-      "name": "Boss Type Shit",
-      "artist": "mac ova seas",
-      "album": "Boss Type Shit",
-      "recommendation": "这首歌以硬朗的旋律和直白的歌词，展现了一种无所畏惧的生活态度，让人一听难忘。"
+      "id": 3344683898,
+      "name": "Body",
+      "artist": "Don Toliver",
+      "album": "OCTANE",
+      "recommendation": "《Body》是一首带你直入灵魂深处，感受情感狂潮的电子舞曲，Don Toliver用声音解开欲望枷锁。"
     },
     {
-      "id": 564094072,
-      "name": "Dancing in the Moonlight",
-      "artist": "Jubël",
-      "album": "Dancing in the Moonlight",
-      "recommendation": "月光下的舞步，悠扬旋律带你穿越现实，沉浸于纯粹的自由与梦想之中。"
+      "id": 1458990435,
+      "name": "West Ten",
+      "artist": "AJ Tracey",
+      "album": "West Ten",
+      "recommendation": "硬核rapper风。"
     },
     {
-      "id": 27538254,
-      "name": "女儿情",
-      "artist": "万晓利",
-      "album": "你在红楼 我在西游",
-      "recommendation": "《女儿情》如诗如画，万晓利细腻笔触勾勒出柔情与哀愁的交织，令人心动不已。"
+      "id": 27552868,
+      "name": "粘人",
+      "artist": "二手玫瑰",
+      "album": "一枝独秀",
+      "recommendation": "《粘人》旋律抓耳，情感浓烈，展现二手玫瑰独特魅力，让人一听难忘。"
     },
     {
-      "id": 326858,
-      "name": "谁动了我的琴弦",
-      "artist": "周笔畅",
-      "album": "谁动了我的琴弦",
-      "recommendation": "弦动心弦。"
+      "id": 27200546,
+      "name": "Les saisons (The Seasons), Op. 37b:No. 6. June: Barcarolle",
+      "artist": "Ilona Prunyi",
+      "album": "TCHAIKOVSKY (THE BEST OF)",
+      "recommendation": "这首《六月·小船歌》如夏日微风拂面，轻柔中透着无限生机，Ilona Prunyi演绎得细腻动人。"
     }
   ],
   "article": {
-    "title": "增肥4000",
-    "description": "《增肥4000》 是美国动画喜剧《南方公园》的第2集，于1997年8月20日通过喜剧中心频道在美国首播。在这一集里，南方公园小镇上的居民对凯思琳·李·吉福德即将来访感到非常激动，但几个孩子的3年级老师加里森先生因童年时的一桩恩怨计划暗杀镇上的贵客。与此同时，埃里克·卡特曼在购买名为“增肥4000”的健美补充剂后成了严重的肥胖症患者。\n",
-    "url": "https://zh.wikipedia.org/wiki/%E5%A2%9E%E8%82%A54000",
-    "author": "维基百科",
-    "source": "维基百科",
-    "meaning": "《增肥432》这————是一则荒诞幽默的故事，揭示了人性的复杂与荒诞。”在《南方公园》这部动画中，科ulação森先生的阴谋与孩子们的意外之福，共同编织出一出笑中带泪的喜剧篇章。"
+    "title": "大象喝水会不会吸到鼻涕？",
+    "description": "大象喝水会不会吸到鼻涕？",
+    "content": "",
+    "author": "知乎日报",
+    "url": "https://daily.zhihu.com/story/9789393",
+    "source": "知乎日报",
+    "meaning": "这不仅仅是一个充满趣味的动物问题，更是一篇探索自然奥秘、寓教于乐的精彩文章。作者通过轻松幽默的语言，将大象的生活习性娓娓道来，巧妙地解答了“大象会不会吸到鼻涕”的问题。在这篇短文中，不仅能够感受到作者对自然界的细腻观察，还能领悟到生活中平淡而深刻的哲理。适合所有年龄段的读者，尤其是对动物和自然充满好奇心的小朋友们。"
   },
   "zaobao": {
     "date": "2026-05-04",
@@ -192,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "夜幕下的每一颗星辰，都在等待属于它的晨光。",
-  "summary": "情深难弃。"
+  "easter": "每一个清晨都是未来温柔的序章，相信自己，梦想终会绽放。",
+  "summary": "功名似鼻涕，人情各有味。"
 }
