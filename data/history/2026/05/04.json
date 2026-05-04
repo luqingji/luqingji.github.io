@@ -1,53 +1,53 @@
 {
   "date": "2026-05-04",
-  "updated_at": "2026-05-04T09:47:51.249271+00:00",
+  "updated_at": "2026-05-04T11:47:59.400053+00:00",
   "sentence": {
-    "content": "某些人喜好名利是“好大喜功”，某些人喜好名利是“人之常情”。",
-    "from": "原创",
-    "meaning": "有些人追逐名利，源于一种积极入世的态度，是“好大喜功”；而另一些人则是因为社会惯性和现实压力，显得更为平淡无奇，足，怪，异，为“人之常情”。"
+    "content": "荷尔蒙决定一见钟情，多巴胺决定天长地久。",
+    "from": "网易云",
+    "meaning": "这句话巧妙地将生物学中的的荷尔蒙和多巴胺与情感体验相联系，荷尔蒙的瞬时激情犹如初遇时的怦然心动，多巴胺的持续愉悦则象征着长久的伴的甜蜜与温暖。"
   },
   "songs": [
     {
-      "id": 3371384373,
-      "name": "那你在哪",
-      "artist": "Gokevin",
-      "album": "那你在哪",
-      "recommendation": "《那你在哪》如同夜空中的一抹温柔，Gokevin用旋律与歌词讲述着关于等待与寻找的美好故事。"
+      "id": 29150369,
+      "name": "Gyménopédie N°1",
+      "artist": "Ophélie Gaillard",
+      "album": "Dreams",
+      "recommendation": "如同晨光初破晓，Ophélie Gaillard的《Gyménopédie N°1》温柔唤醒心灵的每一个角落。"
     },
     {
-      "id": 3366156622,
-      "name": "Hypa",
-      "artist": "Silva Bumpa",
-      "album": "Hypa",
-      "recommendation": "迷幻森林梦境"
+      "id": 27598898,
+      "name": "Pathetique III",
+      "artist": "Cuba Percussion",
+      "album": "Classic Meets Cuba",
+      "recommendation": "这首《Pathetique III》以古巴打击乐的激情与深邃，带你领略灵魂深处的律动与共鸣。"
     },
     {
-      "id": 3344683898,
-      "name": "Body",
-      "artist": "Don Toliver",
-      "album": "OCTANE",
-      "recommendation": "《Body》是一首带你直入灵魂深处，感受情感狂潮的电子舞曲，Don Toliver用声音解开欲望枷锁。"
+      "id": 3353377881,
+      "name": "Loaded Gun",
+      "artist": "CID",
+      "album": "Loaded Gun",
+      "recommendation": "硬核而不失温柔。"
     },
     {
-      "id": 1458990435,
-      "name": "West Ten",
-      "artist": "AJ Tracey",
-      "album": "West Ten",
-      "recommendation": "硬核rapper风。"
+      "id": 2714181789,
+      "name": "Folded",
+      "artist": "Kehlani",
+      "album": "Folded",
+      "recommendation": "灵魂治愈"
     },
     {
-      "id": 27552868,
-      "name": "粘人",
-      "artist": "二手玫瑰",
-      "album": "一枝独秀",
-      "recommendation": "《粘人》旋律抓耳，情感浓烈，展现二手玫瑰独特魅力，让人一听难忘。"
+      "id": 3373113236,
+      "name": "あぶく",
+      "artist": "ヨルシカ",
+      "album": "あぶく",
+      "recommendation": "《あぶく》- ヨルシカ，如烟雾般飘渺而迷离，细腻描绘梦境与现实的边界。"
     },
     {
-      "id": 27200546,
-      "name": "Les saisons (The Seasons), Op. 37b:No. 6. June: Barcarolle",
-      "artist": "Ilona Prunyi",
-      "album": "TCHAIKOVSKY (THE BEST OF)",
-      "recommendation": "这首《六月·小船歌》如夏日微风拂面，轻柔中透着无限生机，Ilona Prunyi演绎得细腻动人。"
+      "id": 3353140748,
+      "name": "FEVER DREAM",
+      "artist": "Alex Warren",
+      "album": "FEVER DREAM",
+      "recommendation": "梦境般的迷醉感"
     }
   ],
   "article": {
@@ -57,7 +57,7 @@
     "author": "知乎日报",
     "url": "https://daily.zhihu.com/story/9789393",
     "source": "知乎日报",
-    "meaning": "这不仅仅是一个充满趣味的动物问题，更是一篇探索自然奥秘、寓教于乐的精彩文章。作者通过轻松幽默的语言，将大象的生活习性娓娓道来，巧妙地解答了“大象会不会吸到鼻涕”的问题。在这篇短文中，不仅能够感受到作者对自然界的细腻观察，还能领悟到生活中平淡而深刻的哲理。适合所有年龄段的读者，尤其是对动物和自然充满好奇心的小朋友们。"
+    "meaning": "在万物有灵的自然之中，，大象用它那庞大的身躯与细腻情感交织的故事。这不仅仅是一则趣味问答，更是探索生命奥秘、感悟生活哲思的启程之章。"
   },
   "zaobao": {
     "date": "2026-05-04",
@@ -193,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "每一个清晨都是未来温柔的序章，相信自己，梦想终会绽放。",
-  "summary": "功名似鼻涕，人情各有味。"
+  "easter": "在每个平凡的日子里种下理想的种子，总有绽放的那天。",
+  "summary": "情动瞬间，荷尔蒙燃，多巴胺守候长远。"
 }

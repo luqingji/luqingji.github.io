@@ -1,62 +1,63 @@
 {
-  "date": "2026-04-22",
-  "updated_at": "2026-04-21T16:00:00",
+  "date": "2026-05-04",
+  "updated_at": "2026-05-04T11:47:59.400053+00:00",
   "sentence": {
-    "content": "Young as the morning, Old as the sea.",
-    "from": "Other",
-    "meaning": "青春如朝霞之绚烂，古老似海洋之深远。两者的对比，恰恰映照出生命与时间的永恒对话。"
+    "content": "荷尔蒙决定一见钟情，多巴胺决定天长地久。",
+    "from": "网易云",
+    "meaning": "这句话巧妙地将生物学中的的荷尔蒙和多巴胺与情感体验相联系，荷尔蒙的瞬时激情犹如初遇时的怦然心动，多巴胺的持续愉悦则象征着长久的伴的甜蜜与温暖。"
   },
   "songs": [
     {
-      "id": 3352825378,
-      "name": "人先出来",
-      "artist": "Higher Brothers",
-      "album": "最高",
-      "recommendation": "raw且深刻"
+      "id": 29150369,
+      "name": "Gyménopédie N°1",
+      "artist": "Ophélie Gaillard",
+      "album": "Dreams",
+      "recommendation": "如同晨光初破晓，Ophélie Gaillard的《Gyménopédie N°1》温柔唤醒心灵的每一个角落。"
     },
     {
-      "id": 3370532229,
-      "name": "E or I",
-      "artist": "艾洛樱Aluvin",
-      "album": "E or I",
-      "recommendation": "《E or I》如晨光破晓，温柔唤醒心灵的每一份渴望与自由。"
+      "id": 27598898,
+      "name": "Pathetique III",
+      "artist": "Cuba Percussion",
+      "album": "Classic Meets Cuba",
+      "recommendation": "这首《Pathetique III》以古巴打击乐的激情与深邃，带你领略灵魂深处的律动与共鸣。"
     },
     {
-      "id": 17346999,
-      "name": "Thank You",
-      "artist": "Dido",
-      "album": "No Angel",
-      "recommendation": "感恩之心，温暖流淌。"
-    },
-    {
-      "id": 3371365497,
-      "name": "Swag&Dollar（帅跟刀乐）",
-      "artist": "ayin印",
-      "album": "Swag&Dollar",
-      "recommendation": "刀锋之下，青春无畏，在街头巷尾回响的励志赞歌。"
-    },
-    {
-      "id": 1966690719,
-      "name": "勃拉姆斯摇篮曲",
-      "artist": "nengcd",
-      "album": "钢琴曲纯音乐经典",
-      "recommendation": "温婉如水，抚平心绪。"
+      "id": 3353377881,
+      "name": "Loaded Gun",
+      "artist": "CID",
+      "album": "Loaded Gun",
+      "recommendation": "硬核而不失温柔。"
     },
     {
       "id": 2714181789,
       "name": "Folded",
       "artist": "Kehlani",
       "album": "Folded",
-      "recommendation": "柔情入内心。"
+      "recommendation": "灵魂治愈"
+    },
+    {
+      "id": 3373113236,
+      "name": "あぶく",
+      "artist": "ヨルシカ",
+      "album": "あぶく",
+      "recommendation": "《あぶく》- ヨルシカ，如烟雾般飘渺而迷离，细腻描绘梦境与现实的边界。"
+    },
+    {
+      "id": 3353140748,
+      "name": "FEVER DREAM",
+      "artist": "Alex Warren",
+      "album": "FEVER DREAM",
+      "recommendation": "梦境般的迷醉感"
     }
   ],
   "article": {
-    "title": "3美分镍币",
-    "description": "3美分镍币 又称铜镍合金3美分硬币，是美国铸币局于1865至1889年间生产的一种硬币，由该局首席雕刻师詹姆斯·巴顿·朗埃克设计。这种硬币起初得以广泛流通，之后在商业流通中逐渐被面值5美分的镍币取代。\n",
-    "url": "https://zh.wikipedia.org/wiki/3%E7%BE%8E%E5%88%86%E9%95%8D%E5%B8%81",
-    "author": "维基百科",
-    "source": "维基百科",
-    "meaning": "《3美分镍币》——一枚穿越时光的硬币，见证美国货币变迁的温婉篇章，朗埃埃的匠心与时代的流转在此交汇，引你我共同品味历史的温度。"
+    "title": "大象喝水会不会吸到鼻涕？",
+    "description": "大象喝水会不会吸到鼻涕？",
+    "content": "",
+    "author": "知乎日报",
+    "url": "https://daily.zhihu.com/story/9789393",
+    "source": "知乎日报",
+    "meaning": "在万物有灵的自然之中，，大象用它那庞大的身躯与细腻情感交织的故事。这不仅仅是一则趣味问答，更是探索生命奥秘、感悟生活哲思的启程之章。"
   },
   "zaobao": {
     "date": "2026-05-04",
@@ -192,6 +193,6 @@
       "author": ""
     }
   },
-  "easter": "每一个晨曦都是生命温柔的吻，勇敢追寻，",
-  "summary": "青春海浪长 pérdida"
+  "easter": "在每个平凡的日子里种下理想的种子，总有绽放的那天。",
+  "summary": "情动瞬间，荷尔蒙燃，多巴胺守候长远。"
 }
