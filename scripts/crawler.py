@@ -3,8 +3,8 @@
 
 """
 每日数据爬虫（精简版 v5.8）
-- 修复补爬模式 ONE 文章内容提取问题
-- 增加详细日志
+- 修复补爬模式使用 GET 请求获取 ONE 数据
+- 增加重试和错误日志
 """
 
 import os
@@ -15,8 +15,8 @@ import re
 import time
 import logging
 import tempfile
-import subprocess
 import argparse
+import subprocess
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List, Any
 
@@ -44,7 +44,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
 os.makedirs(data_dir, exist_ok=True)
 
-# ==================== 备选数据（仅用于非 AI 模块） ====================
+# ==================== 备选数据（仅用于正常模式） ====================
 FALLBACK_SENTENCES = [
     {"content": "生活不止眼前的苟且，还有诗和远方的田野", "from": "高晓松"},
     {"content": "愿你出走半生，归来仍是少年", "from": "网络"},
@@ -538,7 +538,7 @@ def update_one_archive(date: str, title: str):
     os.replace(tmp_path, archive_file)
     logger.info(f"已记录 ONE 文章：{date} - {title}")
 
-# ==================== ONE · 一个 模块 ====================
+# ==================== ONE · 一个 模块（正常模式） ====================
 def clean_html(text: str) -> str:
     if not text:
         return ""
@@ -549,7 +549,7 @@ def clean_html(text: str) -> str:
     lines = [line.strip() for line in text.split('\n') if line.strip()]
     return '\n\n'.join(lines)
 
-def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
+def _fetch_one_api_post(url: str, name: str) -> Optional[Dict]:
     if not ALAPI_TOKEN:
         return None
     max_retries = 3
@@ -582,7 +582,7 @@ def _fetch_one_api(url: str, name: str) -> Optional[Dict]:
     return None
 
 def fetch_one_article() -> Optional[Dict[str, Any]]:
-    data = _fetch_one_api("https://v3.alapi.cn/api/one", "文章")
+    data = _fetch_one_api_post("https://v3.alapi.cn/api/one", "文章")
     if not data:
         return None
     content = data.get('content', '')
@@ -597,7 +597,7 @@ def fetch_one_article() -> Optional[Dict[str, Any]]:
     }
 
 def fetch_one_photo() -> Optional[Dict[str, Any]]:
-    data = _fetch_one_api("https://v3.alapi.cn/api/one/photo", "摄影")
+    data = _fetch_one_api_post("https://v3.alapi.cn/api/one/photo", "摄影")
     if not data:
         return None
     description = data.get('content', '')
@@ -612,7 +612,7 @@ def fetch_one_photo() -> Optional[Dict[str, Any]]:
     }
 
 def fetch_one_question() -> Optional[Dict[str, Any]]:
-    data = _fetch_one_api("https://v3.alapi.cn/api/one/question", "问答")
+    data = _fetch_one_api_post("https://v3.alapi.cn/api/one/question", "问答")
     if not data:
         return None
     answer = data.get('answer', '')
@@ -623,6 +623,64 @@ def fetch_one_question() -> Optional[Dict[str, Any]]:
         "answer": answer,
         "author": data.get('author', '')
     }
+
+# ==================== 补爬专用：GET 方式获取 ONE 数据 ====================
+def fetch_one_data_get(date_str: str, retries=3) -> Dict:
+    """使用 GET 请求从 ALAPI 获取指定日期的 ONE 数据（文章、摄影、问答）"""
+    result = {"article": None, "photo": None, "question": None}
+    base_urls = {
+        "article": "https://v3.alapi.cn/api/one",
+        "photo": "https://v3.alapi.cn/api/one/photo",
+        "question": "https://v3.alapi.cn/api/one/question"
+    }
+    api_date = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y/%m/%d")
+    headers = {"Content-Type": "application/json"}
+    for key, url in base_urls.items():
+        for attempt in range(retries):
+            try:
+                params = {"token": ALAPI_TOKEN, "date": api_date}
+                resp = requests.get(url, headers=headers, params=params, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get('success') and data.get('data'):
+                        if key == "article":
+                            content = data['data'].get('content', '')
+                            if content:
+                                content = clean_html(content)
+                            result[key] = {
+                                "title": data['data'].get('title', ''),
+                                "author": data['data'].get('author', ''),
+                                "content": content,
+                                "url": data['data'].get('url', ''),
+                                "img_url": data['data'].get('img_url', '')
+                            }
+                        elif key == "photo":
+                            description = data['data'].get('content', '')
+                            if description:
+                                description = clean_html(description)
+                            result[key] = {
+                                "title": data['data'].get('title', ''),
+                                "author": data['data'].get('subtitle', ''),
+                                "image": data['data'].get('cover', ''),
+                                "description": description,
+                                "url": data['data'].get('url', '')
+                            }
+                        elif key == "question":
+                            answer = data['data'].get('answer', '')
+                            if answer:
+                                answer = clean_html(answer)
+                            result[key] = {
+                                "question": data['data'].get('question', ''),
+                                "answer": answer,
+                                "author": data['data'].get('author', '')
+                            }
+                        break
+                else:
+                    logger.warning(f"GET {key} 失败，状态码 {resp.status_code}，尝试 {attempt+1}")
+            except Exception as e:
+                logger.error(f"GET {key} 异常: {e}")
+            time.sleep(1)
+    return result
 
 # ==================== 原子写入 ====================
 def safe_write_json(data: dict, filepath: str):
@@ -697,7 +755,7 @@ def generate_stats():
     safe_write_json(stats, stats_file)
     logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，ONE文章数 {total_articles}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
 
-# ==================== 补录文章标题 ====================
+# ==================== 回溯补爬缺失的 ONE 文章标题 ====================
 def fetch_one_title_by_date(date_obj):
     api_date = date_obj.strftime("%Y/%m/%d")
     params = {"date": api_date, "token": ALAPI_TOKEN}
@@ -741,66 +799,7 @@ def backfill_one_missing_title():
             return
     logger.info("未发现缺失的 ONE 文章标题")
 
-# ==================== 补爬完整历史数据（仅 ONE 模块） ====================
-def fetch_one_data_for_date(date_str):
-    """专用于补爬：获取指定日期的文章、摄影、问答，不依赖其他模块"""
-    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-    api_date = date_obj.strftime("%Y/%m/%d")
-    def fetch_one(url, name):
-        payload = {"token": ALAPI_TOKEN, "date": api_date}
-        headers = {"Content-Type": "application/json"}
-        try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get('success') and data.get('data'):
-                    return data['data']
-        except Exception as e:
-            logger.error(f"获取{name}失败 {api_date}: {e}")
-        return None
-    article_data = fetch_one("https://v3.alapi.cn/api/one", "文章")
-    photo_data = fetch_one("https://v3.alapi.cn/api/one/photo", "摄影")
-    question_data = fetch_one("https://v3.alapi.cn/api/one/question", "问答")
-    result = {}
-    if article_data:
-        content = article_data.get('content', '')
-        if content:
-            content = clean_html(content)
-        result['article'] = {
-            "title": article_data.get('title', ''),
-            "author": article_data.get('author', ''),
-            "content": content,
-            "url": article_data.get('url', ''),
-            "img_url": article_data.get('img_url', '')
-        }
-    else:
-        result['article'] = None
-    if photo_data:
-        description = photo_data.get('content', '')
-        if description:
-            description = clean_html(description)
-        result['photo'] = {
-            "title": photo_data.get('title', ''),
-            "author": photo_data.get('subtitle', ''),
-            "image": photo_data.get('cover', ''),
-            "description": description,
-            "url": photo_data.get('url', '')
-        }
-    else:
-        result['photo'] = None
-    if question_data:
-        answer = question_data.get('answer', '')
-        if answer:
-            answer = clean_html(answer)
-        result['question'] = {
-            "question": question_data.get('question', ''),
-            "answer": answer,
-            "author": question_data.get('author', '')
-        }
-    else:
-        result['question'] = None
-    return result
-
+# ==================== 补爬完整 ONE 数据（使用 GET） ====================
 def backfill_one_missing_full_data():
     if not ALAPI_TOKEN:
         logger.warning("ALAPI_TOKEN 未设置，无法补爬完整数据")
@@ -811,12 +810,14 @@ def backfill_one_missing_full_data():
         return
     with open(archive_file, 'r', encoding='utf-8') as f:
         articles = json.load(f)
+    # 按日期倒序，找出第一个缺失历史文件且已有标题的日期
     for article in sorted(articles, key=lambda x: x['date'], reverse=True):
         date_str = article['date']
         y, m, d = date_str.split('-')
         hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
         if not os.path.exists(hist_file):
             logger.info(f"发现缺失完整数据的日期：{date_str}，开始补爬 ONE 模块...")
+            # 使用 --date 和 --full-backfill 参数调用自身
             script_path = os.path.abspath(__file__)
             ret = subprocess.run([sys.executable, script_path, '--date', date_str, '--full-backfill'])
             if ret.returncode == 0:
@@ -845,12 +846,13 @@ def main():
     logger.info(f"=== 每日数据爬虫 v5.8 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
-    # 补爬完整 ONE 数据模式
+    # 补爬完整 ONE 数据模式（使用 GET）
     if args.full_backfill and args.date:
         date_str = beijing_now.strftime("%Y-%m-%d")
         logger.info(f"补爬模式：仅获取 {date_str} 的 ONE 模块数据")
-        one_data = fetch_one_data_for_date(date_str)
-        if not one_data or not any([one_data.get('article'), one_data.get('photo'), one_data.get('question')]):
+        one_data = fetch_one_data_get(date_str)
+        # 检查是否有文章内容（如果文章为空但摄影或问答存在，也保存）
+        if not one_data['article'] and not one_data['photo'] and not one_data['question']:
             logger.error("未获取到任何 ONE 数据，退出")
             sys.exit(1)
         # 构建最小化的历史数据
@@ -871,10 +873,6 @@ def main():
         hist_file = os.path.join(hist_dir, f"{d}.json")
         safe_write_json(hist_data, hist_file)
         logger.info(f"✅ 已保存 {date_str} 的 ONE 数据到 {hist_file}")
-        # 同时更新 one_articles.json 中的标题（如果缺失）
-        title = one_data.get('article', {}).get('title') if one_data.get('article') else None
-        if title:
-            update_one_archive(date_str, title)
         sys.exit(0)
 
     # 正常模式或仅补录标题模式
