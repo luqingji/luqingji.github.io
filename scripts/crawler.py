@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.3）
+每日数据爬虫（精简版 v5.4）
 - 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
-- 新增：自动记录 ONE 文章标题到 one_articles.json
-- 统计：总字数统计 ONE 文章纯文本字数
+- 新增：自动补爬 `one_articles.json` 中缺失的最近一个历史日期
+- 支持 `--date YYYY-MM-DD` 手动指定日期
+- 支持 `--backfill` 标记避免递归补爬
 """
 
 import os
@@ -16,6 +17,8 @@ import re
 import time
 import logging
 import tempfile
+import subprocess
+import argparse
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, List, Any
 
@@ -36,7 +39,6 @@ SILICONFLOW_API_KEY = os.environ.get('SILICONFLOW_API_KEY')
 SILICONFLOW_BASE_URL = os.environ.get('SILICONFLOW_BASE_URL', 'https://api.siliconflow.cn/v1')
 
 MODEL_WRITING = 'Qwen/Qwen2.5-7B-Instruct'
-
 ENABLE_AI = bool(SILICONFLOW_API_KEY)
 ALAPI_TOKEN = os.environ.get('ALAPI_TOKEN')
 
@@ -477,32 +479,6 @@ def generate_easter_egg() -> str:
         logger.error(f"生成彩蛋失败: {e}")
     return random.choice(STATIC_EASTER_EGGS)
 
-# ==================== ONE 文章存档 ====================
-def update_one_archive(date: str, title: str):
-    """记录 ONE 文章标题到 one_articles.json"""
-    if not title:
-        return
-    archive_file = os.path.join(data_dir, 'one_articles.json')
-    if os.path.exists(archive_file):
-        with open(archive_file, 'r', encoding='utf-8') as f:
-            try:
-                archive = json.load(f)
-            except:
-                archive = []
-    else:
-        archive = []
-    existing = [item for item in archive if item.get('date') == date]
-    if existing:
-        existing[0]['title'] = title
-    else:
-        archive.append({"date": date, "title": title})
-    archive.sort(key=lambda x: x['date'], reverse=True)
-    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
-        json.dump(archive, tmp, ensure_ascii=False, indent=2)
-        tmp_path = tmp.name
-    os.replace(tmp_path, archive_file)
-    logger.info(f"已记录 ONE 文章：{date} - {title}")
-
 # ==================== 照片墙记录 ====================
 def update_photo_wall(date: str, photo_data: dict):
     """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
@@ -539,6 +515,32 @@ def update_photo_wall(date: str, photo_data: dict):
         tmp_path = tmp.name
     os.replace(tmp_path, photo_file)
     logger.info(f"已添加/更新照片墙：{date} - {photo_data.get('title', '')}")
+
+# ==================== ONE 文章存档 ====================
+def update_one_archive(date: str, title: str):
+    """记录 ONE 文章标题到 one_articles.json"""
+    if not title:
+        return
+    archive_file = os.path.join(data_dir, 'one_articles.json')
+    if os.path.exists(archive_file):
+        with open(archive_file, 'r', encoding='utf-8') as f:
+            try:
+                archive = json.load(f)
+            except:
+                archive = []
+    else:
+        archive = []
+    existing = [item for item in archive if item.get('date') == date]
+    if existing:
+        existing[0]['title'] = title
+    else:
+        archive.append({"date": date, "title": title})
+    archive.sort(key=lambda x: x['date'], reverse=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=data_dir, delete=False) as tmp:
+        json.dump(archive, tmp, ensure_ascii=False, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, archive_file)
+    logger.info(f"已记录 ONE 文章：{date} - {title}")
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -636,7 +638,7 @@ def safe_write_json(data: dict, filepath: str):
         tmp_path = tmp.name
     os.replace(tmp_path, filepath)
 
-# ==================== 统计生成（修改为统计 ONE 文章字数） ====================
+# ==================== 统计生成 ====================
 def generate_stats():
     history_dir = os.path.join(data_dir, 'history')
     if not os.path.exists(history_dir):
@@ -700,22 +702,58 @@ def generate_stats():
     safe_write_json(stats, stats_file)
     logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，ONE文章数 {total_articles}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
 
+# ==================== 补爬缺失历史数据 ====================
+def backfill_one_missing_day():
+    """从 one_articles.json 中找出最近缺失的历史数据日期（按日期倒序），补爬该天"""
+    one_articles_file = os.path.join(data_dir, 'one_articles.json')
+    if not os.path.exists(one_articles_file):
+        logger.info("one_articles.json 不存在，跳过补爬")
+        return
+
+    with open(one_articles_file, 'r', encoding='utf-8') as f:
+        articles = json.load(f)
+
+    # 按日期倒序排序
+    articles_sorted = sorted(articles, key=lambda x: x['date'], reverse=True)
+
+    for article in articles_sorted:
+        date_str = article['date']
+        y, m, d = date_str.split('-')
+        hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
+        if not os.path.exists(hist_file):
+            logger.info(f"发现缺失历史数据：{date_str}，开始补爬...")
+            script_path = os.path.abspath(__file__)
+            result = subprocess.run([sys.executable, script_path, '--date', date_str, '--backfill'])
+            if result.returncode == 0:
+                logger.info(f"补爬 {date_str} 成功")
+            else:
+                logger.error(f"补爬 {date_str} 失败")
+            return  # 每次只补爬一个
+
+    logger.info("所有 one_articles 中的日期都已存在历史数据，无需补爬")
+
 # ==================== 主函数 ====================
 def main():
-    if not ENABLE_AI:
-        logger.warning("SILICONFLOW_API_KEY 未设置，AI功能关闭")
-    if not ALAPI_TOKEN:
-        logger.warning("ALAPI_TOKEN 未设置，部分功能可能不可用")
-    utc_now = datetime.now(timezone.utc)
-    beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
-    logger.info(f"=== 每日数据爬虫 v5.3 开始运行 [{utc_now.isoformat()}] ===")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--date', type=str, help='指定日期，格式 YYYY-MM-DD')
+    parser.add_argument('--backfill', action='store_true', help='标识本次运行为补爬，不再触发新的补爬')
+    args = parser.parse_args()
+
+    if args.date:
+        beijing_now = datetime.strptime(args.date, "%Y-%m-%d")
+        utc_now = beijing_now - timedelta(hours=8)
+        logger.info(f"=== 手动指定日期: {beijing_now.strftime('%Y-%m-%d')} ===")
+    else:
+        utc_now = datetime.now(timezone.utc)
+        beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
+
+    logger.info(f"=== 每日数据爬虫 v5.4 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
     songs = fetch_songs(6)
     easter = generate_easter_egg()
 
-    # 获取 ONE 模块（文章、摄影、问答）
     one_article = fetch_one_article()
     one_photo = fetch_one_photo()
     one_question = fetch_one_question()
@@ -739,11 +777,9 @@ def main():
     today_data['summary'] = summary
     logger.info(f"📝 每日总结：{summary}")
 
-    # 记录 ONE 文章标题到存档
     if one_article and one_article.get('title'):
         update_one_archive(today_data['date'], one_article['title'])
 
-    # 记录 ONE·摄影到照片墙
     if one_photo and one_photo.get('image'):
         update_photo_wall(today_data['date'], one_photo)
 
@@ -758,6 +794,11 @@ def main():
     safe_write_json(today_data, hist_file)
 
     generate_stats()
+
+    # 如果不是补爬模式，则尝试补爬一个缺失的历史日期
+    if not args.backfill:
+        backfill_one_missing_day()
+
     logger.info("=== 运行完成 ===")
 
 if __name__ == "__main__":
