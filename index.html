@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <title>拾光驿站 · 守望</title>
+    <title>隅 · 安静角落</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -85,7 +85,7 @@
 </head>
 <body>
 <div class="container">
-    <div id="daily-summary" class="daily-summary">✨ 今日拾光</div>
+    <div id="daily-summary" class="daily-summary">隅 · 安静角落</div>
     <div id="easter-egg" class="easter-egg"></div>
     <div class="links">
         <a href="/daily.html">📖 今日内容</a>
@@ -100,7 +100,7 @@
     <div id="stats" class="stats"></div>
     <div class="footer">
         <div id="update-time"></div>
-        <div>© 拾光驿站 · 每日诗意</div>
+        <div>© 隅 · 安静角落 · 每日诗意</div>
     </div>
 </div>
 
@@ -128,7 +128,7 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
 
-            document.getElementById('daily-summary').innerHTML = data.summary || '✨ 今日拾光';
+            document.getElementById('daily-summary').innerHTML = data.summary || '隅 · 安静角落';
             const easter = data.easter || getStaticEasterEgg(data.date);
             document.getElementById('easter-egg').innerHTML = easter;
             if (data.updated_at) {
@@ -137,7 +137,7 @@
             }
         } catch (err) {
             console.error('加载每日数据失败', err);
-            document.getElementById('daily-summary').innerHTML = '✨ 今日拾光';
+            document.getElementById('daily-summary').innerHTML = '隅 · 安静角落';
             document.getElementById('easter-egg').innerHTML = getStaticEasterEgg();
         }
 
