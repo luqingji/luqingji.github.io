@@ -43,7 +43,6 @@ def generate_archive_page():
             grouped[year][month] = []
         grouped[year][month].append(item)
 
-    # 生成HTML（样式不变）
     html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
