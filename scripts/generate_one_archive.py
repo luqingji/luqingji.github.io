@@ -3,7 +3,6 @@
 
 import os
 import json
-import sys
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 data_dir = os.path.join(script_dir, '..', 'data')
@@ -11,6 +10,7 @@ archive_file = os.path.join(data_dir, 'one_articles.json')
 output_file = os.path.join(script_dir, '..', 'one_archive.html')
 
 def history_file_exists(date: str) -> bool:
+    """检查指定日期的历史JSON文件是否存在"""
     y, m, d = date.split('-')
     hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
     return os.path.exists(hist_file)
@@ -25,7 +25,7 @@ def generate_archive_page():
         print("存档为空")
         return
 
-    # 过滤：只保留有历史 JSON 文件的日期
+    # 只保留有历史文件的日期
     valid_articles = [item for item in articles if history_file_exists(item['date'])]
     if not valid_articles:
         print("没有可用的历史数据，放弃生成")
@@ -43,6 +43,7 @@ def generate_archive_page():
             grouped[year][month] = []
         grouped[year][month].append(item)
 
+    # 生成HTML（样式不变）
     html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
