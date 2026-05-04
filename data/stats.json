@@ -1,11 +1,11 @@
 {
-  "total_days": 12,
+  "total_days": 13,
   "total_songs": 72,
-  "total_articles": 12,
-  "total_words": 110877,
-  "total_recommend_words": 1739,
+  "total_articles": 13,
+  "total_words": 125277,
+  "total_recommend_words": 1829,
   "total_news_items": 180,
-  "total_one_items": 36,
-  "read_minutes": 369,
-  "last_updated": "2026-05-04T12:18:24.532102+00:00"
+  "total_one_items": 38,
+  "read_minutes": 417,
+  "last_updated": "2026-05-04T12:22:00.833627+00:00"
 }
