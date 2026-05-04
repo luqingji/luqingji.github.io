@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 import time
 
 # 配置
-TOKEN = "gwr5bfmq0fvtwbdjcngnzurxaemqp9"   # 你的 ALAPI token
+TOKEN = "gwr5bfmq0fvtwbdjcngnzurxaemqp9"
 API_URL = "https://v3.alapi.cn/api/one"
 HEADERS = {"Content-Type": "application/json"}
 
@@ -33,30 +33,30 @@ def fetch_article_title(date_str):
     return None
 
 def main():
-    # 确定项目根目录的 data 文件夹
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, '..', 'data')
     archive_file = os.path.join(data_dir, 'one_articles.json')
 
     # 读取现有 one_articles.json
-    existing = {}
+    existing_dict = {}  # {date: title}
     if os.path.exists(archive_file):
         with open(archive_file, 'r', encoding='utf-8') as f:
             try:
                 existing_list = json.load(f)
-                existing = {item['date']: item['title'] for item in existing_list}
+                for item in existing_list:
+                    existing_dict[item['date']] = item['title']
             except:
-                existing = {}
+                existing_dict = {}
 
-    # 生成 2026 年 4 月的所有日期
+    # 准备存储新记录
+    new_records = []
     start = datetime(2026, 4, 1)
     end = datetime(2026, 4, 30)
-    new_records = []
     current = start
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
         api_date = current.strftime("%Y/%m/%d")
-        if date_str not in existing:
+        if date_str not in existing_dict:
             print(f"正在获取 {api_date} ...")
             title = fetch_article_title(api_date)
             if title:
@@ -66,7 +66,6 @@ def main():
                 print(f"  ❌ 无文章或获取失败")
         else:
             print(f"⏭️ 跳过已存在: {date_str}")
-        # 避免请求过快
         time.sleep(0.5)
         current += timedelta(days=1)
 
@@ -74,16 +73,18 @@ def main():
         print("没有新文章需要添加")
         return
 
-    # 合并现有记录
-    all_records = list(existing.values()) + new_records
-    # 去重（按日期）
+    # 合并现有和新记录
+    all_records = []
+    for date, title in existing_dict.items():
+        all_records.append({"date": date, "title": title})
+    all_records.extend(new_records)
+    # 按日期去重（保留最新）
     unique = {}
     for item in all_records:
         unique[item['date']] = item
     final_list = list(unique.values())
     final_list.sort(key=lambda x: x['date'], reverse=True)
 
-    # 写回文件
     with open(archive_file, 'w', encoding='utf-8') as f:
         json.dump(final_list, f, ensure_ascii=False, indent=2)
 
