@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.4）
+每日数据爬虫（精简版 v5.6）
 - 保留：每日总结、早报、ONE·一个、歌单、彩蛋、照片墙
-- 新增：自动补爬 `one_articles.json` 中缺失的最近一个历史日期
+- 新增：自动回溯检测缺失的 ONE 文章标题，补录标题并更新精选文摘（不补完整数据）
 - 支持 `--date YYYY-MM-DD` 手动指定日期
 - 支持 `--backfill` 标记避免递归补爬
 """
@@ -541,6 +541,14 @@ def update_one_archive(date: str, title: str):
         tmp_path = tmp.name
     os.replace(tmp_path, archive_file)
     logger.info(f"已记录 ONE 文章：{date} - {title}")
+    # 更新精选文摘页面
+    gen_script = os.path.join(script_dir, 'generate_one_archive.py')
+    if os.path.exists(gen_script):
+        try:
+            subprocess.run([sys.executable, gen_script], check=True)
+            logger.info("已刷新精选文摘页面")
+        except Exception as e:
+            logger.error(f"刷新精选文摘页面失败: {e}")
 
 # ==================== ONE · 一个 模块 ====================
 def clean_html(text: str) -> str:
@@ -702,35 +710,55 @@ def generate_stats():
     safe_write_json(stats, stats_file)
     logger.info(f"统计生成：总天数 {total_days}，歌曲 {total_songs}，ONE文章数 {total_articles}，总字数 {total_words}，早报条数 {total_news_items}，ONE内容 {total_one_items}")
 
-# ==================== 补爬缺失历史数据 ====================
-def backfill_one_missing_day():
-    """从 one_articles.json 中找出最近缺失的历史数据日期（按日期倒序），补爬该天"""
-    one_articles_file = os.path.join(data_dir, 'one_articles.json')
-    if not os.path.exists(one_articles_file):
-        logger.info("one_articles.json 不存在，跳过补爬")
+# ==================== 回溯补爬缺失的 ONE 文章标题 ====================
+def fetch_one_title_by_date(date_obj):
+    """从 ALAPI 获取指定日期的文章标题"""
+    api_date = date_obj.strftime("%Y/%m/%d")
+    params = {"date": api_date, "token": ALAPI_TOKEN}
+    try:
+        resp = requests.get("https://v3.alapi.cn/api/one", headers={"Content-Type": "application/json"}, params=params, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success') and data.get('data'):
+                title = data['data'].get('title')
+                if title:
+                    return title
+    except Exception as e:
+        logger.error(f"获取 {api_date} 标题失败: {e}")
+    return None
+
+def backfill_one_missing_title():
+    """从昨天开始向前回溯，找到第一个缺失文章标题的日期，补录标题（不补完整数据）"""
+    if not ALAPI_TOKEN:
+        logger.warning("ALAPI_TOKEN 未设置，无法回溯补爬")
         return
 
-    with open(one_articles_file, 'r', encoding='utf-8') as f:
-        articles = json.load(f)
+    # 读取现有 one_articles.json
+    archive_file = os.path.join(data_dir, 'one_articles.json')
+    existing_titles = set()
+    if os.path.exists(archive_file):
+        try:
+            with open(archive_file, 'r', encoding='utf-8') as f:
+                for item in json.load(f):
+                    existing_titles.add(item['date'])
+        except:
+            pass
 
-    # 按日期倒序排序
-    articles_sorted = sorted(articles, key=lambda x: x['date'], reverse=True)
-
-    for article in articles_sorted:
-        date_str = article['date']
-        y, m, d = date_str.split('-')
-        hist_file = os.path.join(data_dir, 'history', y, m, f"{d}.json")
-        if not os.path.exists(hist_file):
-            logger.info(f"发现缺失历史数据：{date_str}，开始补爬...")
-            script_path = os.path.abspath(__file__)
-            result = subprocess.run([sys.executable, script_path, '--date', date_str, '--backfill'])
-            if result.returncode == 0:
-                logger.info(f"补爬 {date_str} 成功")
+    today = datetime.now().date()
+    for days_ago in range(1, 366):  # 最多回溯一年
+        check_date = today - timedelta(days=days_ago)
+        date_str = check_date.strftime("%Y-%m-%d")
+        if date_str not in existing_titles:
+            logger.info(f"发现缺失文章标题的日期：{date_str}，开始补抓标题...")
+            title = fetch_one_title_by_date(check_date)
+            if title:
+                update_one_archive(date_str, title)  # 自动保存并刷新精选文摘
+                logger.info(f"已补录标题：{date_str} - {title}")
             else:
-                logger.error(f"补爬 {date_str} 失败")
-            return  # 每次只补爬一个
+                logger.warning(f"{date_str} 无法获取标题（可能当天无文章），跳过")
+            return  # 每次只补一个缺失日期
 
-    logger.info("所有 one_articles 中的日期都已存在历史数据，无需补爬")
+    logger.info("未发现缺失的 ONE 文章标题")
 
 # ==================== 主函数 ====================
 def main():
@@ -747,7 +775,7 @@ def main():
         utc_now = datetime.now(timezone.utc)
         beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    logger.info(f"=== 每日数据爬虫 v5.4 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v5.6 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     update_song_library(force=False)
@@ -795,9 +823,9 @@ def main():
 
     generate_stats()
 
-    # 如果不是补爬模式，则尝试补爬一个缺失的历史日期
+    # 如果不是补爬模式，则尝试回溯补爬一个缺失的 ONE 文章标题（不补完整数据）
     if not args.backfill:
-        backfill_one_missing_day()
+        backfill_one_missing_title()
 
     logger.info("=== 运行完成 ===")
 
