@@ -81,6 +81,40 @@
             .links a { font-size: 0.85rem; gap: 1rem; }
             .easter-egg { font-size: 0.8rem; }
         }
+
+        /* 气泡特效 */
+        .bubble-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bubble {
+            position: absolute;
+            bottom: -40px;
+            background: rgba(255, 255, 240, 0.45);
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(255, 245, 200, 0.4);
+            animation: floatUp linear infinite;
+        }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        body.dark-mode .bubble {
+            background: rgba(180, 210, 240, 0.2);
+            box-shadow: 0 0 12px rgba(100, 150, 200, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -103,6 +137,9 @@
         <div>© 隅 · 安静角落 · 每日诗意</div>
     </div>
 </div>
+
+<!-- 气泡容器 -->
+<div class="bubble-container" id="bubbleContainer"></div>
 
 <script>
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
@@ -155,6 +192,26 @@
             document.getElementById('stats').innerHTML = '📊 统计暂不可用';
         }
     }
+
+    // 创建气泡
+    function createBubble() {
+        const container = document.getElementById('bubbleContainer');
+        if (!container) return;
+        const bubble = document.createElement('div');
+        bubble.classList.add('bubble');
+        const size = Math.random() * 40 + 20; // 20-60px
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * 100}%`;
+        // 动画时长 6-14 秒
+        bubble.style.animationDuration = `${Math.random() * 8 + 6}s`;
+        // 延迟 0-5 秒
+        bubble.style.animationDelay = `${Math.random() * 5}s`;
+        container.appendChild(bubble);
+        bubble.addEventListener('animationend', () => bubble.remove());
+    }
+    // 每隔 1.2 秒生成一个气泡
+    setInterval(createBubble, 1200);
 
     loadHomeData();
 </script>
