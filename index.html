@@ -22,6 +22,8 @@
             max-width: 650px;
             width: 100%;
             text-align: center;
+            position: relative;
+            z-index: 1;
         }
         .daily-summary {
             font-size: 2rem;
@@ -82,8 +84,7 @@
             .easter-egg { font-size: 0.8rem; }
         }
 
-        /* 气泡特效 */
-        .bubble-container {
+        #particleCanvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -91,33 +92,13 @@
             height: 100%;
             pointer-events: none;
             z-index: 0;
-            overflow: hidden;
-        }
-        .bubble {
-            position: absolute;
-            bottom: -40px;
-            background: rgba(255, 255, 240, 0.45);
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(255, 245, 200, 0.4);
-            animation: floatUp linear infinite;
-        }
-        @keyframes floatUp {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(-100vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-        body.dark-mode .bubble {
-            background: rgba(180, 210, 240, 0.2);
-            box-shadow: 0 0 12px rgba(100, 150, 200, 0.2);
         }
     </style>
 </head>
 <body>
+
+<canvas id="particleCanvas"></canvas>
+
 <div class="container">
     <div id="daily-summary" class="daily-summary">隅 · 安静角落</div>
     <div id="easter-egg" class="easter-egg"></div>
@@ -138,10 +119,220 @@
     </div>
 </div>
 
-<!-- 气泡容器 -->
-<div class="bubble-container" id="bubbleContainer"></div>
-
 <script>
+    // ==================== 粒子特效（光点 + 爱心 + 鼠标交互） ====================
+    (function() {
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        const TOTAL_PERMANENT = 65; // 永久漂浮的粒子总数
+
+        // 颜色配置
+        const lightDotColors = [
+            'rgba(180, 210, 255, 0.5)',
+            'rgba(200, 220, 250, 0.45)',
+            'rgba(140, 190, 250, 0.4)',
+            'rgba(220, 235, 255, 0.55)'
+        ];
+        const darkDotColors = [
+            'rgba(100, 150, 220, 0.25)',
+            'rgba(120, 160, 230, 0.2)',
+            'rgba(80, 130, 210, 0.18)',
+            'rgba(150, 180, 240, 0.22)'
+        ];
+        const lightHeartColor = 'rgba(255, 100, 120, 0.65)';
+        const darkHeartColor = 'rgba(230, 80, 100, 0.5)';
+
+        // 鼠标追踪
+        let mouseX = null, mouseY = null;
+        let lastSpawnTime = 0;
+        const SPAWN_INTERVAL = 180; // 毫秒
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        // 绘制心形路径
+        function drawHeart(ctx, x, y, size) {
+            const s = size * 0.6;
+            ctx.beginPath();
+            ctx.moveTo(x, y + s * 0.3);
+            ctx.bezierCurveTo(x, y - s * 0.2, x - s, y - s * 0.2, x - s, y + s * 0.3);
+            ctx.bezierCurveTo(x - s, y + s * 0.7, x, y + s, x, y + s * 1.2);
+            ctx.bezierCurveTo(x, y + s, x + s, y + s * 0.7, x + s, y + s * 0.3);
+            ctx.bezierCurveTo(x + s, y - s * 0.2, x, y - s * 0.2, x, y + s * 0.3);
+            ctx.closePath();
+        }
+
+        // 粒子基类
+        class Particle {
+            constructor(type, isEphemeral = false) {
+                this.type = type;       // 'dot' | 'heart'
+                this.ephemeral = isEphemeral; // 是否鼠标临时粒子
+                this.reset();
+            }
+
+            reset() {
+                if (this.ephemeral && mouseX !== null) {
+                    // 鼠标粒子从光标位置生成
+                    this.x = mouseX + (Math.random() - 0.5) * 40;
+                    this.y = mouseY + (Math.random() - 0.5) * 20;
+                } else {
+                    this.x = Math.random() * canvas.width;
+                    this.y = canvas.height + Math.random() * 120;
+                }
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = - (Math.random() * 0.5 + 0.3);
+                this.opacityBase = 0.3 + Math.random() * 0.5;
+                this.opacityPhase = Math.random() * Math.PI * 2;
+                this.opacitySpeed = 0.008 + Math.random() * 0.015;
+                this.currentOpacity = this.opacityBase;
+
+                if (this.ephemeral) {
+                    // 临时粒子更小、更快消失
+                    this.size = this.type === 'heart'
+                        ? Math.random() * 7 + 5   // 8-12 爱心
+                        : Math.random() * 4 + 2;  // 2-6 光点
+                    this.decay = 0.008 + Math.random() * 0.012; // 透明度衰减
+                    this.speedX *= 0.7;
+                    this.speedY *= 0.7;
+                } else {
+                    this.size = this.type === 'heart'
+                        ? Math.random() * 10 + 8
+                        : Math.random() * 5 + 2.5;
+                    this.decay = 0;
+                }
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.ephemeral) {
+                    // 临时粒子逐渐消失
+                    this.currentOpacity -= this.decay;
+                    if (this.currentOpacity <= 0) return false; // 标记移除
+                } else {
+                    // 呼吸透明度
+                    this.currentOpacity = this.opacityBase +
+                        Math.sin(Date.now() * this.opacitySpeed + this.opacityPhase) * 0.12;
+                    this.currentOpacity = Math.min(0.85, Math.max(0.12, this.currentOpacity));
+                }
+
+                // 边界检查
+                if (this.y < -30 || this.x < -30 || this.x > canvas.width + 30) {
+                    if (this.ephemeral) {
+                        return false; // 移除
+                    } else {
+                        this.reset();
+                        this.y = canvas.height + 30;
+                    }
+                }
+                return true;
+            }
+
+            draw(ctx, isDark) {
+                ctx.globalAlpha = this.currentOpacity;
+                if (this.type === 'heart') {
+                    const color = isDark ? darkHeartColor : lightHeartColor;
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = isDark ? 'rgba(200, 60, 80, 0.25)' : 'rgba(255, 90, 110, 0.4)';
+                    ctx.shadowBlur = 8;
+                    drawHeart(ctx, this.x, this.y, this.size);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else {
+                    const dotColors = isDark ? darkDotColors : lightDotColors;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = dotColors[Math.floor(Math.random() * dotColors.length)];
+                    ctx.shadowColor = isDark ? 'rgba(80, 140, 220, 0.2)' : 'rgba(120, 160, 255, 0.35)';
+                    ctx.shadowBlur = 7;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        // 生成鼠标临时粒子
+        function spawnEphemeralParticles() {
+            const now = Date.now();
+            if (mouseX === null || mouseY === null) return;
+            if (now - lastSpawnTime < SPAWN_INTERVAL) return;
+            lastSpawnTime = now;
+
+            const count = 2 + Math.floor(Math.random() * 4); // 2~5 个
+            for (let i = 0; i < count; i++) {
+                const type = Math.random() < 0.4 ? 'heart' : 'dot';
+                const p = new Particle(type, true);
+                particles.push(p);
+            }
+        }
+
+        // 初始化永久粒子
+        function initPermanentParticles() {
+            const heartCount = Math.floor(TOTAL_PERMANENT * 0.3);
+            for (let i = 0; i < TOTAL_PERMANENT; i++) {
+                const type = i < heartCount ? 'heart' : 'dot';
+                const p = new Particle(type, false);
+                p.y = Math.random() * canvas.height; // 分散初始位置
+                particles.push(p);
+            }
+        }
+
+        // 动画主循环
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const isDark = document.body.classList.contains('dark-mode') ||
+                          window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            // 过滤掉失效的临时粒子
+            particles = particles.filter(p => p.update());
+
+            // 绘制所有粒子
+            for (let p of particles) {
+                p.draw(ctx, isDark);
+            }
+
+            // 根据鼠标位置生成新粒子
+            spawnEphemeralParticles();
+
+            requestAnimationFrame(animate);
+        }
+
+        // 鼠标事件
+        function onMouseMove(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
+        function onMouseLeave() {
+            mouseX = null;
+            mouseY = null;
+        }
+
+        // 监听暗色模式切换
+        const observer = new MutationObserver(() => {});
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+        // 启动
+        resizeCanvas();
+        initPermanentParticles();
+        animate();
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            // 清除所有粒子，重新初始化（简化处理）
+            particles = [];
+            initPermanentParticles();
+        });
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseleave', onMouseLeave);
+    })();
+
+    // ==================== 原有数据加载 ====================
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     const staticEasterEggs = [
         "🥚 今日彩蛋：再读一遍，或许会发现隐藏的温柔。",
@@ -192,26 +383,6 @@
             document.getElementById('stats').innerHTML = '📊 统计暂不可用';
         }
     }
-
-    // 创建气泡
-    function createBubble() {
-        const container = document.getElementById('bubbleContainer');
-        if (!container) return;
-        const bubble = document.createElement('div');
-        bubble.classList.add('bubble');
-        const size = Math.random() * 40 + 20; // 20-60px
-        bubble.style.width = `${size}px`;
-        bubble.style.height = `${size}px`;
-        bubble.style.left = `${Math.random() * 100}%`;
-        // 动画时长 6-14 秒
-        bubble.style.animationDuration = `${Math.random() * 8 + 6}s`;
-        // 延迟 0-5 秒
-        bubble.style.animationDelay = `${Math.random() * 5}s`;
-        container.appendChild(bubble);
-        bubble.addEventListener('animationend', () => bubble.remove());
-    }
-    // 每隔 1.2 秒生成一个气泡
-    setInterval(createBubble, 1200);
 
     loadHomeData();
 </script>
