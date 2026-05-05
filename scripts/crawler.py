@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-每日数据爬虫（精简版 v5.8）
-- 修复补爬模式使用 GET 请求获取 ONE 数据
-- 增加重试和错误日志
+每日数据爬虫（精简版 v5.9）
+- 补爬模式（--full-backfill）同时将摄影添加到照片墙
 """
 
 import os
@@ -479,6 +478,7 @@ def generate_easter_egg() -> str:
 
 # ==================== 照片墙记录 ====================
 def update_photo_wall(date: str, photo_data: dict):
+    """将每日 ONE·摄影图片添加到照片墙 JSON 中"""
     photo_file = os.path.join(data_dir, 'photos.json')
     if os.path.exists(photo_file):
         with open(photo_file, 'r', encoding='utf-8') as f:
@@ -843,7 +843,7 @@ def main():
         utc_now = datetime.now(timezone.utc)
         beijing_now = datetime.now(timezone.utc) + timedelta(hours=8)
 
-    logger.info(f"=== 每日数据爬虫 v5.8 开始运行 [{utc_now.isoformat()}] ===")
+    logger.info(f"=== 每日数据爬虫 v5.9 开始运行 [{utc_now.isoformat()}] ===")
     logger.info(f"AI 状态: {'启用' if ENABLE_AI else '未启用'}")
 
     # 补爬完整 ONE 数据模式（使用 GET）
@@ -873,6 +873,12 @@ def main():
         hist_file = os.path.join(hist_dir, f"{d}.json")
         safe_write_json(hist_data, hist_file)
         logger.info(f"✅ 已保存 {date_str} 的 ONE 数据到 {hist_file}")
+
+        # 新增：同步照片墙
+        if one_data.get('photo') and one_data['photo'].get('image'):
+            update_photo_wall(date_str, one_data['photo'])
+            logger.info(f"✅ 已同步 {date_str} 的摄影到照片墙")
+
         sys.exit(0)
 
     # 正常模式或仅补录标题模式
