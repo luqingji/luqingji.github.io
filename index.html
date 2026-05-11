@@ -137,12 +137,11 @@
         });
     }
 
-    // ==================== 粒子特效（光点 + 爱心 + 鼠标交互） ====================
+    // ==================== 鼠标交互特效（仅保留鼠标生成粒子） ====================
     (function() {
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
-        let particles = [];
-        const TOTAL_PERMANENT = 65; // 永久漂浮的粒子总数
+        let particles = []; // 只存放鼠标临时粒子
 
         // 颜色配置
         const lightDotColors = [
@@ -182,78 +181,39 @@
             ctx.closePath();
         }
 
-        // 粒子基类
-        class Particle {
-            constructor(type, isEphemeral = false) {
-                this.type = type;       // 'dot' | 'heart'
-                this.ephemeral = isEphemeral; // 是否鼠标临时粒子
+        // 临时粒子（鼠标生成）
+        class MouseParticle {
+            constructor() {
                 this.reset();
             }
 
             reset() {
-                if (this.ephemeral && mouseX !== null) {
-                    // 鼠标粒子从光标位置生成
-                    this.x = mouseX + (Math.random() - 0.5) * 40;
-                    this.y = mouseY + (Math.random() - 0.5) * 20;
-                } else {
-                    this.x = Math.random() * canvas.width;
-                    this.y = canvas.height + Math.random() * 120;
-                }
-                this.speedX = (Math.random() - 0.5) * 0.3;
-                this.speedY = - (Math.random() * 0.5 + 0.3);
-                this.opacityBase = 0.3 + Math.random() * 0.5;
-                this.opacityPhase = Math.random() * Math.PI * 2;
-                this.opacitySpeed = 0.008 + Math.random() * 0.015;
-                this.currentOpacity = this.opacityBase;
-
-                if (this.ephemeral) {
-                    // 临时粒子更小、更快消失
-                    this.size = this.type === 'heart'
-                        ? Math.random() * 7 + 5   // 8-12 爱心
-                        : Math.random() * 4 + 2;  // 2-6 光点
-                    this.decay = 0.008 + Math.random() * 0.012; // 透明度衰减
-                    this.speedX *= 0.7;
-                    this.speedY *= 0.7;
-                } else {
-                    this.size = this.type === 'heart'
-                        ? Math.random() * 10 + 8
-                        : Math.random() * 5 + 2.5;
-                    this.decay = 0;
-                }
+                this.x = mouseX + (Math.random() - 0.5) * 40;
+                this.y = mouseY + (Math.random() - 0.5) * 20;
+                this.type = Math.random() < 0.4 ? 'heart' : 'dot';
+                this.speedX = (Math.random() - 0.5) * 0.2;
+                this.speedY = - (Math.random() * 0.4 + 0.2);
+                this.opacity = 0.5 + Math.random() * 0.4;
+                this.decay = 0.008 + Math.random() * 0.012;
+                this.size = this.type === 'heart'
+                    ? Math.random() * 7 + 5   // 8-12 爱心
+                    : Math.random() * 4 + 2;  // 2-6 光点
             }
 
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
-
-                if (this.ephemeral) {
-                    // 临时粒子逐渐消失
-                    this.currentOpacity -= this.decay;
-                    if (this.currentOpacity <= 0) return false; // 标记移除
-                } else {
-                    // 呼吸透明度
-                    this.currentOpacity = this.opacityBase +
-                        Math.sin(Date.now() * this.opacitySpeed + this.opacityPhase) * 0.12;
-                    this.currentOpacity = Math.min(0.85, Math.max(0.12, this.currentOpacity));
-                }
-
-                // 边界检查
-                if (this.y < -30 || this.x < -30 || this.x > canvas.width + 30) {
-                    if (this.ephemeral) {
-                        return false; // 移除
-                    } else {
-                        this.reset();
-                        this.y = canvas.height + 30;
-                    }
+                this.opacity -= this.decay;
+                if (this.opacity <= 0 || this.y < -20 || this.x < -20 || this.x > canvas.width + 20) {
+                    return false; // 标记移除
                 }
                 return true;
             }
 
             draw(ctx, isDark) {
-                ctx.globalAlpha = this.currentOpacity;
+                ctx.globalAlpha = this.opacity;
                 if (this.type === 'heart') {
-                    const color = isDark ? darkHeartColor : lightHeartColor;
-                    ctx.fillStyle = color;
+                    ctx.fillStyle = isDark ? darkHeartColor : lightHeartColor;
                     ctx.shadowColor = isDark ? 'rgba(200, 60, 80, 0.25)' : 'rgba(255, 90, 110, 0.4)';
                     ctx.shadowBlur = 8;
                     drawHeart(ctx, this.x, this.y, this.size);
@@ -273,8 +233,8 @@
             }
         }
 
-        // 生成鼠标临时粒子
-        function spawnEphemeralParticles() {
+        // 鼠标移动时生成粒子
+        function spawnParticles() {
             const now = Date.now();
             if (mouseX === null || mouseY === null) return;
             if (now - lastSpawnTime < SPAWN_INTERVAL) return;
@@ -282,20 +242,7 @@
 
             const count = 2 + Math.floor(Math.random() * 4); // 2~5 个
             for (let i = 0; i < count; i++) {
-                const type = Math.random() < 0.4 ? 'heart' : 'dot';
-                const p = new Particle(type, true);
-                particles.push(p);
-            }
-        }
-
-        // 初始化永久粒子
-        function initPermanentParticles() {
-            const heartCount = Math.floor(TOTAL_PERMANENT * 0.3);
-            for (let i = 0; i < TOTAL_PERMANENT; i++) {
-                const type = i < heartCount ? 'heart' : 'dot';
-                const p = new Particle(type, false);
-                p.y = Math.random() * canvas.height; // 分散初始位置
-                particles.push(p);
+                particles.push(new MouseParticle());
             }
         }
 
@@ -305,7 +252,7 @@
             const isDark = document.body.classList.contains('dark-mode') ||
                           window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-            // 过滤掉失效的临时粒子
+            // 更新并过滤掉失效粒子
             particles = particles.filter(p => p.update());
 
             // 绘制所有粒子
@@ -314,7 +261,7 @@
             }
 
             // 根据鼠标位置生成新粒子
-            spawnEphemeralParticles();
+            spawnParticles();
 
             requestAnimationFrame(animate);
         }
@@ -329,20 +276,18 @@
             mouseY = null;
         }
 
-        // 监听暗色模式切换
+        // 监听暗色模式切换（保持同步）
         const observer = new MutationObserver(() => {});
         observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
         // 启动
         resizeCanvas();
-        initPermanentParticles();
         animate();
 
         window.addEventListener('resize', () => {
             resizeCanvas();
-            // 清除所有粒子，重新初始化（简化处理）
+            // 清空所有现有粒子（避免尺寸错位）
             particles = [];
-            initPermanentParticles();
         });
 
         document.addEventListener('mousemove', onMouseMove);
