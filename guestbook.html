@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💬 留言板 - 隅 · 安静角落 · 此心安处 </title>
+    <title>💬 留言板 - 隅 · 安静角落 · 此心安处</title>
     <!-- 引入 Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
     </script>
@@ -62,6 +62,40 @@
         .guestbook-header {
             text-align: center;
             padding: 10px 0 6px;
+            position: relative;
+        }
+
+        /* 返回主页按钮 */
+        .btn-home {
+            position: absolute;
+            left: 0;
+            top: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            font-family: var(--font-sans);
+            letter-spacing: 0.02em;
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-home:hover {
+            color: var(--accent);
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #d4b896;
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+        }
+
+        .btn-home .home-icon {
+            font-size: 1.1rem;
         }
 
         .guestbook-header .icon-row {
@@ -624,6 +658,15 @@
             .char-count {
                 text-align: right;
             }
+            /* 移动端返回按钮位置调整 */
+            .btn-home {
+                position: static;
+                margin-bottom: 12px;
+                justify-content: center;
+                width: fit-content;
+                margin-left: auto;
+                margin-right: auto;
+            }
         }
     </style>
 </head>
@@ -632,6 +675,10 @@
     <div class="guestbook-wrapper">
         <!-- 头部 -->
         <div class="guestbook-header">
+            <!-- 返回主页按钮 -->
+            <a href="https://luqingji.github.io/" class="btn-home" title="返回主页">
+                <span class="home-icon">🏠</span> 返回主页
+            </a>
             <span class="icon-row">📝</span>
             <h1>留言板</h1>
             <p class="subtitle">留下足迹，说点什么吧 ✨</p>
