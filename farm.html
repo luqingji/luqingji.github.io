@@ -139,6 +139,31 @@
             display:flex; align-items:center; gap:10px; padding:10px 12px;
             border-bottom:1px solid #f0ede6; cursor:pointer;
         }
+        .leaderboard-list { list-style:none; max-height:60vh; overflow-y:auto; text-align:left; margin-bottom:12px; }
+        .leaderboard-item {
+            display:flex; align-items:center; gap:10px; padding:10px 12px;
+            border-bottom:1px solid #f0ede6;
+        }
+        .leaderboard-rank { font-weight:700; font-size:1rem; width:24px; text-align:center; color:var(--accent); }
+        .leaderboard-rank.top3 { color:#f0c040; }
+        .leaderboard-avatar {
+            width:36px; height:36px; border-radius:50%; color:#fff;
+            display:flex; align-items:center; justify-content:center;
+            font-weight:700; font-size:0.9rem; flex-shrink:0;
+        }
+        .leaderboard-name { flex:1; font-weight:500; }
+        .leaderboard-gold { font-weight:600; color:var(--accent); }
+        .btn-add-friend {
+            padding:4px 12px; background:var(--accent); color:#fff; border:none;
+            border-radius:15px; cursor:pointer; font-size:0.75rem;
+        }
+        .tag-friend { font-size:0.75rem; color:#888; background:#f0ede6; padding:2px 8px; border-radius:10px; }
+        .tag-self { font-size:0.75rem; color:var(--accent); }
+        .friend-requests { text-align:left; margin-bottom:12px; padding:8px; background:#fef9f3; border-radius:12px; }
+        .request-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f0ede6; }
+        .request-actions button { padding:4px 12px; margin-left:4px; border:none; border-radius:12px; cursor:pointer; font-size:0.75rem; }
+        .btn-accept { background:#6b8f71; color:#fff; }
+        .btn-reject { background:#e0d8cc; color:#333; }
     </style>
 </head>
 <body>
@@ -432,6 +457,7 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span class="gold">🪙 ${State.profile?.gold||0}</span>
+                            <button class="btn-icon" id="btnLeaderboard">🏆 排行</button>
                             <button class="btn-icon" id="btnFriends">👥 好友</button>
                             <button class="btn-icon" id="btnLogout">退出</button>
                         </div>
@@ -465,6 +491,17 @@
                             <div id="friendListContainer" style="max-height:60vh;overflow-y:auto;"></div>
                             <button class="btn-close" id="closeFriendsModal">关闭</button>
                         </div>
+                    </div>
+                    <div class="modal-overlay" id="modalLeaderboard">
+                        <div class="modal" style="max-width:400px;">
+                            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                                <button class="auth-tab active" data-lb-tab="global">全服排行</button>
+                                <button class="auth-tab" data-lb-tab="friends">好友排行</button>
+                            </div>
+                            <div class="friend-requests" id="friendRequestsArea" style="display:none;"></div>
+                            <div class="leaderboard-list" id="leaderboardList"></div>
+                            <button class="btn-close" id="closeLeaderboardModal">关闭</button>
+                        </div>
                     </div>`;
                 },
                 plotHTML(plot) {
@@ -493,9 +530,11 @@
                 bindEvents() {
                     document.getElementById('btnLogout').onclick = signOut;
                     document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
+                    document.getElementById('btnLeaderboard').onclick = () => Leaderboard.open();
                     document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
                     document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
                     document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
+                    document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
                     document.getElementById('confirmWater').onclick = async () => {
                         if (State.isSubmitting) return;
                         const plotIndex = State.selectedPlotIndex;
@@ -718,6 +757,120 @@
                 }
             };
 
+            const Leaderboard = {
+                async open() {
+                    document.getElementById('modalLeaderboard').classList.add('active');
+                    await Leaderboard.refresh('global');
+                    document.querySelectorAll('[data-lb-tab]').forEach(tab => {
+                        tab.onclick = () => {
+                            document.querySelectorAll('[data-lb-tab]').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            Leaderboard.refresh(tab.dataset.lbTab);
+                        };
+                    });
+                },
+                async refresh(mode) {
+                    const listEl = document.getElementById('leaderboardList');
+                    const reqArea = document.getElementById('friendRequestsArea');
+                    listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
+                    reqArea.style.display = 'none';
+
+                    const { data: allProfiles } = await supabase.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
+                    const { data: friendships } = await supabase.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
+
+                    // 重建好友关系缓存
+                    const friendIdSet = new Set();
+                    const sentSet = new Set();
+                    const received = [];
+                    (friendships||[]).forEach(f => {
+                        if (f.status === 'accepted') {
+                            const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user;
+                            friendIdSet.add(fid);
+                        } else if (f.status === 'pending') {
+                            if (f.from_user === State.currentUser.id) sentSet.add(f.to_user);
+                            else received.push(f);
+                        }
+                    });
+                    State.friendIds = friendIdSet;
+
+                    // 好友申请区域
+                    if (received.length > 0 && mode === 'global') {
+                        reqArea.style.display = 'block';
+                        reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => {
+                            const sender = allProfiles?.find(p => p.id === req.from_user);
+                            return `<div class="request-item">
+                                <span>${escapeHTML(sender?.username || '未知')}</span>
+                                <div class="request-actions">
+                                    <button class="btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button>
+                                    <button class="btn-reject" data-req-id="${req.id}">拒绝</button>
+                                </div>
+                            </div>`;
+                        }).join('');
+                        reqArea.querySelectorAll('.btn-accept').forEach(btn => {
+                            btn.onclick = async () => {
+                                const reqId = btn.dataset.reqId;
+                                const fromId = btn.dataset.from;
+                                try {
+                                    await supabase.from('friendships').update({ status:'accepted' }).eq('id', reqId);
+                                    showToast('已接受好友申请！');
+                                    await Leaderboard.refresh('global');
+                                } catch (err) { showToast('操作失败', true); }
+                            };
+                        });
+                        reqArea.querySelectorAll('.btn-reject').forEach(btn => {
+                            btn.onclick = async () => {
+                                const reqId = btn.dataset.reqId;
+                                try {
+                                    await supabase.from('friendships').delete().eq('id', reqId);
+                                    showToast('已拒绝');
+                                    await Leaderboard.refresh('global');
+                                } catch (err) { showToast('操作失败', true); }
+                            };
+                        });
+                    }
+
+                    let ranked = allProfiles || [];
+                    if (mode === 'friends') {
+                        ranked = ranked.filter(p => friendIdSet.has(p.id));
+                        if (!friendIdSet.has(State.currentUser.id) && State.profile) {
+                            ranked.push({ id:State.currentUser.id, username:State.profile.username, gold:State.profile.gold, gender:State.profile.gender });
+                        }
+                    }
+
+                    listEl.innerHTML = ranked.map((p, idx) => {
+                        const rank = idx + 1;
+                        const isMe = p.id === State.currentUser.id;
+                        const isFriend = friendIdSet.has(p.id);
+                        const isSent = sentSet.has(p.id);
+                        let actionBtn = '';
+                        if (isMe) actionBtn = '<span class="tag-self">（我）</span>';
+                        else if (isFriend) actionBtn = '<span class="tag-friend">已是好友</span>';
+                        else if (isSent) actionBtn = '<button disabled style="background:#ccc;border:none;border-radius:15px;padding:4px 12px;font-size:0.75rem;">已申请</button>';
+                        else actionBtn = `<button class="btn-add-friend" data-uid="${p.id}">+好友</button>`;
+                        const genderClass = p.gender||'none';
+                        const avatarLetter = (p.username||'?')[0];
+                        return `<div class="leaderboard-item">
+                            <span class="leaderboard-rank ${rank <= 3 ? 'top3' : ''}">${rank}</span>
+                            <div class="leaderboard-avatar ${genderClass}">${avatarLetter}</div>
+                            <span class="leaderboard-name">${escapeHTML(p.username||'匿名')}</span>
+                            <span class="leaderboard-gold">🪙${p.gold||0}</span>
+                            ${actionBtn}
+                        </div>`;
+                    }).join('');
+
+                    listEl.querySelectorAll('.btn-add-friend:not([disabled])').forEach(btn => {
+                        btn.onclick = async () => {
+                            const uid = btn.dataset.uid;
+                            try {
+                                await supabase.from('friendships').insert({ from_user:State.currentUser.id, to_user:uid });
+                                showToast('好友申请已发送！');
+                                await Leaderboard.refresh('global');
+                            } catch (err) { showToast('发送失败', true); }
+                        };
+                    });
+                }
+            };
+
             let growthTimer;
             function startGrowthTimer() {
                 if (growthTimer) clearInterval(growthTimer);
@@ -728,7 +881,7 @@
                             return s.status === 'growing' || s.status === 'ready';
                         });
                         if (hasGrowing) {
-                            document.getElementById('friendFarmGrid').innerHTML = State.visitingPlots.map(p => FriendFarm.plotHTML(p)).join('');
+                            document.getElementById('friendFarmGrid').innerHTML = State.visitingPlots.map(p => FriendFarm.render().plotHTML?.(p) || '').join('');
                         }
                     } else {
                         const hasGrowing = State.farmPlots.some(p => {
