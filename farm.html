@@ -198,7 +198,6 @@
         }
         .form-group input:focus { border-color:var(--accent); }
 
-        /* 性别选择器 - 简化版 */
         .gender-selector { display:flex; gap:8px; flex-wrap:wrap; }
         .gender-option {
             flex:1; min-width:80px; padding:10px 6px;
@@ -313,7 +312,8 @@
         }
 
         async function loadFriendData() {
-            const { data: accepted } = await supabaseClient.from('friendships').select('from_user, to_user')
+            const { data: accepted } = await supabaseClient.from('friendships')
+                .select('id, from_user, to_user, status')
                 .or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`)
                 .eq('status', 'accepted');
             friendIds.clear();
@@ -322,13 +322,17 @@
                 friendIds.add(fid);
             });
 
-            const { data: sent } = await supabaseClient.from('friendships').select('to_user')
-                .eq('from_user', currentUser.id).eq('status','pending');
+            const { data: sent } = await supabaseClient.from('friendships')
+                .select('id, to_user')
+                .eq('from_user', currentUser.id)
+                .eq('status','pending');
             sentRequests.clear();
             (sent||[]).forEach(f => sentRequests.add(f.to_user));
 
-            const { data: received } = await supabaseClient.from('friendships').select('id, from_user')
-                .eq('to_user', currentUser.id).eq('status','pending');
+            const { data: received } = await supabaseClient.from('friendships')
+                .select('id, from_user')
+                .eq('to_user', currentUser.id)
+                .eq('status','pending');
             receivedRequests = received || [];
         }
 
@@ -661,7 +665,8 @@
             reqArea.style.display = 'none';
 
             const { data: allProfiles } = await supabaseClient.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
-            const { data: friendships } = await supabaseClient.from('friendships').select('from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
+            // 修复：加上 id 字段
+            const { data: friendships } = await supabaseClient.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
 
             friendIds.clear(); sentRequests.clear(); receivedRequests = [];
             (friendships||[]).forEach(f => {
@@ -688,12 +693,10 @@
                     </div>`;
                 }).join('');
 
-                // 绑定接受事件
                 reqArea.querySelectorAll('.btn-accept').forEach(btn => {
                     btn.onclick = async function() {
                         const reqId = this.getAttribute('data-req-id');
                         const fromId = this.getAttribute('data-from');
-                        // 优化：添加错误处理，并确保更新成功
                         try {
                             const { error } = await supabaseClient
                                 .from('friendships')
@@ -710,7 +713,6 @@
                     };
                 });
 
-                // 绑定拒绝事件
                 reqArea.querySelectorAll('.btn-reject').forEach(btn => {
                     btn.onclick = async function() {
                         const reqId = this.getAttribute('data-req-id');
