@@ -75,15 +75,9 @@
             flex-shrink: 0;
         }
 
-        .avatar.male {
-            background: var(--blue);
-        }
-        .avatar.female {
-            background: var(--pink);
-        }
-        .avatar.none {
-            background: #aaa;
-        }
+        .avatar.male { background: var(--blue); }
+        .avatar.female { background: var(--pink); }
+        .avatar.none { background: #aaa; }
 
         .username {
             font-weight: 600;
@@ -156,13 +150,8 @@
         }
 
         @keyframes pulse {
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 0 12px rgba(240, 192, 64, 0);
-            }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240, 192, 64, 0); }
         }
 
         .plot-emoji {
@@ -290,7 +279,7 @@
             font-family: inherit;
         }
 
-        /* 注册表单 */
+        /* 登录/注册选项卡 */
         .auth-form {
             background: var(--card);
             border-radius: var(--radius);
@@ -309,6 +298,32 @@
             color: #888;
             font-size: 0.9rem;
             margin-bottom: 20px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1.5px solid #e0d8cc;
+        }
+
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fdfcf9;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.95rem;
+            border: none;
+        }
+
+        .auth-tab.active {
+            background: var(--accent);
+            color: #fff;
         }
 
         .form-group {
@@ -393,16 +408,6 @@
 
         .btn-primary:hover {
             background: #a06b3a;
-        }
-
-        .btn-link {
-            background: none;
-            border: none;
-            color: var(--accent);
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-top: 8px;
-            font-family: inherit;
         }
 
         .msg-error {
@@ -494,11 +499,10 @@
                 .from('profiles')
                 .select('*')
                 .eq('id', currentUser.id)
-                .maybeSingle(); // 使用 maybeSingle，查不到时 data 为 null
+                .maybeSingle();
 
             if (error) throw error;
 
-            // 如果查不到，说明触发器未生效，手动补建
             if (!data) {
                 const username = currentUser.user_metadata?.username || '农夫';
                 const gender = currentUser.user_metadata?.gender || 'none';
@@ -513,7 +517,6 @@
                     });
                 if (insertError) throw insertError;
 
-                // 同时补建 4 块空地
                 for (let i = 0; i < 4; i++) {
                     await supabaseClient
                         .from('farm_plots')
@@ -523,7 +526,6 @@
                         });
                 }
 
-                // 重新读取
                 const { data: newData, error: newError } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -545,7 +547,6 @@
 
             if (error) throw error;
 
-            // 如果没有地块，补建
             if (!data || data.length === 0) {
                 for (let i = 0; i < (profile?.unlocked_plots || 4); i++) {
                     await supabaseClient
@@ -684,39 +685,60 @@
                 <div class="auth-form" id="authForm">
                     <h1>🌱 开心农场</h1>
                     <p class="subtitle">种菜 · 偷菜 · 养宠物</p>
-                    <div class="form-group">
-                        <label>昵称</label>
-                        <input type="text" id="authUsername" placeholder="请输入昵称" maxlength="12">
+
+                    <!-- 选项卡切换 -->
+                    <div class="auth-tabs">
+                        <button class="auth-tab active" data-tab="login">登录</button>
+                        <button class="auth-tab" data-tab="register">注册</button>
                     </div>
-                    <div class="form-group">
-                        <label>邮箱</label>
-                        <input type="email" id="authEmail" placeholder="请输入邮箱">
-                    </div>
-                    <div class="form-group">
-                        <label>密码</label>
-                        <input type="password" id="authPassword" placeholder="请输入密码（至少6位）">
-                    </div>
-                    <div class="form-group">
-                        <label>性别（选填）</label>
-                        <div class="gender-selector">
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="male">
-                                <span class="gender-label">👨‍🌾 男士</span>
-                            </label>
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="female">
-                                <span class="gender-label">👩‍🌾 女士</span>
-                            </label>
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="none" checked>
-                                <span class="gender-label">🤫 不透露</span>
-                            </label>
+
+                    <!-- 登录表单 -->
+                    <div id="tab-login">
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="loginEmail" placeholder="请输入邮箱">
                         </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="loginPassword" placeholder="请输入密码">
+                        </div>
+                        <button class="btn-primary" id="btnLogin">登录农场</button>
                     </div>
-                    <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
-                    <p style="text-align:center;margin-top:12px;font-size:0.9rem;color:#888;">
-                        已有账号？<button class="btn-link" id="btnSwitchToLogin">立即登录</button>
-                    </p>
+
+                    <!-- 注册表单 -->
+                    <div id="tab-register" style="display:none;">
+                        <div class="form-group">
+                            <label>昵称</label>
+                            <input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12">
+                        </div>
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="regEmail" placeholder="请输入邮箱">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="regPassword" placeholder="请输入密码（至少6位）">
+                        </div>
+                        <div class="form-group">
+                            <label>性别（选填）</label>
+                            <div class="gender-selector">
+                                <label class="gender-option">
+                                    <input type="radio" name="gender" value="male">
+                                    <span class="gender-label">👨‍🌾 男士</span>
+                                </label>
+                                <label class="gender-option">
+                                    <input type="radio" name="gender" value="female">
+                                    <span class="gender-label">👩‍🌾 女士</span>
+                                </label>
+                                <label class="gender-option">
+                                    <input type="radio" name="gender" value="none" checked>
+                                    <span class="gender-label">🤫 不透露</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
+                    </div>
+
                     <p class="msg-error" id="authError"></p>
                 </div>
             `;
@@ -821,43 +843,23 @@
 
         // ===================== 事件绑定 =====================
         function bindAuthEvents() {
-            document.getElementById('btnSignUp').addEventListener('click', async () => {
-                const username = document.getElementById('authUsername').value.trim();
-                const email = document.getElementById('authEmail').value.trim();
-                const password = document.getElementById('authPassword').value;
-                const genderEl = document.querySelector('input[name="gender"]:checked');
-                const gender = genderEl ? genderEl.value : 'none';
-                const errorEl = document.getElementById('authError');
-
-                if (!username || !email || !password) {
-                    errorEl.textContent = '请填写所有必填字段';
-                    return;
-                }
-                if (password.length < 6) {
-                    errorEl.textContent = '密码至少6位';
-                    return;
-                }
-
-                try {
-                    errorEl.textContent = '';
-                    const result = await signUp(email, password, username, gender);
-
-                    if (result.user) {
-                        currentUser = result.user;
-                        showToast('注册成功！🎉');
-                        await new Promise(r => setTimeout(r, 1500));
-                        await loadProfile();
-                        await loadFarmPlots();
-                        render();
-                    }
-                } catch (err) {
-                    errorEl.textContent = err.message || '注册失败';
-                }
+            // 选项卡切换
+            const tabs = document.querySelectorAll('.auth-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const target = this.getAttribute('data-tab');
+                    tabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    document.getElementById('tab-login').style.display = target === 'login' ? 'block' : 'none';
+                    document.getElementById('tab-register').style.display = target === 'register' ? 'block' : 'none';
+                    document.getElementById('authError').textContent = '';
+                });
             });
 
-            document.getElementById('btnSwitchToLogin').addEventListener('click', async () => {
-                const email = document.getElementById('authEmail').value.trim();
-                const password = document.getElementById('authPassword').value;
+            // 登录按钮
+            document.getElementById('btnLogin').addEventListener('click', async () => {
+                const email = document.getElementById('loginEmail').value.trim();
+                const password = document.getElementById('loginPassword').value;
                 const errorEl = document.getElementById('authError');
 
                 if (!email || !password) {
@@ -877,18 +879,50 @@
                     errorEl.textContent = err.message || '登录失败';
                 }
             });
+
+            // 注册按钮
+            document.getElementById('btnSignUp').addEventListener('click', async () => {
+                const username = document.getElementById('regUsername').value.trim();
+                const email = document.getElementById('regEmail').value.trim();
+                const password = document.getElementById('regPassword').value;
+                const genderEl = document.querySelector('input[name="gender"]:checked');
+                const gender = genderEl ? genderEl.value : 'none';
+                const errorEl = document.getElementById('authError');
+
+                if (!username || !email || !password) {
+                    errorEl.textContent = '请填写所有必填字段';
+                    return;
+                }
+                if (password.length < 6) {
+                    errorEl.textContent = '密码至少6位';
+                    return;
+                }
+
+                try {
+                    errorEl.textContent = '';
+                    const result = await signUp(email, password, username, gender);
+                    if (result.user) {
+                        currentUser = result.user;
+                        showToast('注册成功！🎉');
+                        await new Promise(r => setTimeout(r, 1500));
+                        await loadProfile();
+                        await loadFarmPlots();
+                        render();
+                    }
+                } catch (err) {
+                    errorEl.textContent = err.message || '注册失败';
+                }
+            });
         }
 
         function bindFarmEvents() {
             document.getElementById('btnLogout').addEventListener('click', signOut);
 
-            // 好友按钮（占位）
             const btnFriends = document.getElementById('btnFriends');
             if (btnFriends) {
                 btnFriends.addEventListener('click', () => showToast('好友系统开发中，敬请期待！'));
             }
 
-            // 解锁地块按钮
             const btnUnlock = document.getElementById('btnUnlock');
             if (btnUnlock) {
                 btnUnlock.addEventListener('click', () => {
@@ -896,7 +930,6 @@
                 });
             }
 
-            // 地块点击
             document.querySelectorAll('.plot-card').forEach(card => {
                 card.addEventListener('click', function() {
                     const plotIndex = parseInt(this.getAttribute('data-plot'));
