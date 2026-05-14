@@ -75,9 +75,15 @@
             flex-shrink: 0;
         }
 
-        .avatar.male { background: var(--blue); }
-        .avatar.female { background: var(--pink); }
-        .avatar.none { background: #aaa; }
+        .avatar.male {
+            background: var(--blue);
+        }
+        .avatar.female {
+            background: var(--pink);
+        }
+        .avatar.none {
+            background: #aaa;
+        }
 
         .username {
             font-weight: 600;
@@ -150,8 +156,13 @@
         }
 
         @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4); }
-            50% { box-shadow: 0 0 0 12px rgba(240, 192, 64, 0); }
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(240, 192, 64, 0);
+            }
         }
 
         .plot-emoji {
@@ -430,9 +441,10 @@
     <script>
         // ===================== Supabase 配置 =====================
         const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+        const SUPABASE_ANON_KEY =
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
 
-        // 初始化客户端，变量名改为 supabaseClient，避免与全局 supabase 冲突
+        // 初始化客户端，使用 supabaseClient 避免与全局 supabase 冲突
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ===================== 全局状态 =====================
@@ -476,24 +488,81 @@
             render();
         }
 
-        // ===================== 数据加载 =====================
+        // ===================== 数据加载（带防御性补建） =====================
         async function loadProfile() {
-            const { data, error } = await supabaseClient
+            let { data, error } = await supabaseClient
                 .from('profiles')
                 .select('*')
                 .eq('id', currentUser.id)
-                .single();
+                .maybeSingle(); // 使用 maybeSingle，查不到时 data 为 null
+
             if (error) throw error;
+
+            // 如果查不到，说明触发器未生效，手动补建
+            if (!data) {
+                const username = currentUser.user_metadata?.username || '农夫';
+                const gender = currentUser.user_metadata?.gender || 'none';
+                const { error: insertError } = await supabaseClient
+                    .from('profiles')
+                    .insert({
+                        id: currentUser.id,
+                        username: username,
+                        gender: gender,
+                        gold: 500,
+                        unlocked_plots: 4
+                    });
+                if (insertError) throw insertError;
+
+                // 同时补建 4 块空地
+                for (let i = 0; i < 4; i++) {
+                    await supabaseClient
+                        .from('farm_plots')
+                        .insert({
+                            owner_id: currentUser.id,
+                            plot_index: i
+                        });
+                }
+
+                // 重新读取
+                const { data: newData, error: newError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                if (newError) throw newError;
+                data = newData;
+            }
+
             profile = data;
         }
 
         async function loadFarmPlots() {
-            const { data, error } = await supabaseClient
+            let { data, error } = await supabaseClient
                 .from('farm_plots')
                 .select('*')
                 .eq('owner_id', currentUser.id)
                 .order('plot_index');
+
             if (error) throw error;
+
+            // 如果没有地块，补建
+            if (!data || data.length === 0) {
+                for (let i = 0; i < (profile?.unlocked_plots || 4); i++) {
+                    await supabaseClient
+                        .from('farm_plots')
+                        .insert({
+                            owner_id: currentUser.id,
+                            plot_index: i
+                        });
+                }
+                const { data: newData } = await supabaseClient
+                    .from('farm_plots')
+                    .select('*')
+                    .eq('owner_id', currentUser.id)
+                    .order('plot_index');
+                data = newData;
+            }
+
             farmPlots = data || [];
         }
 
