@@ -79,20 +79,9 @@
         .avatar.female { background: var(--pink); }
         .avatar.none { background: #aaa; }
 
-        .username {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .level {
-            font-size: 0.75rem;
-            color: #888;
-        }
-
-        .gold {
-            font-weight: 700;
-            color: var(--accent);
-        }
+        .username { font-weight: 600; color: var(--text); }
+        .level { font-size: 0.75rem; color: #888; }
+        .gold { font-weight: 700; color: var(--accent); }
 
         .btn-icon {
             padding: 8px 16px;
@@ -130,39 +119,18 @@
             user-select: none;
         }
 
-        .plot-card:active {
-            transform: scale(0.96);
-            background: #f9f6f0;
-        }
-
-        .plot-card.empty {
-            border: 2px dashed #d5cec0;
-            color: #b0a590;
-        }
-
-        .plot-card.planted {
-            border: 2px solid #c5d5b0;
-        }
-
-        .plot-card.ready {
-            border: 2px solid #f0c040;
-            animation: pulse 1.5s infinite;
-        }
+        .plot-card:active { transform: scale(0.96); background: #f9f6f0; }
+        .plot-card.empty { border: 2px dashed #d5cec0; color: #b0a590; }
+        .plot-card.planted { border: 2px solid #c5d5b0; }
+        .plot-card.ready { border: 2px solid #f0c040; animation: pulse 1.5s infinite; }
 
         @keyframes pulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4); }
             50% { box-shadow: 0 0 0 12px rgba(240, 192, 64, 0); }
         }
 
-        .plot-emoji {
-            font-size: 2.5rem;
-        }
-
-        .plot-status {
-            font-size: 0.75rem;
-            color: #888;
-            line-height: 1.3;
-        }
+        .plot-emoji { font-size: 2.5rem; }
+        .plot-status { font-size: 0.75rem; color: #888; line-height: 1.3; }
 
         .progress-bar {
             width: 100%;
@@ -179,12 +147,12 @@
             transition: width 1s linear;
         }
 
-        /* 解锁地块按钮 */
-        .unlock-section {
-            text-align: center;
-            margin-top: 4px;
-        }
+        /* 可浇水/已浇水文字颜色 */
+        .waterable { color: #1976d2; font-weight: 600; }
+        .watered { color: #888; }
 
+        /* 解锁地块按钮 */
+        .unlock-section { text-align: center; margin-top: 4px; }
         .btn-unlock {
             padding: 12px 20px;
             background: #fdfcf9;
@@ -196,29 +164,19 @@
             color: var(--accent);
             transition: all 0.2s;
         }
-
-        .btn-unlock:hover {
-            background: #fef9f3;
-            border-color: var(--accent);
-        }
+        .btn-unlock:hover { background: #fef9f3; border-color: var(--accent); }
 
         /* 弹窗 */
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
             z-index: 100;
             justify-content: center;
             align-items: center;
         }
-
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal {
             background: #fff;
@@ -228,11 +186,8 @@
             width: 90%;
             text-align: center;
         }
-
-        .modal h3 {
-            margin-bottom: 16px;
-            color: var(--text);
-        }
+        .modal h3 { margin-bottom: 16px; color: var(--text); }
+        .modal p { margin-bottom: 16px; color: #666; font-size: 0.9rem; }
 
         .crop-options {
             display: grid;
@@ -240,7 +195,6 @@
             gap: 10px;
             margin-bottom: 16px;
         }
-
         .crop-btn {
             padding: 14px;
             border: 2px solid #e0d8cc;
@@ -250,25 +204,10 @@
             font-family: inherit;
             transition: all 0.2s;
         }
-
-        .crop-btn:hover {
-            border-color: var(--accent);
-            background: #fef9f3;
-        }
-
-        .crop-btn .crop-emoji {
-            font-size: 2rem;
-        }
-
-        .crop-btn .crop-name {
-            font-weight: 600;
-            margin: 4px 0;
-        }
-
-        .crop-btn .crop-time {
-            font-size: 0.75rem;
-            color: #888;
-        }
+        .crop-btn:hover { border-color: var(--accent); background: #fef9f3; }
+        .crop-btn .crop-emoji { font-size: 2rem; }
+        .crop-btn .crop-name { font-weight: 600; margin: 4px 0; }
+        .crop-btn .crop-time { font-size: 0.75rem; color: #888; }
 
         .btn-close {
             padding: 8px 24px;
@@ -277,28 +216,30 @@
             border-radius: 20px;
             cursor: pointer;
             font-family: inherit;
+            margin-top: 8px;
         }
+        .btn-water {
+            padding: 10px 24px;
+            background: #6ba3be;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            margin-right: 8px;
+        }
+        .btn-water:hover { background: #558aa3; }
 
         /* 登录/注册选项卡 */
         .auth-form {
             background: var(--card);
             border-radius: var(--radius);
             padding: 30px 20px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
-
-        .auth-form h1 {
-            text-align: center;
-            margin-bottom: 6px;
-            color: var(--text);
-        }
-
-        .auth-form .subtitle {
-            text-align: center;
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-        }
+        .auth-form h1 { text-align: center; margin-bottom: 6px; color: var(--text); }
+        .auth-form .subtitle { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 20px; }
 
         .auth-tabs {
             display: flex;
@@ -307,7 +248,6 @@
             overflow: hidden;
             border: 1.5px solid #e0d8cc;
         }
-
         .auth-tab {
             flex: 1;
             text-align: center;
@@ -320,23 +260,10 @@
             font-size: 0.95rem;
             border: none;
         }
+        .auth-tab.active { background: var(--accent); color: #fff; }
 
-        .auth-tab.active {
-            background: var(--accent);
-            color: #fff;
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            color: #666;
-            margin-bottom: 4px;
-        }
-
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.85rem; color: #666; margin-bottom: 4px; }
         .form-group input {
             width: 100%;
             padding: 12px;
@@ -347,18 +274,9 @@
             outline: none;
             transition: border 0.2s;
         }
+        .form-group input:focus { border-color: var(--accent); }
 
-        .form-group input:focus {
-            border-color: var(--accent);
-        }
-
-        /* 性别选择器 */
-        .gender-selector {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
+        .gender-selector { display: flex; gap: 8px; flex-wrap: wrap; }
         .gender-option {
             flex: 1;
             min-width: 80px;
@@ -371,26 +289,10 @@
             background: #fdfcf9;
             position: relative;
         }
-
-        .gender-option input {
-            display: none;
-        }
-
-        .gender-option:has(input:checked) {
-            border-color: var(--accent);
-            background: #fef9f3;
-        }
-
-        .gender-label {
-            font-size: 0.9rem;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .gender-option:has(input:checked) .gender-label {
-            color: var(--accent);
-            font-weight: 700;
-        }
+        .gender-option input { display: none; }
+        .gender-option:has(input:checked) { border-color: var(--accent); background: #fef9f3; }
+        .gender-label { font-size: 0.9rem; color: #666; font-weight: 500; }
+        .gender-option:has(input:checked) .gender-label { color: var(--accent); font-weight: 700; }
 
         .btn-primary {
             width: 100%;
@@ -405,17 +307,9 @@
             font-family: inherit;
             transition: background 0.2s;
         }
+        .btn-primary:hover { background: #a06b3a; }
 
-        .btn-primary:hover {
-            background: #a06b3a;
-        }
-
-        .msg-error {
-            color: var(--red);
-            font-size: 0.85rem;
-            text-align: center;
-            margin-top: 8px;
-        }
+        .msg-error { color: var(--red); font-size: 0.85rem; text-align: center; margin-top: 8px; }
 
         .toast {
             position: fixed;
@@ -432,33 +326,23 @@
             opacity: 0;
             transition: opacity 0.3s;
         }
-
-        .toast.show {
-            opacity: 1;
-        }
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
-
     <div id="app"></div>
     <div class="toast" id="toast"></div>
 
     <script>
-        // ===================== Supabase 配置 =====================
         const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-
-        // 初始化客户端，使用 supabaseClient 避免与全局 supabase 冲突
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ===================== 全局状态 =====================
         let currentUser = null;
         let profile = null;
         let farmPlots = [];
         let selectedPlotIndex = null;
 
-        // ===================== 工具函数 =====================
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -466,14 +350,10 @@
             setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        // ===================== 认证相关 =====================
         async function signUp(email, password, username, gender) {
             const { data, error } = await supabaseClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: { username, gender }
-                }
+                email, password,
+                options: { data: { username, gender } }
             });
             if (error) throw error;
             return data;
@@ -493,191 +373,99 @@
             render();
         }
 
-        // ===================== 数据加载（带防御性补建） =====================
         async function loadProfile() {
-            let { data, error } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', currentUser.id)
-                .maybeSingle();
-
+            let { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
             if (error) throw error;
-
             if (!data) {
                 const username = currentUser.user_metadata?.username || '农夫';
                 const gender = currentUser.user_metadata?.gender || 'none';
-                const { error: insertError } = await supabaseClient
-                    .from('profiles')
-                    .insert({
-                        id: currentUser.id,
-                        username: username,
-                        gender: gender,
-                        gold: 500,
-                        unlocked_plots: 4
-                    });
-                if (insertError) throw insertError;
-
+                await supabaseClient.from('profiles').insert({ id: currentUser.id, username, gender, gold: 500, unlocked_plots: 4 });
                 for (let i = 0; i < 4; i++) {
-                    await supabaseClient
-                        .from('farm_plots')
-                        .insert({
-                            owner_id: currentUser.id,
-                            plot_index: i
-                        });
+                    await supabaseClient.from('farm_plots').insert({ owner_id: currentUser.id, plot_index: i });
                 }
-
-                const { data: newData, error: newError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                if (newError) throw newError;
+                const { data: newData } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).single();
                 data = newData;
             }
-
             profile = data;
         }
 
         async function loadFarmPlots() {
-            let { data, error } = await supabaseClient
-                .from('farm_plots')
-                .select('*')
-                .eq('owner_id', currentUser.id)
-                .order('plot_index');
-
+            let { data, error } = await supabaseClient.from('farm_plots').select('*').eq('owner_id', currentUser.id).order('plot_index');
             if (error) throw error;
-
             if (!data || data.length === 0) {
                 for (let i = 0; i < (profile?.unlocked_plots || 4); i++) {
-                    await supabaseClient
-                        .from('farm_plots')
-                        .insert({
-                            owner_id: currentUser.id,
-                            plot_index: i
-                        });
+                    await supabaseClient.from('farm_plots').insert({ owner_id: currentUser.id, plot_index: i });
                 }
-                const { data: newData } = await supabaseClient
-                    .from('farm_plots')
-                    .select('*')
-                    .eq('owner_id', currentUser.id)
-                    .order('plot_index');
+                const { data: newData } = await supabaseClient.from('farm_plots').select('*').eq('owner_id', currentUser.id).order('plot_index');
                 data = newData;
             }
-
             farmPlots = data || [];
         }
 
-        // ===================== 农场操作 =====================
         async function plantCrop(plotIndex, cropType, growthMinutes) {
             const now = new Date().toISOString();
-            const { error } = await supabaseClient
-                .from('farm_plots')
-                .update({
-                    crop_type: cropType,
-                    planted_at: now,
-                    growth_minutes: growthMinutes,
-                    watered_at: null,
-                    stolen_count: 0
-                })
-                .eq('owner_id', currentUser.id)
-                .eq('plot_index', plotIndex);
+            const { error } = await supabaseClient.from('farm_plots').update({
+                crop_type: cropType, planted_at: now, growth_minutes: growthMinutes,
+                watered_at: null, stolen_count: 0
+            }).eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
             if (error) throw error;
         }
 
         async function waterPlot(plotIndex) {
             const now = new Date().toISOString();
-            const { error } = await supabaseClient
-                .from('farm_plots')
-                .update({ watered_at: now })
-                .eq('owner_id', currentUser.id)
-                .eq('plot_index', plotIndex);
+            const { error } = await supabaseClient.from('farm_plots').update({ watered_at: now })
+                .eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
             if (error) throw error;
         }
 
         async function harvestPlot(plotIndex) {
             const plot = farmPlots.find(p => p.plot_index === plotIndex);
             if (!plot || !plot.crop_type) return;
-
             const reward = 50 + Math.floor(Math.random() * 30);
-
-            const { error: profileError } = await supabaseClient
-                .from('profiles')
-                .update({ gold: (profile.gold || 0) + reward })
-                .eq('id', currentUser.id);
-            if (profileError) throw profileError;
-
-            const { error: plotError } = await supabaseClient
-                .from('farm_plots')
-                .update({
-                    crop_type: null,
-                    planted_at: null,
-                    watered_at: null,
-                    stolen_count: 0
-                })
-                .eq('owner_id', currentUser.id)
-                .eq('plot_index', plotIndex);
-            if (plotError) throw plotError;
-
+            await supabaseClient.from('profiles').update({ gold: (profile.gold || 0) + reward }).eq('id', currentUser.id);
+            await supabaseClient.from('farm_plots').update({
+                crop_type: null, planted_at: null, watered_at: null, stolen_count: 0
+            }).eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
             profile.gold = (profile.gold || 0) + reward;
             return reward;
         }
 
-        // ===================== 计算作物状态 =====================
         function getCropStatus(plot) {
             if (!plot.crop_type || !plot.planted_at) return { status: 'empty' };
-
             const now = new Date();
             const planted = new Date(plot.planted_at);
             const growthMs = plot.growth_minutes * 60 * 1000;
             const matureTime = new Date(planted.getTime() + growthMs);
+            if (now >= matureTime) return { status: 'ready', progress: 100 };
 
-            if (now >= matureTime) {
-                return { status: 'ready', progress: 100 };
-            } else {
-                const elapsed = now - planted;
-                const progress = Math.floor((elapsed / growthMs) * 100);
-                const remaining = matureTime - now;
-                const remainingMin = Math.ceil(remaining / 60000);
-                return { status: 'growing', progress, remainingMin };
+            const elapsed = now - planted;
+            const progress = Math.floor((elapsed / growthMs) * 100);
+            const remaining = matureTime - now;
+            const remainingMin = Math.ceil(remaining / 60000);
+
+            // 判断是否可浇水：从未浇水 或 距离上次浇水超过30分钟
+            let waterable = true;
+            if (plot.watered_at) {
+                const lastWatered = new Date(plot.watered_at);
+                waterable = (now - lastWatered) >= 30 * 60 * 1000;
             }
+
+            return { status: 'growing', progress, remainingMin, waterable };
         }
 
-        function getCropEmoji(cropType) {
-            const map = {
-                'tomato': '🍅',
-                'carrot': '🥕',
-                'corn': '🌽',
-                'strawberry': '🍓',
-                'pumpkin': '🎃',
-                'sunflower': '🌻'
-            };
-            return map[cropType] || '🌱';
+        function getCropEmoji(type) {
+            const m = { tomato:'🍅', carrot:'🥕', corn:'🌽', strawberry:'🍓', pumpkin:'🎃', sunflower:'🌻' };
+            return m[type] || '🌱';
+        }
+        function getCropName(type) {
+            const m = { tomato:'番茄', carrot:'胡萝卜', corn:'玉米', strawberry:'草莓', pumpkin:'南瓜', sunflower:'向日葵' };
+            return m[type] || type;
         }
 
-        function getCropName(cropType) {
-            const map = {
-                'tomato': '番茄',
-                'carrot': '胡萝卜',
-                'corn': '玉米',
-                'strawberry': '草莓',
-                'pumpkin': '南瓜',
-                'sunflower': '向日葵'
-            };
-            return map[cropType] || cropType;
-        }
-
-        // ===================== 渲染 =====================
         function render() {
             const app = document.getElementById('app');
-
-            if (!currentUser) {
-                app.innerHTML = renderAuthForm();
-                bindAuthEvents();
-            } else {
-                app.innerHTML = renderFarm();
-                bindFarmEvents();
-                startGrowthTimer();
-            }
+            if (!currentUser) { app.innerHTML = renderAuthForm(); bindAuthEvents(); }
+            else { app.innerHTML = renderFarm(); bindFarmEvents(); startGrowthTimer(); }
         }
 
         function renderAuthForm() {
@@ -685,60 +473,28 @@
                 <div class="auth-form" id="authForm">
                     <h1>🌱 开心农场</h1>
                     <p class="subtitle">种菜 · 偷菜 · 养宠物</p>
-
-                    <!-- 选项卡切换 -->
                     <div class="auth-tabs">
                         <button class="auth-tab active" data-tab="login">登录</button>
                         <button class="auth-tab" data-tab="register">注册</button>
                     </div>
-
-                    <!-- 登录表单 -->
                     <div id="tab-login">
-                        <div class="form-group">
-                            <label>邮箱</label>
-                            <input type="email" id="loginEmail" placeholder="请输入邮箱">
-                        </div>
-                        <div class="form-group">
-                            <label>密码</label>
-                            <input type="password" id="loginPassword" placeholder="请输入密码">
-                        </div>
+                        <div class="form-group"><label>邮箱</label><input type="email" id="loginEmail" placeholder="请输入邮箱"></div>
+                        <div class="form-group"><label>密码</label><input type="password" id="loginPassword" placeholder="请输入密码"></div>
                         <button class="btn-primary" id="btnLogin">登录农场</button>
                     </div>
-
-                    <!-- 注册表单 -->
                     <div id="tab-register" style="display:none;">
-                        <div class="form-group">
-                            <label>昵称</label>
-                            <input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12">
-                        </div>
-                        <div class="form-group">
-                            <label>邮箱</label>
-                            <input type="email" id="regEmail" placeholder="请输入邮箱">
-                        </div>
-                        <div class="form-group">
-                            <label>密码</label>
-                            <input type="password" id="regPassword" placeholder="请输入密码（至少6位）">
-                        </div>
-                        <div class="form-group">
-                            <label>性别（选填）</label>
+                        <div class="form-group"><label>昵称</label><input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12"></div>
+                        <div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div>
+                        <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="请输入密码（至少6位）"></div>
+                        <div class="form-group"><label>性别（选填）</label>
                             <div class="gender-selector">
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="male">
-                                    <span class="gender-label">👨‍🌾 男士</span>
-                                </label>
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="female">
-                                    <span class="gender-label">👩‍🌾 女士</span>
-                                </label>
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="none" checked>
-                                    <span class="gender-label">🤫 不透露</span>
-                                </label>
+                                <label class="gender-option"><input type="radio" name="gender" value="male"><span class="gender-label">👨‍🌾 男士</span></label>
+                                <label class="gender-option"><input type="radio" name="gender" value="female"><span class="gender-label">👩‍🌾 女士</span></label>
+                                <label class="gender-option"><input type="radio" name="gender" value="none" checked><span class="gender-label">🤫 不透露</span></label>
                             </div>
                         </div>
                         <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
                     </div>
-
                     <p class="msg-error" id="authError"></p>
                 </div>
             `;
@@ -747,31 +503,21 @@
         function renderFarm() {
             const unlocked = profile?.unlocked_plots || 4;
             const plotsToShow = farmPlots.filter(p => p.plot_index < unlocked);
-
             const plotsHTML = plotsToShow.map(plot => {
                 const status = getCropStatus(plot);
-                let emoji, statusText, progressBar = '',
-                    cardClass = '';
-
+                let emoji, statusText, progressBar = '', cardClass = '';
                 if (status.status === 'empty') {
-                    emoji = '🌾';
-                    statusText = '空地';
-                    cardClass = 'empty';
+                    emoji = '🌾'; statusText = '空地'; cardClass = 'empty';
                 } else if (status.status === 'ready') {
-                    emoji = getCropEmoji(plot.crop_type);
-                    statusText = '✨ 可收获';
-                    cardClass = 'ready';
+                    emoji = getCropEmoji(plot.crop_type); statusText = '✨ 可收获'; cardClass = 'ready';
                 } else {
                     emoji = getCropEmoji(plot.crop_type);
-                    statusText = `生长中 · 剩${status.remainingMin}分钟`;
+                    const waterHint = status.waterable ? '可浇水💧' : '已浇水✅';
+                    const waterClass = status.waterable ? 'waterable' : 'watered';
+                    statusText = `生长中 · <span class="${waterClass}">${waterHint}</span> · 剩${status.remainingMin}分钟`;
                     cardClass = 'planted';
-                    progressBar = `
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width:${status.progress}%"></div>
-                        </div>
-                    `;
+                    progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`;
                 }
-
                 return `
                     <div class="plot-card ${cardClass}" data-plot="${plot.plot_index}">
                         <div class="plot-emoji">${emoji}</div>
@@ -784,7 +530,6 @@
 
             const genderClass = profile?.gender || 'none';
             const avatarLetter = (profile?.username || '农')[0];
-
             return `
                 <div class="header">
                     <div class="user-info">
@@ -800,55 +545,36 @@
                         <button class="btn-icon" id="btnLogout">退出</button>
                     </div>
                 </div>
-                <div class="farm-grid">
-                    ${plotsHTML}
-                </div>
-                ${unlocked < 12 ? `
-                <div class="unlock-section">
-                    <button class="btn-unlock" id="btnUnlock">
-                        🔓 解锁新地块 (当前${unlocked}/12)
-                    </button>
-                </div>` : ''}
-                <!-- 播种弹窗 -->
+                <div class="farm-grid">${plotsHTML}</div>
+                ${unlocked < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁新地块 (当前${unlocked}/12)</button></div>` : ''}
                 <div class="modal-overlay" id="modalPlant">
                     <div class="modal">
                         <h3>🌱 选择要种植的作物</h3>
                         <div class="crop-options">
-                            <button class="crop-btn" data-crop="tomato" data-time="10">
-                                <div class="crop-emoji">🍅</div>
-                                <div class="crop-name">番茄</div>
-                                <div class="crop-time">⏱ 10分钟</div>
-                            </button>
-                            <button class="crop-btn" data-crop="carrot" data-time="8">
-                                <div class="crop-emoji">🥕</div>
-                                <div class="crop-name">胡萝卜</div>
-                                <div class="crop-time">⏱ 8分钟</div>
-                            </button>
-                            <button class="crop-btn" data-crop="corn" data-time="15">
-                                <div class="crop-emoji">🌽</div>
-                                <div class="crop-name">玉米</div>
-                                <div class="crop-time">⏱ 15分钟</div>
-                            </button>
-                            <button class="crop-btn" data-crop="strawberry" data-time="12">
-                                <div class="crop-emoji">🍓</div>
-                                <div class="crop-name">草莓</div>
-                                <div class="crop-time">⏱ 12分钟</div>
-                            </button>
+                            <button class="crop-btn" data-crop="tomato" data-time="10"><span class="crop-emoji">🍅</span><div class="crop-name">番茄</div><div class="crop-time">⏱ 10分钟</div></button>
+                            <button class="crop-btn" data-crop="carrot" data-time="8"><span class="crop-emoji">🥕</span><div class="crop-name">胡萝卜</div><div class="crop-time">⏱ 8分钟</div></button>
+                            <button class="crop-btn" data-crop="corn" data-time="15"><span class="crop-emoji">🌽</span><div class="crop-name">玉米</div><div class="crop-time">⏱ 15分钟</div></button>
+                            <button class="crop-btn" data-crop="strawberry" data-time="12"><span class="crop-emoji">🍓</span><div class="crop-name">草莓</div><div class="crop-time">⏱ 12分钟</div></button>
                         </div>
                         <button class="btn-close" onclick="closePlantModal()">取消</button>
+                    </div>
+                </div>
+                <div class="modal-overlay" id="modalWater">
+                    <div class="modal">
+                        <h3>💧 浇水</h3>
+                        <p id="waterPlotInfo">确定要给这块地浇水吗？</p>
+                        <button class="btn-water" id="btnConfirmWater">浇水</button>
+                        <button class="btn-close" onclick="closeWaterModal()">取消</button>
                     </div>
                 </div>
             `;
         }
 
-        // ===================== 事件绑定 =====================
         function bindAuthEvents() {
-            // 选项卡切换
-            const tabs = document.querySelectorAll('.auth-tab');
-            tabs.forEach(tab => {
+            document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     const target = this.getAttribute('data-tab');
-                    tabs.forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
                     this.classList.add('active');
                     document.getElementById('tab-login').style.display = target === 'login' ? 'block' : 'none';
                     document.getElementById('tab-register').style.display = target === 'register' ? 'block' : 'none';
@@ -856,48 +582,30 @@
                 });
             });
 
-            // 登录按钮
-            document.getElementById('btnLogin').addEventListener('click', async () => {
+            document.getElementById('btnLogin').onclick = async () => {
                 const email = document.getElementById('loginEmail').value.trim();
                 const password = document.getElementById('loginPassword').value;
                 const errorEl = document.getElementById('authError');
-
-                if (!email || !password) {
-                    errorEl.textContent = '请输入邮箱和密码';
-                    return;
-                }
-
+                if (!email || !password) { errorEl.textContent = '请输入邮箱和密码'; return; }
                 try {
                     errorEl.textContent = '';
                     const result = await signIn(email, password);
                     currentUser = result.user;
-                    await loadProfile();
-                    await loadFarmPlots();
+                    await loadProfile(); await loadFarmPlots();
                     render();
                     showToast(`欢迎回来，${profile?.username || '农夫'}！`);
-                } catch (err) {
-                    errorEl.textContent = err.message || '登录失败';
-                }
-            });
+                } catch (err) { errorEl.textContent = err.message || '登录失败'; }
+            };
 
-            // 注册按钮
-            document.getElementById('btnSignUp').addEventListener('click', async () => {
+            document.getElementById('btnSignUp').onclick = async () => {
                 const username = document.getElementById('regUsername').value.trim();
                 const email = document.getElementById('regEmail').value.trim();
                 const password = document.getElementById('regPassword').value;
                 const genderEl = document.querySelector('input[name="gender"]:checked');
                 const gender = genderEl ? genderEl.value : 'none';
                 const errorEl = document.getElementById('authError');
-
-                if (!username || !email || !password) {
-                    errorEl.textContent = '请填写所有必填字段';
-                    return;
-                }
-                if (password.length < 6) {
-                    errorEl.textContent = '密码至少6位';
-                    return;
-                }
-
+                if (!username || !email || !password) { errorEl.textContent = '请填写所有必填字段'; return; }
+                if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
                 try {
                     errorEl.textContent = '';
                     const result = await signUp(email, password, username, gender);
@@ -905,37 +613,24 @@
                         currentUser = result.user;
                         showToast('注册成功！🎉');
                         await new Promise(r => setTimeout(r, 1500));
-                        await loadProfile();
-                        await loadFarmPlots();
+                        await loadProfile(); await loadFarmPlots();
                         render();
                     }
-                } catch (err) {
-                    errorEl.textContent = err.message || '注册失败';
-                }
-            });
+                } catch (err) { errorEl.textContent = err.message || '注册失败'; }
+            };
         }
 
         function bindFarmEvents() {
-            document.getElementById('btnLogout').addEventListener('click', signOut);
-
-            const btnFriends = document.getElementById('btnFriends');
-            if (btnFriends) {
-                btnFriends.addEventListener('click', () => showToast('好友系统开发中，敬请期待！'));
-            }
-
+            document.getElementById('btnLogout').onclick = signOut;
+            document.getElementById('btnFriends').onclick = () => showToast('好友系统开发中，敬请期待！');
             const btnUnlock = document.getElementById('btnUnlock');
-            if (btnUnlock) {
-                btnUnlock.addEventListener('click', () => {
-                    showToast(`解锁功能开发中。当前解锁 ${profile?.unlocked_plots || 4} 块，最多12块`);
-                });
-            }
+            if (btnUnlock) btnUnlock.onclick = () => showToast(`解锁功能开发中。当前解锁 ${profile?.unlocked_plots || 4} 块，最多12块`);
 
             document.querySelectorAll('.plot-card').forEach(card => {
-                card.addEventListener('click', function() {
+                card.onclick = function() {
                     const plotIndex = parseInt(this.getAttribute('data-plot'));
                     const plot = farmPlots.find(p => p.plot_index === plotIndex);
                     const status = getCropStatus(plot);
-
                     if (status.status === 'empty') {
                         selectedPlotIndex = plotIndex;
                         document.getElementById('modalPlant').classList.add('active');
@@ -943,69 +638,63 @@
                     } else if (status.status === 'ready') {
                         harvestAndRefresh(plotIndex);
                     } else {
-                        waterAndRefresh(plotIndex);
+                        selectedPlotIndex = plotIndex;
+                        document.getElementById('waterPlotInfo').textContent = `${getCropName(plot.crop_type)} 正在生长，要浇水吗？`;
+                        document.getElementById('modalWater').classList.add('active');
+                        document.getElementById('btnConfirmWater').onclick = async () => {
+                            await waterAndRefresh(plotIndex);
+                            closeWaterModal();
+                        };
                     }
-                });
+                };
             });
         }
 
         function bindPlantEvents() {
             document.querySelectorAll('#modalPlant .crop-btn').forEach(btn => {
-                btn.addEventListener('click', async function() {
+                btn.onclick = async function() {
                     const cropType = this.getAttribute('data-crop');
                     const growthTime = parseInt(this.getAttribute('data-time'));
-
                     try {
                         await plantCrop(selectedPlotIndex, cropType, growthTime);
                         await loadFarmPlots();
                         closePlantModal();
                         render();
                         showToast(`种下了${getCropName(cropType)}！🌱`);
-                    } catch (err) {
-                        showToast('种植失败: ' + err.message);
-                    }
-                });
+                    } catch (err) { showToast('种植失败: ' + err.message); }
+                };
             });
         }
 
         async function harvestAndRefresh(plotIndex) {
             try {
                 const reward = await harvestPlot(plotIndex);
-                await loadFarmPlots();
-                render();
+                await loadFarmPlots();  // 重新加载最新数据
+                render();               // 立即刷新为最新状态（空地）
                 showToast(`收获成功！获得 🪙${reward} 金币`);
-            } catch (err) {
-                showToast('收获失败: ' + err.message);
-            }
+            } catch (err) { showToast('收获失败: ' + err.message); }
         }
 
         async function waterAndRefresh(plotIndex) {
             const plot = farmPlots.find(p => p.plot_index === plotIndex);
             const lastWatered = plot.watered_at ? new Date(plot.watered_at) : null;
             const now = new Date();
-
             if (lastWatered && (now - lastWatered) < 30 * 60 * 1000) {
                 showToast('30分钟内已经浇过水了～');
                 return;
             }
-
             try {
                 await waterPlot(plotIndex);
                 await loadFarmPlots();
                 render();
                 showToast('浇水成功！💧');
-            } catch (err) {
-                showToast('浇水失败: ' + err.message);
-            }
+            } catch (err) { showToast('浇水失败: ' + err.message); }
         }
 
-        function closePlantModal() {
-            document.getElementById('modalPlant').classList.remove('active');
-        }
+        function closePlantModal() { document.getElementById('modalPlant').classList.remove('active'); }
+        function closeWaterModal() { document.getElementById('modalWater').classList.remove('active'); }
 
-        // ===================== 定时刷新生长进度 =====================
         let growthTimer = null;
-
         function startGrowthTimer() {
             if (growthTimer) clearInterval(growthTimer);
             growthTimer = setInterval(() => {
@@ -1014,28 +703,20 @@
                     return s.status === 'growing' || s.status === 'ready';
                 });
                 if (hasGrowing) {
-                    const app = document.getElementById('app');
-                    app.innerHTML = renderFarm();
+                    document.getElementById('app').innerHTML = renderFarm();
                     bindFarmEvents();
                 }
             }, 30000);
         }
 
-        // ===================== 初始化 =====================
         async function init() {
             const { data } = await supabaseClient.auth.getSession();
             if (data.session) {
                 currentUser = data.session.user;
-                try {
-                    await loadProfile();
-                    await loadFarmPlots();
-                } catch (e) {
-                    console.error('加载数据失败:', e);
-                }
+                try { await loadProfile(); await loadFarmPlots(); } catch (e) { console.error(e); }
             }
             render();
         }
-
         init();
     </script>
 </body>
