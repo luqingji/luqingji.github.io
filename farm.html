@@ -147,11 +147,9 @@
             transition: width 1s linear;
         }
 
-        /* 可浇水/已浇水文字颜色 */
         .waterable { color: #1976d2; font-weight: 600; }
         .watered { color: #888; }
 
-        /* 解锁地块按钮 */
         .unlock-section { text-align: center; margin-top: 4px; }
         .btn-unlock {
             padding: 12px 20px;
@@ -443,13 +441,11 @@
             const remaining = matureTime - now;
             const remainingMin = Math.ceil(remaining / 60000);
 
-            // 判断是否可浇水：从未浇水 或 距离上次浇水超过30分钟
             let waterable = true;
             if (plot.watered_at) {
                 const lastWatered = new Date(plot.watered_at);
                 waterable = (now - lastWatered) >= 30 * 60 * 1000;
             }
-
             return { status: 'growing', progress, remainingMin, waterable };
         }
 
@@ -655,13 +651,40 @@
                 btn.onclick = async function() {
                     const cropType = this.getAttribute('data-crop');
                     const growthTime = parseInt(this.getAttribute('data-time'));
+                    const now = new Date().toISOString();
+                    
+                    // 1. 立即更新本地数据，让UI马上变化
+                    const plot = farmPlots.find(p => p.plot_index === selectedPlotIndex);
+                    if (plot) {
+                        plot.crop_type = cropType;
+                        plot.planted_at = now;
+                        plot.growth_minutes = growthTime;
+                        plot.watered_at = null;
+                        plot.stolen_count = 0;
+                    }
+                    
+                    // 2. 关闭弹窗并重新渲染
+                    closePlantModal();
+                    render();
+                    showToast(`种下了${getCropName(cropType)}！🌱`);
+                    
+                    // 3. 异步同步到数据库（后台进行，不影响界面）
                     try {
                         await plantCrop(selectedPlotIndex, cropType, growthTime);
+                        // 同步成功后再次刷新，确保数据一致
                         await loadFarmPlots();
-                        closePlantModal();
                         render();
-                        showToast(`种下了${getCropName(cropType)}！🌱`);
-                    } catch (err) { showToast('种植失败: ' + err.message); }
+                    } catch (err) {
+                        // 如果数据库更新失败，回滚本地状态
+                        if (plot) {
+                            plot.crop_type = null;
+                            plot.planted_at = null;
+                            plot.growth_minutes = 10;
+                            plot.watered_at = null;
+                        }
+                        render();
+                        showToast('种植失败: ' + err.message);
+                    }
                 };
             });
         }
@@ -669,8 +692,8 @@
         async function harvestAndRefresh(plotIndex) {
             try {
                 const reward = await harvestPlot(plotIndex);
-                await loadFarmPlots();  // 重新加载最新数据
-                render();               // 立即刷新为最新状态（空地）
+                await loadFarmPlots();
+                render();
                 showToast(`收获成功！获得 🪙${reward} 金币`);
             } catch (err) { showToast('收获失败: ' + err.message); }
         }
@@ -684,11 +707,19 @@
                 return;
             }
             try {
+                // 乐观更新
+                plot.watered_at = now.toISOString();
+                render();
                 await waterPlot(plotIndex);
                 await loadFarmPlots();
                 render();
                 showToast('浇水成功！💧');
-            } catch (err) { showToast('浇水失败: ' + err.message); }
+            } catch (err) {
+                // 回滚
+                plot.watered_at = lastWatered ? lastWatered.toISOString() : null;
+                render();
+                showToast('浇水失败: ' + err.message);
+            }
         }
 
         function closePlantModal() { document.getElementById('modalPlant').classList.remove('active'); }
