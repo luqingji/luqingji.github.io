@@ -43,7 +43,6 @@
             gap: 20px;
         }
 
-        /* 头部 */
         .header {
             background: var(--card);
             border-radius: var(--radius);
@@ -94,7 +93,6 @@
             white-space: nowrap;
         }
 
-        /* 农田网格 */
         .farm-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -164,7 +162,6 @@
         }
         .btn-unlock:hover { background: #fef9f3; border-color: var(--accent); }
 
-        /* 弹窗 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -229,7 +226,6 @@
         }
         .btn-water:hover { background: #558aa3; }
 
-        /* 登录/注册选项卡 */
         .auth-form {
             background: var(--card);
             border-radius: var(--radius);
@@ -400,25 +396,30 @@
             farmPlots = data || [];
         }
 
+        // 修改后的种植：返回更新后的行
         async function plantCrop(plotIndex, cropType, growthMinutes) {
             const now = new Date().toISOString();
-            const { error } = await supabaseClient.from('farm_plots').update({
+            const { data, error } = await supabaseClient.from('farm_plots').update({
                 crop_type: cropType, planted_at: now, growth_minutes: growthMinutes,
                 watered_at: null, stolen_count: 0
-            }).eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
+            }).eq('owner_id', currentUser.id).eq('plot_index', plotIndex).select().single();
             if (error) throw error;
+            return data;
         }
 
+        // 修改后的浇水：返回更新后的行
         async function waterPlot(plotIndex) {
             const now = new Date().toISOString();
-            const { error } = await supabaseClient.from('farm_plots').update({ watered_at: now })
-                .eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
+            const { data, error } = await supabaseClient.from('farm_plots').update({ watered_at: now })
+                .eq('owner_id', currentUser.id).eq('plot_index', plotIndex).select().single();
             if (error) throw error;
+            return data;
         }
 
+        // 收获：返回奖励
         async function harvestPlot(plotIndex) {
             const plot = farmPlots.find(p => p.plot_index === plotIndex);
-            if (!plot || !plot.crop_type) return;
+            if (!plot || !plot.crop_type) return null;
             const reward = 50 + Math.floor(Math.random() * 30);
             await supabaseClient.from('profiles').update({ gold: (profile.gold || 0) + reward }).eq('id', currentUser.id);
             await supabaseClient.from('farm_plots').update({
@@ -651,39 +652,21 @@
                 btn.onclick = async function() {
                     const cropType = this.getAttribute('data-crop');
                     const growthTime = parseInt(this.getAttribute('data-time'));
-                    const now = new Date().toISOString();
-
-                    // 乐观更新本地数据
-                    const plot = farmPlots.find(p => p.plot_index === selectedPlotIndex);
-                    if (plot) {
-                        plot.crop_type = cropType;
-                        plot.planted_at = now;
-                        plot.growth_minutes = growthTime;
-                        plot.watered_at = null;
-                        plot.stolen_count = 0;
-                    }
 
                     closePlantModal();
-                    render(); // 立即显示新作物
-                    showToast(`种下了${getCropName(cropType)}！🌱`);
-
-                    // 异步同步数据库，成功后延迟刷新确保数据一致
                     try {
-                        await plantCrop(selectedPlotIndex, cropType, growthTime);
-                        setTimeout(async () => {
-                            await loadFarmPlots();
-                            render();
-                        }, 400);
-                    } catch (err) {
-                        // 失败回滚
-                        if (plot) {
-                            plot.crop_type = null;
-                            plot.planted_at = null;
-                            plot.growth_minutes = 10;
-                            plot.watered_at = null;
-                        }
+                        // 调用数据库并获取返回的完整地块数据
+                        const updatedPlot = await plantCrop(selectedPlotIndex, cropType, growthTime);
+                        // 更新本地数组中的对应地块
+                        const idx = farmPlots.findIndex(p => p.plot_index === selectedPlotIndex);
+                        if (idx !== -1) farmPlots[idx] = updatedPlot;
                         render();
+                        showToast(`种下了${getCropName(cropType)}！🌱`);
+                    } catch (err) {
                         showToast('种植失败: ' + err.message);
+                        // 重新加载确保状态正确
+                        await loadFarmPlots();
+                        render();
                     }
                 };
             });
@@ -692,13 +675,18 @@
         async function harvestAndRefresh(plotIndex) {
             try {
                 const reward = await harvestPlot(plotIndex);
-                // 数据已更新到服务器，乐观更新本地金币
-                showToast(`收获成功！获得 🪙${reward} 金币`);
-                // 延迟刷新，让用户看到金币变化后再重新加载地块
-                setTimeout(async () => {
-                    await loadFarmPlots();
+                if (reward !== null) {
+                    // 直接清空本地数据中的该地块
+                    const idx = farmPlots.findIndex(p => p.plot_index === plotIndex);
+                    if (idx !== -1) {
+                        farmPlots[idx].crop_type = null;
+                        farmPlots[idx].planted_at = null;
+                        farmPlots[idx].watered_at = null;
+                        farmPlots[idx].stolen_count = 0;
+                    }
                     render();
-                }, 400);
+                    showToast(`收获成功！获得 🪙${reward} 金币`);
+                }
             } catch (err) {
                 showToast('收获失败: ' + err.message);
             }
@@ -712,21 +700,16 @@
                 showToast('30分钟内已经浇过水了～');
                 return;
             }
+
             try {
-                // 乐观更新浇水状态
-                plot.watered_at = now.toISOString();
+                // 调用浇水接口，获取返回的完整地块数据
+                const updatedPlot = await waterPlot(plotIndex);
+                // 直接更新本地数组
+                const idx = farmPlots.findIndex(p => p.plot_index === plotIndex);
+                if (idx !== -1) farmPlots[idx] = updatedPlot;
                 render();
-                await waterPlot(plotIndex);
-                // 延迟刷新同步数据库数据
-                setTimeout(async () => {
-                    await loadFarmPlots();
-                    render();
-                }, 400);
                 showToast('浇水成功！💧');
             } catch (err) {
-                // 回滚
-                plot.watered_at = lastWatered ? lastWatered.toISOString() : null;
-                render();
                 showToast('浇水失败: ' + err.message);
             }
         }
