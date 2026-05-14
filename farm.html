@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 我的农场 - 基础种菜</title>
+    <title>🌱 开心农场</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ========== 全局变量 ========== */
         :root {
             --bg: #f5f0eb;
             --card: #ffffff;
@@ -18,12 +19,16 @@
             --radius: 16px;
         }
 
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
-            font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: var(--bg);
-            background-image: radial-gradient(ellipse at 30% 20%, rgba(139,158,123,0.1) 0%, transparent 60%);
+            background-image: radial-gradient(ellipse at 30% 20%, rgba(139, 158, 123, 0.1) 0%, transparent 60%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -31,8 +36,16 @@
             padding: 20px;
         }
 
-        .container { width:100%; max-width:480px; display:flex; flex-direction:column; gap:20px; }
+        /* 容器 */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
+        /* 头部 */
         .header {
             background: var(--card);
             border-radius: var(--radius);
@@ -40,760 +53,1159 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
             flex-wrap: wrap;
-            gap:10px;
+            gap: 10px;
         }
-        .user-info { display:flex; align-items:center; gap:10px; }
-        .avatar {
-            width:42px; height:42px; border-radius:50%; color:#fff;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:700; font-size:1.2rem; flex-shrink:0;
-        }
-        .avatar.male { background: var(--blue); }
-        .avatar.female { background: var(--pink); }
-        .avatar.none { background: #aaa; }
 
-        .username { font-weight:600; color:var(--text); }
-        .level { font-size:0.75rem; color:#888; }
-        .gold { font-weight:700; color:var(--accent); }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .avatar.male {
+            background: var(--blue);
+        }
+        .avatar.female {
+            background: var(--pink);
+        }
+        .avatar.none {
+            background: #aaa;
+        }
+
+        .username {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .level {
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        .gold {
+            font-weight: 700;
+            color: var(--accent);
+        }
 
         .btn-icon {
-            padding:8px 16px; background:#e8e0d5; border:none; border-radius:20px;
-            cursor:pointer; font-size:0.85rem; font-family:inherit; white-space:nowrap;
+            padding: 8px 16px;
+            background: #e8e0d5;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: inherit;
+            white-space: nowrap;
         }
 
-        .farm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+        /* 农田网格 */
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
         .plot-card {
-            background: var(--card); border-radius: var(--radius); padding:16px 10px;
-            text-align:center; min-height:130px; display:flex; flex-direction:column;
-            align-items:center; justify-content:center; gap:6px;
-            box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:all 0.2s;
-            position:relative; user-select:none;
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 16px 10px;
+            text-align: center;
+            min-height: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            user-select: none;
         }
-        .plot-card:active { transform:scale(0.96); background:#f9f6f0; }
-        .plot-card.empty { border:2px dashed #d5cec0; color:#b0a590; }
-        .plot-card.planted { border:2px solid #c5d5b0; }
-        .plot-card.ready { border:2px solid #f0c040; animation:pulse 1.5s infinite; }
+
+        .plot-card:active {
+            transform: scale(0.96);
+            background: #f9f6f0;
+        }
+
+        .plot-card.empty {
+            border: 2px dashed #d5cec0;
+            color: #b0a590;
+        }
+
+        .plot-card.planted {
+            border: 2px solid #c5d5b0;
+        }
+
+        .plot-card.ready {
+            border: 2px solid #f0c040;
+            animation: pulse 1.5s infinite;
+        }
+
         @keyframes pulse {
-            0%,100%{ box-shadow:0 0 0 0 rgba(240,192,64,0.4); }
-            50%{ box-shadow:0 0 0 12px rgba(240,192,64,0); }
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(240, 192, 64, 0);
+            }
         }
-        .plot-emoji { font-size:2.5rem; }
-        .plot-status { font-size:0.75rem; color:#888; line-height:1.3; }
-        .progress-bar { width:100%; height:5px; background:#e9ecef; border-radius:3px; overflow:hidden; }
-        .progress-fill { height:100%; background:var(--green); border-radius:3px; transition:width 1s linear; }
-        .waterable { color:#1976d2; font-weight:600; }
-        .watered { color:#e67e22; font-weight:600; }
 
-        .unlock-section { text-align:center; margin-top:4px; }
+        .plot-emoji {
+            font-size: 2.5rem;
+        }
+
+        .plot-status {
+            font-size: 0.75rem;
+            color: #888;
+            line-height: 1.3;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 5px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 3px;
+            transition: width 1s linear;
+        }
+
+        .waterable {
+            color: #1976d2;
+            font-weight: 600;
+        }
+        .watered {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .unlock-section {
+            text-align: center;
+            margin-top: 4px;
+        }
         .btn-unlock {
-            padding:12px 20px; background:#fdfcf9; border:2px dashed #d4b896;
-            border-radius:12px; cursor:pointer; font-family:inherit; font-size:0.9rem;
-            color:var(--accent); transition:all 0.2s;
+            padding: 12px 20px;
+            background: #fdfcf9;
+            border: 2px dashed #d4b896;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--accent);
+            transition: all 0.2s;
         }
-        .btn-unlock:hover { background:#fef9f3; border-color:var(--accent); }
 
+        /* 模态弹窗 */
         .modal-overlay {
-            display:none; position:fixed; top:0;left:0;right:0;bottom:0;
-            background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center;
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
         }
-        .modal-overlay.active { display:flex; }
-        .modal {
-            background:#fff; border-radius:var(--radius); padding:24px;
-            max-width:360px; width:90%; text-align:center;
-        }
-        .modal h3 { margin-bottom:16px; color:var(--text); }
-        .modal p { margin-bottom:16px; color:#666; font-size:0.9rem; }
 
-        .crop-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-        .crop-btn {
-            padding:14px; border:2px solid #e0d8cc; border-radius:12px; background:#fdfcf9;
-            cursor:pointer; font-family:inherit; transition:all 0.2s;
+        .modal-overlay.active {
+            display: flex;
         }
-        .crop-btn:hover { border-color:var(--accent); background:#fef9f3; }
-        .crop-btn .crop-emoji { font-size:2rem; }
-        .crop-btn .crop-name { font-weight:600; margin:4px 0; }
-        .crop-btn .crop-info { font-size:0.72rem; color:#888; line-height:1.4; }
+
+        .modal {
+            background: #fff;
+            border-radius: var(--radius);
+            padding: 24px;
+            max-width: 360px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .crop-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .crop-btn {
+            padding: 14px;
+            border: 2px solid #e0d8cc;
+            border-radius: 12px;
+            background: #fdfcf9;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .crop-btn:hover {
+            border-color: var(--accent);
+            background: #fef9f3;
+        }
 
         .btn-close {
-            padding:8px 24px; background:#e8e0d5; border:none; border-radius:20px;
-            cursor:pointer; font-family:inherit; margin-top:8px;
+            padding: 8px 24px;
+            background: #e8e0d5;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 8px;
         }
-        .btn-water {
-            padding:10px 24px; background:#6ba3be; color:#fff; border:none;
-            border-radius:20px; font-weight:600; cursor:pointer; font-family:inherit; margin-right:8px;
-        }
-        .btn-water:hover { background:#558aa3; }
 
-        .leaderboard-list {
-            list-style:none; max-height:60vh; overflow-y:auto; text-align:left;
-            margin-bottom:12px;
-        }
-        .leaderboard-item {
-            display:flex; align-items:center; gap:10px; padding:10px 12px;
-            border-bottom:1px solid #f0ede6;
-        }
-        .leaderboard-rank {
-            font-weight:700; font-size:1rem; width:24px; text-align:center;
-            color:var(--accent);
-        }
-        .leaderboard-rank.top3 { color:#f0c040; }
-        .leaderboard-avatar {
-            width:36px; height:36px; border-radius:50%; color:#fff;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:700; font-size:0.9rem; flex-shrink:0;
-        }
-        .leaderboard-name { flex:1; font-weight:500; }
-        .leaderboard-gold { font-weight:600; color:var(--accent); }
-        .btn-add-friend {
-            padding:4px 12px; background:var(--accent); color:#fff; border:none;
-            border-radius:15px; cursor:pointer; font-size:0.75rem; font-family:inherit;
-        }
-        .btn-add-friend:disabled { background:#ccc; cursor:default; }
-        .tag-friend {
-            font-size:0.75rem; color:#888; background:#f0ede6; padding:2px 8px; border-radius:10px;
-        }
-        .tag-self { font-size:0.75rem; color:var(--accent); }
-
-        .friend-requests {
-            text-align:left; margin-bottom:12px; padding:8px;
-            background:#fef9f3; border-radius:12px;
-        }
-        .request-item {
-            display:flex; align-items:center; justify-content:space-between;
-            padding:8px 0; border-bottom:1px solid #f0ede6;
-        }
-        .request-actions button {
-            padding:4px 12px; margin-left:4px; border:none; border-radius:12px;
-            cursor:pointer; font-size:0.75rem; font-family:inherit;
-        }
-        .btn-accept { background:#6b8f71; color:#fff; }
-        .btn-reject { background:#e0d8cc; color:#333; }
-
+        /* 登录/注册 */
         .auth-form {
-            background:var(--card); border-radius:var(--radius); padding:30px 20px;
-            box-shadow:0 4px 20px rgba(0,0,0,0.08);
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 30px 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
-        .auth-form h1 { text-align:center; margin-bottom:6px; color:var(--text); }
-        .auth-form .subtitle { text-align:center; color:#888; font-size:0.9rem; margin-bottom:20px; }
+
         .auth-tabs {
-            display:flex; margin-bottom:20px; border-radius:12px; overflow:hidden;
-            border:1.5px solid #e0d8cc;
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1.5px solid #e0d8cc;
         }
+
         .auth-tab {
-            flex:1; text-align:center; padding:10px; font-weight:600; cursor:pointer;
-            background:#fdfcf9; transition:all 0.2s; font-family:inherit; font-size:0.95rem; border:none;
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fdfcf9;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.95rem;
+            border: none;
         }
-        .auth-tab.active { background:var(--accent); color:#fff; }
 
-        .form-group { margin-bottom:14px; }
-        .form-group label { display:block; font-size:0.85rem; color:#666; margin-bottom:4px; }
+        .auth-tab.active {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
         .form-group input {
-            width:100%; padding:12px; border:1.5px solid #e0d8cc; border-radius:10px;
-            font-size:0.95rem; font-family:inherit; outline:none; transition:border 0.2s;
+            width: 100%;
+            padding: 12px;
+            border: 1.5px solid #e0d8cc;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border 0.2s;
         }
-        .form-group input:focus { border-color:var(--accent); }
 
-        .gender-selector { display:flex; gap:8px; flex-wrap:wrap; }
+        .gender-selector {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .gender-option {
-            flex:1; min-width:80px; padding:10px 6px;
-            border:1.5px solid #ddd; border-radius:10px;
-            text-align:center; cursor:pointer;
+            flex: 1;
+            min-width: 80px;
+            padding: 10px 6px;
+            border: 1.5px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
             background: #fff;
             user-select: none;
         }
-        .gender-option input { display: none; }
+
+        .gender-option input {
+            display: none;
+        }
+
+        .gender-option:has(input:checked) {
+            border-color: var(--accent);
+            background: #fef9f3;
+        }
+
         .gender-label {
             font-size: 0.9rem;
             color: #888;
             font-weight: 500;
         }
-        .gender-option:has(input:checked) {
-            border-color: var(--accent);
-            background: #fef9f3;
-        }
+
         .gender-option:has(input:checked) .gender-label {
             color: var(--accent);
             font-weight: 700;
         }
 
         .btn-primary {
-            width:100%; padding:12px; background:var(--accent); color:#fff; border:none;
-            border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; font-family:inherit;
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
         }
-        .btn-primary:hover { background:#a06b3a; }
-        .msg-error { color:var(--red); font-size:0.85rem; text-align:center; margin-top:8px; }
+
+        .msg-error {
+            color: var(--red);
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 8px;
+        }
 
         .toast {
-            position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
-            background:#3d3929; color:#fff; padding:10px 24px; border-radius:20px;
-            font-size:0.9rem; z-index:200; pointer-events:none; opacity:0; transition:opacity 0.3s;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3d3929;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-        .toast.show { opacity:1; }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* 排行榜 */
+        .leaderboard-list {
+            list-style: none;
+            max-height: 60vh;
+            overflow-y: auto;
+            text-align: left;
+            margin-bottom: 12px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0ede6;
+        }
+
+        .leaderboard-rank {
+            font-weight: 700;
+            font-size: 1rem;
+            width: 24px;
+            text-align: center;
+            color: var(--accent);
+        }
+
+        .leaderboard-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .btn-add-friend {
+            padding: 4px 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: inherit;
+        }
+
+        .tag-friend {
+            font-size: 0.75rem;
+            color: #888;
+            background: #f0ede6;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
-    <div id="app"></div>
+    <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
 
     <script>
-        const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        (function() {
+            // ==================== 初始化 Supabase ====================
+            const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let currentUser = null;
-        let profile = null;
-        let farmPlots = [];
-        let selectedPlotIndex = null;
+            // ==================== 全局状态 ====================
+            const State = {
+                currentUser: null,
+                profile: null,
+                farmPlots: [],
+                friendIds: new Set(),
+                sentRequests: new Set(),
+                receivedRequests: [],
+                loading: false
+            };
 
-        const CROP_DATA = {
-            'carrot':    { name:'胡萝卜', emoji:'🥕', seedPrice:20,  growth:8,  harvestMin:50, harvestMax:80 },
-            'tomato':    { name:'番茄',   emoji:'🍅', seedPrice:40,  growth:10, harvestMin:70, harvestMax:100 },
-            'strawberry':{ name:'草莓',   emoji:'🍓', seedPrice:60,  growth:12, harvestMin:100, harvestMax:140 },
-            'corn':      { name:'玉米',   emoji:'🌽', seedPrice:80,  growth:15, harvestMin:130, harvestMax:180 }
-        };
+            // 作物配置
+            const CROPS = {
+                carrot: { name: '胡萝卜', emoji: '🥕', seed: 20, growth: 8, min: 50, max: 80 },
+                tomato: { name: '番茄', emoji: '🍅', seed: 40, growth: 10, min: 70, max: 100 },
+                strawberry: { name: '草莓', emoji: '🍓', seed: 60, growth: 12, min: 100, max: 140 },
+                corn: { name: '玉米', emoji: '🌽', seed: 80, growth: 15, min: 130, max: 180 }
+            };
 
-        let friendIds = new Set();
-        let sentRequests = new Set();
-        let receivedRequests = [];
+            // 防重复操作锁
+            let isSubmitting = false;
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
-        }
-
-        async function signUp(email, password, username, gender) {
-            const { data, error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ username, gender } } });
-            if(error) throw error;
-            return data;
-        }
-        async function signIn(email, password) {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if(error) throw error;
-            return data;
-        }
-        async function signOut() {
-            await supabaseClient.auth.signOut();
-            currentUser = null; profile = null; farmPlots = []; render();
-        }
-
-        async function loadProfile() {
-            let { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
-            if(error) throw error;
-            if(!data) {
-                const username = currentUser.user_metadata?.username || '农夫';
-                const gender = currentUser.user_metadata?.gender || 'none';
-                await supabaseClient.from('profiles').insert({ id:currentUser.id, username, gender, gold:200, unlocked_plots:4 });
-                for(let i=0;i<4;i++) await supabaseClient.from('farm_plots').insert({ owner_id:currentUser.id, plot_index:i });
-                const { data:newData } = await supabaseClient.from('profiles').select('*').eq('id',currentUser.id).single();
-                data = newData;
+            // ==================== 工具函数 ====================
+            function showToast(msg, isError = false) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.style.background = isError ? '#c0392b' : '#3d3929';
+                t.classList.add('show');
+                clearTimeout(t._timeout);
+                t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
             }
-            profile = data;
-        }
 
-        async function loadFarmPlots() {
-            let { data, error } = await supabaseClient.from('farm_plots').select('*').eq('owner_id',currentUser.id).order('plot_index');
-            if(error) throw error;
-            if(!data || data.length===0) {
-                for(let i=0;i<(profile?.unlocked_plots||4);i++) await supabaseClient.from('farm_plots').insert({ owner_id:currentUser.id, plot_index:i });
-                const { data:newData } = await supabaseClient.from('farm_plots').select('*').eq('owner_id',currentUser.id).order('plot_index');
-                data = newData;
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
             }
-            farmPlots = data || [];
-        }
 
-        async function loadFriendData() {
-            const { data: accepted } = await supabaseClient.from('friendships')
-                .select('id, from_user, to_user, status')
-                .or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`)
-                .eq('status', 'accepted');
-            friendIds.clear();
-            (accepted||[]).forEach(f => {
-                const fid = f.from_user === currentUser.id ? f.to_user : f.from_user;
-                friendIds.add(fid);
-            });
-
-            const { data: sent } = await supabaseClient.from('friendships')
-                .select('id, to_user')
-                .eq('from_user', currentUser.id)
-                .eq('status','pending');
-            sentRequests.clear();
-            (sent||[]).forEach(f => sentRequests.add(f.to_user));
-
-            const { data: received } = await supabaseClient.from('friendships')
-                .select('id, from_user')
-                .eq('to_user', currentUser.id)
-                .eq('status','pending');
-            receivedRequests = received || [];
-        }
-
-        async function updateGold(delta) {
-            const newGold = (profile.gold||0) + delta;
-            const { error } = await supabaseClient.from('profiles').update({ gold:newGold }).eq('id',currentUser.id);
-            if(error) throw error;
-            profile.gold = newGold;
-        }
-
-        async function plantCrop(plotIndex, cropType, growthMinutes) {
-            const now = new Date().toISOString();
-            const { data, error } = await supabaseClient.from('farm_plots').update({
-                crop_type:cropType, planted_at:now, growth_minutes:growthMinutes, watered_at:null, stolen_count:0
-            }).eq('owner_id',currentUser.id).eq('plot_index',plotIndex).select().single();
-            if(error) throw error;
-            return data;
-        }
-
-        async function waterPlot(plotIndex) {
-            const now = new Date().toISOString();
-            const { data, error } = await supabaseClient.from('farm_plots').update({ watered_at:now })
-                .eq('owner_id',currentUser.id).eq('plot_index',plotIndex).select().single();
-            if(error) throw error;
-            return data;
-        }
-
-        async function harvestPlot(plotIndex) {
-            const plot = farmPlots.find(p => p.plot_index===plotIndex);
-            if(!plot || !plot.crop_type) return null;
-            const cropInfo = CROP_DATA[plot.crop_type];
-            const reward = cropInfo ? Math.floor(Math.random()*(cropInfo.harvestMax - cropInfo.harvestMin + 1)) + cropInfo.harvestMin : 50;
-            await updateGold(reward);
-            await supabaseClient.from('farm_plots').update({ crop_type:null, planted_at:null, watered_at:null, stolen_count:0 })
-                .eq('owner_id',currentUser.id).eq('plot_index',plotIndex);
-            return reward;
-        }
-
-        function getCropStatus(plot) {
-            if(!plot.crop_type || !plot.planted_at) return { status:'empty' };
-            const now = new Date();
-            const planted = new Date(plot.planted_at);
-            let growthMs = plot.growth_minutes * 60 * 1000;
-            if(plot.watered_at) growthMs = Math.floor(growthMs * 0.7);
-            const matureTime = new Date(planted.getTime() + growthMs);
-            if(now >= matureTime) return { status:'ready', progress:100 };
-            const elapsed = now - planted;
-            const progress = Math.floor((elapsed / growthMs) * 100);
-            const remaining = matureTime - now;
-            const remainingMin = Math.ceil(remaining / 60000);
-            let waterable = true;
-            if(plot.watered_at) {
-                const lastWatered = new Date(plot.watered_at);
-                waterable = (now - lastWatered) >= 30*60*1000;
+            function formatTime(iso) {
+                if (!iso) return '';
+                const d = new Date(iso);
+                return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
             }
-            return { status:'growing', progress, remainingMin, waterable };
-        }
 
-        function getCropEmoji(type) { return CROP_DATA[type]?.emoji || '🌱'; }
-        function getCropName(type) { return CROP_DATA[type]?.name || type; }
+            // ==================== 数据加载 ====================
+            async function loadProfile() {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', State.currentUser.id)
+                    .maybeSingle();
+                if (error) throw error;
+                if (!data) {
+                    // 自动创建
+                    const username = State.currentUser.user_metadata?.username || '农夫';
+                    const gender = State.currentUser.user_metadata?.gender || 'none';
+                    await supabase.from('profiles').insert({
+                        id: State.currentUser.id,
+                        username,
+                        gender,
+                        gold: 200,
+                        unlocked_plots: 4
+                    });
+                    for (let i = 0; i < 4; i++) {
+                        await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
+                    }
+                    const { data: newProfile } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single();
+                    State.profile = newProfile;
+                } else {
+                    State.profile = data;
+                }
+            }
 
-        function render() {
-            const app = document.getElementById('app');
-            if(!currentUser) { app.innerHTML = renderAuthForm(); bindAuthEvents(); }
-            else { app.innerHTML = renderFarm(); bindFarmEvents(); startGrowthTimer(); }
-        }
+            async function loadFarmPlots() {
+                const { data, error } = await supabase
+                    .from('farm_plots')
+                    .select('*')
+                    .eq('owner_id', State.currentUser.id)
+                    .order('plot_index');
+                if (error) throw error;
+                State.farmPlots = data || [];
+                if (State.farmPlots.length === 0) {
+                    // 自动补建
+                    for (let i = 0; i < (State.profile?.unlocked_plots || 4); i++) {
+                        await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
+                    }
+                    const { data: newPlots } = await supabase
+                        .from('farm_plots')
+                        .select('*')
+                        .eq('owner_id', State.currentUser.id)
+                        .order('plot_index');
+                    State.farmPlots = newPlots || [];
+                }
+            }
 
-        function renderAuthForm() {
-            return `
-            <div class="auth-form">
-                <h1>🌱 开心农场</h1><p class="subtitle">种菜 · 偷菜 · 养宠物</p>
-                <div class="auth-tabs">
-                    <button class="auth-tab active" data-tab="login">登录</button>
-                    <button class="auth-tab" data-tab="register">注册</button>
-                </div>
-                <div id="tab-login">
-                    <div class="form-group"><label>邮箱</label><input type="email" id="loginEmail" placeholder="请输入邮箱"></div>
-                    <div class="form-group"><label>密码</label><input type="password" id="loginPassword" placeholder="请输入密码"></div>
-                    <button class="btn-primary" id="btnLogin">登录农场</button>
-                </div>
-                <div id="tab-register" style="display:none;">
-                    <div class="form-group"><label>昵称</label><input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12"></div>
-                    <div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div>
-                    <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div>
-                    <div class="form-group"><label>性别（选填）</label>
-                        <div class="gender-selector">
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="male">
-                                <span class="gender-label">👨‍🌾 男士</span>
-                            </label>
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="female">
-                                <span class="gender-label">👩‍🌾 女士</span>
-                            </label>
-                            <label class="gender-option">
-                                <input type="radio" name="gender" value="none" checked>
-                                <span class="gender-label">🤫 不透露</span>
-                            </label>
+            async function loadFriendData() {
+                const { data: friendships } = await supabase
+                    .from('friendships')
+                    .select('id, from_user, to_user, status')
+                    .or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
+                State.friendIds.clear();
+                State.sentRequests.clear();
+                State.receivedRequests = [];
+                (friendships || []).forEach(f => {
+                    if (f.status === 'accepted') {
+                        const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user;
+                        State.friendIds.add(fid);
+                    } else if (f.status === 'pending') {
+                        if (f.from_user === State.currentUser.id) {
+                            State.sentRequests.add(f.to_user);
+                        } else {
+                            State.receivedRequests.push(f);
+                        }
+                    }
+                });
+            }
+
+            // ==================== 认证操作 ====================
+            async function signUp(email, password, username, gender) {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: { data: { username, gender } }
+                });
+                if (error) throw error;
+                return data;
+            }
+
+            async function signIn(email, password) {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                return data;
+            }
+
+            async function signOut() {
+                await supabase.auth.signOut();
+                Object.assign(State, {
+                    currentUser: null,
+                    profile: null,
+                    farmPlots: [],
+                    friendIds: new Set(),
+                    sentRequests: new Set(),
+                    receivedRequests: []
+                });
+                render();
+            }
+
+            // ==================== 农场操作（带错误处理和回滚） ====================
+            async function plantCrop(plotIndex, cropType, growthMinutes) {
+                const now = new Date().toISOString();
+                const { data, error } = await supabase
+                    .from('farm_plots')
+                    .update({
+                        crop_type: cropType,
+                        planted_at: now,
+                        growth_minutes: growthMinutes,
+                        watered_at: null,
+                        stolen_count: 0
+                    })
+                    .eq('owner_id', State.currentUser.id)
+                    .eq('plot_index', plotIndex)
+                    .select()
+                    .single();
+                if (error) throw error;
+                return data;
+            }
+
+            async function waterPlot(plotIndex) {
+                const now = new Date().toISOString();
+                const { data, error } = await supabase
+                    .from('farm_plots')
+                    .update({ watered_at: now })
+                    .eq('owner_id', State.currentUser.id)
+                    .eq('plot_index', plotIndex)
+                    .select()
+                    .single();
+                if (error) throw error;
+                return data;
+            }
+
+            async function harvestPlot(plotIndex) {
+                const plot = State.farmPlots.find(p => p.plot_index === plotIndex);
+                if (!plot || !plot.crop_type) return null;
+                const cropInfo = CROPS[plot.crop_type];
+                const reward = cropInfo
+                    ? Math.floor(Math.random() * (cropInfo.max - cropInfo.min + 1)) + cropInfo.min
+                    : 50;
+                // 更新金币
+                const newGold = (State.profile.gold || 0) + reward;
+                const { error: goldError } = await supabase
+                    .from('profiles')
+                    .update({ gold: newGold })
+                    .eq('id', State.currentUser.id);
+                if (goldError) throw goldError;
+                // 清空地块
+                const { error: plotError } = await supabase
+                    .from('farm_plots')
+                    .update({
+                        crop_type: null,
+                        planted_at: null,
+                        watered_at: null,
+                        stolen_count: 0
+                    })
+                    .eq('owner_id', State.currentUser.id)
+                    .eq('plot_index', plotIndex);
+                if (plotError) throw plotError;
+                State.profile.gold = newGold;
+                return reward;
+            }
+
+            // ==================== UI 渲染（模块化） ====================
+            function render() {
+                const app = document.getElementById('app');
+                if (!State.currentUser) {
+                    app.innerHTML = Auth.render();
+                    Auth.bindEvents();
+                } else {
+                    app.innerHTML = Farm.render();
+                    Farm.bindEvents();
+                    startGrowthTimer();
+                }
+            }
+
+            // 认证模块
+            const Auth = {
+                render() {
+                    return `
+                    <div class="auth-form">
+                        <h1>🌱 开心农场</h1>
+                        <p class="subtitle" style="text-align:center;color:#888;margin-bottom:20px;">种菜 · 偷菜 · 养宠物</p>
+                        <div class="auth-tabs">
+                            <button class="auth-tab active" data-tab="login">登录</button>
+                            <button class="auth-tab" data-tab="register">注册</button>
+                        </div>
+                        <div id="tab-login">
+                            <div class="form-group"><label>邮箱</label><input type="email" id="loginEmail" placeholder="请输入邮箱"></div>
+                            <div class="form-group"><label>密码</label><input type="password" id="loginPassword" placeholder="请输入密码"></div>
+                            <button class="btn-primary" id="btnLogin">登录农场</button>
+                        </div>
+                        <div id="tab-register" style="display:none;">
+                            <div class="form-group"><label>昵称</label><input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12"></div>
+                            <div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div>
+                            <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div>
+                            <div class="form-group"><label>性别（选填）</label>
+                                <div class="gender-selector">
+                                    <label class="gender-option"><input type="radio" name="gender" value="male"><span class="gender-label">👨‍🌾 男士</span></label>
+                                    <label class="gender-option"><input type="radio" name="gender" value="female"><span class="gender-label">👩‍🌾 女士</span></label>
+                                    <label class="gender-option"><input type="radio" name="gender" value="none" checked><span class="gender-label">🤫 不透露</span></label>
+                                </div>
+                            </div>
+                            <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
+                        </div>
+                        <p class="msg-error" id="authError"></p>
+                    </div>`;
+                },
+                bindEvents() {
+                    // 切换选项卡
+                    document.querySelectorAll('.auth-tab').forEach(tab => {
+                        tab.onclick = () => {
+                            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            const target = tab.dataset.tab;
+                            document.getElementById('tab-login').style.display = target === 'login' ? 'block' : 'none';
+                            document.getElementById('tab-register').style.display = target === 'register' ? 'block' : 'none';
+                            document.getElementById('authError').textContent = '';
+                        };
+                    });
+
+                    // 登录
+                    document.getElementById('btnLogin').onclick = async () => {
+                        const email = document.getElementById('loginEmail').value.trim();
+                        const password = document.getElementById('loginPassword').value;
+                        const errorEl = document.getElementById('authError');
+                        if (!email || !password) return errorEl.textContent = '请输入邮箱和密码';
+                        try {
+                            errorEl.textContent = '';
+                            const result = await signIn(email, password);
+                            State.currentUser = result.user;
+                            await loadProfile();
+                            await loadFarmPlots();
+                            await loadFriendData();
+                            render();
+                        } catch (err) {
+                            errorEl.textContent = err.message || '登录失败';
+                        }
+                    };
+
+                    // 注册
+                    document.getElementById('btnSignUp').onclick = async () => {
+                        const username = document.getElementById('regUsername').value.trim();
+                        const email = document.getElementById('regEmail').value.trim();
+                        const password = document.getElementById('regPassword').value;
+                        const gender = document.querySelector('input[name="gender"]:checked')?.value || 'none';
+                        const errorEl = document.getElementById('authError');
+                        if (!username || !email || !password) return errorEl.textContent = '请填写所有必填字段';
+                        if (password.length < 6) return errorEl.textContent = '密码至少6位';
+                        try {
+                            errorEl.textContent = '';
+                            const result = await signUp(email, password, username, gender);
+                            if (result.user) {
+                                State.currentUser = result.user;
+                                showToast('注册成功！🎉');
+                                await new Promise(r => setTimeout(r, 1500));
+                                await loadProfile();
+                                await loadFarmPlots();
+                                await loadFriendData();
+                                render();
+                            }
+                        } catch (err) {
+                            errorEl.textContent = err.message || '注册失败';
+                        }
+                    };
+                }
+            };
+
+            // 农场模块
+            const Farm = {
+                render() {
+                    const unlocked = State.profile?.unlocked_plots || 4;
+                    const plotsHTML = State.farmPlots
+                        .filter(p => p.plot_index < unlocked)
+                        .map(plot => Farm.plotHTML(plot))
+                        .join('');
+
+                    const cropButtons = Object.entries(CROPS).map(([key, info]) => `
+                    <button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${info.seed}">
+                        <div class="crop-emoji">${info.emoji}</div>
+                        <div class="crop-name">${info.name}</div>
+                        <div class="crop-info" style="font-size:0.7rem;">🪙${info.seed} ⏱${info.growth}分</div>
+                        <div class="crop-info" style="font-size:0.7rem;">收${info.min}~${info.max}金</div>
+                    </button>`).join('');
+
+                    const genderClass = State.profile?.gender || 'none';
+                    const avatarLetter = (State.profile?.username || '农')[0];
+                    return `
+                    <div class="header" id="farmHeader">
+                        <div class="user-info">
+                            <div class="avatar ${genderClass}">${avatarLetter}</div>
+                            <div>
+                                <div class="username">${escapeHTML(State.profile?.username || '农夫')}</div>
+                                <div class="level">Lv.1 · 新手农夫</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="gold" id="goldDisplay">🪙 ${State.profile?.gold || 0}</span>
+                            <button class="btn-icon" id="btnLeaderboard" style="background:#fdfcf9;border:1px solid #e0d8cc;">🏆 排行</button>
+                            <button class="btn-icon" id="btnLogout">退出</button>
                         </div>
                     </div>
-                    <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
-                </div>
-                <p class="msg-error" id="authError"></p>
-            </div>`;
-        }
-
-        function renderFarm() {
-            const unlocked = profile?.unlocked_plots || 4;
-            const plotsHTML = farmPlots.filter(p => p.plot_index < unlocked).map(plot => {
-                const status = getCropStatus(plot);
-                let emoji, statusText, progressBar='', cardClass='';
-                if(status.status==='empty') { emoji='🌾'; statusText='空地'; cardClass='empty'; }
-                else if(status.status==='ready') { emoji=getCropEmoji(plot.crop_type); statusText='✨ 可收获'; cardClass='ready'; }
-                else {
-                    emoji=getCropEmoji(plot.crop_type);
-                    const waterHint = status.waterable ? '可浇水💧' : '加速中🔥';
-                    const waterClass = status.waterable ? 'waterable' : 'watered';
-                    statusText = `生长中 · <span class="${waterClass}">${waterHint}</span> · 剩${status.remainingMin}分钟`;
-                    cardClass='planted';
-                    progressBar=`<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`;
-                }
-                return `<div class="plot-card ${cardClass}" data-plot="${plot.plot_index}">
-                    <div class="plot-emoji">${emoji}</div>
-                    <div style="font-weight:600;font-size:0.85rem;">${getCropName(plot.crop_type)||'空地'}</div>
-                    <div class="plot-status">${statusText}</div>${progressBar}</div>`;
-            }).join('');
-
-            const cropButtons = Object.entries(CROP_DATA).map(([key,info]) => `
-                <button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${info.seedPrice}">
-                    <span class="crop-emoji">${info.emoji}</span>
-                    <div class="crop-name">${info.name}</div>
-                    <div class="crop-info">🪙${info.seedPrice} · ⏱${info.growth}分钟</div>
-                    <div class="crop-info">收${info.harvestMin}~${info.harvestMax}金</div>
-                </button>`).join('');
-
-            return `
-            <div class="header">
-                <div class="user-info">
-                    <div class="avatar ${profile?.gender||'none'}">${(profile?.username||'农')[0]}</div>
-                    <div>
-                        <div class="username">${profile?.username||'农夫'}</div>
-                        <div class="level">Lv.1 · 新手农夫</div>
+                    <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
+                    ${unlocked < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁新地块 (当前${unlocked}/12)</button></div>` : ''}
+                    <!-- 种植弹窗 -->
+                    <div class="modal-overlay" id="modalPlant">
+                        <div class="modal">
+                            <h3>🌱 选择作物</h3>
+                            <div class="crop-options">${cropButtons}</div>
+                            <button class="btn-close" id="closePlantModal">取消</button>
+                        </div>
                     </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span class="gold">🪙 ${profile?.gold||0}</span>
-                    <button class="btn-icon" id="btnLeaderboard" style="background:#fdfcf9; border:1px solid #e0d8cc;">🏆 排行</button>
-                    <button class="btn-icon" id="btnLogout">退出</button>
-                </div>
-            </div>
-            <div class="farm-grid">${plotsHTML}</div>
-            ${unlocked<12?`<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁新地块 (当前${unlocked}/12)</button></div>`:''}
-            <div class="modal-overlay" id="modalPlant">
-                <div class="modal"><h3>🌱 选择要种植的作物</h3><div class="crop-options">${cropButtons}</div>
-                <button class="btn-close" onclick="closePlantModal()">取消</button></div>
-            </div>
-            <div class="modal-overlay" id="modalWater">
-                <div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">确定要给这块地浇水吗？</p>
-                <button class="btn-water" id="btnConfirmWater">浇水（加速30%）</button>
-                <button class="btn-close" onclick="closeWaterModal()">取消</button></div>
-            </div>
-            <div class="modal-overlay" id="modalLeaderboard">
-                <div class="modal" style="max-width:400px;">
-                    <div style="display:flex;gap:8px;margin-bottom:12px;">
-                        <button class="auth-tab active" data-lb-tab="global">全服排行</button>
-                        <button class="auth-tab" data-lb-tab="friends">好友排行</button>
+                    <!-- 浇水弹窗 -->
+                    <div class="modal-overlay" id="modalWater">
+                        <div class="modal">
+                            <h3>💧 浇水</h3>
+                            <p id="waterPlotInfo">确定要浇水吗？</p>
+                            <button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:10px 24px;font-weight:600;cursor:pointer;">浇水（加速30%）</button>
+                            <button class="btn-close" id="closeWaterModal">取消</button>
+                        </div>
                     </div>
-                    <div class="friend-requests" id="friendRequestsArea" style="display:none;"></div>
-                    <div class="leaderboard-list" id="leaderboardList"></div>
-                    <button class="btn-close" onclick="closeLeaderboardModal()">关闭</button>
-                </div>
-            </div>`;
-        }
-
-        function bindAuthEvents() {
-            document.querySelectorAll('.auth-tab').forEach(tab => {
-                tab.addEventListener('click', function(){
-                    const target = this.getAttribute('data-tab');
-                    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    document.getElementById('tab-login').style.display = target==='login'?'block':'none';
-                    document.getElementById('tab-register').style.display = target==='register'?'block':'none';
-                    document.getElementById('authError').textContent='';
-                });
-            });
-            document.getElementById('btnLogin').onclick = async () => {
-                const email = document.getElementById('loginEmail').value.trim();
-                const password = document.getElementById('loginPassword').value;
-                const errorEl = document.getElementById('authError');
-                if(!email||!password) { errorEl.textContent='请输入邮箱和密码'; return; }
-                try {
-                    errorEl.textContent='';
-                    const result = await signIn(email, password);
-                    currentUser = result.user;
-                    await loadProfile(); await loadFarmPlots(); await loadFriendData();
-                    render();
-                } catch(err) { errorEl.textContent = err.message||'登录失败'; }
-            };
-            document.getElementById('btnSignUp').onclick = async () => {
-                const username = document.getElementById('regUsername').value.trim();
-                const email = document.getElementById('regEmail').value.trim();
-                const password = document.getElementById('regPassword').value;
-                const genderEl = document.querySelector('input[name="gender"]:checked');
-                const gender = genderEl ? genderEl.value : 'none';
-                const errorEl = document.getElementById('authError');
-                if(!username||!email||!password) { errorEl.textContent='请填写所有必填字段'; return; }
-                if(password.length<6) { errorEl.textContent='密码至少6位'; return; }
-                try {
-                    errorEl.textContent='';
-                    const result = await signUp(email, password, username, gender);
-                    if(result.user) {
-                        currentUser = result.user;
-                        showToast('注册成功！🎉');
-                        await new Promise(r=>setTimeout(r,1500));
-                        await loadProfile(); await loadFarmPlots(); await loadFriendData();
-                        render();
-                    }
-                } catch(err) { errorEl.textContent = err.message||'注册失败'; }
-            };
-        }
-
-        function bindFarmEvents() {
-            document.getElementById('btnLogout').onclick = signOut;
-            document.getElementById('btnLeaderboard').onclick = () => openLeaderboard();
-            const btnUnlock = document.getElementById('btnUnlock');
-            if(btnUnlock) btnUnlock.onclick = ()=> showToast('解锁功能开发中。');
-
-            document.querySelectorAll('.plot-card').forEach(card => {
-                card.onclick = function(){
-                    const plotIndex = parseInt(this.getAttribute('data-plot'));
-                    const plot = farmPlots.find(p=>p.plot_index===plotIndex);
-                    const status = getCropStatus(plot);
-                    if(status.status==='empty'){
-                        selectedPlotIndex = plotIndex;
-                        document.getElementById('modalPlant').classList.add('active');
-                        bindPlantEvents();
-                    }else if(status.status==='ready'){
-                        harvestAndRefresh(plotIndex);
-                    }else{
-                        selectedPlotIndex = plotIndex;
-                        document.getElementById('waterPlotInfo').textContent = `${getCropName(plot.crop_type)} 正在生长，要浇水加速吗？`;
-                        document.getElementById('modalWater').classList.add('active');
-                        document.getElementById('btnConfirmWater').onclick = async ()=>{
-                            await waterAndRefresh(plotIndex);
-                            closeWaterModal();
-                        };
-                    }
-                };
-            });
-        }
-
-        function bindPlantEvents() {
-            document.querySelectorAll('#modalPlant .crop-btn').forEach(btn => {
-                btn.onclick = async function(){
-                    const cropType = this.getAttribute('data-crop');
-                    const growthTime = parseInt(this.getAttribute('data-time'));
-                    const seedPrice = parseInt(this.getAttribute('data-price'));
-                    if((profile.gold||0) < seedPrice) {
-                        showToast(`金币不足！需要 🪙${seedPrice}，当前只有 🪙${profile.gold||0}`);
-                        return;
-                    }
-                    closePlantModal();
-                    try {
-                        await updateGold(-seedPrice);
-                        const updatedPlot = await plantCrop(selectedPlotIndex, cropType, growthTime);
-                        const idx = farmPlots.findIndex(p=>p.plot_index===selectedPlotIndex);
-                        if(idx!==-1) farmPlots[idx] = updatedPlot;
-                        render();
-                        showToast(`种下了${getCropName(cropType)}！花费 🪙${seedPrice}`);
-                    } catch(err) {
-                        showToast('种植失败: '+err.message);
-                        await loadFarmPlots(); await loadProfile(); render();
-                    }
-                };
-            });
-        }
-
-        async function harvestAndRefresh(plotIndex){
-            try {
-                const reward = await harvestPlot(plotIndex);
-                if(reward!==null){
-                    const idx = farmPlots.findIndex(p=>p.plot_index===plotIndex);
-                    if(idx!==-1){ farmPlots[idx].crop_type=null; farmPlots[idx].planted_at=null; }
-                    render();
-                    showToast(`收获成功！获得 🪙${reward} 金币`);
-                }
-            } catch(err) { showToast('收获失败: '+err.message); }
-        }
-
-        async function waterAndRefresh(plotIndex){
-            const plot = farmPlots.find(p=>p.plot_index===plotIndex);
-            const lastWatered = plot.watered_at ? new Date(plot.watered_at) : null;
-            if(lastWatered && (new Date() - lastWatered) < 30*60*1000) { showToast('30分钟内已经浇过水了～'); return; }
-            try {
-                const updatedPlot = await waterPlot(plotIndex);
-                const idx = farmPlots.findIndex(p=>p.plot_index===plotIndex);
-                if(idx!==-1) farmPlots[idx] = updatedPlot;
-                render();
-                showToast('浇水成功！生长加速30% 🔥');
-            } catch(err) { showToast('浇水失败: '+err.message); }
-        }
-
-        function closePlantModal(){ document.getElementById('modalPlant').classList.remove('active'); }
-        function closeWaterModal(){ document.getElementById('modalWater').classList.remove('active'); }
-
-        // ========== 排行榜（已修复） ==========
-        async function openLeaderboard() {
-            document.getElementById('modalLeaderboard').classList.add('active');
-            await refreshLeaderboard('global');
-            bindLeaderboardTabs();
-        }
-
-        function closeLeaderboardModal(){ document.getElementById('modalLeaderboard').classList.remove('active'); }
-
-        function bindLeaderboardTabs() {
-            document.querySelectorAll('[data-lb-tab]').forEach(tab => {
-                tab.onclick = function() {
-                    document.querySelectorAll('[data-lb-tab]').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    refreshLeaderboard(this.getAttribute('data-lb-tab'));
-                };
-            });
-        }
-
-        async function refreshLeaderboard(mode) {
-            const listEl = document.getElementById('leaderboardList');
-            const reqArea = document.getElementById('friendRequestsArea');
-            listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
-            reqArea.style.display = 'none';
-
-            const { data: allProfiles } = await supabaseClient.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
-            // 🔧 这里是修复的关键：select 加上 id
-            const { data: friendships } = await supabaseClient.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
-
-            friendIds.clear(); sentRequests.clear(); receivedRequests = [];
-            (friendships||[]).forEach(f => {
-                if(f.status==='accepted') {
-                    const fid = f.from_user===currentUser.id ? f.to_user : f.from_user;
-                    friendIds.add(fid);
-                } else if(f.status==='pending') {
-                    if(f.from_user===currentUser.id) sentRequests.add(f.to_user);
-                    else receivedRequests.push(f);
-                }
-            });
-
-            if(receivedRequests.length > 0 && mode==='global') {
-                reqArea.style.display = 'block';
-                reqArea.innerHTML = '<strong>好友申请</strong>' + receivedRequests.map(req => {
-                    const sender = allProfiles?.find(p=>p.id===req.from_user);
-                    const senderName = sender?.username || '未知';
-                    return `<div class="request-item">
-                        <span>${senderName}</span>
-                        <div class="request-actions">
-                            <button class="btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button>
-                            <button class="btn-reject" data-req-id="${req.id}">拒绝</button>
+                    <!-- 排行榜弹窗 -->
+                    <div class="modal-overlay" id="modalLeaderboard">
+                        <div class="modal" style="max-width:400px;">
+                            <div style="display:flex;gap:8px;margin-bottom:12px;">
+                                <button class="auth-tab active" data-lb-tab="global">全服排行</button>
+                                <button class="auth-tab" data-lb-tab="friends">好友排行</button>
+                            </div>
+                            <div class="friend-requests" id="friendRequestsArea" style="display:none;text-align:left;margin-bottom:8px;background:#fef9f3;border-radius:8px;padding:8px;"></div>
+                            <div class="leaderboard-list" id="leaderboardList"></div>
+                            <button class="btn-close" id="closeLeaderboardModal">关闭</button>
                         </div>
                     </div>`;
-                }).join('');
-
-                reqArea.querySelectorAll('.btn-accept').forEach(btn => {
-                    btn.onclick = async function() {
-                        const reqId = this.getAttribute('data-req-id');
-                        const fromId = this.getAttribute('data-from');
-                        try {
-                            const { error } = await supabaseClient
-                                .from('friendships')
-                                .update({ status: 'accepted' })
-                                .eq('id', reqId);
-                            if (error) throw error;
-                            friendIds.add(fromId);
-                            showToast('已接受好友申请！');
-                            await refreshLeaderboard('global');
-                        } catch (err) {
-                            console.error('接受好友失败:', err);
-                            showToast('操作失败，请稍后重试');
-                        }
-                    };
-                });
-
-                reqArea.querySelectorAll('.btn-reject').forEach(btn => {
-                    btn.onclick = async function() {
-                        const reqId = this.getAttribute('data-req-id');
-                        try {
-                            const { error } = await supabaseClient
-                                .from('friendships')
-                                .delete()
-                                .eq('id', reqId);
-                            if (error) throw error;
-                            showToast('已拒绝申请');
-                            await refreshLeaderboard('global');
-                        } catch (err) {
-                            console.error('拒绝失败:', err);
-                            showToast('操作失败，请稍后重试');
-                        }
-                    };
-                });
-            }
-
-            let ranked = allProfiles || [];
-            if(mode==='friends') {
-                ranked = ranked.filter(p => friendIds.has(p.id));
-                if(!friendIds.has(currentUser.id) && profile) {
-                    ranked.push({ id:currentUser.id, username:profile.username, gold:profile.gold, gender:profile.gender });
-                }
-            }
-
-            listEl.innerHTML = ranked.map((p, idx) => {
-                const rank = idx+1;
-                const isMe = p.id === currentUser.id;
-                const isFriend = friendIds.has(p.id);
-                const isSent = sentRequests.has(p.id);
-                let actionBtn = '';
-                if(isMe) {
-                    actionBtn = '<span class="tag-self">（我）</span>';
-                } else if(isFriend) {
-                    actionBtn = '<span class="tag-friend">已是好友</span>';
-                } else if(isSent) {
-                    actionBtn = '<button class="btn-add-friend" disabled>已申请</button>';
-                } else {
-                    actionBtn = `<button class="btn-add-friend" data-uid="${p.id}">+好友</button>`;
-                }
-                const genderClass = p.gender||'none';
-                const avatarLetter = (p.username||'?')[0];
-                return `<div class="leaderboard-item">
-                    <span class="leaderboard-rank ${rank<=3?'top3':''}">${rank}</span>
-                    <div class="leaderboard-avatar ${genderClass}">${avatarLetter}</div>
-                    <span class="leaderboard-name">${p.username||'匿名'}</span>
-                    <span class="leaderboard-gold">🪙${p.gold||0}</span>
-                    ${actionBtn}
-                </div>`;
-            }).join('');
-
-            listEl.querySelectorAll('.btn-add-friend:not([disabled])').forEach(btn => {
-                btn.onclick = async function() {
-                    const uid = this.getAttribute('data-uid');
-                    try {
-                        const { error } = await supabaseClient.from('friendships').insert({ from_user:currentUser.id, to_user:uid });
-                        if (error) throw error;
-                        sentRequests.add(uid);
-                        await refreshLeaderboard('global');
-                        showToast('好友申请已发送！');
-                    } catch(err) {
-                        console.error('加好友失败:', err);
-                        showToast('发送失败，请稍后重试');
+                },
+                plotHTML(plot) {
+                    const status = Farm.getCropStatus(plot);
+                    let emoji, statusText, progressBar = '',
+                        cardClass = '';
+                    if (status.status === 'empty') {
+                        emoji = '🌾';
+                        statusText = '空地';
+                        cardClass = 'empty';
+                    } else if (status.status === 'ready') {
+                        emoji = CROPS[plot.crop_type]?.emoji || '🌱';
+                        statusText = '✨ 可收获';
+                        cardClass = 'ready';
+                    } else {
+                        emoji = CROPS[plot.crop_type]?.emoji || '🌱';
+                        const waterHint = status.waterable ? '可浇水💧' : '加速中🔥';
+                        const waterClass = status.waterable ? 'waterable' : 'watered';
+                        statusText = `生长中 · <span class="${waterClass}">${waterHint}</span> · 剩${status.remainingMin}分钟`;
+                        cardClass = 'planted';
+                        progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`;
                     }
-                };
-            });
-        }
+                    return `<div class="plot-card ${cardClass}" data-plot="${plot.plot_index}">
+                        <div class="plot-emoji">${emoji}</div>
+                        <div style="font-weight:600;font-size:0.85rem;">${CROPS[plot.crop_type]?.name || '空地'}</div>
+                        <div class="plot-status">${statusText}</div>
+                        ${progressBar}
+                    </div>`;
+                },
+                getCropStatus(plot) {
+                    if (!plot.crop_type || !plot.planted_at) return { status: 'empty' };
+                    const now = new Date();
+                    const planted = new Date(plot.planted_at);
+                    let growthMs = plot.growth_minutes * 60 * 1000;
+                    if (plot.watered_at) growthMs = Math.floor(growthMs * 0.7);
+                    const matureTime = new Date(planted.getTime() + growthMs);
+                    if (now >= matureTime) return { status: 'ready', progress: 100 };
+                    const elapsed = now - planted;
+                    const progress = Math.floor((elapsed / growthMs) * 100);
+                    const remaining = matureTime - now;
+                    const remainingMin = Math.ceil(remaining / 60000);
+                    let waterable = true;
+                    if (plot.watered_at) {
+                        const lastWatered = new Date(plot.watered_at);
+                        waterable = (now - lastWatered) >= 30 * 60 * 1000;
+                    }
+                    return { status: 'growing', progress, remainingMin, waterable };
+                },
+                bindEvents() {
+                    // 退出
+                    document.getElementById('btnLogout').onclick = signOut;
+                    // 排行
+                    document.getElementById('btnLeaderboard').onclick = () => Leaderboard.open();
+                    // 解锁
+                    const unlockBtn = document.getElementById('btnUnlock');
+                    if (unlockBtn) unlockBtn.onclick = () => showToast('解锁功能开发中。');
 
-        let growthTimer;
-        function startGrowthTimer(){
-            if(growthTimer) clearInterval(growthTimer);
-            growthTimer = setInterval(()=>{
-                const hasGrowing = farmPlots.some(p=>{ const s=getCropStatus(p); return s.status==='growing'||s.status==='ready'; });
-                if(hasGrowing) { document.getElementById('app').innerHTML = renderFarm(); bindFarmEvents(); }
-            }, 30000);
-        }
+                    // 地块点击（事件委托）
+                    document.getElementById('farmGrid').onclick = (e) => {
+                        const card = e.target.closest('.plot-card');
+                        if (!card || isSubmitting) return;
+                        const plotIndex = parseInt(card.dataset.plot);
+                        const plot = State.farmPlots.find(p => p.plot_index === plotIndex);
+                        const status = Farm.getCropStatus(plot);
+                        if (status.status === 'empty') {
+                            Farm.openPlantModal(plotIndex);
+                        } else if (status.status === 'ready') {
+                            Farm.harvestAndRefresh(plotIndex);
+                        } else {
+                            Farm.openWaterModal(plotIndex);
+                        }
+                    };
 
-        async function init(){
-            const { data } = await supabaseClient.auth.getSession();
-            if(data.session){
-                currentUser = data.session.user;
-                try { await loadProfile(); await loadFarmPlots(); await loadFriendData(); } catch(e){ console.error(e); }
+                    // 关闭弹窗
+                    document.getElementById('closePlantModal').onclick = Farm.closePlantModal;
+                    document.getElementById('closeWaterModal').onclick = Farm.closeWaterModal;
+                    document.getElementById('closeLeaderboardModal').onclick = () => {
+                        document.getElementById('modalLeaderboard').classList.remove('active');
+                    };
+                },
+                openPlantModal(plotIndex) {
+                    State.selectedPlotIndex = plotIndex;
+                    document.getElementById('modalPlant').classList.add('active');
+                    // 绑定种植按钮
+                    document.querySelectorAll('#modalPlant .crop-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            if (isSubmitting) return;
+                            const cropType = btn.dataset.crop;
+                            const growthTime = parseInt(btn.dataset.time);
+                            const seedPrice = parseInt(btn.dataset.price);
+                            if ((State.profile.gold || 0) < seedPrice) {
+                                showToast(`金币不足！需要 🪙${seedPrice}`, true);
+                                return;
+                            }
+                            isSubmitting = true;
+                            try {
+                                await supabase.from('profiles').update({ gold: State.profile.gold - seedPrice }).eq('id', State.currentUser.id);
+                                const updatedPlot = await plantCrop(plotIndex, cropType, growthTime);
+                                const idx = State.farmPlots.findIndex(p => p.plot_index === plotIndex);
+                                if (idx !== -1) State.farmPlots[idx] = updatedPlot;
+                                State.profile.gold -= seedPrice;
+                                Farm.updateUI();
+                                showToast(`种下了${CROPS[cropType].name}！花费 🪙${seedPrice}`);
+                            } catch (err) {
+                                showToast('种植失败，请重试', true);
+                            } finally {
+                                isSubmitting = false;
+                                Farm.closePlantModal();
+                            }
+                        };
+                    });
+                },
+                closePlantModal() {
+                    document.getElementById('modalPlant').classList.remove('active');
+                },
+                openWaterModal(plotIndex) {
+                    State.selectedPlotIndex = plotIndex;
+                    const plot = State.farmPlots.find(p => p.plot_index === plotIndex);
+                    document.getElementById('waterPlotInfo').textContent = `${CROPS[plot.crop_type]?.name || '作物'} 正在生长，要浇水加速吗？`;
+                    document.getElementById('modalWater').classList.add('active');
+                    document.getElementById('confirmWater').onclick = async () => {
+                        if (isSubmitting) return;
+                        const lastWatered = plot.watered_at ? new Date(plot.watered_at) : null;
+                        if (lastWatered && (new Date() - lastWatered) < 30 * 60 * 1000) {
+                            showToast('30分钟内已经浇过水了～');
+                            return;
+                        }
+                        isSubmitting = true;
+                        try {
+                            const updatedPlot = await waterPlot(plotIndex);
+                            const idx = State.farmPlots.findIndex(p => p.plot_index === plotIndex);
+                            if (idx !== -1) State.farmPlots[idx] = updatedPlot;
+                            Farm.updateUI();
+                            showToast('浇水成功！生长加速30% 🔥');
+                        } catch (err) {
+                            showToast('浇水失败，请重试', true);
+                        } finally {
+                            isSubmitting = false;
+                            Farm.closeWaterModal();
+                        }
+                    };
+                },
+                closeWaterModal() {
+                    document.getElementById('modalWater').classList.remove('active');
+                },
+                async harvestAndRefresh(plotIndex) {
+                    if (isSubmitting) return;
+                    isSubmitting = true;
+                    try {
+                        const reward = await harvestPlot(plotIndex);
+                        const idx = State.farmPlots.findIndex(p => p.plot_index === plotIndex);
+                        if (idx !== -1) {
+                            State.farmPlots[idx] = {
+                                ...State.farmPlots[idx],
+                                crop_type: null,
+                                planted_at: null,
+                                watered_at: null,
+                                stolen_count: 0
+                            };
+                        }
+                        Farm.updateUI();
+                        showToast(`收获成功！获得 🪙${reward} 金币`);
+                    } catch (err) {
+                        showToast('收获失败，请重试', true);
+                    } finally {
+                        isSubmitting = false;
+                    }
+                },
+                updateUI() {
+                    // 更新金币
+                    document.getElementById('goldDisplay').textContent = `🪙 ${State.profile?.gold || 0}`;
+                    // 更新农田网格
+                    const grid = document.getElementById('farmGrid');
+                    const unlocked = State.profile?.unlocked_plots || 4;
+                    const plotsHTML = State.farmPlots
+                        .filter(p => p.plot_index < unlocked)
+                        .map(plot => Farm.plotHTML(plot))
+                        .join('');
+                    grid.innerHTML = plotsHTML;
+                }
+            };
+
+            // 排行榜模块
+            const Leaderboard = {
+                async open() {
+                    document.getElementById('modalLeaderboard').classList.add('active');
+                    await Leaderboard.refresh('global');
+                    // 绑定切换
+                    document.querySelectorAll('[data-lb-tab]').forEach(tab => {
+                        tab.onclick = () => {
+                            document.querySelectorAll('[data-lb-tab]').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            Leaderboard.refresh(tab.dataset.lbTab);
+                        };
+                    });
+                },
+                async refresh(mode) {
+                    const listEl = document.getElementById('leaderboardList');
+                    const reqArea = document.getElementById('friendRequestsArea');
+                    listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
+                    reqArea.style.display = 'none';
+
+                    const { data: allProfiles } = await supabase
+                        .from('profiles')
+                        .select('id, username, gold, gender')
+                        .order('gold', { ascending: false });
+                    const { data: friendships } = await supabase
+                        .from('friendships')
+                        .select('id, from_user, to_user, status')
+                        .or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
+
+                    State.friendIds.clear();
+                    State.sentRequests.clear();
+                    State.receivedRequests = [];
+                    (friendships || []).forEach(f => {
+                        if (f.status === 'accepted') {
+                            const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user;
+                            State.friendIds.add(fid);
+                        } else if (f.status === 'pending') {
+                            if (f.from_user === State.currentUser.id) State.sentRequests.add(f.to_user);
+                            else State.receivedRequests.push(f);
+                        }
+                    });
+
+                    // 好友申请区域
+                    if (State.receivedRequests.length > 0 && mode === 'global') {
+                        reqArea.style.display = 'block';
+                        reqArea.innerHTML = '<strong>好友申请</strong>' + State.receivedRequests.map(req => {
+                            const sender = allProfiles?.find(p => p.id === req.from_user);
+                            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;">
+                                <span>${escapeHTML(sender?.username || '未知')}</span>
+                                <div>
+                                    <button class="btn-accept" data-req-id="${req.id}" data-from="${req.from_user}" style="background:#6b8f71;color:#fff;border:none;border-radius:12px;padding:4px 12px;margin-left:4px;">接受</button>
+                                    <button class="btn-reject" data-req-id="${req.id}" style="background:#e0d8cc;border:none;border-radius:12px;padding:4px 12px;margin-left:4px;">拒绝</button>
+                                </div>
+                            </div>`;
+                        }).join('');
+                        // 绑定事件
+                        reqArea.querySelectorAll('.btn-accept').forEach(btn => {
+                            btn.onclick = async () => {
+                                const reqId = btn.dataset.reqId;
+                                const fromId = btn.dataset.from;
+                                try {
+                                    const { error } = await supabase.from('friendships').update({ status: 'accepted' }).eq('id', reqId);
+                                    if (error) throw error;
+                                    State.friendIds.add(fromId);
+                                    showToast('已接受好友申请！');
+                                    await Leaderboard.refresh('global');
+                                } catch (err) {
+                                    showToast('操作失败', true);
+                                }
+                            };
+                        });
+                        reqArea.querySelectorAll('.btn-reject').forEach(btn => {
+                            btn.onclick = async () => {
+                                const reqId = btn.dataset.reqId;
+                                try {
+                                    await supabase.from('friendships').delete().eq('id', reqId);
+                                    showToast('已拒绝');
+                                    await Leaderboard.refresh('global');
+                                } catch (err) {
+                                    showToast('操作失败', true);
+                                }
+                            };
+                        });
+                    }
+
+                    let ranked = allProfiles || [];
+                    if (mode === 'friends') {
+                        ranked = ranked.filter(p => State.friendIds.has(p.id));
+                        if (!State.friendIds.has(State.currentUser.id) && State.profile) {
+                            ranked.push({ id: State.currentUser.id, username: State.profile.username, gold: State.profile.gold, gender: State.profile.gender });
+                        }
+                    }
+
+                    listEl.innerHTML = ranked.map((p, idx) => {
+                        const rank = idx + 1;
+                        const isMe = p.id === State.currentUser.id;
+                        const isFriend = State.friendIds.has(p.id);
+                        const isSent = State.sentRequests.has(p.id);
+                        let actionBtn = '';
+                        if (isMe) actionBtn = '<span style="font-size:0.75rem;color:var(--accent);">（我）</span>';
+                        else if (isFriend) actionBtn = '<span class="tag-friend">已是好友</span>';
+                        else if (isSent) actionBtn = '<button disabled style="background:#ccc;border:none;border-radius:15px;padding:4px 12px;font-size:0.75rem;">已申请</button>';
+                        else actionBtn = `<button class="btn-add-friend" data-uid="${p.id}">+好友</button>`;
+                        return `<div class="leaderboard-item">
+                            <span class="leaderboard-rank ${rank <= 3 ? 'top3' : ''}" style="${rank <= 3 ? 'color:#f0c040' : ''}">${rank}</span>
+                            <div class="leaderboard-avatar ${p.gender || 'none'}">${(p.username || '?')[0]}</div>
+                            <span class="leaderboard-name" style="flex:1;">${escapeHTML(p.username || '匿名')}</span>
+                            <span style="font-weight:600;color:var(--accent);">🪙${p.gold || 0}</span>
+                            ${actionBtn}
+                        </div>`;
+                    }).join('');
+
+                    // 绑定添加好友
+                    listEl.querySelectorAll('.btn-add-friend:not([disabled])').forEach(btn => {
+                        btn.onclick = async () => {
+                            const uid = btn.dataset.uid;
+                            try {
+                                await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid });
+                                State.sentRequests.add(uid);
+                                showToast('好友申请已发送！');
+                                await Leaderboard.refresh('global');
+                            } catch (err) {
+                                showToast('发送失败', true);
+                            }
+                        };
+                    });
+                }
+            };
+
+            // 生长计时器
+            let growthTimer;
+            function startGrowthTimer() {
+                if (growthTimer) clearInterval(growthTimer);
+                growthTimer = setInterval(() => {
+                    const hasGrowing = State.farmPlots.some(p => {
+                        const s = Farm.getCropStatus(p);
+                        return s.status === 'growing' || s.status === 'ready';
+                    });
+                    if (hasGrowing) Farm.updateUI();
+                }, 30000);
             }
-            render();
-        }
-        init();
+
+            // 初始化
+            async function init() {
+                const { data } = await supabase.auth.getSession();
+                if (data.session) {
+                    State.currentUser = data.session.user;
+                    try {
+                        await loadProfile();
+                        await loadFarmPlots();
+                        await loadFriendData();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+                render();
+            }
+
+            init();
+        })();
     </script>
 </body>
 </html>
