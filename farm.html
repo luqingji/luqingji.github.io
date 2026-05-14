@@ -94,7 +94,6 @@
         }
         .btn-unlock:hover { background:#fef9f3; border-color:var(--accent); }
 
-        /* 弹窗 */
         .modal-overlay {
             display:none; position:fixed; top:0;left:0;right:0;bottom:0;
             background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center;
@@ -127,7 +126,6 @@
         }
         .btn-water:hover { background:#558aa3; }
 
-        /* 排行榜样式 */
         .leaderboard-list {
             list-style:none; max-height:60vh; overflow-y:auto; text-align:left;
             margin-bottom:12px;
@@ -173,7 +171,6 @@
         .btn-accept { background:#6b8f71; color:#fff; }
         .btn-reject { background:#e0d8cc; color:#333; }
 
-        /* 登录/注册 */
         .auth-form {
             background:var(--card); border-radius:var(--radius); padding:30px 20px;
             box-shadow:0 4px 20px rgba(0,0,0,0.08);
@@ -213,7 +210,6 @@
             color: #888;
             font-weight: 500;
         }
-
         .gender-option:has(input:checked) {
             border-color: var(--accent);
             background: #fef9f3;
@@ -269,7 +265,6 @@
             setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        // ========== 认证 ==========
         async function signUp(email, password, username, gender) {
             const { data, error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ username, gender } } });
             if(error) throw error;
@@ -285,7 +280,6 @@
             currentUser = null; profile = null; farmPlots = []; render();
         }
 
-        // ========== 数据加载 ==========
         async function loadProfile() {
             let { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
             if(error) throw error;
@@ -336,7 +330,6 @@
             receivedRequests = received || [];
         }
 
-        // ========== 经济操作 ==========
         async function updateGold(delta) {
             const newGold = (profile.gold||0) + delta;
             const { error } = await supabaseClient.from('profiles').update({ gold:newGold }).eq('id',currentUser.id);
@@ -639,7 +632,7 @@
         function closePlantModal(){ document.getElementById('modalPlant').classList.remove('active'); }
         function closeWaterModal(){ document.getElementById('modalWater').classList.remove('active'); }
 
-        // ========== 排行榜 ==========
+        // ========== 排行榜（已修复） ==========
         async function openLeaderboard() {
             document.getElementById('modalLeaderboard').classList.add('active');
             await refreshLeaderboard('global');
@@ -665,7 +658,7 @@
             reqArea.style.display = 'none';
 
             const { data: allProfiles } = await supabaseClient.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
-            // 修复：加上 id 字段
+            // 🔧 这里是修复的关键：select 加上 id
             const { data: friendships } = await supabaseClient.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
 
             friendIds.clear(); sentRequests.clear(); receivedRequests = [];
