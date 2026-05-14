@@ -463,6 +463,10 @@
                         </div>
                     </div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
+                    ${unlocked < 12 ? `
+                    <div class="unlock-section">
+                        <button class="btn-unlock" id="btnUnlock">🔓 解锁新地块 (当前${unlocked}/12)</button>
+                    </div>` : ''}
                     <div class="modal-overlay" id="modalPlant">
                         <div class="modal">
                             <h3>🌱 选择作物</h3>
@@ -535,6 +539,9 @@
                     document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
                     document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
                     document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
+                    // 解锁按钮事件
+                    const btnUnlock = document.getElementById('btnUnlock');
+                    if (btnUnlock) btnUnlock.onclick = () => showToast('解锁功能开发中，敬请期待！');
                     document.getElementById('confirmWater').onclick = async () => {
                         if (State.isSubmitting) return;
                         const plotIndex = State.selectedPlotIndex;
@@ -778,7 +785,6 @@
                     const { data: allProfiles } = await supabase.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
                     const { data: friendships } = await supabase.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
 
-                    // 重建好友关系缓存
                     const friendIdSet = new Set();
                     const sentSet = new Set();
                     const received = [];
@@ -793,7 +799,6 @@
                     });
                     State.friendIds = friendIdSet;
 
-                    // 好友申请区域
                     if (received.length > 0 && mode === 'global') {
                         reqArea.style.display = 'block';
                         reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => {
@@ -876,19 +881,12 @@
                 if (growthTimer) clearInterval(growthTimer);
                 growthTimer = setInterval(() => {
                     if (State.visitingFriend) {
-                        const hasGrowing = State.visitingPlots.some(p => {
-                            const s = getCropStatus(p);
-                            return s.status === 'growing' || s.status === 'ready';
-                        });
-                        if (hasGrowing) {
-                            document.getElementById('friendFarmGrid').innerHTML = State.visitingPlots.map(p => FriendFarm.render().plotHTML?.(p) || '').join('');
+                        const grid = document.getElementById('friendFarmGrid');
+                        if (grid) {
+                            grid.innerHTML = State.visitingPlots.map(p => FriendFarm.render().plotHTML?.(p) || '').join('');
                         }
                     } else {
-                        const hasGrowing = State.farmPlots.some(p => {
-                            const s = getCropStatus(p);
-                            return s.status === 'growing' || s.status === 'ready';
-                        });
-                        if (hasGrowing) Farm.updateGrid();
+                        Farm.updateGrid();
                     }
                 }, 30000);
             }
