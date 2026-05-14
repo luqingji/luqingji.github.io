@@ -155,9 +155,9 @@
                 profile: null,
                 farmPlots: [],
                 friendIds: new Set(),
-                friendProfiles: [], // 好友的完整资料
-                visitingFriend: null, // { id, username, gender, gold }
-                visitingPlots: [], // 好友的农田
+                friendProfiles: [],
+                visitingFriend: null,
+                visitingPlots: [],
                 isSubmitting: false
             };
 
@@ -183,9 +183,8 @@
                 return div.innerHTML;
             }
 
-            // ========== 数据加载 ==========
             async function loadProfile() {
-                const { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
+                let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
                 if (!data) {
                     const username = State.currentUser.user_metadata?.username || '农夫';
@@ -213,7 +212,6 @@
             }
 
             async function loadFriendData() {
-                // 获取好友关系
                 const { data: accepted } = await supabase.from('friendships')
                     .select('id, from_user, to_user, status')
                     .or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`)
@@ -225,7 +223,6 @@
                     friendIdSet.add(fid);
                 });
                 State.friendIds = friendIdSet;
-                // 获取好友资料
                 if (friendIdSet.size > 0) {
                     const ids = Array.from(friendIdSet);
                     const { data: profiles } = await supabase.from('profiles').select('id, username, gender, gold').in('id', ids);
@@ -235,7 +232,6 @@
                 }
             }
 
-            // ========== 认证 ==========
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
                 if (error) throw error;
@@ -255,7 +251,6 @@
                 render();
             }
 
-            // ========== 农场操作 ==========
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -294,15 +289,11 @@
                 const cropInfo = CROPS[plot.crop_type];
                 const baseReward = Math.floor(Math.random()*(cropInfo.max - cropInfo.min + 1)) + cropInfo.min;
                 const stealReward = Math.floor(baseReward * 0.4);
-                const remainingReward = baseReward - stealReward;
-                // 更新小偷金币
                 const newGold = (State.profile.gold || 0) + stealReward;
                 await supabase.from('profiles').update({ gold:newGold }).eq('id', State.currentUser.id);
-                // 更新地主金币（减去被偷部分）
                 const { data: owner } = await supabase.from('profiles').select('gold').eq('id', ownerId).single();
-                const ownerNewGold = (owner.gold || 0) - remainingReward + baseReward; // 地主实际获得剩余部分
+                const ownerNewGold = (owner.gold || 0) - baseReward + (baseReward - stealReward);
                 await supabase.from('profiles').update({ gold:ownerNewGold }).eq('id', ownerId);
-                // 更新地块偷取次数
                 await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 }).eq('owner_id', ownerId).eq('plot_index', plotIndex);
                 State.profile.gold = newGold;
                 return stealReward;
@@ -328,7 +319,6 @@
                 return { status:'growing', progress, remainingMin, waterable };
             }
 
-            // ========== UI 渲染 ==========
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) {
@@ -446,7 +436,7 @@
                             <button class="btn-icon" id="btnLogout">退出</button>
                         </div>
                     </div>
-                    <div class="farm-grid">${plotsHTML}</div>
+                    <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
                     <div class="modal-overlay" id="modalPlant">
                         <div class="modal">
                             <h3>🌱 选择作物</h3>
@@ -592,7 +582,6 @@
                             const friend = State.friendProfiles.find(p => p.id === friendId);
                             if (friend) {
                                 State.visitingFriend = friend;
-                                // 加载好友的农田
                                 const { data: plots } = await supabase.from('farm_plots').select('*').eq('owner_id', friendId).order('plot_index');
                                 State.visitingPlots = plots || [];
                                 document.getElementById('modalFriends').classList.remove('active');
@@ -639,7 +628,7 @@
                         </div>
                         <span class="gold">🪙 ${State.profile?.gold||0}</span>
                     </div>
-                    <div class="farm-grid">${plotsHTML}</div>
+                    <div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div>
                     <div class="modal-overlay" id="modalSteal">
                         <div class="modal">
                             <h3>🥷 偷菜</h3>
@@ -666,7 +655,7 @@
                     document.getElementById('closeStealModal').onclick = () => document.getElementById('modalSteal').classList.remove('active');
                     document.getElementById('closeWaterFriendModal').onclick = () => document.getElementById('modalWaterFriend').classList.remove('active');
 
-                    document.querySelector('.farm-grid').onclick = (e) => {
+                    document.getElementById('friendFarmGrid').onclick = (e) => {
                         const card = e.target.closest('.plot-card');
                         if (!card || State.isSubmitting) return;
                         const plotIndex = parseInt(card.dataset.plot);
@@ -674,7 +663,6 @@
                         if (!plot) return;
                         const status = getCropStatus(plot);
                         if (status.status === 'ready') {
-                            // 偷菜
                             if (plot.stolen_count >= 2) {
                                 showToast('这块地已经被偷光了');
                                 return;
@@ -685,13 +673,12 @@
                                 State.isSubmitting = true;
                                 try {
                                     const reward = await stealCrop(State.visitingFriend.id, plotIndex);
-                                    // 更新好友农田本地缓存
                                     const idx = State.visitingPlots.findIndex(p => p.plot_index === plotIndex);
                                     if (idx !== -1) {
                                         State.visitingPlots[idx] = { ...State.visitingPlots[idx], stolen_count: (State.visitingPlots[idx].stolen_count||0)+1 };
                                     }
                                     showToast(`偷取成功！获得 🪙${reward}`);
-                                    render(); // 刷新好友农场界面
+                                    render();
                                 } catch (err) {
                                     showToast(err.message || '偷菜失败', true);
                                 } finally {
@@ -700,7 +687,6 @@
                                 }
                             };
                         } else if (status.status === 'growing') {
-                            // 帮浇水
                             const lastWatered = plot.watered_at ? new Date(plot.watered_at) : null;
                             if (lastWatered && (new Date() - lastWatered) < 30*60*1000) {
                                 showToast('30分钟内已经浇过水了');
@@ -710,13 +696,10 @@
                             document.getElementById('confirmWaterFriend').onclick = async () => {
                                 State.isSubmitting = true;
                                 try {
-                                    // 执行浇水
                                     await waterPlot(State.visitingFriend.id, plotIndex);
-                                    // 更新本地缓存
                                     const updatedPlot = { ...plot, watered_at: new Date().toISOString() };
                                     const idx = State.visitingPlots.findIndex(p => p.plot_index === plotIndex);
                                     if (idx !== -1) State.visitingPlots[idx] = updatedPlot;
-                                    // 双方各得5金币
                                     await supabase.from('profiles').update({ gold: State.profile.gold + 5 }).eq('id', State.currentUser.id);
                                     const { data: friend } = await supabase.from('profiles').select('gold').eq('id', State.visitingFriend.id).single();
                                     await supabase.from('profiles').update({ gold: (friend.gold||0)+5 }).eq('id', State.visitingFriend.id);
@@ -740,13 +723,12 @@
                 if (growthTimer) clearInterval(growthTimer);
                 growthTimer = setInterval(() => {
                     if (State.visitingFriend) {
-                        // 好友农场也更新生长状态
                         const hasGrowing = State.visitingPlots.some(p => {
                             const s = getCropStatus(p);
                             return s.status === 'growing' || s.status === 'ready';
                         });
                         if (hasGrowing) {
-                            document.querySelector('.farm-grid').innerHTML = State.visitingPlots.map(p => FriendFarm.plotHTML(p)).join('');
+                            document.getElementById('friendFarmGrid').innerHTML = State.visitingPlots.map(p => FriendFarm.plotHTML(p)).join('');
                         }
                     } else {
                         const hasGrowing = State.farmPlots.some(p => {
