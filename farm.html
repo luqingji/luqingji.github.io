@@ -152,15 +152,12 @@
             padding:4px 12px; background:var(--accent); color:#fff; border:none;
             border-radius:15px; cursor:pointer; font-size:0.75rem; font-family:inherit;
         }
-        .btn-add-friend:disabled {
-            background:#ccc; cursor:default;
-        }
+        .btn-add-friend:disabled { background:#ccc; cursor:default; }
         .tag-friend {
             font-size:0.75rem; color:#888; background:#f0ede6; padding:2px 8px; border-radius:10px;
         }
         .tag-self { font-size:0.75rem; color:var(--accent); }
 
-        /* 好友申请区域 */
         .friend-requests {
             text-align:left; margin-bottom:12px; padding:8px;
             background:#fef9f3; border-radius:12px;
@@ -200,16 +197,59 @@
             font-size:0.95rem; font-family:inherit; outline:none; transition:border 0.2s;
         }
         .form-group input:focus { border-color:var(--accent); }
+
+        /* 性别选择器 - 优化选中反馈 */
         .gender-selector { display:flex; gap:8px; flex-wrap:wrap; }
         .gender-option {
-            flex:1; min-width:80px; padding:10px 6px; border:1.5px solid #e0d8cc;
-            border-radius:10px; text-align:center; cursor:pointer; transition:all 0.2s;
-            background:#fdfcf9; position:relative;
+            flex:1; min-width:80px; padding:12px 8px;
+            border:2px solid #e0d8cc; border-radius:12px;
+            text-align:center; cursor:pointer;
+            transition: all 0.2s ease;
+            background: #fdfcf9;
+            position: relative;
+            user-select: none;
         }
-        .gender-option input { display:none; }
-        .gender-option:has(input:checked) { border-color:var(--accent); background:#fef9f3; }
-        .gender-label { font-size:0.9rem; color:#666; font-weight:500; }
-        .gender-option:has(input:checked) .gender-label { color:var(--accent); font-weight:700; }
+        .gender-option input { display: none; }
+        .gender-label {
+            font-size: 0.95rem;
+            color: #666;
+            font-weight: 500;
+            display: block;
+        }
+
+        /* 选中状态强化 */
+        .gender-option:has(input:checked) {
+            border-color: var(--accent);
+            background: #fef5ec;
+            box-shadow: 0 0 0 3px rgba(192,132,78,0.15);
+            transform: scale(1.02);
+        }
+        .gender-option:has(input:checked) .gender-label {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* 勾选图标 */
+        .gender-option::after {
+            content: "✓";
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            font-size: 1.1rem;
+            color: var(--accent);
+            font-weight: 900;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .gender-option:has(input:checked)::after {
+            opacity: 1;
+        }
+
+        /* 触摸反馈 */
+        .gender-option:active {
+            background: #f0e8dc;
+            transform: scale(0.97);
+        }
 
         .btn-primary {
             width:100%; padding:12px; background:var(--accent); color:#fff; border:none;
@@ -240,7 +280,6 @@
         let farmPlots = [];
         let selectedPlotIndex = null;
 
-        // 作物数据
         const CROP_DATA = {
             'carrot':    { name:'胡萝卜', emoji:'🥕', seedPrice:20,  growth:8,  harvestMin:50, harvestMax:80 },
             'tomato':    { name:'番茄',   emoji:'🍅', seedPrice:40,  growth:10, harvestMin:70, harvestMax:100 },
@@ -248,10 +287,9 @@
             'corn':      { name:'玉米',   emoji:'🌽', seedPrice:80,  growth:15, harvestMin:130, harvestMax:180 }
         };
 
-        // 好友相关缓存
-        let friendIds = new Set();        // 已接受的好友ID集合
-        let sentRequests = new Set();     // 已发送待处理申请的用户ID
-        let receivedRequests = [];        // 收到的好友申请列表
+        let friendIds = new Set();
+        let sentRequests = new Set();
+        let receivedRequests = [];
 
         function showToast(msg) {
             const t = document.getElementById('toast');
@@ -301,9 +339,7 @@
             farmPlots = data || [];
         }
 
-        // 加载好友关系
         async function loadFriendData() {
-            // 已接受的好友
             const { data: accepted } = await supabaseClient.from('friendships').select('from_user, to_user')
                 .or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`)
                 .eq('status', 'accepted');
@@ -313,13 +349,11 @@
                 friendIds.add(fid);
             });
 
-            // 已发送待处理
             const { data: sent } = await supabaseClient.from('friendships').select('to_user')
                 .eq('from_user', currentUser.id).eq('status','pending');
             sentRequests.clear();
             (sent||[]).forEach(f => sentRequests.add(f.to_user));
 
-            // 收到的申请
             const { data: received } = await supabaseClient.from('friendships').select('id, from_user')
                 .eq('to_user', currentUser.id).eq('status','pending');
             receivedRequests = received || [];
@@ -410,9 +444,18 @@
                     <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div>
                     <div class="form-group"><label>性别（选填）</label>
                         <div class="gender-selector">
-                            <label class="gender-option"><input type="radio" name="gender" value="male"><span class="gender-label">👨‍🌾 男士</span></label>
-                            <label class="gender-option"><input type="radio" name="gender" value="female"><span class="gender-label">👩‍🌾 女士</span></label>
-                            <label class="gender-option"><input type="radio" name="gender" value="none" checked><span class="gender-label">🤫 不透露</span></label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="male">
+                                <span class="gender-label">👨‍🌾 男士</span>
+                            </label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="female">
+                                <span class="gender-label">👩‍🌾 女士</span>
+                            </label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="none" checked>
+                                <span class="gender-label">🤫 不透露</span>
+                            </label>
                         </div>
                     </div>
                     <button class="btn-primary" id="btnSignUp">注册并进入农场</button>
@@ -467,25 +510,21 @@
             </div>
             <div class="farm-grid">${plotsHTML}</div>
             ${unlocked<12?`<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁新地块 (当前${unlocked}/12)</button></div>`:''}
-            <!-- 种植弹窗 -->
             <div class="modal-overlay" id="modalPlant">
                 <div class="modal"><h3>🌱 选择要种植的作物</h3><div class="crop-options">${cropButtons}</div>
                 <button class="btn-close" onclick="closePlantModal()">取消</button></div>
             </div>
-            <!-- 浇水弹窗 -->
             <div class="modal-overlay" id="modalWater">
                 <div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">确定要给这块地浇水吗？</p>
                 <button class="btn-water" id="btnConfirmWater">浇水（加速30%）</button>
                 <button class="btn-close" onclick="closeWaterModal()">取消</button></div>
             </div>
-            <!-- 排行榜弹窗 -->
             <div class="modal-overlay" id="modalLeaderboard">
                 <div class="modal" style="max-width:400px;">
                     <div style="display:flex;gap:8px;margin-bottom:12px;">
                         <button class="auth-tab active" data-lb-tab="global">全服排行</button>
                         <button class="auth-tab" data-lb-tab="friends">好友排行</button>
                     </div>
-                    <!-- 好友申请区域 -->
                     <div class="friend-requests" id="friendRequestsArea" style="display:none;"></div>
                     <div class="leaderboard-list" id="leaderboardList"></div>
                     <button class="btn-close" onclick="closeLeaderboardModal()">关闭</button>
@@ -493,7 +532,7 @@
             </div>`;
         }
 
-        // ========== 事件绑定 ==========
+        // ========== 事件绑定（认证、农场、排行榜等，保持之前逻辑）==========
         function bindAuthEvents() {
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.addEventListener('click', function(){
@@ -522,7 +561,8 @@
                 const username = document.getElementById('regUsername').value.trim();
                 const email = document.getElementById('regEmail').value.trim();
                 const password = document.getElementById('regPassword').value;
-                const gender = document.querySelector('input[name="gender"]:checked')?.value||'none';
+                const genderEl = document.querySelector('input[name="gender"]:checked');
+                const gender = genderEl ? genderEl.value : 'none';
                 const errorEl = document.getElementById('authError');
                 if(!username||!email||!password) { errorEl.textContent='请填写所有必填字段'; return; }
                 if(password.length<6) { errorEl.textContent='密码至少6位'; return; }
@@ -624,7 +664,7 @@
         function closePlantModal(){ document.getElementById('modalPlant').classList.remove('active'); }
         function closeWaterModal(){ document.getElementById('modalWater').classList.remove('active'); }
 
-        // ========== 排行榜逻辑 ==========
+        // ========== 排行榜 ==========
         async function openLeaderboard() {
             document.getElementById('modalLeaderboard').classList.add('active');
             await refreshLeaderboard('global');
@@ -649,12 +689,9 @@
             listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
             reqArea.style.display = 'none';
 
-            // 获取所有玩家资料
             const { data: allProfiles } = await supabaseClient.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
-            // 获取好友关系
             const { data: friendships } = await supabaseClient.from('friendships').select('from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
             
-            // 更新缓存
             friendIds.clear(); sentRequests.clear(); receivedRequests = [];
             (friendships||[]).forEach(f => {
                 if(f.status==='accepted') {
@@ -666,7 +703,6 @@
                 }
             });
 
-            // 渲染好友申请区域
             if(receivedRequests.length > 0 && mode==='global') {
                 reqArea.style.display = 'block';
                 reqArea.innerHTML = '<strong>好友申请</strong>' + receivedRequests.map(req => {
@@ -677,7 +713,6 @@
                         <button class="btn-reject" data-req-id="${req.id}">拒绝</button>
                     </div></div>`;
                 }).join('');
-                // 绑定接受/拒绝事件
                 reqArea.querySelectorAll('.btn-accept').forEach(btn => {
                     btn.onclick = async function() {
                         const reqId = this.getAttribute('data-req-id');
@@ -696,14 +731,11 @@
                 });
             }
 
-            // 过滤排行榜
             let ranked = allProfiles || [];
             if(mode==='friends') {
                 ranked = ranked.filter(p => friendIds.has(p.id));
-                // 把自己也加进去方便对比
                 if(!friendIds.has(currentUser.id)) ranked.push({ id:currentUser.id, username:profile.username, gold:profile.gold, gender:profile.gender });
             }
-            // 排除自己？不排除，但标记
             listEl.innerHTML = ranked.map((p, idx) => {
                 const rank = idx+1;
                 const isMe = p.id === currentUser.id;
@@ -730,7 +762,6 @@
                 </div>`;
             }).join('');
 
-            // 绑定添加好友按钮
             listEl.querySelectorAll('.btn-add-friend:not([disabled])').forEach(btn => {
                 btn.onclick = async function() {
                     const uid = this.getAttribute('data-uid');
