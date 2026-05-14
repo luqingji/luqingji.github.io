@@ -198,63 +198,31 @@
         }
         .form-group input:focus { border-color:var(--accent); }
 
-        /* ========= 性别选择器（优化版） ========= */
+        /* 性别选择器 - 简化版 */
         .gender-selector { display:flex; gap:8px; flex-wrap:wrap; }
-
         .gender-option {
-            flex: 1;
-            min-width: 80px;
-            padding: 12px 8px;
-            border: 2px solid #e0d8cc;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            background: #fdfcf9;
-            position: relative;
+            flex:1; min-width:80px; padding:10px 6px;
+            border:1.5px solid #ddd; border-radius:10px;
+            text-align:center; cursor:pointer;
+            transition: border-color 0.2s, background 0.2s;
+            background: #fff;
             user-select: none;
         }
         .gender-option input { display: none; }
-
         .gender-label {
-            font-size: 0.95rem;
-            color: #666;
+            font-size: 0.9rem;
+            color: #888;
             font-weight: 500;
-            display: block;
         }
 
-        /* 选中状态类（由 JS 动态添加） */
-        .gender-option.selected {
-            border-color: var(--accent) !important;
-            background: #fef5ec !important;
-            box-shadow: 0 0 0 3px rgba(192, 132, 78, 0.15) !important;
-            transform: scale(1.02);
+        /* 选中状态：只改变边框和背景 */
+        .gender-option:has(input:checked) {
+            border-color: var(--accent);
+            background: #fef9f3;
         }
-        .gender-option.selected .gender-label {
-            color: var(--accent) !important;
-            font-weight: 700 !important;
-        }
-
-        /* 勾选标记 */
-        .gender-option::after {
-            content: "✓";
-            position: absolute;
-            top: 4px;
-            right: 8px;
-            font-size: 1.2rem;
+        .gender-option:has(input:checked) .gender-label {
             color: var(--accent);
-            font-weight: 900;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .gender-option.selected::after {
-            opacity: 1;
-        }
-
-        /* 触摸反馈 */
-        .gender-option:active {
-            background: #f0e8dc;
-            transform: scale(0.97);
+            font-weight: 700;
         }
 
         .btn-primary {
@@ -303,24 +271,6 @@
             setTimeout(() => t.classList.remove('show'), 2000);
         }
 
-        // ========== 性别选择辅助函数 ==========
-        function initGenderSelector() {
-            const options = document.querySelectorAll('.gender-option');
-            options.forEach(opt => {
-                const radio = opt.querySelector('input[type="radio"]');
-                opt.addEventListener('click', () => {
-                    // 移除所有选中状态
-                    options.forEach(o => o.classList.remove('selected'));
-                    // 给当前加上选中状态
-                    opt.classList.add('selected');
-                    // 同时勾选 radio（防止重复触发）
-                    radio.checked = true;
-                });
-                // 初始状态：如果 radio 默认 checked，加上 selected
-                if (radio.checked) opt.classList.add('selected');
-            });
-        }
-
         // ========== 认证 ==========
         async function signUp(email, password, username, gender) {
             const { data, error } = await supabaseClient.auth.signUp({ email, password, options:{ data:{ username, gender } } });
@@ -337,7 +287,6 @@
             currentUser = null; profile = null; farmPlots = []; render();
         }
 
-        // ========== 数据加载 ==========
         async function loadProfile() {
             let { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
             if(error) throw error;
@@ -383,7 +332,6 @@
             receivedRequests = received || [];
         }
 
-        // ========== 经济操作 ==========
         async function updateGold(delta) {
             const newGold = (profile.gold||0) + delta;
             const { error } = await supabaseClient.from('profiles').update({ gold:newGold }).eq('id',currentUser.id);
@@ -442,7 +390,6 @@
         function getCropEmoji(type) { return CROP_DATA[type]?.emoji || '🌱'; }
         function getCropName(type) { return CROP_DATA[type]?.name || type; }
 
-        // ========== 渲染 ==========
         function render() {
             const app = document.getElementById('app');
             if(!currentUser) { app.innerHTML = renderAuthForm(); bindAuthEvents(); }
@@ -467,7 +414,7 @@
                     <div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div>
                     <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div>
                     <div class="form-group"><label>性别（选填）</label>
-                        <div class="gender-selector" id="genderSelector">
+                        <div class="gender-selector">
                             <label class="gender-option">
                                 <input type="radio" name="gender" value="male">
                                 <span class="gender-label">👨‍🌾 男士</span>
@@ -476,7 +423,7 @@
                                 <input type="radio" name="gender" value="female">
                                 <span class="gender-label">👩‍🌾 女士</span>
                             </label>
-                            <label class="gender-option selected">
+                            <label class="gender-option">
                                 <input type="radio" name="gender" value="none" checked>
                                 <span class="gender-label">🤫 不透露</span>
                             </label>
@@ -556,11 +503,8 @@
             </div>`;
         }
 
-        // ========== 事件绑定 ==========
+        // 事件绑定（保持原有逻辑不变）
         function bindAuthEvents() {
-            // 初始化性别选择器
-            initGenderSelector();
-
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.addEventListener('click', function(){
                     const target = this.getAttribute('data-tab');
@@ -691,7 +635,6 @@
         function closePlantModal(){ document.getElementById('modalPlant').classList.remove('active'); }
         function closeWaterModal(){ document.getElementById('modalWater').classList.remove('active'); }
 
-        // ========== 排行榜 ==========
         async function openLeaderboard() {
             document.getElementById('modalLeaderboard').classList.add('active');
             await refreshLeaderboard('global');
