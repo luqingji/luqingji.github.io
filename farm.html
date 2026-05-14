@@ -33,7 +33,6 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            -webkit-text-size-adjust: 100%;
         }
 
         .container {
@@ -56,11 +55,13 @@
             flex-wrap: wrap;
             gap: 10px;
         }
+
         .user-info {
             display: flex;
             align-items: center;
             gap: 10px;
         }
+
         .avatar {
             width: 42px;
             height: 42px;
@@ -73,6 +74,7 @@
             font-size: 1.2rem;
             flex-shrink: 0;
         }
+
         .avatar.male { background: var(--blue); }
         .avatar.female { background: var(--pink); }
         .avatar.none { background: #aaa; }
@@ -81,14 +83,17 @@
             font-weight: 600;
             color: var(--text);
         }
+
         .level {
             font-size: 0.75rem;
             color: #888;
         }
+
         .gold {
             font-weight: 700;
             color: var(--accent);
         }
+
         .btn-icon {
             padding: 8px 16px;
             background: #e8e0d5;
@@ -106,6 +111,7 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 12px;
         }
+
         .plot-card {
             background: var(--card);
             border-radius: var(--radius);
@@ -123,38 +129,41 @@
             position: relative;
             user-select: none;
         }
+
         .plot-card:active {
             transform: scale(0.96);
             background: #f9f6f0;
         }
+
         .plot-card.empty {
             border: 2px dashed #d5cec0;
             color: #b0a590;
         }
+
         .plot-card.planted {
             border: 2px solid #c5d5b0;
         }
+
         .plot-card.ready {
             border: 2px solid #f0c040;
             animation: pulse 1.5s infinite;
         }
+
         @keyframes pulse {
-            0%,
-            100% {
-                box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 0 12px rgba(240, 192, 64, 0);
-            }
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240, 192, 64, 0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240, 192, 64, 0); }
         }
+
         .plot-emoji {
             font-size: 2.5rem;
         }
+
         .plot-status {
             font-size: 0.75rem;
             color: #888;
             line-height: 1.3;
         }
+
         .progress-bar {
             width: 100%;
             height: 5px;
@@ -162,6 +171,7 @@
             border-radius: 3px;
             overflow: hidden;
         }
+
         .progress-fill {
             height: 100%;
             background: var(--green);
@@ -174,6 +184,7 @@
             text-align: center;
             margin-top: 4px;
         }
+
         .btn-unlock {
             padding: 12px 20px;
             background: #fdfcf9;
@@ -185,6 +196,7 @@
             color: var(--accent);
             transition: all 0.2s;
         }
+
         .btn-unlock:hover {
             background: #fef9f3;
             border-color: var(--accent);
@@ -203,9 +215,11 @@
             justify-content: center;
             align-items: center;
         }
+
         .modal-overlay.active {
             display: flex;
         }
+
         .modal {
             background: #fff;
             border-radius: var(--radius);
@@ -214,16 +228,19 @@
             width: 90%;
             text-align: center;
         }
+
         .modal h3 {
             margin-bottom: 16px;
             color: var(--text);
         }
+
         .crop-options {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-bottom: 16px;
         }
+
         .crop-btn {
             padding: 14px;
             border: 2px solid #e0d8cc;
@@ -233,21 +250,26 @@
             font-family: inherit;
             transition: all 0.2s;
         }
+
         .crop-btn:hover {
             border-color: var(--accent);
             background: #fef9f3;
         }
+
         .crop-btn .crop-emoji {
             font-size: 2rem;
         }
+
         .crop-btn .crop-name {
             font-weight: 600;
             margin: 4px 0;
         }
+
         .crop-btn .crop-time {
             font-size: 0.75rem;
             color: #888;
         }
+
         .btn-close {
             padding: 8px 24px;
             background: #e8e0d5;
@@ -264,26 +286,31 @@
             padding: 30px 20px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
+
         .auth-form h1 {
             text-align: center;
             margin-bottom: 6px;
             color: var(--text);
         }
+
         .auth-form .subtitle {
             text-align: center;
             color: #888;
             font-size: 0.9rem;
             margin-bottom: 20px;
         }
+
         .form-group {
             margin-bottom: 14px;
         }
+
         .form-group label {
             display: block;
             font-size: 0.85rem;
             color: #666;
             margin-bottom: 4px;
         }
+
         .form-group input {
             width: 100%;
             padding: 12px;
@@ -294,6 +321,7 @@
             outline: none;
             transition: border 0.2s;
         }
+
         .form-group input:focus {
             border-color: var(--accent);
         }
@@ -304,6 +332,7 @@
             gap: 8px;
             flex-wrap: wrap;
         }
+
         .gender-option {
             flex: 1;
             min-width: 80px;
@@ -316,18 +345,22 @@
             background: #fdfcf9;
             position: relative;
         }
+
         .gender-option input {
             display: none;
         }
+
         .gender-option:has(input:checked) {
             border-color: var(--accent);
             background: #fef9f3;
         }
+
         .gender-label {
             font-size: 0.9rem;
             color: #666;
             font-weight: 500;
         }
+
         .gender-option:has(input:checked) .gender-label {
             color: var(--accent);
             font-weight: 700;
@@ -346,9 +379,11 @@
             font-family: inherit;
             transition: background 0.2s;
         }
+
         .btn-primary:hover {
             background: #a06b3a;
         }
+
         .btn-link {
             background: none;
             border: none;
@@ -358,6 +393,7 @@
             margin-top: 8px;
             font-family: inherit;
         }
+
         .msg-error {
             color: var(--red);
             font-size: 0.85rem;
@@ -380,6 +416,7 @@
             opacity: 0;
             transition: opacity 0.3s;
         }
+
         .toast.show {
             opacity: 1;
         }
@@ -393,10 +430,10 @@
     <script>
         // ===================== Supabase 配置 =====================
         const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // 初始化客户端，变量名改为 supabaseClient，避免与全局 supabase 冲突
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ===================== 全局状态 =====================
         let currentUser = null;
@@ -414,7 +451,7 @@
 
         // ===================== 认证相关 =====================
         async function signUp(email, password, username, gender) {
-            const { data, error } = await supabase.auth.signUp({
+            const { data, error } = await supabaseClient.auth.signUp({
                 email,
                 password,
                 options: {
@@ -426,13 +463,13 @@
         }
 
         async function signIn(email, password) {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
             return data;
         }
 
         async function signOut() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             currentUser = null;
             profile = null;
             farmPlots = [];
@@ -441,7 +478,7 @@
 
         // ===================== 数据加载 =====================
         async function loadProfile() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('profiles')
                 .select('*')
                 .eq('id', currentUser.id)
@@ -451,7 +488,7 @@
         }
 
         async function loadFarmPlots() {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('farm_plots')
                 .select('*')
                 .eq('owner_id', currentUser.id)
@@ -463,7 +500,7 @@
         // ===================== 农场操作 =====================
         async function plantCrop(plotIndex, cropType, growthMinutes) {
             const now = new Date().toISOString();
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('farm_plots')
                 .update({
                     crop_type: cropType,
@@ -479,7 +516,7 @@
 
         async function waterPlot(plotIndex) {
             const now = new Date().toISOString();
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('farm_plots')
                 .update({ watered_at: now })
                 .eq('owner_id', currentUser.id)
@@ -493,13 +530,13 @@
 
             const reward = 50 + Math.floor(Math.random() * 30);
 
-            const { error: profileError } = await supabase
+            const { error: profileError } = await supabaseClient
                 .from('profiles')
                 .update({ gold: (profile.gold || 0) + reward })
                 .eq('id', currentUser.id);
             if (profileError) throw profileError;
 
-            const { error: plotError } = await supabase
+            const { error: plotError } = await supabaseClient
                 .from('farm_plots')
                 .update({
                     crop_type: null,
@@ -617,7 +654,7 @@
         }
 
         function renderFarm() {
-            const unlocked = profile?.unlocked_plots || 6;
+            const unlocked = profile?.unlocked_plots || 4;
             const plotsToShow = farmPlots.filter(p => p.plot_index < unlocked);
 
             const plotsHTML = plotsToShow.map(plot => {
@@ -786,7 +823,7 @@
             const btnUnlock = document.getElementById('btnUnlock');
             if (btnUnlock) {
                 btnUnlock.addEventListener('click', () => {
-                    showToast(`解锁功能开发中。当前解锁 ${profile?.unlocked_plots || 6} 块，最多12块`);
+                    showToast(`解锁功能开发中。当前解锁 ${profile?.unlocked_plots || 4} 块，最多12块`);
                 });
             }
 
@@ -884,7 +921,7 @@
 
         // ===================== 初始化 =====================
         async function init() {
-            const { data } = await supabase.auth.getSession();
+            const { data } = await supabaseClient.auth.getSession();
             if (data.session) {
                 currentUser = data.session.user;
                 try {
