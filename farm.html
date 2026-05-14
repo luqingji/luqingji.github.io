@@ -652,8 +652,8 @@
                     const cropType = this.getAttribute('data-crop');
                     const growthTime = parseInt(this.getAttribute('data-time'));
                     const now = new Date().toISOString();
-                    
-                    // 1. 立即更新本地数据，让UI马上变化
+
+                    // 乐观更新本地数据
                     const plot = farmPlots.find(p => p.plot_index === selectedPlotIndex);
                     if (plot) {
                         plot.crop_type = cropType;
@@ -662,20 +662,20 @@
                         plot.watered_at = null;
                         plot.stolen_count = 0;
                     }
-                    
-                    // 2. 关闭弹窗并重新渲染
+
                     closePlantModal();
-                    render();
+                    render(); // 立即显示新作物
                     showToast(`种下了${getCropName(cropType)}！🌱`);
-                    
-                    // 3. 异步同步到数据库（后台进行，不影响界面）
+
+                    // 异步同步数据库，成功后延迟刷新确保数据一致
                     try {
                         await plantCrop(selectedPlotIndex, cropType, growthTime);
-                        // 同步成功后再次刷新，确保数据一致
-                        await loadFarmPlots();
-                        render();
+                        setTimeout(async () => {
+                            await loadFarmPlots();
+                            render();
+                        }, 400);
                     } catch (err) {
-                        // 如果数据库更新失败，回滚本地状态
+                        // 失败回滚
                         if (plot) {
                             plot.crop_type = null;
                             plot.planted_at = null;
@@ -692,10 +692,16 @@
         async function harvestAndRefresh(plotIndex) {
             try {
                 const reward = await harvestPlot(plotIndex);
-                await loadFarmPlots();
-                render();
+                // 数据已更新到服务器，乐观更新本地金币
                 showToast(`收获成功！获得 🪙${reward} 金币`);
-            } catch (err) { showToast('收获失败: ' + err.message); }
+                // 延迟刷新，让用户看到金币变化后再重新加载地块
+                setTimeout(async () => {
+                    await loadFarmPlots();
+                    render();
+                }, 400);
+            } catch (err) {
+                showToast('收获失败: ' + err.message);
+            }
         }
 
         async function waterAndRefresh(plotIndex) {
@@ -707,12 +713,15 @@
                 return;
             }
             try {
-                // 乐观更新
+                // 乐观更新浇水状态
                 plot.watered_at = now.toISOString();
                 render();
                 await waterPlot(plotIndex);
-                await loadFarmPlots();
-                render();
+                // 延迟刷新同步数据库数据
+                setTimeout(async () => {
+                    await loadFarmPlots();
+                    render();
+                }, 400);
                 showToast('浇水成功！💧');
             } catch (err) {
                 // 回滚
