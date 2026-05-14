@@ -198,18 +198,24 @@
         }
         .form-group input:focus { border-color:var(--accent); }
 
-        /* 性别选择器 - 优化选中反馈 */
+        /* ========= 性别选择器（优化版） ========= */
         .gender-selector { display:flex; gap:8px; flex-wrap:wrap; }
+
         .gender-option {
-            flex:1; min-width:80px; padding:12px 8px;
-            border:2px solid #e0d8cc; border-radius:12px;
-            text-align:center; cursor:pointer;
+            flex: 1;
+            min-width: 80px;
+            padding: 12px 8px;
+            border: 2px solid #e0d8cc;
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
             transition: all 0.2s ease;
             background: #fdfcf9;
             position: relative;
             user-select: none;
         }
         .gender-option input { display: none; }
+
         .gender-label {
             font-size: 0.95rem;
             color: #666;
@@ -217,31 +223,31 @@
             display: block;
         }
 
-        /* 选中状态强化 */
-        .gender-option:has(input:checked) {
-            border-color: var(--accent);
-            background: #fef5ec;
-            box-shadow: 0 0 0 3px rgba(192,132,78,0.15);
+        /* 选中状态类（由 JS 动态添加） */
+        .gender-option.selected {
+            border-color: var(--accent) !important;
+            background: #fef5ec !important;
+            box-shadow: 0 0 0 3px rgba(192, 132, 78, 0.15) !important;
             transform: scale(1.02);
         }
-        .gender-option:has(input:checked) .gender-label {
-            color: var(--accent);
-            font-weight: 700;
+        .gender-option.selected .gender-label {
+            color: var(--accent) !important;
+            font-weight: 700 !important;
         }
 
-        /* 勾选图标 */
+        /* 勾选标记 */
         .gender-option::after {
             content: "✓";
             position: absolute;
             top: 4px;
             right: 8px;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             color: var(--accent);
             font-weight: 900;
             opacity: 0;
             transition: opacity 0.2s;
         }
-        .gender-option:has(input:checked)::after {
+        .gender-option.selected::after {
             opacity: 1;
         }
 
@@ -295,6 +301,24 @@
             const t = document.getElementById('toast');
             t.textContent = msg; t.classList.add('show');
             setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // ========== 性别选择辅助函数 ==========
+        function initGenderSelector() {
+            const options = document.querySelectorAll('.gender-option');
+            options.forEach(opt => {
+                const radio = opt.querySelector('input[type="radio"]');
+                opt.addEventListener('click', () => {
+                    // 移除所有选中状态
+                    options.forEach(o => o.classList.remove('selected'));
+                    // 给当前加上选中状态
+                    opt.classList.add('selected');
+                    // 同时勾选 radio（防止重复触发）
+                    radio.checked = true;
+                });
+                // 初始状态：如果 radio 默认 checked，加上 selected
+                if (radio.checked) opt.classList.add('selected');
+            });
         }
 
         // ========== 认证 ==========
@@ -443,7 +467,7 @@
                     <div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div>
                     <div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div>
                     <div class="form-group"><label>性别（选填）</label>
-                        <div class="gender-selector">
+                        <div class="gender-selector" id="genderSelector">
                             <label class="gender-option">
                                 <input type="radio" name="gender" value="male">
                                 <span class="gender-label">👨‍🌾 男士</span>
@@ -452,7 +476,7 @@
                                 <input type="radio" name="gender" value="female">
                                 <span class="gender-label">👩‍🌾 女士</span>
                             </label>
-                            <label class="gender-option">
+                            <label class="gender-option selected">
                                 <input type="radio" name="gender" value="none" checked>
                                 <span class="gender-label">🤫 不透露</span>
                             </label>
@@ -532,8 +556,11 @@
             </div>`;
         }
 
-        // ========== 事件绑定（认证、农场、排行榜等，保持之前逻辑）==========
+        // ========== 事件绑定 ==========
         function bindAuthEvents() {
+            // 初始化性别选择器
+            initGenderSelector();
+
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.addEventListener('click', function(){
                     const target = this.getAttribute('data-tab');
