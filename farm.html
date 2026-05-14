@@ -146,7 +146,7 @@
         }
 
         .waterable { color: #1976d2; font-weight: 600; }
-        .watered { color: #888; }
+        .watered { color: #e67e22; font-weight: 600; }
 
         .unlock-section { text-align: center; margin-top: 4px; }
         .btn-unlock {
@@ -202,7 +202,7 @@
         .crop-btn:hover { border-color: var(--accent); background: #fef9f3; }
         .crop-btn .crop-emoji { font-size: 2rem; }
         .crop-btn .crop-name { font-weight: 600; margin: 4px 0; }
-        .crop-btn .crop-time { font-size: 0.75rem; color: #888; }
+        .crop-btn .crop-info { font-size: 0.72rem; color: #888; line-height: 1.4; }
 
         .btn-close {
             padding: 8px 24px;
@@ -337,6 +337,14 @@
         let farmPlots = [];
         let selectedPlotIndex = null;
 
+        // ============ 作物经济数据 ============
+        const CROP_DATA = {
+            'carrot':    { name: '胡萝卜', emoji: '🥕', seedPrice: 20,  growth: 8,  harvestMin: 50, harvestMax: 80 },
+            'tomato':    { name: '番茄',   emoji: '🍅', seedPrice: 40,  growth: 10, harvestMin: 70, harvestMax: 100 },
+            'strawberry':{ name: '草莓',   emoji: '🍓', seedPrice: 60,  growth: 12, harvestMin: 100, harvestMax: 140 },
+            'corn':      { name: '玉米',   emoji: '🌽', seedPrice: 80,  growth: 15, harvestMin: 130, harvestMax: 180 }
+        };
+
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.textContent = msg;
@@ -373,7 +381,7 @@
             if (!data) {
                 const username = currentUser.user_metadata?.username || '农夫';
                 const gender = currentUser.user_metadata?.gender || 'none';
-                await supabaseClient.from('profiles').insert({ id: currentUser.id, username, gender, gold: 500, unlocked_plots: 4 });
+                await supabaseClient.from('profiles').insert({ id: currentUser.id, username, gender, gold: 200, unlocked_plots: 4 });
                 for (let i = 0; i < 4; i++) {
                     await supabaseClient.from('farm_plots').insert({ owner_id: currentUser.id, plot_index: i });
                 }
@@ -396,7 +404,13 @@
             farmPlots = data || [];
         }
 
-        // 修改后的种植：返回更新后的行
+        async function updateGold(delta) {
+            const newGold = (profile.gold || 0) + delta;
+            const { error } = await supabaseClient.from('profiles').update({ gold: newGold }).eq('id', currentUser.id);
+            if (error) throw error;
+            profile.gold = newGold;
+        }
+
         async function plantCrop(plotIndex, cropType, growthMinutes) {
             const now = new Date().toISOString();
             const { data, error } = await supabaseClient.from('farm_plots').update({
@@ -407,7 +421,6 @@
             return data;
         }
 
-        // 修改后的浇水：返回更新后的行
         async function waterPlot(plotIndex) {
             const now = new Date().toISOString();
             const { data, error } = await supabaseClient.from('farm_plots').update({ watered_at: now })
@@ -416,16 +429,17 @@
             return data;
         }
 
-        // 收获：返回奖励
         async function harvestPlot(plotIndex) {
             const plot = farmPlots.find(p => p.plot_index === plotIndex);
             if (!plot || !plot.crop_type) return null;
-            const reward = 50 + Math.floor(Math.random() * 30);
-            await supabaseClient.from('profiles').update({ gold: (profile.gold || 0) + reward }).eq('id', currentUser.id);
+            const cropInfo = CROP_DATA[plot.crop_type];
+            const reward = cropInfo 
+                ? Math.floor(Math.random() * (cropInfo.harvestMax - cropInfo.harvestMin + 1)) + cropInfo.harvestMin
+                : 50 + Math.floor(Math.random() * 30);
+            await updateGold(reward);
             await supabaseClient.from('farm_plots').update({
                 crop_type: null, planted_at: null, watered_at: null, stolen_count: 0
             }).eq('owner_id', currentUser.id).eq('plot_index', plotIndex);
-            profile.gold = (profile.gold || 0) + reward;
             return reward;
         }
 
@@ -433,7 +447,13 @@
             if (!plot.crop_type || !plot.planted_at) return { status: 'empty' };
             const now = new Date();
             const planted = new Date(plot.planted_at);
-            const growthMs = plot.growth_minutes * 60 * 1000;
+            let growthMs = plot.growth_minutes * 60 * 1000;
+
+            // 浇水加速：已浇水则缩短 30% 生长时间
+            if (plot.watered_at) {
+                growthMs = Math.floor(growthMs * 0.7);
+            }
+
             const matureTime = new Date(planted.getTime() + growthMs);
             if (now >= matureTime) return { status: 'ready', progress: 100 };
 
@@ -450,14 +470,8 @@
             return { status: 'growing', progress, remainingMin, waterable };
         }
 
-        function getCropEmoji(type) {
-            const m = { tomato:'🍅', carrot:'🥕', corn:'🌽', strawberry:'🍓', pumpkin:'🎃', sunflower:'🌻' };
-            return m[type] || '🌱';
-        }
-        function getCropName(type) {
-            const m = { tomato:'番茄', carrot:'胡萝卜', corn:'玉米', strawberry:'草莓', pumpkin:'南瓜', sunflower:'向日葵' };
-            return m[type] || type;
-        }
+        function getCropEmoji(type) { return CROP_DATA[type]?.emoji || '🌱'; }
+        function getCropName(type) { return CROP_DATA[type]?.name || type; }
 
         function render() {
             const app = document.getElementById('app');
@@ -509,7 +523,7 @@
                     emoji = getCropEmoji(plot.crop_type); statusText = '✨ 可收获'; cardClass = 'ready';
                 } else {
                     emoji = getCropEmoji(plot.crop_type);
-                    const waterHint = status.waterable ? '可浇水💧' : '已浇水✅';
+                    const waterHint = status.waterable ? '可浇水💧' : '加速中🔥';
                     const waterClass = status.waterable ? 'waterable' : 'watered';
                     statusText = `生长中 · <span class="${waterClass}">${waterHint}</span> · 剩${status.remainingMin}分钟`;
                     cardClass = 'planted';
@@ -527,6 +541,17 @@
 
             const genderClass = profile?.gender || 'none';
             const avatarLetter = (profile?.username || '农')[0];
+
+            // 种植弹窗里每个作物的按钮
+            const cropButtons = Object.entries(CROP_DATA).map(([key, info]) => `
+                <button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${info.seedPrice}">
+                    <span class="crop-emoji">${info.emoji}</span>
+                    <div class="crop-name">${info.name}</div>
+                    <div class="crop-info">🪙${info.seedPrice} · ⏱${info.growth}分钟</div>
+                    <div class="crop-info">收${info.harvestMin}~${info.harvestMax}金</div>
+                </button>
+            `).join('');
+
             return `
                 <div class="header">
                     <div class="user-info">
@@ -547,12 +572,7 @@
                 <div class="modal-overlay" id="modalPlant">
                     <div class="modal">
                         <h3>🌱 选择要种植的作物</h3>
-                        <div class="crop-options">
-                            <button class="crop-btn" data-crop="tomato" data-time="10"><span class="crop-emoji">🍅</span><div class="crop-name">番茄</div><div class="crop-time">⏱ 10分钟</div></button>
-                            <button class="crop-btn" data-crop="carrot" data-time="8"><span class="crop-emoji">🥕</span><div class="crop-name">胡萝卜</div><div class="crop-time">⏱ 8分钟</div></button>
-                            <button class="crop-btn" data-crop="corn" data-time="15"><span class="crop-emoji">🌽</span><div class="crop-name">玉米</div><div class="crop-time">⏱ 15分钟</div></button>
-                            <button class="crop-btn" data-crop="strawberry" data-time="12"><span class="crop-emoji">🍓</span><div class="crop-name">草莓</div><div class="crop-time">⏱ 12分钟</div></button>
-                        </div>
+                        <div class="crop-options">${cropButtons}</div>
                         <button class="btn-close" onclick="closePlantModal()">取消</button>
                     </div>
                 </div>
@@ -560,7 +580,7 @@
                     <div class="modal">
                         <h3>💧 浇水</h3>
                         <p id="waterPlotInfo">确定要给这块地浇水吗？</p>
-                        <button class="btn-water" id="btnConfirmWater">浇水</button>
+                        <button class="btn-water" id="btnConfirmWater">浇水（加速30%）</button>
                         <button class="btn-close" onclick="closeWaterModal()">取消</button>
                     </div>
                 </div>
@@ -636,7 +656,7 @@
                         harvestAndRefresh(plotIndex);
                     } else {
                         selectedPlotIndex = plotIndex;
-                        document.getElementById('waterPlotInfo').textContent = `${getCropName(plot.crop_type)} 正在生长，要浇水吗？`;
+                        document.getElementById('waterPlotInfo').textContent = `${getCropName(plot.crop_type)} 正在生长，要浇水加速吗？`;
                         document.getElementById('modalWater').classList.add('active');
                         document.getElementById('btnConfirmWater').onclick = async () => {
                             await waterAndRefresh(plotIndex);
@@ -652,20 +672,28 @@
                 btn.onclick = async function() {
                     const cropType = this.getAttribute('data-crop');
                     const growthTime = parseInt(this.getAttribute('data-time'));
+                    const seedPrice = parseInt(this.getAttribute('data-price'));
+
+                    // 检查金币是否足够
+                    if ((profile.gold || 0) < seedPrice) {
+                        showToast(`金币不足！需要 🪙${seedPrice}，当前只有 🪙${profile.gold || 0}`);
+                        return;
+                    }
 
                     closePlantModal();
                     try {
-                        // 调用数据库并获取返回的完整地块数据
+                        // 扣除种子费用
+                        await updateGold(-seedPrice);
+                        // 写入数据库
                         const updatedPlot = await plantCrop(selectedPlotIndex, cropType, growthTime);
-                        // 更新本地数组中的对应地块
                         const idx = farmPlots.findIndex(p => p.plot_index === selectedPlotIndex);
                         if (idx !== -1) farmPlots[idx] = updatedPlot;
                         render();
-                        showToast(`种下了${getCropName(cropType)}！🌱`);
+                        showToast(`种下了${getCropName(cropType)}！花费 🪙${seedPrice}`);
                     } catch (err) {
                         showToast('种植失败: ' + err.message);
-                        // 重新加载确保状态正确
                         await loadFarmPlots();
+                        await loadProfile();
                         render();
                     }
                 };
@@ -676,7 +704,6 @@
             try {
                 const reward = await harvestPlot(plotIndex);
                 if (reward !== null) {
-                    // 直接清空本地数据中的该地块
                     const idx = farmPlots.findIndex(p => p.plot_index === plotIndex);
                     if (idx !== -1) {
                         farmPlots[idx].crop_type = null;
@@ -700,15 +727,12 @@
                 showToast('30分钟内已经浇过水了～');
                 return;
             }
-
             try {
-                // 调用浇水接口，获取返回的完整地块数据
                 const updatedPlot = await waterPlot(plotIndex);
-                // 直接更新本地数组
                 const idx = farmPlots.findIndex(p => p.plot_index === plotIndex);
                 if (idx !== -1) farmPlots[idx] = updatedPlot;
                 render();
-                showToast('浇水成功！💧');
+                showToast('浇水成功！生长加速30% 🔥');
             } catch (err) {
                 showToast('浇水失败: ' + err.message);
             }
