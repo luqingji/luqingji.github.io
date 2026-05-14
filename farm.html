@@ -215,7 +215,6 @@
             font-weight: 500;
         }
 
-        /* 选中状态：只改变边框和背景 */
         .gender-option:has(input:checked) {
             border-color: var(--accent);
             background: #fef9f3;
@@ -287,6 +286,7 @@
             currentUser = null; profile = null; farmPlots = []; render();
         }
 
+        // ========== 数据加载 ==========
         async function loadProfile() {
             let { data, error } = await supabaseClient.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
             if(error) throw error;
@@ -332,6 +332,7 @@
             receivedRequests = received || [];
         }
 
+        // ========== 经济操作 ==========
         async function updateGold(delta) {
             const newGold = (profile.gold||0) + delta;
             const { error } = await supabaseClient.from('profiles').update({ gold:newGold }).eq('id',currentUser.id);
@@ -503,7 +504,6 @@
             </div>`;
         }
 
-        // 事件绑定（保持原有逻辑不变）
         function bindAuthEvents() {
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.addEventListener('click', function(){
@@ -635,6 +635,7 @@
         function closePlantModal(){ document.getElementById('modalPlant').classList.remove('active'); }
         function closeWaterModal(){ document.getElementById('modalWater').classList.remove('active'); }
 
+        // ========== 排行榜 ==========
         async function openLeaderboard() {
             document.getElementById('modalLeaderboard').classList.add('active');
             await refreshLeaderboard('global');
@@ -661,7 +662,7 @@
 
             const { data: allProfiles } = await supabaseClient.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
             const { data: friendships } = await supabaseClient.from('friendships').select('from_user, to_user, status').or(`from_user.eq.${currentUser.id},to_user.eq.${currentUser.id}`);
-            
+
             friendIds.clear(); sentRequests.clear(); receivedRequests = [];
             (friendships||[]).forEach(f => {
                 if(f.status==='accepted') {
@@ -677,26 +678,54 @@
                 reqArea.style.display = 'block';
                 reqArea.innerHTML = '<strong>好友申请</strong>' + receivedRequests.map(req => {
                     const sender = allProfiles?.find(p=>p.id===req.from_user);
-                    return `<div class="request-item"><span>${sender?.username||'未知'}</span>
-                    <div class="request-actions">
-                        <button class="btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button>
-                        <button class="btn-reject" data-req-id="${req.id}">拒绝</button>
-                    </div></div>`;
+                    const senderName = sender?.username || '未知';
+                    return `<div class="request-item">
+                        <span>${senderName}</span>
+                        <div class="request-actions">
+                            <button class="btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button>
+                            <button class="btn-reject" data-req-id="${req.id}">拒绝</button>
+                        </div>
+                    </div>`;
                 }).join('');
+
+                // 绑定接受事件
                 reqArea.querySelectorAll('.btn-accept').forEach(btn => {
                     btn.onclick = async function() {
                         const reqId = this.getAttribute('data-req-id');
                         const fromId = this.getAttribute('data-from');
-                        await supabaseClient.from('friendships').update({ status:'accepted' }).eq('id', reqId);
-                        friendIds.add(fromId);
-                        await refreshLeaderboard('global');
+                        // 优化：添加错误处理，并确保更新成功
+                        try {
+                            const { error } = await supabaseClient
+                                .from('friendships')
+                                .update({ status: 'accepted' })
+                                .eq('id', reqId);
+                            if (error) throw error;
+                            friendIds.add(fromId);
+                            showToast('已接受好友申请！');
+                            await refreshLeaderboard('global');
+                        } catch (err) {
+                            console.error('接受好友失败:', err);
+                            showToast('操作失败，请稍后重试');
+                        }
                     };
                 });
+
+                // 绑定拒绝事件
                 reqArea.querySelectorAll('.btn-reject').forEach(btn => {
                     btn.onclick = async function() {
                         const reqId = this.getAttribute('data-req-id');
-                        await supabaseClient.from('friendships').delete().eq('id', reqId);
-                        await refreshLeaderboard('global');
+                        try {
+                            const { error } = await supabaseClient
+                                .from('friendships')
+                                .delete()
+                                .eq('id', reqId);
+                            if (error) throw error;
+                            showToast('已拒绝申请');
+                            await refreshLeaderboard('global');
+                        } catch (err) {
+                            console.error('拒绝失败:', err);
+                            showToast('操作失败，请稍后重试');
+                        }
                     };
                 });
             }
@@ -704,8 +733,11 @@
             let ranked = allProfiles || [];
             if(mode==='friends') {
                 ranked = ranked.filter(p => friendIds.has(p.id));
-                if(!friendIds.has(currentUser.id)) ranked.push({ id:currentUser.id, username:profile.username, gold:profile.gold, gender:profile.gender });
+                if(!friendIds.has(currentUser.id) && profile) {
+                    ranked.push({ id:currentUser.id, username:profile.username, gold:profile.gold, gender:profile.gender });
+                }
             }
+
             listEl.innerHTML = ranked.map((p, idx) => {
                 const rank = idx+1;
                 const isMe = p.id === currentUser.id;
@@ -736,11 +768,13 @@
                 btn.onclick = async function() {
                     const uid = this.getAttribute('data-uid');
                     try {
-                        await supabaseClient.from('friendships').insert({ from_user:currentUser.id, to_user:uid });
+                        const { error } = await supabaseClient.from('friendships').insert({ from_user:currentUser.id, to_user:uid });
+                        if (error) throw error;
                         sentRequests.add(uid);
                         await refreshLeaderboard('global');
                         showToast('好友申请已发送！');
                     } catch(err) {
+                        console.error('加好友失败:', err);
                         showToast('发送失败，请稍后重试');
                     }
                 };
