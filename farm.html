@@ -140,6 +140,9 @@
             display:flex; align-items:center; gap:10px; padding:10px 12px;
             border-bottom:1px solid #f0ede6;
         }
+        .list-item .rank-span {
+            font-weight:700; width:24px; text-align:center; display:inline-block;
+        }
         .tag-friend { font-size:0.7rem; color:#888; background:#f0ede6; padding:2px 8px; border-radius:10px; }
         .tag-self { font-size:0.7rem; color:var(--accent); }
         .btn-small {
@@ -670,7 +673,7 @@
                 }
             };
 
-            // 排行榜模块
+            // 排行榜模块（修复排名显示）
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -761,8 +764,10 @@
                         else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
                         const genderClass = p.gender||'none';
                         const avatarLetter = (p.username||'?')[0];
+                        // 修复：统一显示数字，前三名金色加粗
+                        const rankColor = rank <= 3 ? '#f0c040' : 'var(--accent)';
                         return `<div class="list-item">
-                            <span style="font-weight:600;width:24px;">${rank<=3?'🥇🥈🥉'[rank-1]:rank}</span>
+                            <span class="rank-span" style="color:${rankColor};">${rank}</span>
                             <div class="avatar ${genderClass}" style="width:30px;height:30px;">${avatarLetter}</div>
                             <span style="flex:1;">${escapeHTML(p.username||'匿名')}</span>
                             <span style="color:var(--accent);">🪙${p.gold||0}</span>
@@ -770,7 +775,7 @@
                         </div>`;
                     }).join('');
 
-                    listEl.querySelectorAll('.btn-add-friend:not([disabled])').forEach(btn => {
+                    listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
                         btn.onclick = async () => {
                             const uid = btn.dataset.uid;
                             try {
@@ -809,7 +814,7 @@
                     </div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
                     ${unlocked < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${unlocked}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
-                    <!-- 弹窗同上 -->
+                    <!-- 弹窗 -->
                     <div class="modal-overlay" id="modalPlant">
                         <div class="modal">
                             <h3>🌱 选择作物</h3>
