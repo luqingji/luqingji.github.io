@@ -240,10 +240,12 @@
                 return `${Math.floor(hours / 24)}天前`;
             }
 
-            async function addEventLog(eventType, eventData) {
+            // 日志写入（已修复：增加 try-catch 且静默失败不影响主流程）
+            async function addEventLog(eventType, eventData, targetUserId = null) {
                 try {
+                    const uid = targetUserId || State.currentUser.id;
                     await supabase.from('event_logs').insert({
-                        user_id: State.currentUser.id,
+                        user_id: uid,
                         event_type: eventType,
                         event_data: eventData
                     });
@@ -252,6 +254,7 @@
                 }
             }
 
+            // 数据加载
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -320,6 +323,7 @@
                 (data||[]).forEach(d => { State.items[d.item_type] = d.quantity; });
             }
 
+            // 认证
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
                 if (error) throw error;
@@ -339,6 +343,7 @@
                 render();
             }
 
+            // 农场操作
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -383,7 +388,7 @@
                 await supabase.from('profiles').update({ gold:ownerNewGold }).eq('id', ownerId);
                 await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 }).eq('owner_id', ownerId).eq('plot_index', plotIndex);
                 State.profile.gold = newGold;
-                addEventLog('steal_received', { thief: State.profile.username, crop: plot.crop_type });
+                addEventLog('steal_received', { thief: State.profile.username, crop: plot.crop_type }, ownerId);
                 addEventLog('steal_sent', { victim: owner.username, crop: plot.crop_type, gold: stealReward });
                 return stealReward;
             }
@@ -407,6 +412,7 @@
                 return { status:'growing', progress, remainingMin, waterable };
             }
 
+            // 宠物操作
             async function adoptPet(petType) {
                 const { data, error } = await supabase.from('pets').insert({
                     owner_id: State.currentUser.id,
@@ -470,6 +476,7 @@
                 }
             }
 
+            // 地块解锁
             async function unlockPlot() {
                 const unlocked = State.profile.unlocked_plots || 4;
                 if (unlocked >= 12) return;
@@ -496,6 +503,7 @@
                 render();
             }
 
+            // 渲染入口
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -580,6 +588,7 @@
                 }
             };
 
+            // 好友农场
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -607,6 +616,9 @@
                             ${progressBar}
                         </div>`;
                     }).join('');
+
+                    // 进入好友农场时，给对方记一条日志
+                    addEventLog('friend_visit', { friend: State.profile.username }, State.visitingFriend.id);
 
                     return `
                     <div class="header">
@@ -674,12 +686,7 @@
                                     await supabase.from('profiles').update({ gold: (friend.gold||0)+5 }).eq('id', State.visitingFriend.id);
                                     State.profile.gold += 5;
                                     addEventLog('water_sent', { friend: State.visitingFriend.username });
-                                    // 也给对方记一条日志（收到浇水）
-                                    await supabase.from('event_logs').insert({
-                                        user_id: State.visitingFriend.id,
-                                        event_type: 'water_received',
-                                        event_data: { friend: State.profile.username }
-                                    });
+                                    addEventLog('water_received', { friend: State.profile.username }, State.visitingFriend.id);
                                     showToast('浇水成功！你获得5金币');
                                     render();
                                 } catch (err) { showToast('浇水失败', true); }
@@ -690,6 +697,7 @@
                 }
             };
 
+            // 排行榜
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -805,6 +813,7 @@
                 }
             };
 
+            // 主农场
             const Farm = {
                 render() {
                     const unlocked = State.profile?.unlocked_plots || 4;
@@ -948,7 +957,6 @@
                             const updatedPlot = await waterPlot(State.currentUser.id, plotIndex);
                             const idx = State.farmPlots.findIndex(p => p.plot_index === plotIndex);
                             if (idx !== -1) State.farmPlots[idx] = updatedPlot;
-                            // 记录浇水日志
                             addEventLog('water_self', { plot: plotIndex, crop: plot.crop_type });
                             Farm.updateGrid();
                             showToast('浇水成功！');
@@ -1171,6 +1179,7 @@
                     }
                     case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
                     case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
+                    case 'friend_visit': return `👤 ${d.friend} 访问了你的农场`;
                     default: return '未知事件';
                 }
             }
