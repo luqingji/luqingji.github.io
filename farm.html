@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - 日志修复</title>
+    <title>🌱 开心农场 - 日志增强</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -152,6 +152,7 @@
         .btn-reject { background:#e0d8cc; color:#333; }
         .btn-explore { background:#1976d2; color:#fff; }
         .btn-adopt { background:var(--accent); color:#fff; }
+        .btn-view { background:#e67e22; color:#fff; }
         .item-row {
             display:flex; align-items:center; gap:8px; padding:6px 0;
         }
@@ -240,7 +241,6 @@
                 return `${Math.floor(hours / 24)}天前`;
             }
 
-            // 日志写入（已修复：增加 try-catch 且静默失败不影响主流程）
             async function addEventLog(eventType, eventData, targetUserId = null) {
                 try {
                     const uid = targetUserId || State.currentUser.id;
@@ -254,7 +254,6 @@
                 }
             }
 
-            // 数据加载
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -308,11 +307,8 @@
                 const now = new Date();
                 for (let pet of State.pets) {
                     if (pet.exploring_until && new Date(pet.exploring_until) <= now) {
-                        const rewards = await completeExploration(pet.id);
-                        if (rewards) {
-                            const rewardText = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
-                            showToast(`${pet.pet_name} 探险归来！获得 ${rewardText}`);
-                        }
+                        // 自动完成探险，但不弹出提示，只记录日志
+                        await completeExploration(pet.id, true);
                     }
                 }
             }
@@ -323,7 +319,6 @@
                 (data||[]).forEach(d => { State.items[d.item_type] = d.quantity; });
             }
 
-            // 认证
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
                 if (error) throw error;
@@ -343,7 +338,6 @@
                 render();
             }
 
-            // 农场操作
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -439,10 +433,16 @@
                 await supabase.from('pets').update({ exploring_until: exploreUntil, last_explored_at: new Date().toISOString() }).eq('id', petId);
                 pet.exploring_until = exploreUntil;
                 State.profile.gold -= petTypeInfo.cost;
+                addEventLog('explore_start', { pet: pet.pet_name });
                 showToast(`${pet.pet_name} 出发探险！花费🪙${petTypeInfo.cost}`);
-                render();
+                // 刷新宠物界面
+                if (document.getElementById('modalPets').classList.contains('active')) {
+                    Farm.openPets();
+                } else {
+                    render();
+                }
             }
-            async function completeExploration(petId) {
+            async function completeExploration(petId, silent = false) {
                 const pet = State.pets.find(p => p.id === petId);
                 if (!pet || !pet.exploring_until) return null;
                 const rewards = {};
@@ -462,6 +462,10 @@
                     await addItem(item, qty);
                 }
                 addEventLog('explore_complete', { pet: pet.pet_name, rewards });
+                if (!silent) {
+                    const rewardText = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
+                    showToast(`${pet.pet_name} 探险归来！获得 ${rewardText}`);
+                }
                 return rewards;
             }
             async function addItem(itemType, qty) {
@@ -476,7 +480,6 @@
                 }
             }
 
-            // 地块解锁
             async function unlockPlot() {
                 const unlocked = State.profile.unlocked_plots || 4;
                 if (unlocked >= 12) return;
@@ -503,7 +506,6 @@
                 render();
             }
 
-            // 渲染入口
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -588,7 +590,6 @@
                 }
             };
 
-            // 好友农场
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -617,7 +618,6 @@
                         </div>`;
                     }).join('');
 
-                    // 进入好友农场时，给对方记一条日志
                     addEventLog('friend_visit', { friend: State.profile.username }, State.visitingFriend.id);
 
                     return `
@@ -697,7 +697,6 @@
                 }
             };
 
-            // 排行榜
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -813,7 +812,6 @@
                 }
             };
 
-            // 主农场
             const Farm = {
                 render() {
                     const unlocked = State.profile?.unlocked_plots || 4;
@@ -1025,24 +1023,47 @@
                         return;
                     }
                     container.innerHTML = State.pets.map(p => {
-                        const exploring = p.exploring_until && new Date(p.exploring_until) > new Date();
-                        const remaining = exploring ? Math.ceil((new Date(p.exploring_until) - new Date())/60000) : 0;
+                        const now = new Date();
+                        const exploring = p.exploring_until && new Date(p.exploring_until) > now;
+                        const finished = p.exploring_until && new Date(p.exploring_until) <= now;
+                        let btnHtml = '';
+                        if (finished) {
+                            btnHtml = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`;
+                        } else if (exploring) {
+                            const remaining = Math.ceil((new Date(p.exploring_until) - now)/60000);
+                            btnHtml = `<button class="btn-small" disabled>探险中(${remaining}分)</button>`;
+                        } else {
+                            btnHtml = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
+                        }
                         return `<div class="list-item">
                             <span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span>
                             <div style="flex:1;">
                                 <div>${p.pet_name} Lv.${p.level}</div>
-                                <div style="font-size:0.7rem;">EXP:${p.exp} | 探险${exploring ? `中(${remaining}分)` : '空闲'}</div>
+                                <div style="font-size:0.7rem;">EXP:${p.exp}</div>
                             </div>
-                            <button class="btn-small btn-explore" data-pet-id="${p.id}" ${exploring?'disabled':''}>${exploring?'探险中':'探险'}</button>
+                            ${btnHtml}
                         </div>`;
                     }).join('');
+
+                    // 绑定“探险”按钮
                     container.querySelectorAll('.btn-explore').forEach(btn => {
                         btn.onclick = async () => {
                             const petId = parseInt(btn.dataset.petId);
                             try {
                                 await startExplore(petId);
-                                document.getElementById('modalPets').classList.remove('active');
                             } catch(e) { showToast(e.message||'探险失败', true); }
+                        };
+                    });
+                    // 绑定“查看”按钮
+                    container.querySelectorAll('.btn-view').forEach(btn => {
+                        btn.onclick = async () => {
+                            const petId = parseInt(btn.dataset.petId);
+                            try {
+                                const rewards = await completeExploration(petId, false);
+                                // 重新加载宠物列表并刷新弹窗
+                                await loadPets();
+                                Farm.openPets();
+                            } catch(e) { showToast(e.message||'查看失败', true); }
                         };
                     });
                 },
@@ -1173,9 +1194,10 @@
                     case 'steal_received': return `👤 ${d.thief} 偷了你的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}！`;
                     case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
                     case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}`;
+                    case 'explore_start': return `🐾 ${d.pet} 出门探险了`;
                     case 'explore_complete': {
                         const items = Object.entries(d.rewards || {}).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
-                        return `🐱 ${d.pet} 探险归来，带回 ${items}`;
+                        return `🐾 ${d.pet} 探险归来，带回 ${items}`;
                     }
                     case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
                     case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
