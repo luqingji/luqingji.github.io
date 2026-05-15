@@ -412,13 +412,11 @@
                 pet.exploring_until = exploreUntil;
                 State.profile.gold -= petTypeInfo.cost;
                 showToast(`${pet.pet_name} 出发探险！花费🪙${petTypeInfo.cost}`);
-                // 更新界面
                 render();
             }
             async function completeExploration(petId) {
                 const pet = State.pets.find(p => p.id === petId);
                 if (!pet || !pet.exploring_until) return null;
-                // 随机奖励
                 const rewards = {};
                 const pool = [];
                 if (pet.pet_type === 'cat') pool.push('hair','hair','hair','seed','dew','firefly','ore','feather');
@@ -429,7 +427,6 @@
                     const item = pool[Math.floor(Math.random()*pool.length)];
                     rewards[item] = (rewards[item]||0)+1;
                 }
-                // 更新数据库
                 await supabase.from('pets').update({ exploring_until: null, exp: (pet.exp||0)+30 }).eq('id', petId);
                 pet.exploring_until = null;
                 pet.exp = (pet.exp||0)+30;
@@ -455,7 +452,6 @@
                 const unlocked = State.profile.unlocked_plots || 4;
                 if (unlocked >= 12) return;
                 const req = UNLOCK_REQUIREMENTS[unlocked - 4];
-                // 检查材料
                 for (const [item, needed] of Object.entries(req.items)) {
                     if ((State.items[item]||0) < needed) {
                         showToast(`需要 ${ITEM_EMOJI[item]}${ITEM_NAMES[item]}×${needed}`, true);
@@ -466,11 +462,9 @@
                     showToast(`需要 ${req.friends} 个好友`, true);
                     return;
                 }
-                // 扣除材料
                 for (const [item, needed] of Object.entries(req.items)) {
                     await addItem(item, -needed);
                 }
-                // 解锁
                 await supabase.from('profiles').update({ unlocked_plots: unlocked+1 }).eq('id', State.currentUser.id);
                 await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index: unlocked });
                 State.profile.unlocked_plots = unlocked+1;
@@ -487,7 +481,6 @@
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
 
-            // 认证模块
             const Auth = {
                 render() {
                     return `
@@ -565,7 +558,6 @@
                 }
             };
 
-            // 好友农场模块
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -673,7 +665,7 @@
                 }
             };
 
-            // 排行榜模块（修复排名显示）
+            // 排行榜模块（已修复好友排行中自己的位置）
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -749,6 +741,8 @@
                         ranked = ranked.filter(p => friendIdSet.has(p.id));
                         if (!friendIdSet.has(State.currentUser.id) && State.profile) {
                             ranked.push({ id:State.currentUser.id, username:State.profile.username, gold:State.profile.gold, gender:State.profile.gender });
+                            // 修复：重新排序，确保自己排在正确位置
+                            ranked.sort((a, b) => (b.gold || 0) - (a.gold || 0));
                         }
                     }
 
@@ -764,7 +758,6 @@
                         else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
                         const genderClass = p.gender||'none';
                         const avatarLetter = (p.username||'?')[0];
-                        // 修复：统一显示数字，前三名金色加粗
                         const rankColor = rank <= 3 ? '#f0c040' : 'var(--accent)';
                         return `<div class="list-item">
                             <span class="rank-span" style="color:${rankColor};">${rank}</span>
@@ -788,7 +781,6 @@
                 }
             };
 
-            // 农场主界面
             const Farm = {
                 render() {
                     const unlocked = State.profile?.unlocked_plots || 4;
@@ -814,7 +806,6 @@
                     </div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
                     ${unlocked < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${unlocked}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
-                    <!-- 弹窗 -->
                     <div class="modal-overlay" id="modalPlant">
                         <div class="modal">
                             <h3>🌱 选择作物</h3>
