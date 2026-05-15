@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - 阶段A</title>
+    <title>🌱 开心农场 - 日志系统</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -155,7 +155,9 @@
         .item-row {
             display:flex; align-items:center; gap:8px; padding:6px 0;
         }
-        .explore-timer { font-size:0.75rem; color:#1976d2; }
+        .log-item {
+            text-align:left; padding:8px 12px; border-bottom:1px solid #f0ede6;
+        }
     </style>
 </head>
 <body>
@@ -163,7 +165,6 @@
     <div class="toast" id="toast"></div>
     <script>
         (function() {
-            // Supabase 初始化
             const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -179,10 +180,9 @@
                 visitingPlots: [],
                 isSubmitting: false,
                 pets: [],
-                items: {} // { itemType: quantity }
+                items: {}
             };
 
-            // 常量
             const CROPS = {
                 carrot:    { name:'胡萝卜', emoji:'🥕', seed:20, growth:8,  min:50, max:80 },
                 tomato:    { name:'番茄',   emoji:'🍅', seed:40, growth:10, min:70, max:100 },
@@ -227,6 +227,31 @@
                 const div = document.createElement('div');
                 div.textContent = str;
                 return div.innerHTML;
+            }
+            function formatTime(iso) {
+                if (!iso) return '';
+                const d = new Date(iso);
+                const now = new Date();
+                const diff = now - d;
+                const mins = Math.floor(diff / 60000);
+                if (mins < 1) return '刚刚';
+                if (mins < 60) return `${mins}分钟前`;
+                const hours = Math.floor(mins / 60);
+                if (hours < 24) return `${hours}小时前`;
+                return `${Math.floor(hours / 24)}天前`;
+            }
+
+            // 日志记录（静默，失败不影响主流程）
+            async function addEventLog(eventType, eventData) {
+                try {
+                    await supabase.from('event_logs').insert({
+                        user_id: State.currentUser.id,
+                        event_type: eventType,
+                        event_data: eventData
+                    });
+                } catch (e) {
+                    console.error('日志写入失败:', e);
+                }
             }
 
             // 数据加载
@@ -280,7 +305,6 @@
                 const { data, error } = await supabase.from('pets').select('*').eq('owner_id', State.currentUser.id);
                 if (error) throw error;
                 State.pets = data || [];
-                // 检查探险是否完成
                 const now = new Date();
                 for (let pet of State.pets) {
                     if (pet.exploring_until && new Date(pet.exploring_until) <= now) {
@@ -326,6 +350,7 @@
                     crop_type:cropType, planted_at:now, growth_minutes:growthMinutes, watered_at:null, stolen_count:0
                 }).eq('owner_id', State.currentUser.id).eq('plot_index', plotIndex).select().single();
                 if (error) throw error;
+                addEventLog('plant', { crop: cropType });
                 return data;
             }
             async function waterPlot(ownerId, plotIndex) {
@@ -346,6 +371,7 @@
                     crop_type:null, planted_at:null, watered_at:null, stolen_count:0
                 }).eq('owner_id', State.currentUser.id).eq('plot_index', plotIndex);
                 State.profile.gold = newGold;
+                addEventLog('harvest', { crop: plot.crop_type, gold: reward });
                 return reward;
             }
             async function stealCrop(ownerId, plotIndex) {
@@ -357,11 +383,15 @@
                 const stealReward = Math.floor(baseReward * 0.4);
                 const newGold = (State.profile.gold || 0) + stealReward;
                 await supabase.from('profiles').update({ gold:newGold }).eq('id', State.currentUser.id);
-                const { data: owner } = await supabase.from('profiles').select('gold').eq('id', ownerId).single();
+                const { data: owner } = await supabase.from('profiles').select('gold, username').eq('id', ownerId).single();
                 const ownerNewGold = (owner.gold || 0) - baseReward + (baseReward - stealReward);
                 await supabase.from('profiles').update({ gold:ownerNewGold }).eq('id', ownerId);
                 await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 }).eq('owner_id', ownerId).eq('plot_index', plotIndex);
                 State.profile.gold = newGold;
+                // 日志：被偷者
+                addEventLog('steal_received', { thief: State.profile.username, crop: plot.crop_type });
+                // 偷取者
+                addEventLog('steal_sent', { victim: owner.username, crop: plot.crop_type, gold: stealReward });
                 return stealReward;
             }
             function getCropStatus(plot) {
@@ -393,6 +423,7 @@
                 }).select().single();
                 if (error) throw error;
                 State.pets.push(data);
+                addEventLog('adopt_pet', { pet: PET_TYPES[petType].name });
                 return data;
             }
             async function startExplore(petId) {
@@ -405,7 +436,6 @@
                 if ((State.profile.gold || 0) < petTypeInfo.cost) {
                     showToast('金币不足！', true); return;
                 }
-                // 扣金币
                 await supabase.from('profiles').update({ gold: State.profile.gold - petTypeInfo.cost }).eq('id', State.currentUser.id);
                 const exploreUntil = new Date(Date.now() + petTypeInfo.time * 3600000).toISOString();
                 await supabase.from('pets').update({ exploring_until: exploreUntil, last_explored_at: new Date().toISOString() }).eq('id', petId);
@@ -433,6 +463,7 @@
                 for (const [item, qty] of Object.entries(rewards)) {
                     await addItem(item, qty);
                 }
+                addEventLog('explore_complete', { pet: pet.pet_name, rewards });
                 return rewards;
             }
             async function addItem(itemType, qty) {
@@ -469,11 +500,12 @@
                 await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index: unlocked });
                 State.profile.unlocked_plots = unlocked+1;
                 await loadFarmPlots();
+                addEventLog('plot_unlock', { plot: unlocked+1 });
                 showToast('解锁成功！获得新地块');
                 render();
             }
 
-            // 渲染入口
+            // 渲染
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -614,11 +646,7 @@
                     </div>`;
                 },
                 bindEvents() {
-                    document.getElementById('btnBackToFarm').onclick = () => {
-                        State.visitingFriend = null;
-                        State.visitingPlots = [];
-                        render();
-                    };
+                    document.getElementById('btnBackToFarm').onclick = () => { State.visitingFriend = null; State.visitingPlots = []; render(); };
                     document.getElementById('closeStealModal').onclick = () => document.getElementById('modalSteal').classList.remove('active');
                     document.getElementById('closeWaterFriendModal').onclick = () => document.getElementById('modalWaterFriend').classList.remove('active');
 
@@ -655,6 +683,7 @@
                                     const { data: friend } = await supabase.from('profiles').select('gold').eq('id', State.visitingFriend.id).single();
                                     await supabase.from('profiles').update({ gold: (friend.gold||0)+5 }).eq('id', State.visitingFriend.id);
                                     State.profile.gold += 5;
+                                    addEventLog('water_sent', { friend: State.visitingFriend.username });
                                     showToast('浇水成功！你获得5金币');
                                     render();
                                 } catch (err) { showToast('浇水失败', true); }
@@ -665,7 +694,6 @@
                 }
             };
 
-            // 排行榜模块（已修复好友排行中自己的位置）
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -719,6 +747,7 @@
                                 const fromId = btn.dataset.from;
                                 try {
                                     await supabase.from('friendships').update({ status:'accepted' }).eq('id', reqId);
+                                    addEventLog('friend_accepted', { friend: allProfiles?.find(p=>p.id===fromId)?.username || '好友' });
                                     showToast('已接受好友申请！');
                                     await Leaderboard.refresh('global');
                                 } catch (err) { showToast('操作失败', true); }
@@ -741,7 +770,6 @@
                         ranked = ranked.filter(p => friendIdSet.has(p.id));
                         if (!friendIdSet.has(State.currentUser.id) && State.profile) {
                             ranked.push({ id:State.currentUser.id, username:State.profile.username, gold:State.profile.gold, gender:State.profile.gender });
-                            // 修复：重新排序，确保自己排在正确位置
                             ranked.sort((a, b) => (b.gold || 0) - (a.gold || 0));
                         }
                     }
@@ -801,6 +829,7 @@
                             <button class="btn-icon" id="btnFriends">👥</button>
                             <button class="btn-icon" id="btnPets">🐾</button>
                             <button class="btn-icon" id="btnBackpack">🎒</button>
+                            <button class="btn-icon" id="btnEventLog">📋</button>
                             <button class="btn-icon" id="btnLogout">🚪</button>
                         </div>
                     </div>
@@ -859,6 +888,13 @@
                             <div class="list-container" id="leaderboardList"></div>
                             <button class="btn-close" id="closeLeaderboardModal">关闭</button>
                         </div>
+                    </div>
+                    <div class="modal-overlay" id="modalEventLog">
+                        <div class="modal" style="max-width:400px;">
+                            <h3>📋 事件日志</h3>
+                            <div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div>
+                            <button class="btn-close" id="closeEventLogModal">关闭</button>
+                        </div>
                     </div>`;
                 },
                 plotHTML(plot) {
@@ -890,12 +926,14 @@
                     document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
                     document.getElementById('btnPets').onclick = () => Farm.openPets();
                     document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
+                    document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
                     document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
                     document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
                     document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
                     document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
                     document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
                     document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
+                    document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
                     document.getElementById('btnUnlock')?.addEventListener('click', async () => {
                         if (State.isSubmitting) return;
                         State.isSubmitting = true;
@@ -1068,8 +1106,83 @@
                             }
                         };
                     });
+                },
+                async openEventLog() {
+                    document.getElementById('modalEventLog').classList.add('active');
+                    const container = document.getElementById('eventLogContainer');
+                    container.innerHTML = '<p>加载中...</p>';
+
+                    const { data: logs, error } = await supabase
+                        .from('event_logs')
+                        .select('*')
+                        .eq('user_id', State.currentUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+
+                    if (error) {
+                        container.innerHTML = '<p>加载失败</p>';
+                        return;
+                    }
+
+                    if (logs.length === 0) {
+                        container.innerHTML = '<p>暂无事件记录。</p>';
+                        return;
+                    }
+
+                    container.innerHTML = logs.map(log => {
+                        const time = formatTime(log.created_at);
+                        const content = formatEventMessage(log);
+                        return `<div class="log-item">
+                            <div style="font-size:0.7rem;color:#888;">${time}</div>
+                            <div>${content}</div>
+                        </div>`;
+                    }).join('');
+
+                    // 自动清理旧日志（保留最近200条）
+                    if (logs.length >= 50) {
+                        const { data: countData } = await supabase
+                            .from('event_logs')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('user_id', State.currentUser.id)
+                            .order('created_at', { ascending: false })
+                            .limit(200);
+                        // 如果总数超过200，删除最旧的
+                        const { count } = await supabase
+                            .from('event_logs')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', State.currentUser.id);
+                        if (count > 200) {
+                            const { data: oldLogs } = await supabase
+                                .from('event_logs')
+                                .select('id')
+                                .eq('user_id', State.currentUser.id)
+                                .order('created_at', { ascending: true })
+                                .limit(count - 200);
+                            const oldIds = oldLogs.map(l => l.id);
+                            await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
+                        }
+                    }
                 }
             };
+
+            function formatEventMessage(log) {
+                const d = log.event_data || {};
+                switch (log.event_type) {
+                    case 'plant': return `🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;
+                    case 'harvest': return `🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
+                    case 'steal_received': return `👤 ${d.thief} 偷了你的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}！`;
+                    case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
+                    case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
+                    case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}`;
+                    case 'explore_complete': {
+                        const items = Object.entries(d.rewards || {}).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
+                        return `🐱 ${d.pet} 探险归来，带回 ${items}`;
+                    }
+                    case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
+                    case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
+                    default: return '未知事件';
+                }
+            }
 
             let growthTimer;
             function startGrowthTimer() {
