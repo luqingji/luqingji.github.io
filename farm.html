@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - 日志增强</title>
+    <title>🌱 开心农场 - 阶段B</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -153,12 +153,20 @@
         .btn-explore { background:#1976d2; color:#fff; }
         .btn-adopt { background:var(--accent); color:#fff; }
         .btn-view { background:#e67e22; color:#fff; }
-        .item-row {
-            display:flex; align-items:center; gap:8px; padding:6px 0;
+        .item-row { display:flex; align-items:center; gap:8px; padding:6px 0; }
+        .log-item { text-align:left; padding:8px 12px; border-bottom:1px solid #f0ede6; }
+        .equipment-card {
+            background: #f9f6f0; border-radius: 12px; padding: 12px; margin: 8px 0;
+            border-left: 4px solid var(--accent);
         }
-        .log-item {
-            text-align:left; padding:8px 12px; border-bottom:1px solid #f0ede6;
-        }
+        .quality-white { border-left-color: #ccc; }
+        .quality-blue { border-left-color: #5b7fbc; }
+        .quality-purple { border-left-color: #9b59b6; }
+        .quality-gold { border-left-color: #f0c040; }
+        .btn-synthesis { background: #8e44ad; color: #fff; border: none; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size:0.8rem; }
+        .btn-enhance { background: #e67e22; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; margin-right:4px; }
+        .btn-equip { background: #6ba3be; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; margin-right:4px; }
+        .btn-unequip { background: #aaa; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; }
     </style>
 </head>
 <body>
@@ -166,23 +174,20 @@
     <div class="toast" id="toast"></div>
     <script>
         (function() {
+            // ==================== Supabase 初始化 ====================
             const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+            // ==================== 全局状态 ====================
             const State = {
-                currentUser: null,
-                profile: null,
-                farmPlots: [],
-                friendIds: new Set(),
-                friendProfiles: [],
-                visitingFriend: null,
-                visitingPlots: [],
-                isSubmitting: false,
-                pets: [],
-                items: {}
+                currentUser: null, profile: null, farmPlots: [],
+                friendIds: new Set(), friendProfiles: [],
+                visitingFriend: null, visitingPlots: [],
+                isSubmitting: false, pets: [], items: {}, equipment: []
             };
 
+            // ==================== 常量数据 ====================
             const CROPS = {
                 carrot:    { name:'胡萝卜', emoji:'🥕', seed:20, growth:8,  min:50, max:80 },
                 tomato:    { name:'番茄',   emoji:'🍅', seed:40, growth:10, min:70, max:100 },
@@ -190,9 +195,9 @@
                 corn:      { name:'玉米',   emoji:'🌽', seed:80, growth:15, min:130, max:180 }
             };
             const PET_TYPES = {
-                cat:    { name:'橘猫', emoji:'🐱', cost:50,  time:2,   bonus:'双倍物品10%' },
-                dog:    { name:'柴犬', emoji:'🐶', cost:80,  time:3,   bonus:'缩短时间10%' },
-                rabbit: { name:'兔子', emoji:'🐰', cost:30,  time:1.5, bonus:'额外随机物品10%' }
+                cat:    { name:'橘猫', emoji:'🐱', cost:50,  time:2,   baseAttr:{hp:80, atk:18, def:5, spd:12, luk:8, sta:60} },
+                dog:    { name:'柴犬', emoji:'🐶', cost:80,  time:3,   baseAttr:{hp:120, atk:12, def:10, spd:8, luk:5, sta:80} },
+                rabbit: { name:'兔子', emoji:'🐰', cost:30,  time:1.5, baseAttr:{hp:60, atk:15, def:3, spd:18, luk:12, sta:40} }
             };
             const ITEM_NAMES = {
                 hair:'动物毛发', seed:'神秘种子', dew:'清水露珠', firefly:'萤火虫',
@@ -214,46 +219,54 @@
                 { items:{ feather:4, scale:2 }, friends:8 },
                 { items:{ feather:5, scale:5 }, friends:10 }
             ];
+            const SYNTHESIS_RECIPES = [
+                { name:'锋利犬牙', slot:'weapon', quality:'white', materials:{ore:3, hair:2}, cost:200 },
+                { name:'铁壳护甲', slot:'armor', quality:'white', materials:{ore:3, hair:2}, cost:200 },
+                { name:'幸运铃铛', slot:'accessory', quality:'white', materials:{hair:2, clover:2}, cost:150 },
+                { name:'烈焰犬牙', slot:'weapon', quality:'blue', materials:{ore:5, relic:2}, cost:500 },
+                { name:'秘银护甲', slot:'armor', quality:'blue', materials:{ore:5, relic:2}, cost:500 },
+                { name:'星光铃铛', slot:'accessory', quality:'blue', materials:{clover:4, moonstone:2}, cost:400 },
+                { name:'龙焰犬牙', slot:'weapon', quality:'purple', materials:{relic:4, feather:2}, cost:1200 },
+                { name:'传说犬牙', slot:'weapon', quality:'gold', materials:{scale:3, feather:3}, cost:3000 }
+            ];
 
+            // ==================== 工具函数 ====================
             function showToast(msg, isError=false) {
                 const t = document.getElementById('toast');
-                t.textContent = msg;
-                t.style.background = isError ? '#c0392b' : '#3d3929';
-                t.classList.add('show');
-                clearTimeout(t._timeout);
+                t.textContent = msg; t.style.background = isError ? '#c0392b' : '#3d3929';
+                t.classList.add('show'); clearTimeout(t._timeout);
                 t._timeout = setTimeout(() => t.classList.remove('show'), 2000);
             }
-            function escapeHTML(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
-            }
+            function escapeHTML(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
             function formatTime(iso) {
-                if (!iso) return '';
-                const d = new Date(iso);
-                const now = new Date();
-                const diff = now - d;
-                const mins = Math.floor(diff / 60000);
-                if (mins < 1) return '刚刚';
-                if (mins < 60) return `${mins}分钟前`;
-                const hours = Math.floor(mins / 60);
-                if (hours < 24) return `${hours}小时前`;
+                if (!iso) return ''; const d = new Date(iso); const now = new Date();
+                const diff = now - d; const mins = Math.floor(diff / 60000);
+                if (mins < 1) return '刚刚'; if (mins < 60) return `${mins}分钟前`;
+                const hours = Math.floor(mins / 60); if (hours < 24) return `${hours}小时前`;
                 return `${Math.floor(hours / 24)}天前`;
             }
-
             async function addEventLog(eventType, eventData, targetUserId = null) {
                 try {
                     const uid = targetUserId || State.currentUser.id;
-                    await supabase.from('event_logs').insert({
-                        user_id: uid,
-                        event_type: eventType,
-                        event_data: eventData
-                    });
-                } catch (e) {
-                    console.error('日志写入失败:', e);
+                    await supabase.from('event_logs').insert({ user_id: uid, event_type: eventType, event_data: eventData });
+                } catch (e) { console.error('日志写入失败:', e); }
+            }
+            async function addItem(itemType, qty) {
+                const { data: row, error: readError } = await supabase.from('player_items')
+                    .select('quantity').eq('user_id', State.currentUser.id).eq('item_type', itemType).maybeSingle();
+                if (readError) throw readError;
+                const current = row ? row.quantity : 0;
+                const newQty = Math.max(0, current + qty);
+                if (newQty === 0) {
+                    await supabase.from('player_items').delete().eq('user_id', State.currentUser.id).eq('item_type', itemType);
+                    delete State.items[itemType];
+                } else {
+                    await supabase.from('player_items').upsert({ user_id: State.currentUser.id, item_type: itemType, quantity: newQty }, { onConflict: 'user_id,item_type' });
+                    State.items[itemType] = newQty;
                 }
             }
 
+            // ==================== 数据加载 ====================
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -264,18 +277,13 @@
                     for (let i=0; i<4; i++) await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index:i });
                     const { data:newProfile } = await supabase.from('profiles').select('*').eq('id',State.currentUser.id).single();
                     State.profile = newProfile;
-                } else {
-                    State.profile = data;
-                }
+                } else { State.profile = data; }
             }
             async function loadFarmPlots() {
                 const { data, error } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
-                if (error) throw error;
-                State.farmPlots = data || [];
+                if (error) throw error; State.farmPlots = data || [];
                 if (State.farmPlots.length === 0) {
-                    for (let i=0; i<(State.profile?.unlocked_plots||4); i++) {
-                        await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index:i });
-                    }
+                    for (let i=0; i<(State.profile?.unlocked_plots||4); i++) await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index:i });
                     const { data:newPlots } = await supabase.from('farm_plots').select('*').eq('owner_id',State.currentUser.id).order('plot_index');
                     State.farmPlots = newPlots || [];
                 }
@@ -285,8 +293,7 @@
                     .select('id, from_user, to_user, status')
                     .or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`)
                     .eq('status', 'accepted');
-                State.friendIds.clear();
-                const friendIdSet = new Set();
+                State.friendIds.clear(); const friendIdSet = new Set();
                 (accepted||[]).forEach(f => {
                     const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user;
                     friendIdSet.add(fid);
@@ -296,48 +303,47 @@
                     const ids = Array.from(friendIdSet);
                     const { data: profiles } = await supabase.from('profiles').select('id, username, gender, gold').in('id', ids);
                     State.friendProfiles = profiles || [];
-                } else {
-                    State.friendProfiles = [];
-                }
+                } else { State.friendProfiles = []; }
             }
             async function loadPets() {
                 const { data, error } = await supabase.from('pets').select('*').eq('owner_id', State.currentUser.id);
-                if (error) throw error;
-                State.pets = data || [];
+                if (error) throw error; State.pets = data || [];
                 const now = new Date();
                 for (let pet of State.pets) {
                     if (pet.exploring_until && new Date(pet.exploring_until) <= now) {
-                        // 自动完成探险，但不弹出提示，只记录日志
                         await completeExploration(pet.id, true);
                     }
                 }
             }
             async function loadItems() {
                 const { data, error } = await supabase.from('player_items').select('*').eq('user_id', State.currentUser.id);
-                if (error) throw error;
-                State.items = {};
+                if (error) throw error; State.items = {};
                 (data||[]).forEach(d => { State.items[d.item_type] = d.quantity; });
             }
+            async function loadEquipment() {
+                const { data, error } = await supabase.from('equipment').select('*').eq('owner_id', State.currentUser.id);
+                if (error) throw error; State.equipment = data || [];
+            }
 
+            // ==================== 认证 ====================
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
-                if (error) throw error;
-                return data;
+                if (error) throw error; return data;
             }
             async function signIn(email, password) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                return data;
+                if (error) throw error; return data;
             }
             async function signOut() {
                 await supabase.auth.signOut();
                 Object.assign(State, {
                     currentUser:null, profile:null, farmPlots:[], friendIds:new Set(), friendProfiles:[],
-                    visitingFriend:null, visitingPlots:[], pets:[], items:{}
+                    visitingFriend:null, visitingPlots:[], pets:[], items:{}, equipment:[]
                 });
                 render();
             }
 
+            // ==================== 农场操作 ====================
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -351,8 +357,7 @@
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({ watered_at:now })
                     .eq('owner_id', ownerId).eq('plot_index', plotIndex).select().single();
-                if (error) throw error;
-                return data;
+                if (error) throw error; return data;
             }
             async function harvestPlot(plotIndex) {
                 const plot = State.farmPlots.find(p => p.plot_index === plotIndex);
@@ -388,16 +393,13 @@
             }
             function getCropStatus(plot) {
                 if (!plot.crop_type || !plot.planted_at) return { status:'empty' };
-                const now = new Date();
-                const planted = new Date(plot.planted_at);
+                const now = new Date(); const planted = new Date(plot.planted_at);
                 let growthMs = plot.growth_minutes * 60 * 1000;
                 if (plot.watered_at) growthMs = Math.floor(growthMs * 0.7);
                 const matureTime = new Date(planted.getTime() + growthMs);
                 if (now >= matureTime) return { status:'ready', progress:100 };
-                const elapsed = now - planted;
-                const progress = Math.floor((elapsed / growthMs) * 100);
-                const remaining = matureTime - now;
-                const remainingMin = Math.ceil(remaining / 60000);
+                const elapsed = now - planted; const progress = Math.floor((elapsed / growthMs) * 100);
+                const remaining = matureTime - now; const remainingMin = Math.ceil(remaining / 60000);
                 let waterable = true;
                 if (plot.watered_at) {
                     const lastWatered = new Date(plot.watered_at);
@@ -406,12 +408,13 @@
                 return { status:'growing', progress, remainingMin, waterable };
             }
 
-            // 宠物操作
+            // ==================== 宠物系统 ====================
             async function adoptPet(petType) {
+                const base = PET_TYPES[petType].baseAttr;
                 const { data, error } = await supabase.from('pets').insert({
-                    owner_id: State.currentUser.id,
-                    pet_type: petType,
-                    pet_name: PET_TYPES[petType].name
+                    owner_id: State.currentUser.id, pet_type: petType, pet_name: PET_TYPES[petType].name,
+                    level:1, exp:0, hp:base.hp, atk:base.atk, def:base.def, spd:base.spd, luk:base.luk, sta:base.sta,
+                    hunger:100, happiness:100
                 }).select().single();
                 if (error) throw error;
                 State.pets.push(data);
@@ -435,12 +438,7 @@
                 State.profile.gold -= petTypeInfo.cost;
                 addEventLog('explore_start', { pet: pet.pet_name });
                 showToast(`${pet.pet_name} 出发探险！花费🪙${petTypeInfo.cost}`);
-                // 刷新宠物界面
-                if (document.getElementById('modalPets').classList.contains('active')) {
-                    Farm.openPets();
-                } else {
-                    render();
-                }
+                if (document.getElementById('modalPets')?.classList.contains('active')) { Farm.openPets(); } else { render(); }
             }
             async function completeExploration(petId, silent = false) {
                 const pet = State.pets.find(p => p.id === petId);
@@ -455,12 +453,13 @@
                     const item = pool[Math.floor(Math.random()*pool.length)];
                     rewards[item] = (rewards[item]||0)+1;
                 }
-                await supabase.from('pets').update({ exploring_until: null, exp: (pet.exp||0)+30 }).eq('id', petId);
-                pet.exploring_until = null;
-                pet.exp = (pet.exp||0)+30;
-                for (const [item, qty] of Object.entries(rewards)) {
-                    await addItem(item, qty);
-                }
+                // 经验与升级
+                const newExp = (pet.exp||0) + 30;
+                let newLevel = pet.level || 1;
+                if (newExp >= newLevel * 100) { newLevel++; }
+                await supabase.from('pets').update({ exploring_until: null, exp: newExp, level: newLevel }).eq('id', petId);
+                pet.exploring_until = null; pet.exp = newExp; pet.level = newLevel;
+                for (const [item, qty] of Object.entries(rewards)) { await addItem(item, qty); }
                 addEventLog('explore_complete', { pet: pet.pet_name, rewards });
                 if (!silent) {
                     const rewardText = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
@@ -468,18 +467,72 @@
                 }
                 return rewards;
             }
-            async function addItem(itemType, qty) {
-                const current = State.items[itemType] || 0;
-                const newQty = Math.max(0, current + qty);
-                if (newQty === 0) {
-                    await supabase.from('player_items').delete().eq('user_id', State.currentUser.id).eq('item_type', itemType);
-                    delete State.items[itemType];
-                } else {
-                    await supabase.from('player_items').upsert({ user_id:State.currentUser.id, item_type:itemType, quantity:newQty }, { onConflict:'user_id,item_type' });
-                    State.items[itemType] = newQty;
+
+            // ==================== 装备与合成 ====================
+            async function synthesizeEquipment(recipe) {
+                for (const [item, needed] of Object.entries(recipe.materials)) {
+                    if ((State.items[item]||0) < needed) { showToast(`材料不足：${ITEM_NAMES[item]}×${needed}`, true); return; }
                 }
+                if ((State.profile.gold||0) < recipe.cost) { showToast('金币不足', true); return; }
+                for (const [item, needed] of Object.entries(recipe.materials)) { await addItem(item, -needed); }
+                await supabase.from('profiles').update({ gold: State.profile.gold - recipe.cost }).eq('id', State.currentUser.id);
+                State.profile.gold -= recipe.cost;
+                let quality = recipe.quality;
+                const rand = Math.random();
+                if (recipe.quality === 'white' && rand > 0.7) { quality = rand > 0.95 ? 'blue' : 'white'; }
+                else if (recipe.quality === 'blue' && rand > 0.75) { quality = rand > 0.96 ? 'purple' : 'blue'; }
+                const atkBonus = quality === 'gold' ? 30 : quality === 'purple' ? 20 : quality === 'blue' ? 15 : 10;
+                const defBonus = recipe.slot === 'armor' ? (quality === 'gold' ? 20 : quality === 'purple' ? 15 : 10) : 0;
+                const lukBonus = recipe.slot === 'accessory' ? (quality === 'gold' ? 15 : 10) : 0;
+                const { data, error } = await supabase.from('equipment').insert({
+                    owner_id: State.currentUser.id, name: recipe.name, slot: recipe.slot, quality,
+                    atk_bonus: atkBonus, def_bonus: defBonus, luk_bonus: lukBonus
+                }).select().single();
+                if (error) throw error;
+                State.equipment.push(data);
+                addEventLog('synthesis', { name: data.name, quality });
+                showToast(`合成成功！获得 ${data.name} (${quality})`);
+            }
+            async function enhanceEquipment(equipId) {
+                const equip = State.equipment.find(e => e.id === equipId);
+                if (!equip) return;
+                if (equip.enhance_level >= 5) { showToast('已达最高强化等级'); return; }
+                const cost = (equip.enhance_level + 1) * 200;
+                if ((State.profile.gold||0) < cost) { showToast('金币不足', true); return; }
+                const probs = [0.95, 0.85, 0.7, 0.55, 0.35];
+                const success = Math.random() < probs[equip.enhance_level];
+                await supabase.from('profiles').update({ gold: State.profile.gold - cost }).eq('id', State.currentUser.id);
+                State.profile.gold -= cost;
+                if (success) {
+                    const newLevel = equip.enhance_level + 1;
+                    await supabase.from('equipment').update({ enhance_level: newLevel }).eq('id', equipId);
+                    equip.enhance_level = newLevel;
+                    showToast(`强化成功！+${newLevel}`);
+                } else {
+                    const newLevel = Math.max(0, equip.enhance_level - 1);
+                    await supabase.from('equipment').update({ enhance_level: newLevel }).eq('id', equipId);
+                    equip.enhance_level = newLevel;
+                    showToast('强化失败，降级了...', true);
+                }
+                addEventLog('enhance', { name: equip.name, level: equip.enhance_level, success });
+            }
+            async function equipToPet(equipId, petId) {
+                const equip = State.equipment.find(e => e.id === equipId);
+                const pet = State.pets.find(p => p.id === petId);
+                if (!equip || !pet) return;
+                await supabase.from('equipment').update({ equipped_to: null }).eq('equipped_to', petId).eq('slot', equip.slot);
+                await supabase.from('equipment').update({ equipped_to: petId }).eq('id', equipId);
+                equip.equipped_to = petId;
+                showToast(`已装备 ${equip.name}`);
+            }
+            async function unequipFromPet(equipId) {
+                await supabase.from('equipment').update({ equipped_to: null }).eq('id', equipId);
+                const equip = State.equipment.find(e => e.id === equipId);
+                if (equip) equip.equipped_to = null;
+                showToast('已卸下装备');
             }
 
+            // ==================== 地块解锁 ====================
             async function unlockPlot() {
                 const unlocked = State.profile.unlocked_plots || 4;
                 if (unlocked >= 12) return;
@@ -494,9 +547,7 @@
                     showToast(`需要 ${req.friends} 个好友`, true);
                     return;
                 }
-                for (const [item, needed] of Object.entries(req.items)) {
-                    await addItem(item, -needed);
-                }
+                for (const [item, needed] of Object.entries(req.items)) { await addItem(item, -needed); }
                 await supabase.from('profiles').update({ unlocked_plots: unlocked+1 }).eq('id', State.currentUser.id);
                 await supabase.from('farm_plots').insert({ owner_id:State.currentUser.id, plot_index: unlocked });
                 State.profile.unlocked_plots = unlocked+1;
@@ -506,6 +557,7 @@
                 render();
             }
 
+            // ==================== 渲染入口 ====================
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -513,6 +565,7 @@
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
 
+            // ==================== 认证模块 ====================
             const Auth = {
                 render() {
                     return `
@@ -563,7 +616,8 @@
                             errorEl.textContent = '';
                             const result = await signIn(email, password);
                             State.currentUser = result.user;
-                            await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets(); await loadItems();
+                            await loadProfile(); await loadFarmPlots(); await loadFriendData();
+                            await loadPets(); await loadItems(); await loadEquipment();
                             render();
                         } catch (err) { errorEl.textContent = err.message || '登录失败'; }
                     };
@@ -582,7 +636,8 @@
                                 State.currentUser = result.user;
                                 showToast('注册成功！🎉');
                                 await new Promise(r => setTimeout(r, 1500));
-                                await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets(); await loadItems();
+                                await loadProfile(); await loadFarmPlots(); await loadFriendData();
+                                await loadPets(); await loadItems(); await loadEquipment();
                                 render();
                             }
                         } catch (err) { errorEl.textContent = err.message || '注册失败'; }
@@ -590,6 +645,7 @@
                 }
             };
 
+            // ==================== 好友农场模块 ====================
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -617,9 +673,7 @@
                             ${progressBar}
                         </div>`;
                     }).join('');
-
                     addEventLog('friend_visit', { friend: State.profile.username }, State.visitingFriend.id);
-
                     return `
                     <div class="header">
                         <div style="display:flex;align-items:center;gap:8px;">
@@ -651,7 +705,6 @@
                     document.getElementById('btnBackToFarm').onclick = () => { State.visitingFriend = null; State.visitingPlots = []; render(); };
                     document.getElementById('closeStealModal').onclick = () => document.getElementById('modalSteal').classList.remove('active');
                     document.getElementById('closeWaterFriendModal').onclick = () => document.getElementById('modalWaterFriend').classList.remove('active');
-
                     document.getElementById('friendFarmGrid').onclick = (e) => {
                         const card = e.target.closest('.plot-card');
                         if (!card || State.isSubmitting) return;
@@ -697,6 +750,7 @@
                 }
             };
 
+            // ==================== 排行榜模块 ====================
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -714,13 +768,9 @@
                     const reqArea = document.getElementById('friendRequestsArea');
                     listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
                     reqArea.style.display = 'none';
-
                     const { data: allProfiles } = await supabase.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
                     const { data: friendships } = await supabase.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
-
-                    const friendIdSet = new Set();
-                    const sentSet = new Set();
-                    const received = [];
+                    const friendIdSet = new Set(); const sentSet = new Set(); const received = [];
                     (friendships||[]).forEach(f => {
                         if (f.status === 'accepted') {
                             const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user;
@@ -731,7 +781,6 @@
                         }
                     });
                     State.friendIds = friendIdSet;
-
                     if (received.length > 0 && mode === 'global') {
                         reqArea.style.display = 'block';
                         reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => {
@@ -746,8 +795,7 @@
                         }).join('');
                         reqArea.querySelectorAll('.btn-accept').forEach(btn => {
                             btn.onclick = async () => {
-                                const reqId = btn.dataset.reqId;
-                                const fromId = btn.dataset.from;
+                                const reqId = btn.dataset.reqId; const fromId = btn.dataset.from;
                                 try {
                                     await supabase.from('friendships').update({ status:'accepted' }).eq('id', reqId);
                                     addEventLog('friend_accepted', { friend: allProfiles?.find(p=>p.id===fromId)?.username || '好友' });
@@ -759,15 +807,10 @@
                         reqArea.querySelectorAll('.btn-reject').forEach(btn => {
                             btn.onclick = async () => {
                                 const reqId = btn.dataset.reqId;
-                                try {
-                                    await supabase.from('friendships').delete().eq('id', reqId);
-                                    showToast('已拒绝');
-                                    await Leaderboard.refresh('global');
-                                } catch (err) { showToast('操作失败', true); }
+                                try { await supabase.from('friendships').delete().eq('id', reqId); showToast('已拒绝'); await Leaderboard.refresh('global'); } catch (err) { showToast('操作失败', true); }
                             };
                         });
                     }
-
                     let ranked = allProfiles || [];
                     if (mode === 'friends') {
                         ranked = ranked.filter(p => friendIdSet.has(p.id));
@@ -776,7 +819,6 @@
                             ranked.sort((a, b) => (b.gold || 0) - (a.gold || 0));
                         }
                     }
-
                     listEl.innerHTML = ranked.map((p, idx) => {
                         const rank = idx + 1;
                         const isMe = p.id === State.currentUser.id;
@@ -787,8 +829,7 @@
                         else if (isFriend) actionBtn = '<span class="tag-friend">好友</span>';
                         else if (isSent) actionBtn = '<button class="btn-small" disabled style="background:#ccc;">已申请</button>';
                         else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
-                        const genderClass = p.gender||'none';
-                        const avatarLetter = (p.username||'?')[0];
+                        const genderClass = p.gender||'none'; const avatarLetter = (p.username||'?')[0];
                         const rankColor = rank <= 3 ? '#f0c040' : 'var(--accent)';
                         return `<div class="list-item">
                             <span class="rank-span" style="color:${rankColor};">${rank}</span>
@@ -798,7 +839,6 @@
                             ${actionBtn}
                         </div>`;
                     }).join('');
-
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
                         btn.onclick = async () => {
                             const uid = btn.dataset.uid;
@@ -812,6 +852,7 @@
                 }
             };
 
+            // ==================== 主农场界面 ====================
             const Farm = {
                 render() {
                     const unlocked = State.profile?.unlocked_plots || 4;
@@ -832,6 +873,8 @@
                             <button class="btn-icon" id="btnFriends">👥</button>
                             <button class="btn-icon" id="btnPets">🐾</button>
                             <button class="btn-icon" id="btnBackpack">🎒</button>
+                            <button class="btn-icon" id="btnSynthesis">🔧</button>
+                            <button class="btn-icon" id="btnEquipment">⚔️</button>
                             <button class="btn-icon" id="btnEventLog">📋</button>
                             <button class="btn-icon" id="btnLogout">🚪</button>
                         </div>
@@ -874,6 +917,27 @@
                             <button class="btn-close" id="closeBackpackModal">关闭</button>
                         </div>
                     </div>
+                    <div class="modal-overlay" id="modalSynthesis">
+                        <div class="modal" style="max-width:400px;">
+                            <h3>🔧 合成台</h3>
+                            <div id="synthesisList" class="list-container"></div>
+                            <button class="btn-close" id="closeSynthesisModal">关闭</button>
+                        </div>
+                    </div>
+                    <div class="modal-overlay" id="modalEquipment">
+                        <div class="modal" style="max-width:400px;">
+                            <h3>⚔️ 装备</h3>
+                            <div id="equipmentList" class="list-container"></div>
+                            <button class="btn-close" id="closeEquipmentModal">关闭</button>
+                        </div>
+                    </div>
+                    <div class="modal-overlay" id="modalEventLog">
+                        <div class="modal" style="max-width:400px;">
+                            <h3>📋 事件日志</h3>
+                            <div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div>
+                            <button class="btn-close" id="closeEventLogModal">关闭</button>
+                        </div>
+                    </div>
                     <div class="modal-overlay" id="modalFriends">
                         <div class="modal" style="max-width:400px;">
                             <h3>👥 好友</h3>
@@ -890,13 +954,6 @@
                             <div class="friend-requests" id="friendRequestsArea" style="display:none;"></div>
                             <div class="list-container" id="leaderboardList"></div>
                             <button class="btn-close" id="closeLeaderboardModal">关闭</button>
-                        </div>
-                    </div>
-                    <div class="modal-overlay" id="modalEventLog">
-                        <div class="modal" style="max-width:400px;">
-                            <h3>📋 事件日志</h3>
-                            <div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div>
-                            <button class="btn-close" id="closeEventLogModal">关闭</button>
                         </div>
                     </div>`;
                 },
@@ -929,14 +986,18 @@
                     document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
                     document.getElementById('btnPets').onclick = () => Farm.openPets();
                     document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
+                    document.getElementById('btnSynthesis').onclick = () => Farm.openSynthesis();
+                    document.getElementById('btnEquipment').onclick = () => Farm.openEquipment();
                     document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
                     document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
                     document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
                     document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
                     document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
+                    document.getElementById('closeSynthesisModal').onclick = () => document.getElementById('modalSynthesis').classList.remove('active');
+                    document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
+                    document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
                     document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
                     document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
-                    document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
                     document.getElementById('btnUnlock')?.addEventListener('click', async () => {
                         if (State.isSubmitting) return;
                         State.isSubmitting = true;
@@ -1016,10 +1077,7 @@
                     const container = document.getElementById('petListContainer');
                     if (State.pets.length === 0) {
                         container.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>';
-                        document.getElementById('btnAdopt').onclick = () => {
-                            document.getElementById('modalPets').classList.remove('active');
-                            Farm.openAdopt();
-                        };
+                        document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
                         return;
                     }
                     container.innerHTML = State.pets.map(p => {
@@ -1039,32 +1097,16 @@
                             <span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span>
                             <div style="flex:1;">
                                 <div>${p.pet_name} Lv.${p.level}</div>
-                                <div style="font-size:0.7rem;">EXP:${p.exp}</div>
+                                <div style="font-size:0.7rem;">EXP:${p.exp} | ❤${p.hp} ⚔${p.atk} 🛡${p.def} ⚡${p.spd} 🍀${p.luk}</div>
                             </div>
                             ${btnHtml}
                         </div>`;
                     }).join('');
-
-                    // 绑定“探险”按钮
                     container.querySelectorAll('.btn-explore').forEach(btn => {
-                        btn.onclick = async () => {
-                            const petId = parseInt(btn.dataset.petId);
-                            try {
-                                await startExplore(petId);
-                            } catch(e) { showToast(e.message||'探险失败', true); }
-                        };
+                        btn.onclick = async () => { const petId = parseInt(btn.dataset.petId); try { await startExplore(petId); } catch(e) { showToast(e.message||'探险失败', true); } };
                     });
-                    // 绑定“查看”按钮
                     container.querySelectorAll('.btn-view').forEach(btn => {
-                        btn.onclick = async () => {
-                            const petId = parseInt(btn.dataset.petId);
-                            try {
-                                const rewards = await completeExploration(petId, false);
-                                // 重新加载宠物列表并刷新弹窗
-                                await loadPets();
-                                Farm.openPets();
-                            } catch(e) { showToast(e.message||'查看失败', true); }
-                        };
+                        btn.onclick = async () => { const petId = parseInt(btn.dataset.petId); try { await completeExploration(petId, false); await loadPets(); Farm.openPets(); } catch(e) { showToast(e.message||'查看失败', true); } };
                     });
                 },
                 openAdopt() {
@@ -1077,18 +1119,11 @@
                                 <div>${info.name}</div>
                                 <div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div>
                             </button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>';
-                    document.getElementById('cancelAdopt').onclick = () => {
-                        document.getElementById('modalPets').classList.remove('active');
-                    };
+                    document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); };
                     container.querySelectorAll('.pet-btn').forEach(btn => {
                         btn.onclick = async () => {
                             const petType = btn.dataset.pet;
-                            try {
-                                await adoptPet(petType);
-                                showToast('领养成功！');
-                                document.getElementById('modalPets').classList.remove('active');
-                                render();
-                            } catch(e) { showToast('领养失败', true); }
+                            try { await adoptPet(petType); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch(e) { showToast('领养失败', true); }
                         };
                     });
                 },
@@ -1096,16 +1131,89 @@
                     document.getElementById('modalBackpack').classList.add('active');
                     const container = document.getElementById('itemListContainer');
                     const items = Object.entries(State.items);
-                    if (items.length === 0) {
-                        container.innerHTML = '<p>背包空空，派宠物探险收集材料吧！</p>';
-                        return;
-                    }
+                    if (items.length === 0) { container.innerHTML = '<p>背包空空，派宠物探险收集材料吧！</p>'; return; }
                     container.innerHTML = items.map(([type, qty]) => `
                         <div class="item-row">
                             <span>${ITEM_EMOJI[type]}</span>
                             <span style="flex:1;">${ITEM_NAMES[type]}</span>
                             <span>×${qty}</span>
                         </div>`).join('');
+                },
+                openSynthesis() {
+                    document.getElementById('modalSynthesis').classList.add('active');
+                    const container = document.getElementById('synthesisList');
+                    container.innerHTML = SYNTHESIS_RECIPES.map((r, idx) => {
+                        const canAfford = (State.profile.gold||0) >= r.cost && Object.entries(r.materials).every(([item, need]) => (State.items[item]||0) >= need);
+                        return `<div class="equipment-card">
+                            <strong>${r.name}</strong> (${r.slot}) - ${r.quality}
+                            <div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]}×${need}`).join(' ')}</div>
+                            <div style="font-size:0.8rem;">费用：🪙${r.cost}</div>
+                            <button class="btn-synthesis" data-recipe-idx="${idx}" ${canAfford?'':'disabled'}>合成</button>
+                        </div>`;
+                    }).join('');
+                    container.querySelectorAll('.btn-synthesis').forEach(btn => {
+                        btn.onclick = async () => {
+                            const idx = parseInt(btn.dataset.recipeIdx);
+                            await synthesizeEquipment(SYNTHESIS_RECIPES[idx]);
+                            Farm.openSynthesis();
+                        };
+                    });
+                },
+                openEquipment() {
+                    document.getElementById('modalEquipment').classList.add('active');
+                    const container = document.getElementById('equipmentList');
+                    if (State.equipment.length === 0) {
+                        container.innerHTML = '<p>还没有装备，去合成台打造吧！</p>';
+                        return;
+                    }
+                    container.innerHTML = State.equipment.map(e => {
+                        const petName = e.equipped_to ? State.pets.find(p => p.id === e.equipped_to)?.pet_name : '未装备';
+                        const qualityClass = `quality-${e.quality}`;
+                        return `<div class="equipment-card ${qualityClass}">
+                            <strong>${e.name}</strong> +${e.enhance_level} (${e.quality})
+                            <div>ATK+${e.atk_bonus} DEF+${e.def_bonus} LUK+${e.luk_bonus}</div>
+                            <div>装备于：${petName}</div>
+                            <div style="margin-top:6px;">
+                                <button class="btn-enhance" data-equip-id="${e.id}">强化</button>
+                                <button class="btn-equip" data-equip-id="${e.id}">装备</button>
+                                <button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button>
+                            </div>
+                        </div>`;
+                    }).join('');
+                    container.querySelectorAll('.btn-enhance').forEach(btn => {
+                        btn.onclick = async () => {
+                            const equipId = parseInt(btn.dataset.equipId);
+                            await enhanceEquipment(equipId);
+                            Farm.openEquipment();
+                        };
+                    });
+                    container.querySelectorAll('.btn-equip').forEach(btn => {
+                        btn.onclick = async () => {
+                            const equipId = parseInt(btn.dataset.equipId);
+                            const petList = State.pets.map(p => `<button class="btn-small" style="margin:2px;" data-pet-id="${p.id}">${p.pet_name} Lv.${p.level}</button>`).join('');
+                            // 简易选择宠物弹窗
+                            const overlay = document.createElement('div');
+                            overlay.className = 'modal-overlay active';
+                            overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">取消</button></div>`;
+                            document.body.appendChild(overlay);
+                            overlay.querySelector('#cancelEquip').onclick = () => overlay.remove();
+                            overlay.querySelectorAll('.btn-small').forEach(petBtn => {
+                                petBtn.onclick = async () => {
+                                    const petId = parseInt(petBtn.dataset.petId);
+                                    await equipToPet(equipId, petId);
+                                    overlay.remove();
+                                    Farm.openEquipment();
+                                };
+                            });
+                        };
+                    });
+                    container.querySelectorAll('.btn-unequip').forEach(btn => {
+                        btn.onclick = async () => {
+                            const equipId = parseInt(btn.dataset.equipId);
+                            await unequipFromPet(equipId);
+                            Farm.openEquipment();
+                        };
+                    });
                 },
                 openFriendsList() {
                     document.getElementById('modalFriends').classList.add('active');
@@ -1138,45 +1246,17 @@
                     document.getElementById('modalEventLog').classList.add('active');
                     const container = document.getElementById('eventLogContainer');
                     container.innerHTML = '<p>加载中...</p>';
-
-                    const { data: logs, error } = await supabase
-                        .from('event_logs')
-                        .select('*')
-                        .eq('user_id', State.currentUser.id)
-                        .order('created_at', { ascending: false })
-                        .limit(50);
-
-                    if (error) {
-                        container.innerHTML = '<p>加载失败</p>';
-                        return;
-                    }
-
-                    if (logs.length === 0) {
-                        container.innerHTML = '<p>暂无事件记录。</p>';
-                        return;
-                    }
-
+                    const { data: logs, error } = await supabase.from('event_logs').select('*').eq('user_id', State.currentUser.id).order('created_at', { ascending: false }).limit(50);
+                    if (error) { container.innerHTML = '<p>加载失败</p>'; return; }
+                    if (logs.length === 0) { container.innerHTML = '<p>暂无事件记录。</p>'; return; }
                     container.innerHTML = logs.map(log => {
                         const time = formatTime(log.created_at);
                         const content = formatEventMessage(log);
-                        return `<div class="log-item">
-                            <div style="font-size:0.7rem;color:#888;">${time}</div>
-                            <div>${content}</div>
-                        </div>`;
+                        return `<div class="log-item"><div style="font-size:0.7rem;color:#888;">${time}</div><div>${content}</div></div>`;
                     }).join('');
-
-                    // 自动清理旧日志
-                    const { count } = await supabase
-                        .from('event_logs')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', State.currentUser.id);
+                    const { count } = await supabase.from('event_logs').select('*', { count: 'exact', head: true }).eq('user_id', State.currentUser.id);
                     if (count > 200) {
-                        const { data: oldLogs } = await supabase
-                            .from('event_logs')
-                            .select('id')
-                            .eq('user_id', State.currentUser.id)
-                            .order('created_at', { ascending: true })
-                            .limit(count - 200);
+                        const { data: oldLogs } = await supabase.from('event_logs').select('id').eq('user_id', State.currentUser.id).order('created_at', { ascending: true }).limit(count - 200);
                         const oldIds = oldLogs.map(l => l.id);
                         await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
                     }
@@ -1202,6 +1282,8 @@
                     case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
                     case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
                     case 'friend_visit': return `👤 ${d.friend} 访问了你的农场`;
+                    case 'synthesis': return `🔧 你合成了 ${d.name} (${d.quality})`;
+                    case 'enhance': return `⚔️ 装备 ${d.name} 强化${d.success?'成功':'失败'}，当前+${d.level}`;
                     default: return '未知事件';
                 }
             }
@@ -1210,9 +1292,7 @@
             function startGrowthTimer() {
                 if (growthTimer) clearInterval(growthTimer);
                 growthTimer = setInterval(() => {
-                    if (!State.visitingFriend && document.getElementById('farmGrid')) {
-                        Farm.updateGrid();
-                    }
+                    if (!State.visitingFriend && document.getElementById('farmGrid')) { Farm.updateGrid(); }
                 }, 30000);
             }
 
@@ -1221,11 +1301,8 @@
                 if (data.session) {
                     State.currentUser = data.session.user;
                     try {
-                        await loadProfile();
-                        await loadFarmPlots();
-                        await loadFriendData();
-                        await loadPets();
-                        await loadItems();
+                        await loadProfile(); await loadFarmPlots(); await loadFriendData();
+                        await loadPets(); await loadItems(); await loadEquipment();
                     } catch(e) { console.error(e); }
                 }
                 render();
