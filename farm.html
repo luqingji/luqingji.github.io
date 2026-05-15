@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - 日志系统</title>
+    <title>🌱 开心农场 - 日志修复</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -169,7 +169,6 @@
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            // 全局状态
             const State = {
                 currentUser: null,
                 profile: null,
@@ -241,7 +240,6 @@
                 return `${Math.floor(hours / 24)}天前`;
             }
 
-            // 日志记录（静默，失败不影响主流程）
             async function addEventLog(eventType, eventData) {
                 try {
                     await supabase.from('event_logs').insert({
@@ -254,7 +252,6 @@
                 }
             }
 
-            // 数据加载
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -323,7 +320,6 @@
                 (data||[]).forEach(d => { State.items[d.item_type] = d.quantity; });
             }
 
-            // 认证
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
                 if (error) throw error;
@@ -343,7 +339,6 @@
                 render();
             }
 
-            // 农场操作
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -388,9 +383,7 @@
                 await supabase.from('profiles').update({ gold:ownerNewGold }).eq('id', ownerId);
                 await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 }).eq('owner_id', ownerId).eq('plot_index', plotIndex);
                 State.profile.gold = newGold;
-                // 日志：被偷者
                 addEventLog('steal_received', { thief: State.profile.username, crop: plot.crop_type });
-                // 偷取者
                 addEventLog('steal_sent', { victim: owner.username, crop: plot.crop_type, gold: stealReward });
                 return stealReward;
             }
@@ -414,7 +407,6 @@
                 return { status:'growing', progress, remainingMin, waterable };
             }
 
-            // 宠物操作
             async function adoptPet(petType) {
                 const { data, error } = await supabase.from('pets').insert({
                     owner_id: State.currentUser.id,
@@ -478,7 +470,6 @@
                 }
             }
 
-            // 地块解锁
             async function unlockPlot() {
                 const unlocked = State.profile.unlocked_plots || 4;
                 if (unlocked >= 12) return;
@@ -505,7 +496,6 @@
                 render();
             }
 
-            // 渲染
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -684,6 +674,12 @@
                                     await supabase.from('profiles').update({ gold: (friend.gold||0)+5 }).eq('id', State.visitingFriend.id);
                                     State.profile.gold += 5;
                                     addEventLog('water_sent', { friend: State.visitingFriend.username });
+                                    // 也给对方记一条日志（收到浇水）
+                                    await supabase.from('event_logs').insert({
+                                        user_id: State.visitingFriend.id,
+                                        event_type: 'water_received',
+                                        event_data: { friend: State.profile.username }
+                                    });
                                     showToast('浇水成功！你获得5金币');
                                     render();
                                 } catch (err) { showToast('浇水失败', true); }
@@ -952,6 +948,8 @@
                             const updatedPlot = await waterPlot(State.currentUser.id, plotIndex);
                             const idx = State.farmPlots.findIndex(p => p.plot_index === plotIndex);
                             if (idx !== -1) State.farmPlots[idx] = updatedPlot;
+                            // 记录浇水日志
+                            addEventLog('water_self', { plot: plotIndex, crop: plot.crop_type });
                             Farm.updateGrid();
                             showToast('浇水成功！');
                         } catch (err) { showToast('浇水失败', true); }
@@ -1138,29 +1136,20 @@
                         </div>`;
                     }).join('');
 
-                    // 自动清理旧日志（保留最近200条）
-                    if (logs.length >= 50) {
-                        const { data: countData } = await supabase
+                    // 自动清理旧日志
+                    const { count } = await supabase
+                        .from('event_logs')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('user_id', State.currentUser.id);
+                    if (count > 200) {
+                        const { data: oldLogs } = await supabase
                             .from('event_logs')
-                            .select('id', { count: 'exact', head: true })
+                            .select('id')
                             .eq('user_id', State.currentUser.id)
-                            .order('created_at', { ascending: false })
-                            .limit(200);
-                        // 如果总数超过200，删除最旧的
-                        const { count } = await supabase
-                            .from('event_logs')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', State.currentUser.id);
-                        if (count > 200) {
-                            const { data: oldLogs } = await supabase
-                                .from('event_logs')
-                                .select('id')
-                                .eq('user_id', State.currentUser.id)
-                                .order('created_at', { ascending: true })
-                                .limit(count - 200);
-                            const oldIds = oldLogs.map(l => l.id);
-                            await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
-                        }
+                            .order('created_at', { ascending: true })
+                            .limit(count - 200);
+                        const oldIds = oldLogs.map(l => l.id);
+                        await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
                     }
                 }
             };
@@ -1170,9 +1159,11 @@
                 switch (log.event_type) {
                     case 'plant': return `🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;
                     case 'harvest': return `🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
+                    case 'water_self': return `💧 你为自己的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||'作物'} 浇了水`;
+                    case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
+                    case 'water_received': return `💧 👤 ${d.friend} 帮你浇了水，双方各得5金币`;
                     case 'steal_received': return `👤 ${d.thief} 偷了你的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}！`;
                     case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
-                    case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
                     case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}`;
                     case 'explore_complete': {
                         const items = Object.entries(d.rewards || {}).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ');
