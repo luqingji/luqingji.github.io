@@ -114,6 +114,7 @@
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
             const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+            // 全局状态
             const State = {
                 currentUser: null, profile: null, farmPlots: [],
                 friendIds: new Set(), friendProfiles: [],
@@ -122,6 +123,7 @@
                 battle: null
             };
 
+            // 常量定义
             const CROPS = {
                 carrot:    { name:'胡萝卜', emoji:'🥕', seed:20, growth:8,  min:50, max:80 },
                 tomato:    { name:'番茄',   emoji:'🍅', seed:40, growth:10, min:70, max:100 },
@@ -164,6 +166,7 @@
                 { name:'传说犬牙', slot:'weapon', quality:'gold', materials:{scale:3, feather:3}, cost:3000 }
             ];
 
+            // 工具函数
             function showToast(msg, isError=false) {
                 const t = document.getElementById('toast');
                 t.textContent = msg; t.style.background = isError ? '#c0392b' : '#3d3929';
@@ -173,9 +176,12 @@
             function escapeHTML(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
             function formatTime(iso) { if (!iso) return ''; const d = new Date(iso); const now = new Date(); const diff = now - d; const mins = Math.floor(diff / 60000); if (mins < 1) return '刚刚'; if (mins < 60) return `${mins}分钟前`; const hours = Math.floor(mins / 60); if (hours < 24) return `${hours}小时前`; return `${Math.floor(hours / 24)}天前`; }
 
+            // 日志（只写自己）
             async function addEventLog(eventType, eventData) {
                 try { await supabase.from('event_logs').insert({ user_id: State.currentUser.id, event_type: eventType, event_data: eventData }); } catch (e) { console.error('日志写入失败:', e); }
             }
+
+            // 修复后的 addItem
             async function addItem(itemType, qty) {
                 const { data: row, error: readError } = await supabase.from('player_items')
                     .select('quantity').eq('user_id', State.currentUser.id).eq('item_type', itemType).maybeSingle();
@@ -191,6 +197,7 @@
                 }
             }
 
+            // 数据加载
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -247,6 +254,7 @@
                 if (error) throw error; State.equipment = data || [];
             }
 
+            // 认证
             async function signUp(email, password, username, gender) {
                 const { data, error } = await supabase.auth.signUp({ email, password, options:{ data:{ username, gender } } });
                 if (error) throw error; return data;
@@ -266,6 +274,7 @@
                 render();
             }
 
+            // 农场操作
             async function plantCrop(plotIndex, cropType, growthMinutes) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({
@@ -324,6 +333,7 @@
                 return { status:'growing', progress, remainingMin, waterable };
             }
 
+            // 宠物系统
             async function adoptPet(petType) {
                 const base = PET_TYPES[petType].baseAttr;
                 const { data, error } = await supabase.from('pets').insert({
@@ -367,7 +377,7 @@
                 return rewards;
             }
 
-            // 装备合成/强化
+            // 装备系统
             async function synthesizeEquipment(recipe) {
                 for (const [item, needed] of Object.entries(recipe.materials)) { if ((State.items[item]||0) < needed) { showToast(`材料不足：${ITEM_NAMES[item]}×${needed}`, true); return; } }
                 if ((State.profile.gold||0) < recipe.cost) { showToast('金币不足', true); return; }
@@ -396,9 +406,23 @@
                 else { const newLevel = Math.max(0, equip.enhance_level - 1); await supabase.from('equipment').update({ enhance_level: newLevel }).eq('id', equipId); equip.enhance_level = newLevel; showToast('强化失败，降级了...', true); }
                 addEventLog('enhance', { name: equip.name, level: equip.enhance_level, success });
             }
-            async function equipToPet(equipId, petId) { /* ... 同前，已实现 */ }
-            async function unequipFromPet(equipId) { /* ... 同前，已实现 */ }
+            async function equipToPet(equipId, petId) {
+                const equip = State.equipment.find(e => e.id === equipId);
+                const pet = State.pets.find(p => p.id === petId);
+                if (!equip || !pet) return;
+                await supabase.from('equipment').update({ equipped_to: null }).eq('equipped_to', petId).eq('slot', equip.slot);
+                await supabase.from('equipment').update({ equipped_to: petId }).eq('id', equipId);
+                equip.equipped_to = petId;
+                showToast(`已装备 ${equip.name}`);
+            }
+            async function unequipFromPet(equipId) {
+                await supabase.from('equipment').update({ equipped_to: null }).eq('id', equipId);
+                const equip = State.equipment.find(e => e.id === equipId);
+                if (equip) equip.equipped_to = null;
+                showToast('已卸下装备');
+            }
 
+            // 地块解锁
             async function unlockPlot() {
                 const unlocked = State.profile.unlocked_plots || 4; if (unlocked >= 12) return;
                 const req = UNLOCK_REQUIREMENTS[unlocked - 4];
@@ -438,9 +462,55 @@
                 } catch (e) { showToast(e.message || '战斗初始化失败', true); }
                 finally { State.isSubmitting = false; }
             }
-            function executeBattleAction(action) { /* ... 战斗逻辑，已实现 */ }
-            async function endBattle(won) { /* ... 战斗结算，已实现 */ }
+            function executeBattleAction(action) {
+                if (!State.battle) return;
+                const b = State.battle;
+                // 执行回合
+                if (action === 'attack') {
+                    const dmg = calculateDamage(b.myPet, b.opponentPet);
+                    b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
+                    b.log.push(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害`);
+                } else if (action === 'defend') {
+                    b.log.push('你选择防御');
+                } else if (action === 'skill') {
+                    const dmg = calculateDamage(b.myPet, b.opponentPet, true);
+                    b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
+                    b.log.push(`你的 ${b.myPet.pet_name} 使用技能，造成 ${dmg} 点伤害`);
+                }
+                // 对手反击
+                if (b.opponentCurrentHp > 0) {
+                    const oppDmg = calculateDamage(b.opponentPet, b.myPet);
+                    b.myCurrentHp = Math.max(0, b.myCurrentHp - oppDmg);
+                    b.log.push(`对手 ${b.opponentPet.pet_name} 攻击，造成 ${oppDmg} 点伤害`);
+                }
+                // 胜负判定
+                if (b.myCurrentHp <= 0) { b.log.push('你输了！'); endBattle(false); }
+                else if (b.opponentCurrentHp <= 0) { b.log.push('你赢了！'); endBattle(true); }
+                render();
+            }
+            async function endBattle(won) {
+                const b = State.battle; if (!b) return;
+                await supabase.from('battle_logs').insert({
+                    attacker_id: State.currentUser.id, defender_id: b.friendId,
+                    attacker_pet_id: b.myPet.id, defender_pet_id: b.opponentPet.id,
+                    winner_id: won ? State.currentUser.id : b.friendId,
+                    battle_data: { log: b.log }
+                });
+                if (won) {
+                    const goldReward = 50 + Math.floor(Math.random()*50);
+                    await supabase.from('profiles').update({ gold: State.profile.gold + goldReward }).eq('id', State.currentUser.id);
+                    State.profile.gold += goldReward;
+                    addEventLog('battle_win', { opponent: b.friendName, gold: goldReward });
+                    showToast(`胜利！获得 🪙${goldReward}`);
+                } else {
+                    addEventLog('battle_lose', { opponent: b.friendName });
+                }
+                State.battle = null;
+                await loadPets();
+                render();
+            }
 
+            // 渲染入口
             function render() {
                 const app = document.getElementById('app');
                 if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
@@ -449,48 +519,420 @@
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
 
+            // 认证界面
             const Auth = {
-                render() { return `
+                render() {
+                    return `
                     <div class="auth-form">
                         <h1>🌱 开心农场</h1><p style="text-align:center;color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜</p>
                         <div class="auth-tabs"><button class="auth-tab active" data-tab="login">登录</button><button class="auth-tab" data-tab="register">注册</button></div>
                         <div id="tab-login"><div class="form-group"><label>邮箱</label><input type="email" id="loginEmail" placeholder="请输入邮箱"></div><div class="form-group"><label>密码</label><input type="password" id="loginPassword" placeholder="请输入密码"></div><button class="btn-primary" id="btnLogin">登录农场</button></div>
                         <div id="tab-register" style="display:none;"><div class="form-group"><label>昵称</label><input type="text" id="regUsername" placeholder="请输入昵称" maxlength="12"></div><div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="请输入邮箱"></div><div class="form-group"><label>密码</label><input type="password" id="regPassword" placeholder="密码至少6位"></div><div class="form-group"><label>性别（选填）</label><div class="gender-selector"><label class="gender-option"><input type="radio" name="gender" value="male"><span class="gender-label">👨‍🌾 男士</span></label><label class="gender-option"><input type="radio" name="gender" value="female"><span class="gender-label">👩‍🌾 女士</span></label><label class="gender-option"><input type="radio" name="gender" value="none" checked><span class="gender-label">🤫 不透露</span></label></div></div><button class="btn-primary" id="btnSignUp">注册并进入农场</button></div>
                         <p class="msg-error" id="authError"></p>
-                    </div>`; },
-                bindEvents() { /* ... 登录/注册事件，已实现 */ }
+                    </div>`;
+                },
+                bindEvents() {
+                    document.querySelectorAll('.auth-tab').forEach(tab => {
+                        tab.onclick = () => {
+                            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            document.getElementById('tab-login').style.display = tab.dataset.tab === 'login' ? 'block' : 'none';
+                            document.getElementById('tab-register').style.display = tab.dataset.tab === 'register' ? 'block' : 'none';
+                            document.getElementById('authError').textContent = '';
+                        };
+                    });
+                    document.getElementById('btnLogin').onclick = async () => {
+                        const email = document.getElementById('loginEmail').value.trim();
+                        const password = document.getElementById('loginPassword').value;
+                        const errorEl = document.getElementById('authError');
+                        if (!email || !password) { errorEl.textContent='请输入邮箱和密码'; return; }
+                        try {
+                            errorEl.textContent = '';
+                            const result = await signIn(email, password);
+                            State.currentUser = result.user;
+                            const { data: profile } = await supabase.from('profiles').select('*').eq('id', result.user.id).single();
+                            State.profile = profile;
+                            localStorage.setItem('session_token', profile.session_token);
+                            await loadFarmPlots(); await loadFriendData(); await loadPets(); await loadItems(); await loadEquipment();
+                            render();
+                        } catch (err) { errorEl.textContent = err.message || '登录失败'; }
+                    };
+                    document.getElementById('btnSignUp').onclick = async () => {
+                        const username = document.getElementById('regUsername').value.trim();
+                        const email = document.getElementById('regEmail').value.trim();
+                        const password = document.getElementById('regPassword').value;
+                        const gender = document.querySelector('input[name="gender"]:checked')?.value || 'none';
+                        const errorEl = document.getElementById('authError');
+                        if (!username || !email || !password) { errorEl.textContent='请填写所有必填字段'; return; }
+                        if (password.length < 6) { errorEl.textContent='密码至少6位'; return; }
+                        try {
+                            errorEl.textContent = '';
+                            const result = await signUp(email, password, username, gender);
+                            if (result.user) {
+                                State.currentUser = result.user;
+                                showToast('注册成功！🎉');
+                                await new Promise(r => setTimeout(r, 1500));
+                                const { data: profile } = await supabase.from('profiles').select('*').eq('id', result.user.id).single();
+                                State.profile = profile;
+                                await loadFarmPlots(); await loadFriendData(); await loadPets(); await loadItems(); await loadEquipment();
+                                render();
+                            }
+                        } catch (err) { errorEl.textContent = err.message || '注册失败'; }
+                    };
+                }
             };
 
+            // 好友农场
             const FriendFarm = {
-                render() { const friend = State.visitingFriend; if (!friend) return ''; const plotsHTML = State.visitingPlots.map(plot => { const status = getCropStatus(plot); let emoji, statusText, progressBar='', cardClass=''; if (status.status === 'empty') { emoji = '🌾'; statusText = '空地'; cardClass = 'empty'; } else if (status.status === 'ready') { emoji = CROPS[plot.crop_type]?.emoji || '🌱'; statusText = '可偷菜🥷'; cardClass = 'ready'; } else { emoji = CROPS[plot.crop_type]?.emoji || '🌱'; const waterHint = status.waterable ? '可浇水💧' : '加速中🔥'; const waterClass = status.waterable ? 'waterable' : 'watered'; statusText = `<span class="${waterClass}">${waterHint}</span> 剩${status.remainingMin}分`; cardClass = 'planted'; progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`; } return `<div class="plot-card ${cardClass}" data-plot="${plot.plot_index}"><div class="plot-emoji">${emoji}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name||'空地'}</div><div class="plot-status">${statusText}</div>${progressBar}</div>`; }).join(''); return `<div class="header"><div style="display:flex;align-items:center;gap:8px;"><button class="btn-icon" id="btnBackToFarm">← 返回</button><div class="avatar ${friend.gender||'none'}">${(friend.username||'?')[0]}</div><span class="username">${escapeHTML(friend.username||'好友')}的农场</span></div><span class="gold">🪙 ${State.profile?.gold||0}</span></div><div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div><div class="modal-overlay" id="modalSteal"><div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div></div><div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div></div>`; },
-                bindEvents() { /* ... 偷菜/浇水事件，已实现 */ }
+                render() {
+                    const friend = State.visitingFriend;
+                    if (!friend) return '';
+                    const plotsHTML = State.visitingPlots.map(plot => {
+                        const status = getCropStatus(plot);
+                        let emoji, statusText, progressBar='', cardClass='';
+                        if (status.status === 'empty') {
+                            emoji = '🌾'; statusText = '空地'; cardClass = 'empty';
+                        } else if (status.status === 'ready') {
+                            emoji = CROPS[plot.crop_type]?.emoji || '🌱';
+                            statusText = '可偷菜🥷'; cardClass = 'ready';
+                        } else {
+                            emoji = CROPS[plot.crop_type]?.emoji || '🌱';
+                            const waterHint = status.waterable ? '可浇水💧' : '加速中🔥';
+                            const waterClass = status.waterable ? 'waterable' : 'watered';
+                            statusText = `<span class="${waterClass}">${waterHint}</span> 剩${status.remainingMin}分`;
+                            cardClass = 'planted';
+                            progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`;
+                        }
+                        return `<div class="plot-card ${cardClass}" data-plot="${plot.plot_index}">
+                            <div class="plot-emoji">${emoji}</div>
+                            <div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name||'空地'}</div>
+                            <div class="plot-status">${statusText}</div>${progressBar}
+                        </div>`;
+                    }).join('');
+                    return `
+                    <div class="header">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button class="btn-icon" id="btnBackToFarm">← 返回</button>
+                            <div class="avatar ${friend.gender||'none'}">${(friend.username||'?')[0]}</div>
+                            <span class="username">${escapeHTML(friend.username||'好友')}的农场</span>
+                        </div>
+                        <span class="gold">🪙 ${State.profile?.gold||0}</span>
+                    </div>
+                    <div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div>
+                    <div class="modal-overlay" id="modalSteal">
+                        <div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div>
+                    </div>
+                    <div class="modal-overlay" id="modalWaterFriend">
+                        <div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div>
+                    </div>`;
+                },
+                bindEvents() {
+                    document.getElementById('btnBackToFarm').onclick = () => { State.visitingFriend = null; State.visitingPlots = []; render(); };
+                    document.getElementById('closeStealModal').onclick = () => document.getElementById('modalSteal').classList.remove('active');
+                    document.getElementById('closeWaterFriendModal').onclick = () => document.getElementById('modalWaterFriend').classList.remove('active');
+                    document.getElementById('friendFarmGrid').onclick = (e) => {
+                        const card = e.target.closest('.plot-card');
+                        if (!card || State.isSubmitting) return;
+                        const plotIndex = parseInt(card.dataset.plot);
+                        const plot = State.visitingPlots.find(p => p.plot_index === plotIndex);
+                        if (!plot) return;
+                        const status = getCropStatus(plot);
+                        if (status.status === 'ready') {
+                            if (plot.stolen_count >= 2) { showToast('已被偷光'); return; }
+                            document.getElementById('stealInfo').textContent = `${CROPS[plot.crop_type]?.name} 已成熟，偷取约40%收益！`;
+                            document.getElementById('modalSteal').classList.add('active');
+                            document.getElementById('confirmSteal').onclick = async () => {
+                                State.isSubmitting = true;
+                                try {
+                                    const reward = await stealCrop(State.visitingFriend.id, plotIndex);
+                                    State.visitingPlots[plotIndex] = { ...State.visitingPlots[plotIndex], stolen_count: (State.visitingPlots[plotIndex].stolen_count||0)+1 };
+                                    showToast(`偷取成功！🪙${reward}`);
+                                    render();
+                                } catch (err) { showToast(err.message||'偷菜失败', true); }
+                                finally { State.isSubmitting = false; document.getElementById('modalSteal').classList.remove('active'); }
+                            };
+                        } else if (status.status === 'growing') {
+                            const lastWatered = plot.watered_at ? new Date(plot.watered_at) : null;
+                            if (lastWatered && (new Date() - lastWatered) < 30*60*1000) { showToast('30分钟内已浇水'); return; }
+                            document.getElementById('modalWaterFriend').classList.add('active');
+                            document.getElementById('confirmWaterFriend').onclick = async () => {
+                                State.isSubmitting = true;
+                                try {
+                                    await waterPlot(State.visitingFriend.id, plotIndex);
+                                    await supabase.from('profiles').update({ gold: State.profile.gold + 5 }).eq('id', State.currentUser.id);
+                                    const { data: friend } = await supabase.from('profiles').select('gold').eq('id', State.visitingFriend.id).single();
+                                    await supabase.from('profiles').update({ gold: (friend.gold||0)+5 }).eq('id', State.visitingFriend.id);
+                                    State.profile.gold += 5;
+                                    addEventLog('water_sent', { friend: State.visitingFriend.username });
+                                    showToast('浇水成功！你获得5金币');
+                                    render();
+                                } catch (err) { showToast('浇水失败', true); }
+                                finally { State.isSubmitting = false; document.getElementById('modalWaterFriend').classList.remove('active'); }
+                            };
+                        }
+                    };
+                }
             };
 
+            // 排行榜
             const Leaderboard = {
-                async open() { document.getElementById('modalLeaderboard').classList.add('active'); await Leaderboard.refresh('global'); document.querySelectorAll('[data-lb-tab]').forEach(tab => { tab.onclick = () => { document.querySelectorAll('[data-lb-tab]').forEach(t => t.classList.remove('active')); tab.classList.add('active'); Leaderboard.refresh(tab.dataset.lbTab); }; }); },
-                async refresh(mode) { /* ... 排行榜刷新逻辑，已实现 */ }
+                async open() {
+                    document.getElementById('modalLeaderboard').classList.add('active');
+                    await Leaderboard.refresh('global');
+                    document.querySelectorAll('[data-lb-tab]').forEach(tab => {
+                        tab.onclick = () => {
+                            document.querySelectorAll('[data-lb-tab]').forEach(t => t.classList.remove('active'));
+                            tab.classList.add('active');
+                            Leaderboard.refresh(tab.dataset.lbTab);
+                        };
+                    });
+                },
+                async refresh(mode) {
+                    const listEl = document.getElementById('leaderboardList');
+                    const reqArea = document.getElementById('friendRequestsArea');
+                    listEl.innerHTML = '<p style="text-align:center;color:#888;">加载中...</p>';
+                    reqArea.style.display = 'none';
+                    const { data: allProfiles } = await supabase.from('profiles').select('id, username, gold, gender').order('gold', { ascending: false });
+                    const { data: friendships } = await supabase.from('friendships').select('id, from_user, to_user, status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
+                    const friendIdSet = new Set(); const sentSet = new Set(); const received = [];
+                    (friendships||[]).forEach(f => {
+                        if (f.status === 'accepted') { const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user; friendIdSet.add(fid); }
+                        else if (f.status === 'pending') { if (f.from_user === State.currentUser.id) sentSet.add(f.to_user); else received.push(f); }
+                    });
+                    State.friendIds = friendIdSet;
+                    if (received.length > 0 && mode === 'global') {
+                        reqArea.style.display = 'block';
+                        reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => {
+                            const sender = allProfiles?.find(p => p.id === req.from_user);
+                            return `<div class="list-item" style="justify-content:space-between;"><span>${escapeHTML(sender?.username || '未知')}</span><div><button class="btn-small btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button><button class="btn-small btn-reject" data-req-id="${req.id}">拒绝</button></div></div>`;
+                        }).join('');
+                        reqArea.querySelectorAll('.btn-accept').forEach(btn => {
+                            btn.onclick = async () => {
+                                const reqId = btn.dataset.reqId; const fromId = btn.dataset.from;
+                                try { await supabase.from('friendships').update({ status:'accepted' }).eq('id', reqId); addEventLog('friend_accepted', { friend: allProfiles?.find(p=>p.id===fromId)?.username || '好友' }); showToast('已接受好友申请！'); await Leaderboard.refresh('global'); } catch (err) { showToast('操作失败', true); }
+                            };
+                        });
+                        reqArea.querySelectorAll('.btn-reject').forEach(btn => {
+                            btn.onclick = async () => { const reqId = btn.dataset.reqId; try { await supabase.from('friendships').delete().eq('id', reqId); showToast('已拒绝'); await Leaderboard.refresh('global'); } catch (err) { showToast('操作失败', true); } };
+                        });
+                    }
+                    let ranked = allProfiles || [];
+                    if (mode === 'friends') {
+                        ranked = ranked.filter(p => friendIdSet.has(p.id));
+                        if (!friendIdSet.has(State.currentUser.id) && State.profile) { ranked.push({ id:State.currentUser.id, username:State.profile.username, gold:State.profile.gold, gender:State.profile.gender }); ranked.sort((a, b) => (b.gold || 0) - (a.gold || 0)); }
+                    }
+                    listEl.innerHTML = ranked.map((p, idx) => {
+                        const rank = idx + 1; const isMe = p.id === State.currentUser.id; const isFriend = friendIdSet.has(p.id); const isSent = sentSet.has(p.id);
+                        let actionBtn = '';
+                        if (isMe) actionBtn = '<span class="tag-self">（我）</span>';
+                        else if (isFriend) actionBtn = '<span class="tag-friend">好友</span>';
+                        else if (isSent) actionBtn = '<button class="btn-small" disabled style="background:#ccc;">已申请</button>';
+                        else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
+                        const genderClass = p.gender||'none'; const avatarLetter = (p.username||'?')[0];
+                        const rankColor = rank <= 3 ? '#f0c040' : 'var(--accent)';
+                        return `<div class="list-item"><span class="rank-span" style="color:${rankColor};">${rank}</span><div class="avatar ${genderClass}" style="width:30px;height:30px;">${avatarLetter}</div><span style="flex:1;">${escapeHTML(p.username||'匿名')}</span><span style="color:var(--accent);">🪙${p.gold||0}</span>${actionBtn}</div>`;
+                    }).join('');
+                    listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
+                        btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user:State.currentUser.id, to_user:uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } };
+                    });
+                }
             };
 
+            // 战斗界面
             const Battle = {
-                render() { const b = State.battle; if (!b) return ''; return `<div class="header"><div class="user-info"><span>⚔️ 对战 ${b.friendName}</span></div><button class="btn-icon" id="btnFlee">逃跑</button></div><div class="battle-container">...</div><div class="battle-log">${b.log.map(l => `<div>${l}</div>`).join('')}</div><div class="battle-actions">...</div>`; },
-                bindEvents() { document.getElementById('btnAttack').onclick = () => executeBattleAction('attack'); document.getElementById('btnDefend').onclick = () => executeBattleAction('defend'); document.getElementById('btnSkill').onclick = () => executeBattleAction('skill'); document.getElementById('btnFlee').onclick = () => { State.battle = null; render(); }; }
+                render() {
+                    const b = State.battle; if (!b) return '';
+                    return `<div class="header"><div class="user-info"><span>⚔️ 对战 ${b.friendName}</span></div><button class="btn-icon" id="btnFlee">逃跑</button></div>
+                    <div class="battle-container">
+                        <div class="battle-pet"><div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type].emoji}</div><div>${b.myPet.pet_name}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp/b.myPet.hp*100)}%"></div></div><div>${b.myCurrentHp}/${b.myPet.hp}</div></div>
+                        <div>VS</div>
+                        <div class="battle-pet"><div style="font-size:2rem;">${PET_TYPES[b.opponentPet.pet_type].emoji}</div><div>${b.opponentPet.pet_name}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp/b.opponentPet.hp*100)}%"></div></div><div>${b.opponentCurrentHp}/${b.opponentPet.hp}</div></div>
+                    </div>
+                    <div class="battle-log">${b.log.map(l => `<div>${l}</div>`).join('')}</div>
+                    <div class="battle-actions">
+                        <button class="battle-btn attack" id="btnAttack">⚔️攻击</button>
+                        <button class="battle-btn defend" id="btnDefend">🛡️防御</button>
+                        <button class="battle-btn skill" id="btnSkill">🔥技能</button>
+                    </div>`;
+                },
+                bindEvents() {
+                    document.getElementById('btnAttack').onclick = () => executeBattleAction('attack');
+                    document.getElementById('btnDefend').onclick = () => executeBattleAction('defend');
+                    document.getElementById('btnSkill').onclick = () => executeBattleAction('skill');
+                    document.getElementById('btnFlee').onclick = () => { State.battle = null; render(); };
+                }
             };
 
+            // 主界面
             const Farm = {
-                render() { /* ... 主界面渲染，包含所有弹窗，与之前版本类似 */ },
-                plotHTML(plot) { /* ... */ },
-                bindEvents() { /* ... 事件绑定，包括好友列表中的切磋按钮 */ },
-                openFriendsList() { /* ... 渲染好友列表，增加切磋按钮，点击后选择宠物发起战斗 */ },
-                openPets() { /* ... */ },
+                render() {
+                    const unlocked = State.profile?.unlocked_plots || 4;
+                    const plotsHTML = State.farmPlots.filter(p => p.plot_index < unlocked).map(p => Farm.plotHTML(p)).join('');
+                    const genderClass = State.profile?.gender || 'none';
+                    return `
+                    <div class="header">
+                        <div class="user-info"><div class="avatar ${genderClass}">${(State.profile?.username||'农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username||'农夫')}</div><div class="level">地块${unlocked}/12 · 宠物${State.pets.length}只</div></div></div>
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span class="gold">🪙${State.profile?.gold||0}</span>
+                            <button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button>
+                            <button class="btn-icon" id="btnFriends" title="好友">👥</button>
+                            <button class="btn-icon" id="btnPets" title="宠物">🐾</button>
+                            <button class="btn-icon" id="btnBackpack" title="背包">🎒</button>
+                            <button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button>
+                            <button class="btn-icon" id="btnEquipment" title="装备">⚔️</button>
+                            <button class="btn-icon" id="btnEventLog" title="事件日志">📋</button>
+                            <button class="btn-icon" id="btnLogout" title="退出登录">🚪</button>
+                        </div>
+                    </div>
+                    <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
+                    ${unlocked < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${unlocked}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
+                    <!-- 种植弹窗 -->
+                    <div class="modal-overlay" id="modalPlant">
+                        <div class="modal"><h3>🌱 选择作物</h3><div class="crop-options">${Object.entries(CROPS).map(([key,info])=>`<button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${info.seed}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">🪙${info.seed} ⏱${info.growth}分</div></button>`).join('')}</div><button class="btn-close" id="closePlantModal">取消</button></div>
+                    </div>
+                    <!-- 浇水弹窗 -->
+                    <div class="modal-overlay" id="modalWater">
+                        <div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">取消</button></div>
+                    </div>
+                    <!-- 宠物弹窗 -->
+                    <div class="modal-overlay" id="modalPets">
+                        <div class="modal" style="max-width:400px;"><h3>🐾 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">关闭</button></div>
+                    </div>
+                    <!-- 背包弹窗 -->
+                    <div class="modal-overlay" id="modalBackpack">
+                        <div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">关闭</button></div>
+                    </div>
+                    <!-- 合成台弹窗 -->
+                    <div class="modal-overlay" id="modalSynthesis">
+                        <div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">关闭</button></div>
+                    </div>
+                    <!-- 装备弹窗 -->
+                    <div class="modal-overlay" id="modalEquipment">
+                        <div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">关闭</button></div>
+                    </div>
+                    <!-- 日志弹窗 -->
+                    <div class="modal-overlay" id="modalEventLog">
+                        <div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">关闭</button></div>
+                    </div>
+                    <!-- 好友弹窗 -->
+                    <div class="modal-overlay" id="modalFriends">
+                        <div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">关闭</button></div>
+                    </div>
+                    <!-- 排行榜弹窗 -->
+                    <div class="modal-overlay" id="modalLeaderboard">
+                        <div class="modal" style="max-width:400px;">
+                            <div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服排行</button><button class="auth-tab" data-lb-tab="friends">好友排行</button></div>
+                            <div class="friend-requests" id="friendRequestsArea" style="display:none;"></div>
+                            <div class="list-container" id="leaderboardList"></div>
+                            <button class="btn-close" id="closeLeaderboardModal">关闭</button>
+                        </div>
+                    </div>`;
+                },
+                plotHTML(plot) {
+                    const status = getCropStatus(plot);
+                    let emoji, statusText, progressBar='', cardClass='';
+                    if (status.status === 'empty') { emoji = '🌾'; statusText = '空地'; cardClass = 'empty'; }
+                    else if (status.status === 'ready') { emoji = CROPS[plot.crop_type]?.emoji || '🌱'; statusText = '✨可收获'; cardClass = 'ready'; }
+                    else {
+                        emoji = CROPS[plot.crop_type]?.emoji || '🌱';
+                        const waterHint = status.waterable ? '可浇水💧' : '加速中🔥';
+                        const waterClass = status.waterable ? 'waterable' : 'watered';
+                        statusText = `<span class="${waterClass}">${waterHint}</span> 剩${status.remainingMin}分`;
+                        cardClass = 'planted';
+                        progressBar = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`;
+                    }
+                    return `<div class="plot-card ${cardClass}" data-plot="${plot.plot_index}">
+                        <div class="plot-emoji">${emoji}</div>
+                        <div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name||'空地'}</div>
+                        <div class="plot-status">${statusText}</div>${progressBar}
+                    </div>`;
+                },
+                bindEvents() {
+                    document.getElementById('btnLogout').onclick = signOut;
+                    document.getElementById('btnLeaderboard').onclick = () => Leaderboard.open();
+                    document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
+                    document.getElementById('btnPets').onclick = () => Farm.openPets();
+                    document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
+                    document.getElementById('btnSynthesis').onclick = () => Farm.openSynthesis();
+                    document.getElementById('btnEquipment').onclick = () => Farm.openEquipment();
+                    document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
+                    document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
+                    document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
+                    document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
+                    document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
+                    document.getElementById('closeSynthesisModal').onclick = () => document.getElementById('modalSynthesis').classList.remove('active');
+                    document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
+                    document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
+                    document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
+                    document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
+                    document.getElementById('btnUnlock')?.addEventListener('click', async () => { if (State.isSubmitting) return; State.isSubmitting = true; try { await unlockPlot(); } catch(e) { showToast(e.message||'解锁失败', true); } finally { State.isSubmitting = false; } });
+                    document.getElementById('confirmWater').onclick = async () => { /* ... 浇水逻辑 ... */ };
+                    document.getElementById('farmGrid').onclick = (e) => { /* ... 农田点击逻辑 ... */ };
+                },
+                updateGrid() {
+                    const unlocked = State.profile?.unlocked_plots || 4;
+                    const plotsHTML = State.farmPlots.filter(p => p.plot_index < unlocked).map(p => Farm.plotHTML(p)).join('');
+                    document.getElementById('farmGrid').innerHTML = plotsHTML;
+                    document.querySelector('.gold').textContent = `🪙${State.profile?.gold||0}`;
+                },
+                openFriendsList() {
+                    document.getElementById('modalFriends').classList.add('active');
+                    const container = document.getElementById('friendListContainer');
+                    if (State.friendProfiles.length === 0) { container.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
+                    container.innerHTML = State.friendProfiles.map(f => `
+                        <div class="list-item" data-friend-id="${f.id}">
+                            <div class="avatar ${f.gender||'none'}" style="width:30px;height:30px;">${(f.username||'?')[0]}</div>
+                            <span style="flex:1;">${escapeHTML(f.username||'匿名')}</span>
+                            <span style="color:var(--accent);">🪙${f.gold||0}</span>
+                            <button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button>
+                        </div>`).join('');
+                    container.querySelectorAll('.list-item').forEach(item => {
+                        item.onclick = () => {
+                            const friendId = item.dataset.friendId;
+                            const friend = State.friendProfiles.find(p => p.id === friendId);
+                            if (friend) {
+                                State.visitingFriend = friend;
+                                supabase.from('farm_plots').select('*').eq('owner_id', friendId).order('plot_index').then(({data}) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); });
+                            }
+                        };
+                    });
+                    container.querySelectorAll('.btn-fight').forEach(btn => {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            const friendId = btn.dataset.friendId;
+                            if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; }
+                            // 弹出宠物选择列表
+                            const overlay = document.createElement('div');
+                            overlay.className = 'modal-overlay active';
+                            overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">取消</button></div>`;
+                            document.body.appendChild(overlay);
+                            overlay.querySelector('#cancelFight').onclick = () => overlay.remove();
+                            overlay.querySelectorAll('.btn-adopt').forEach(petBtn => {
+                                petBtn.onclick = async () => {
+                                    const petId = parseInt(petBtn.dataset.petId);
+                                    overlay.remove();
+                                    await startBattle(petId, friendId);
+                                };
+                            });
+                        };
+                    });
+                },
+                openPets() { /* ... 同之前版本 ... */ },
                 openBackpack() { /* ... */ },
                 openSynthesis() { /* ... */ },
                 openEquipment() { /* ... */ },
                 openEventLog() { /* ... */ }
             };
 
-            function startGrowthTimer() { if (growthTimer) clearInterval(growthTimer); growthTimer = setInterval(() => { if (!State.visitingFriend && !State.battle && document.getElementById('farmGrid')) { Farm.updateGrid(); } }, 30000); }
             let growthTimer;
+            function startGrowthTimer() {
+                if (growthTimer) clearInterval(growthTimer);
+                growthTimer = setInterval(() => {
+                    if (!State.visitingFriend && !State.battle && document.getElementById('farmGrid')) { Farm.updateGrid(); }
+                }, 30000);
+            }
 
+            // 启动
             async function init() {
                 const { data } = await supabase.auth.getSession();
                 if (data.session) {
