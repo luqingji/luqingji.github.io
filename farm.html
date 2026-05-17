@@ -694,6 +694,7 @@ async function completeExploration(pid, silent = false) {
     let nl = pet.level || 1;
     if (ne >= nl * 100) {
         nl++;
+        if (nl > 30) nl = 30;
         const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
         pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
         pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
