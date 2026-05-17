@@ -942,17 +942,17 @@ function showBattleResult(data) {
     overlay.className = 'modal-overlay active';
     const rewardsHTML = data.won ? `
         <div style="margin:8px 0;font-weight:600;">🎁 获得奖励：</div>
-        ${data.rewards.gold ? `<div>🪙 金币 +${data.rewards.gold}</div>` : ''}
-        ${data.rewards.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
-        ${data.rewards.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
-        ${data.rewards.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
+        ${data.rewards?.gold ? `<div>🪙 金币 +${data.rewards.gold}</div>` : ''}
+        ${data.rewards?.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
+        ${data.rewards?.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
+        ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
     ` : '<div style="margin:8px 0;color:#888;">没有获得奖励</div>';
     overlay.innerHTML = `
         <div class="modal" style="max-width:320px;">
             <h3>${data.won ? '⚔️ 战斗胜利！' : '💀 战斗失败'}</h3>
             <div style="text-align:left;padding:10px;">
-                <div>你的宠物：${PET_TYPES[data.myPet.pet_type]?.emoji||'🐾'} ${data.myPet.pet_name}</div>
-                <div>对手：${data.opponentPet.emoji||'👾'} ${data.opponentPet.pet_name}</div>
+                <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'🐾'} ${data.myPet?.pet_name}</div>
+                <div>对手：${data.opponentPet?.emoji||'👾'} ${data.opponentPet?.pet_name}</div>
                 ${data.damage ? `<div>造成伤害：${data.damage} 点</div>` : ''}
                 ${rewardsHTML}
             </div>
