@@ -521,17 +521,24 @@ async function harvestPlot(pi) {
     const qData = QUALITIES[quality];
     reward = Math.floor(reward * qData.mult);
     const ng = (State.profile.gold || 0) + reward;
+
+    // 1. 更新金币和农田状态
     await supabase.from('profiles').update({ gold: ng }).eq('id', State.currentUser.id);
     await supabase.from('farm_plots').update({ crop_type: null, planted_at: null, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi);
     State.profile.gold = ng;
-    // 作物存入背包
+
+    // 2. 【关键】将收获的作物存入背包
     await addItem(plot.crop_type, 1);
+
+    // 3. 额外奖励处理
     if (qData.extra) {
         const extraItems = ['hair','seed','ore','relic','feather','scale','moonstone','clover'];
         const randItem = extraItems[Math.floor(Math.random() * extraItems.length)];
         await addItem(randItem, 1);
         showToast(`🎉 ${qData.name}品质！额外获得 ${ITEM_EMOJI[randItem]}×1`);
     }
+
+    // 4. 日志记录
     addEventLog('harvest', { crop: plot.crop_type, gold: reward, quality: quality });
     return { reward, quality };
 }
