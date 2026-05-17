@@ -299,15 +299,54 @@ async function addEventLog(et, ed) {
 }
 async function addItem(it, qty, userId) {
     const uid = userId || State.currentUser.id;
-    const { data: row, error: re } = await supabase.from('player_items').select('quantity').eq('user_id', uid).eq('item_type', it).maybeSingle();
-    if (re) throw re;
-    const cur = row ? row.quantity : 0, nq = Math.max(0, cur + qty);
-    if (nq === 0) {
-        await supabase.from('player_items').delete().eq('user_id', uid).eq('item_type', it);
-        if (!userId) delete State.items[it];
-    } else {
-        await supabase.from('player_items').upsert({ user_id: uid, item_type: it, quantity: nq }, { onConflict: 'user_id,item_type' });
+
+    // 如果是减少物品（qty < 0），保持原有逻辑确保不变成负数
+    if (qty < 0) {
+        const { data: row, error: re } = await supabase.from('player_items')
+            .select('quantity')
+            .eq('user_id', uid)
+            .eq('item_type', it)
+            .maybeSingle();
+        if (re) throw re;
+        const cur = row ? row.quantity : 0;
+        const nq = Math.max(0, cur + qty);
+        if (nq === 0) {
+            await supabase.from('player_items').delete().eq('user_id', uid).eq('item_type', it);
+            if (!userId) delete State.items[it];
+        } else {
+            await supabase.from('player_items').upsert(
+                { user_id: uid, item_type: it, quantity: nq },
+                { onConflict: 'user_id,item_type' }
+            );
+            if (!userId) State.items[it] = nq;
+        }
+        return;
+    }
+
+    // 如果是增加物品（qty > 0），使用数据库原子累加
+    const { error } = await supabase.rpc('add_item_quantity', {
+        p_user_id: uid,
+        p_item_type: it,
+        p_qty: qty
+    });
+
+    if (error) {
+        // 如果 RPC 调用失败（函数未创建等），降级使用旧方法
+        console.warn('RPC失败，使用备用方案:', error.message);
+        const { data: row } = await supabase.from('player_items')
+            .select('quantity').eq('user_id', uid).eq('item_type', it).maybeSingle();
+        const cur = row ? row.quantity : 0;
+        const nq = cur + qty;
+        await supabase.from('player_items').upsert(
+            { user_id: uid, item_type: it, quantity: nq },
+            { onConflict: 'user_id,item_type' }
+        );
         if (!userId) State.items[it] = nq;
+    } else {
+        // RPC 成功，同步更新前端状态
+        if (!userId) {
+            State.items[it] = (State.items[it] || 0) + qty;
+        }
     }
 }
 function getActiveSetEffects() {
