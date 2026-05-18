@@ -11,7 +11,6 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); background-image: radial-gradient(ellipse at 30% 20%, rgba(139,158,123,0.1) 0%, transparent 60%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .app-container { width:100%; max-width:480px; display:flex; flex-direction:column; gap:20px; }
-		
 		<!-- ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== -->
         .header { background: var(--card); border-radius: var(--radius); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 12px rgba(0,0,0,0.06); flex-wrap:wrap; gap:8px; }
         .user-info { display:flex; align-items:center; gap:8px; }
@@ -31,7 +30,6 @@
         .progress-bar { width:100%; height:4px; background:#e9ecef; border-radius:2px; overflow:hidden; }
         .progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width 1s linear; }
         .waterable { color:#1976d2; font-weight:600; } .watered { color:#e67e22; font-weight:600; }
-		
 		<!-- ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== -->
         .modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center; }
         .modal-overlay.active { display:flex; }
@@ -103,7 +101,6 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-	
 	<!-- ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== -->
     <script>
         (function() {
@@ -131,7 +128,6 @@
                 seedShop: null,
                 stationedPet: null
             };
-			
 			// ==================== 第 5 块：32种作物数据 ====================
             const CROPS = {
                 strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
@@ -164,7 +160,6 @@
                 tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
                 bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
             };
-			
 			// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
             const PET_TYPES = {
                 cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:80,atk:18,def:5,spd:12,luk:8,sta:60},skill:{name:'猫拳连击',cd:2,desc:'攻击2次，每次60%伤害'}},
@@ -208,7 +203,6 @@
                 tea:'🍃',bamboo:'🎋',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽'
             };
             const BASE_MATERIALS = ['hair','seed','dew','firefly','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-			
 			// ==================== 第 7 块：品质系统 + 种子商店 + 合成配方 + 强化配置 ====================
             const QUALITIES = {
                 common:{name:'普通',prob:0.6,mult:1.0,extra:null,cls:'quality-common'},
@@ -250,7 +244,6 @@
                 {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade'},
                 {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'}
             ];
-			
 			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
             const MONSTERS = [
                 {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
@@ -314,7 +307,6 @@
                 '天使': {2:{revive:true}, 3:{all_stat:0.1}},
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
-			
 			// ==================== 第 9 块：工具函数 ====================
             function showToast(msg, isError = false) {
                 const t = document.getElementById('toast');
@@ -444,7 +436,6 @@
             function hasSeed(cropKey) {
                 return State.items && State.items['seed_' + cropKey] && State.items['seed_' + cropKey] > 0;
             }
-			
 			// ==================== 第 10 块：数据加载层 ====================
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
@@ -536,7 +527,6 @@
                 await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
                 generateOrders();
             }
-			
 			// ==================== 第 11 块：认证函数 ====================
             async function signUp(e, p, u, g) {
                 const { data, error } = await supabase.auth.signUp({ email: e, password: p, options: { data: { username: u, gender: g } } });
@@ -558,7 +548,6 @@
                 Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], profileChannel: null, orders: [], seedShop: null, stationedPet: null });
                 render();
             }
-			
 			// ==================== 第 12 块：种植相关 ====================
             async function plantCrop(pi, ct, gm) {
                 const now = new Date().toISOString();
@@ -635,7 +624,6 @@
                 if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= 30 * 60 * 1000; }
                 return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
             }
-			
 			// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
                 const base = PET_TYPES[pt].baseAttr;
@@ -763,7 +751,6 @@
                 }
                 return rewards;
             }
-			
 			// ==================== 第 14 块：装备系统 ====================
             async function synthesizeEquipment(recipe) {
                 for (const [item, need] of Object.entries(recipe.materials)) { if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]}×${need}`, true); return; } }
@@ -881,7 +868,6 @@
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-			
 			// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
             async function unlockPlot() {
                 const ul = State.profile.unlocked_plots || 4;
@@ -1004,7 +990,6 @@
                 await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
                 State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
             }
-			
 			// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
             function showBattleResult(data) {
                 const overlay = document.createElement('div');
@@ -1096,7 +1081,6 @@
                 else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
-			
 			// ==================== 第 17 块：认证界面（Auth） ====================
             const Auth = {
                 render() {
@@ -1137,7 +1121,6 @@
                     };
                 }
             };
-			
 			// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
             const FriendFarm = {
                 render() {
@@ -1175,7 +1158,6 @@
                     };
                 }
             };
-			
 			// ==================== 第 19 块：排行榜界面（Leaderboard） ====================
             const Leaderboard = {
                 async open() {
@@ -1233,7 +1215,6 @@
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
             };
-			
 			// ==================== 第 20 块：战斗界面（Battle） ====================
             const Battle = {
                 render() {
@@ -1262,7 +1243,6 @@
                     };
                 }
             };
-			
 			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定） ====================
             const Farm = {
                 render() {
@@ -1397,7 +1377,6 @@
                     c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">取消</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
                 },
             };
-			
 			// ==================== 第 22 块：宠物/探险/背包弹窗 + 驻扎功能 ====================
             Farm.openPets = function() {
                 document.getElementById('modalPets').classList.add('active');
@@ -1464,7 +1443,6 @@
                 document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
                 document.getElementById('btnRefreshBackpack').onclick = async () => { await loadItems(); showBp(document.querySelector('#bpTypeTabs .auth-tab.active')?.dataset?.bptype || 'all'); };
             };
-			
 			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
             Farm.openSynthesis = async function() {
                 document.getElementById('modalSynthesis').classList.add('active');
@@ -1550,7 +1528,6 @@
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
                 c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true }; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); startPvEBattle(mon); } modal.classList.remove('active'); }; });
             };
-			
 			// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 ====================
             Farm.openOrders = function() {
                 document.getElementById('modalOrders').classList.add('active');
@@ -1649,7 +1626,6 @@
                     default: return '未知事件';
                 }
             }
-			
 			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
             let growthTimer;
             function startGrowthTimer() {
