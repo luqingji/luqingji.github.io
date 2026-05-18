@@ -1,4 +1,4 @@
-<!-- ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== -->
+/* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -11,7 +11,7 @@
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); background-image: radial-gradient(ellipse at 30% 20%, rgba(139,158,123,0.1) 0%, transparent 60%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .app-container { width:100%; max-width:480px; display:flex; flex-direction:column; gap:20px; }
-		<!-- ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== -->
+		/* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
         .header { background: var(--card); border-radius: var(--radius); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 12px rgba(0,0,0,0.06); flex-wrap:wrap; gap:8px; }
         .user-info { display:flex; align-items:center; gap:8px; }
         .avatar { width:36px; height:36px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1rem; flex-shrink:0; }
@@ -30,7 +30,7 @@
         .progress-bar { width:100%; height:4px; background:#e9ecef; border-radius:2px; overflow:hidden; }
         .progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width 1s linear; }
         .waterable { color:#1976d2; font-weight:600; } .watered { color:#e67e22; font-weight:600; }
-		<!-- ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== -->
+		/* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
         .modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center; }
         .modal-overlay.active { display:flex; }
         .modal { background:#fff; border-radius:var(--radius); padding:20px; max-width:400px; width:90%; text-align:center; max-height:80vh; overflow-y:auto; }
@@ -101,7 +101,7 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-	<!-- ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== -->
+	// ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ====================
     <script>
         (function() {
             const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
