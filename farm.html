@@ -42,161 +42,163 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             padding: 0;
         }
         .app-container {
             width: 100%;
-            max-width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: var(--gap-xl);
+            padding: var(--gap-md);
         }
-/* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
-.header {
-    background: var(--card);
-    border-radius: var(--radius-lg);
-    padding: var(--gap-md) var(--gap-lg);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    flex-wrap: wrap;
-    gap: var(--gap-sm);
-}
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: var(--gap-sm);
-}
-.avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-.avatar.male { background: var(--blue); }
-.avatar.female { background: var(--pink); }
-.avatar.none { background: #aaa; }
-.username {
-    font-weight: 600;
-    color: var(--text);
-    font-size: var(--font-md);
-}
-.level {
-    font-size: var(--font-xs);
-    color: #888;
-}
-.btn-icon {
-    padding: 6px 12px;
-    background: #f0ede6;
-    border: none;
-    border-radius: var(--radius-xl);
-    cursor: pointer;
-    font-size: var(--font-sm);
-    font-family: inherit;
-    white-space: nowrap;
-    position: relative;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-.btn-icon:active {
-    transform: scale(0.95);
-}
-.btn-icon:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: var(--font-xs);
-    white-space: nowrap;
-    z-index: 10;
-}
-.farm-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: var(--gap-md);
-}
-.plot-card {
-    background: var(--card);
-    border-radius: var(--radius-lg);
-    padding: 14px 8px;
-    text-align: center;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--gap-xs);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    cursor: pointer;
-    transition: all var(--transition-normal);
-    position: relative;
-    user-select: none;
-}
-.plot-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
-}
-.plot-card:active {
-    transform: scale(0.96);
-    background: #f9f6f0;
-}
-.plot-card.empty {
-    border: 2px dashed #d5cec0;
-    color: #b0a590;
-}
-.plot-card.planted {
-    border: 2px solid #c5d5b0;
-}
-.plot-card.ready {
-    border: 2px solid #f0c040;
-    animation: pulse 1.5s infinite;
-}
-@keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
-    50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
-}
-.plot-emoji { font-size: 2rem; }
-.plot-status {
-    font-size: var(--font-xs);
-    color: #888;
-    line-height: 1.2;
-}
-.progress-bar {
-    width: 100%;
-    height: 4px;
-    background: #e9ecef;
-    border-radius: 2px;
-    overflow: hidden;
-}
-.progress-fill {
-    height: 100%;
-    background: var(--green);
-    border-radius: 2px;
-    transition: width 1s linear;
-}
-.waterable { color: #1976d2; font-weight: 600; }
-.watered { color: #e67e22; font-weight: 600; }
-.nickname {
-    display: inline-block;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    vertical-align: middle;
-}
-        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
+		        /* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
+        .header {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: var(--gap-md) var(--gap-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+            gap: var(--gap-sm);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-sm);
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .avatar.male { background: var(--blue); }
+        .avatar.female { background: var(--pink); }
+        .avatar.none { background: #aaa; }
+        .username {
+            font-weight: 600;
+            color: var(--text);
+            font-size: var(--font-md);
+        }
+        .level {
+            font-size: var(--font-xs);
+            color: #888;
+        }
+        .btn-icon {
+            padding: 6px 12px;
+            background: #f0ede6;
+            border: none;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            font-size: var(--font-sm);
+            font-family: inherit;
+            white-space: nowrap;
+            position: relative;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .btn-icon:active {
+            transform: scale(0.95);
+        }
+        .btn-icon:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: var(--font-xs);
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: var(--gap-md);
+        }
+        .plot-card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 14px 8px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--gap-xs);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            position: relative;
+            user-select: none;
+        }
+        .plot-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .plot-card:active {
+            transform: scale(0.96);
+            background: #f9f6f0;
+        }
+        .plot-card.empty {
+            border: 2px dashed #d5cec0;
+            color: #b0a590;
+        }
+        .plot-card.planted {
+            border: 2px solid #c5d5b0;
+        }
+        .plot-card.ready {
+            border: 2px solid #f0c040;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
+        }
+        .plot-emoji { font-size: 2rem; }
+        .plot-status {
+            font-size: var(--font-xs);
+            color: #888;
+            line-height: 1.2;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+        .waterable { color: #1976d2; font-weight: 600; }
+        .watered { color: #e67e22; font-weight: 600; }
+        .nickname {
+            display: inline-block;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+		        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -608,35 +610,36 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-<script>
-    /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
-    (function() {
-        const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+	    <script>
+        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
+        (function() {
+            const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const State = {
-            currentUser: null,
-            profile: null,
-            farmPlots: [],
-            friendIds: new Set(),
-            friendProfiles: [],
-            visitingFriend: null,
-            visitingPlots: [],
-            isSubmitting: false,
-            pets: [],
-            items: {},
-            equipment: [],
-            battle: null,
-            bossStatus: null,
-            petSkills: [],
-            profileChannel: null,
-            orders: [],
-            seedShop: null,
-            stationedPet: null
-        };
-// ==================== 第 5 块：32种作物数据 ====================
+            const State = {
+                currentUser: null,
+                profile: null,
+                farmPlots: [],
+                friendIds: new Set(),
+                friendProfiles: [],
+                visitingFriend: null,
+                visitingPlots: [],
+                isSubmitting: false,
+                pets: [],
+                items: {},
+                equipment: [],
+                battle: null,
+                bossStatus: null,
+                petSkills: [],
+                profileChannel: null,
+                orders: [],
+                seedShop: null,
+                stationedPet: null
+            };
+			// ==================== 第 5A 块：60种作物数据（前半） ====================
             const CROPS = {
+                // ===== 水果类 16种 =====
                 strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
                 grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
                 watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
@@ -646,6 +649,15 @@
                 orange:{name:'橘子',emoji:'🍊',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'},
                 pineapple:{name:'菠萝',emoji:'🍍',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'},
                 mango:{name:'芒果',emoji:'🥭',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'},
+                cherry:{name:'樱桃',emoji:'🍒',seed:95,growth:16,min:140,max:210,type:'fruit',unlock:'探险'},
+                lemon:{name:'柠檬',emoji:'🍋',seed:85,growth:14,min:120,max:180,type:'fruit',unlock:'探险'},
+                banana:{name:'香蕉',emoji:'🍌',seed:110,growth:20,min:170,max:250,type:'fruit',unlock:'探险'},
+                pear:{name:'梨',emoji:'🍐',seed:75,growth:13,min:110,max:160,type:'fruit',unlock:'探险'},
+                kiwi:{name:'猕猴桃',emoji:'🥝',seed:100,growth:18,min:150,max:230,type:'fruit',unlock:'探险'},
+                melon:{name:'甜瓜',emoji:'🍈',seed:130,growth:24,min:210,max:320,type:'fruit',unlock:'探险'},
+                coconut:{name:'椰子',emoji:'🥥',seed:160,growth:30,min:280,max:420,type:'fruit',unlock:'探险'},
+                
+                // ===== 花卉类 13种 =====
                 sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
                 chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
                 tulip:{name:'郁金香',emoji:'🌷',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'},
@@ -655,6 +667,12 @@
                 sakura:{name:'樱花',emoji:'🌸',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'},
                 lotus:{name:'荷花',emoji:'🪷',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'},
                 cactus:{name:'仙人掌花',emoji:'🌵',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'},
+                hibiscus:{name:'芙蓉',emoji:'🌺',seed:105,growth:19,min:160,max:240,type:'flower',unlock:'探险'},
+                white_flower:{name:'白花',emoji:'💮',seed:60,growth:11,min:90,max:140,type:'flower',unlock:'探险'},
+                herb:{name:'香草',emoji:'🌿',seed:55,growth:9,min:80,max:120,type:'flower',unlock:'探险'},
+                potted_plant:{name:'盆栽',emoji:'🪴',seed:140,growth:26,min:220,max:340,type:'flower',unlock:'战斗'},
+                
+                // ===== 蔬菜类 15种 =====
                 carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
                 tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
                 corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
@@ -662,12 +680,36 @@
                 cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
                 rice:{name:'水稻',emoji:'🌾',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'},
                 pepper:{name:'辣椒',emoji:'🌶️',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
+                cucumber:{name:'黄瓜',emoji:'🥒',seed:45,growth:10,min:70,max:110,type:'vegetable',unlock:'探险'},
+                onion:{name:'洋葱',emoji:'🧅',seed:50,growth:11,min:80,max:120,type:'vegetable',unlock:'探险'},
+                garlic:{name:'大蒜',emoji:'🧄',seed:55,growth:12,min:85,max:130,type:'vegetable',unlock:'探险'},
+                eggplant:{name:'茄子',emoji:'🍆',seed:65,growth:13,min:100,max:150,type:'vegetable',unlock:'探险'},
+                broccoli:{name:'西兰花',emoji:'🥦',seed:75,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
+                green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'},
+                lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'},
+                beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'},
+            };
+			// ==================== 第 5B 块：60种作物数据（后半） ====================
+                // ===== 特色经济类 9种 =====
                 mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
                 peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
                 tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
                 bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
+                chestnut:{name:'栗子',emoji:'🌰',seed:70,growth:14,min:110,max:170,type:'special',unlock:'探险'},
+                green_tea:{name:'茶',emoji:'🍵',seed:180,growth:28,min:280,max:450,type:'special',unlock:'战斗'},
+                honey:{name:'蜂蜜',emoji:'🍯',seed:150,growth:25,min:230,max:380,type:'special',unlock:'探险'},
+                candy:{name:'糖果',emoji:'🍬',seed:120,growth:20,min:180,max:280,type:'special',unlock:'探险'},
+                chocolate:{name:'巧克力',emoji:'🍫',seed:160,growth:26,min:250,max:400,type:'special',unlock:'战斗'},
+                spice:{name:'香料',emoji:'🧂',seed:90,growth:16,min:140,max:210,type:'special',unlock:'探险'},
+                
+                // ===== 季节节日类 7种 =====
+                pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
+                sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'},
+                moon_cake:{name:'月饼果',emoji:'🥮',seed:170,growth:28,min:270,max:430,type:'special',unlock:'战斗'},
+                dango:{name:'团子串',emoji:'🍡',seed:140,growth:22,min:210,max:330,type:'special',unlock:'探险'},
+                rice_ball:{name:'饭团草',emoji:'🍙',seed:110,growth:18,min:160,max:250,type:'special',unlock:'探险'},
             };
-// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
+			// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
             const PET_TYPES = {
                 cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:80,atk:18,def:5,spd:12,luk:8,sta:60},skill:{name:'猫拳连击',cd:2,desc:'攻击2次，每次60%伤害'}},
                 dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:12,def:10,spd:8,luk:5,sta:80},skill:{name:'守护吠叫',cd:3,desc:'回复20%最大HP'}},
@@ -681,36 +723,101 @@
                 sakura:'樱花花瓣',stardust:'星光粉尘',charm:'幸运符',dragon_soul:'龙魂碎片',
                 scroll_basic:'基础技能卷轴',scroll_advanced:'进阶技能卷轴',scroll_rare:'稀有技能卷轴',scroll_legend:'传说技能卷轴',
                 protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',
+                // 原有种子
                 seed_grape:'葡萄种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_apple:'苹果种子',
                 seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',
                 seed_sunflower:'向日葵种子',seed_chrysanthemum:'菊花种子',seed_tulip:'郁金香种子',seed_clover:'三叶草种子',
                 seed_rose:'玫瑰种子',seed_lily:'百合种子',seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',
                 seed_potato:'土豆种子',seed_cabbage:'白菜种子',seed_rice:'水稻种子',seed_pepper:'辣椒种子',
                 seed_mushroom:'蘑菇种子',seed_peanut:'花生种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',
+                // 新增种子
+                seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',seed_pear:'梨种子',
+                seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子',
+                seed_hibiscus:'芙蓉种子',seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子',
+                seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',
+                seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',
+                seed_chestnut:'栗子种子',seed_green_tea:'茶种子',seed_honey:'蜂蜜种子',seed_candy:'糖果种子',
+                seed_chocolate:'巧克力种子',seed_spice:'香料种子',
+                seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子',seed_moon_cake:'月饼果种子',
+                seed_dango:'团子串种子',seed_rice_ball:'饭团草种子',
+                // 原有作物
                 grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',apple:'苹果',peach:'桃子',orange:'橘子',
                 pineapple:'菠萝',mango:'芒果',sunflower:'向日葵',chrysanthemum:'菊花',tulip:'郁金香',
                 clover:'三叶草',rose:'玫瑰',lily:'百合',sakura:'樱花',lotus:'荷花',cactus:'仙人掌花',
                 potato:'土豆',cabbage:'白菜',rice:'水稻',pepper:'辣椒',mushroom:'蘑菇',peanut:'花生',
-                tea:'茶树',bamboo:'竹子',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米'
+                tea:'茶树',bamboo:'竹子',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',
+                // 新增作物
+                cherry:'樱桃',lemon:'柠檬',banana:'香蕉',pear:'梨',kiwi:'猕猴桃',melon:'甜瓜',coconut:'椰子',
+                hibiscus:'芙蓉',white_flower:'白花',herb:'香草',potted_plant:'盆栽',
+                cucumber:'黄瓜',onion:'洋葱',garlic:'大蒜',eggplant:'茄子',broccoli:'西兰花',
+                green_pepper:'青椒',lettuce:'生菜',beans:'豆子',
+                chestnut:'栗子',green_tea:'茶',honey:'蜂蜜',candy:'糖果',chocolate:'巧克力',spice:'香料',
+                pumpkin:'南瓜',sweet_potato:'红薯',moon_cake:'月饼果',dango:'团子串',rice_ball:'饭团草',
+                // 加工食品
+                wine:'葡萄酒',juice_watermelon:'西瓜汁',jam_blueberry:'蓝莓酱',pie_apple:'苹果派',
+                dried_pineapple:'菠萝干',juice_mango:'芒果汁',perfume_rose:'玫瑰香水',oil_sunflower:'葵花籽油',
+                sauce_pepper:'辣椒酱',sauce_tomato:'番茄酱',bread:'面包',basket_bamboo:'竹篮',
+                tea_green:'茶叶',butter_peanut:'花生酱',soup_mushroom:'蘑菇汤',fries:'薯条',
+                kimchi:'泡菜',wine_rice:'米酒',pie_cherry:'樱桃派',lemonade:'柠檬水',
+                smoothie_banana:'香蕉奶昔',dried_kiwi:'猕猴桃干',water_coconut:'椰子水',mask_cucumber:'黄瓜面膜',
+                // 战斗药剂
+                potion_atk:'攻击药剂',potion_def:'防御药剂',potion_spd:'速度药剂',
+                potion_hp:'生命药剂',potion_crit:'暴击药剂',
             };
             const ITEM_EMOJI = {
                 hair:'🧶',seed:'🌰',dew:'💧',firefly:'🪲',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',
                 feather:'🪶',scale:'🔮',snowflake:'❄️',sakura:'🌸',stardust:'🌟',charm:'🍀',dragon_soul:'🔮',
                 scroll_basic:'📜',scroll_advanced:'📜',scroll_rare:'📜',scroll_legend:'📜',
                 protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',
+                // 原有种子
                 seed_grape:'🍇',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_apple:'🍎',seed_peach:'🍑',
                 seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',
                 seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',
                 seed_cactus:'🌵',seed_potato:'🥔',seed_cabbage:'🥬',seed_rice:'🌾',seed_pepper:'🌶️',
                 seed_mushroom:'🍄',seed_peanut:'🥜',seed_tea:'🍃',seed_bamboo:'🎋',
+                // 新增种子
+                seed_cherry:'🍒',seed_lemon:'🍋',seed_banana:'🍌',seed_pear:'🍐',seed_kiwi:'🥝',
+                seed_melon:'🍈',seed_coconut:'🥥',seed_hibiscus:'🌺',seed_white_flower:'💮',seed_herb:'🌿',
+                seed_potted_plant:'🪴',seed_cucumber:'🥒',seed_onion:'🧅',seed_garlic:'🧄',seed_eggplant:'🍆',
+                seed_broccoli:'🥦',seed_green_pepper:'🫑',seed_lettuce:'🥗',seed_beans:'🫘',
+                seed_chestnut:'🌰',seed_green_tea:'🍵',seed_honey:'🍯',seed_candy:'🍬',
+                seed_chocolate:'🍫',seed_spice:'🧂',seed_pumpkin:'🎃',seed_sweet_potato:'🍠',
+                seed_moon_cake:'🥮',seed_dango:'🍡',seed_rice_ball:'🍙',
+                // 原有作物
                 grape:'🍇',watermelon:'🍉',blueberry:'🫐',apple:'🍎',peach:'🍑',orange:'🍊',
                 pineapple:'🍍',mango:'🥭',sunflower:'🌻',chrysanthemum:'🌼',tulip:'🌷',
                 clover:'🍀',rose:'🌹',lily:'🏵️',sakura:'🌸',lotus:'🪷',cactus:'🌵',
                 potato:'🥔',cabbage:'🥬',rice:'🌾',pepper:'🌶️',mushroom:'🍄',peanut:'🥜',
-                tea:'🍃',bamboo:'🎋',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽'
+                tea:'🍃',bamboo:'🎋',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',
+                // 新增作物
+                cherry:'🍒',lemon:'🍋',banana:'🍌',pear:'🍐',kiwi:'🥝',melon:'🍈',coconut:'🥥',
+                hibiscus:'🌺',white_flower:'💮',herb:'🌿',potted_plant:'🪴',
+                cucumber:'🥒',onion:'🧅',garlic:'🧄',eggplant:'🍆',broccoli:'🥦',
+                green_pepper:'🫑',lettuce:'🥗',beans:'🫘',
+                chestnut:'🌰',green_tea:'🍵',honey:'🍯',candy:'🍬',chocolate:'🍫',spice:'🧂',
+                pumpkin:'🎃',sweet_potato:'🍠',moon_cake:'🥮',dango:'🍡',rice_ball:'🍙',
+                // 加工食品
+                wine:'🍷',juice_watermelon:'🧃',jam_blueberry:'🫙',pie_apple:'🥧',
+                dried_pineapple:'🍍',juice_mango:'🧃',perfume_rose:'💝',oil_sunflower:'🫗',
+                sauce_pepper:'🌶️',sauce_tomato:'🥫',bread:'🍞',basket_bamboo:'🧺',
+                tea_green:'🍵',butter_peanut:'🥜',soup_mushroom:'🍲',fries:'🍟',
+                kimchi:'🫙',wine_rice:'🍶',pie_cherry:'🥧',lemonade:'🍋',
+                smoothie_banana:'🥤',dried_kiwi:'🥝',water_coconut:'🥥',mask_cucumber:'🥒',
+                // 战斗药剂
+                potion_atk:'🧪',potion_def:'💊',potion_spd:'⚗️',potion_hp:'❤️',potion_crit:'💥',
             };
             const BASE_MATERIALS = ['hair','seed','dew','firefly','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-// ==================== 第 7 块：品质系统 + 种子商店 + 合成配方 + 强化配置 ====================
+
+            // 更新种子商店，增加更多可购买种子
+            const SEED_SHOP = [
+                {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
+                {crop:'chrysanthemum',price:800},{crop:'grape',price:1200},{crop:'peanut',price:1200},
+                {crop:'mushroom',price:2000},{crop:'pepper',price:2000},
+                {crop:'cucumber',price:500},{crop:'onion',price:500},{crop:'lettuce',price:400},
+                {crop:'cherry',price:1200},{crop:'lemon',price:800},{crop:'herb',price:600},
+                {crop:'beans',price:500},{crop:'chestnut',price:1000}
+            ];
+			// ==================== 第 7A 块：品质系统 + 种子商店 + 加工配方 ====================
             const QUALITIES = {
                 common:{name:'普通',prob:0.6,mult:1.0,extra:null,cls:'quality-common'},
                 good:{name:'优质',prob:0.25,mult:1.5,extra:null,cls:'quality-good'},
@@ -718,12 +825,43 @@
                 legend:{name:'传说',prob:0.05,mult:3.0,extra:'随机稀有材料+全服广播',cls:'quality-legend'}
             };
 
-            const SEED_SHOP = [
-                {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
-                {crop:'chrysanthemum',price:800},{crop:'grape',price:1200},{crop:'peanut',price:1200},
-                {crop:'mushroom',price:2000},{crop:'pepper',price:2000}
+            // ==================== 加工食品配方 ====================
+            const SYNTHESIS_FOOD = [
+                { name:'葡萄酒', icon:'🍷', materials:{grape:5}, cost:100, time:120, type:'food' },
+                { name:'西瓜汁', icon:'🧃', materials:{watermelon:3}, cost:50, time:60, type:'food' },
+                { name:'蓝莓酱', icon:'🫙', materials:{blueberry:5}, cost:80, time:90, type:'food' },
+                { name:'苹果派', icon:'🥧', materials:{apple:3, rice:2}, cost:150, time:120, type:'food' },
+                { name:'菠萝干', icon:'🍍', materials:{pineapple:3}, cost:60, time:60, type:'food' },
+                { name:'芒果汁', icon:'🧃', materials:{mango:3}, cost:50, time:60, type:'food' },
+                { name:'玫瑰香水', icon:'💝', materials:{rose:5}, cost:200, time:120, type:'food' },
+                { name:'葵花籽油', icon:'🫗', materials:{sunflower:5}, cost:120, time:90, type:'food' },
+                { name:'辣椒酱', icon:'🌶️', materials:{pepper:3, garlic:2}, cost:80, time:60, type:'food' },
+                { name:'番茄酱', icon:'🥫', materials:{tomato:5}, cost:60, time:60, type:'food' },
+                { name:'面包', icon:'🍞', materials:{rice:5}, cost:80, time:60, type:'food' },
+                { name:'竹篮', icon:'🧺', materials:{bamboo:3}, cost:40, time:30, type:'food' },
+                { name:'茶叶', icon:'🍵', materials:{tea:5}, cost:150, time:90, type:'food' },
+                { name:'花生酱', icon:'🥜', materials:{peanut:5}, cost:80, time:60, type:'food' },
+                { name:'蘑菇汤', icon:'🍲', materials:{mushroom:3, onion:2}, cost:100, time:90, type:'food' },
+                { name:'薯条', icon:'🍟', materials:{potato:3}, cost:40, time:30, type:'food' },
+                { name:'泡菜', icon:'🫙', materials:{cabbage:5}, cost:80, time:120, type:'food' },
+                { name:'米酒', icon:'🍶', materials:{rice:5}, cost:120, time:120, type:'food' },
+                { name:'樱桃派', icon:'🥧', materials:{cherry:3, rice:2}, cost:150, time:120, type:'food' },
+                { name:'柠檬水', icon:'🍋', materials:{lemon:3}, cost:40, time:30, type:'food' },
+                { name:'香蕉奶昔', icon:'🥤', materials:{banana:3}, cost:60, time:60, type:'food' },
+                { name:'猕猴桃干', icon:'🥝', materials:{kiwi:3}, cost:70, time:90, type:'food' },
+                { name:'椰子水', icon:'🥥', materials:{coconut:2}, cost:50, time:30, type:'food' },
+                { name:'黄瓜面膜', icon:'🥒', materials:{cucumber:3}, cost:50, time:60, type:'food' },
             ];
 
+            // ==================== 战斗药剂配方 ====================
+            const SYNTHESIS_POTIONS = [
+                { name:'攻击药剂', icon:'🧪', materials:{pepper:3, moonstone:1}, cost:300, time:30, type:'potion', effect:'下次战斗攻击+20%' },
+                { name:'防御药剂', icon:'💊', materials:{mushroom:3, relic:1}, cost:300, time:30, type:'potion', effect:'下次战斗防御+20%' },
+                { name:'速度药剂', icon:'⚗️', materials:{herb:3, feather:1}, cost:300, time:30, type:'potion', effect:'下次战斗速度+20%' },
+                { name:'生命药剂', icon:'❤️', materials:{honey:3, clover:1}, cost:400, time:30, type:'potion', effect:'下次战斗HP+30%' },
+                { name:'暴击药剂', icon:'💥', materials:{scale:2, stardust:1}, cost:500, time:30, type:'potion', effect:'下次战斗暴击率+15%' },
+            ];
+			// ==================== 第 7B 块：装备合成配方 + 强化配置 ====================
             const SYNTHESIS_RECIPES = [
                 {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草鞋',slot:'accessory',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
                 {name:'见习短剑',slot:'weapon',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习盾',slot:'armor',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习徽章',slot:'accessory',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},
@@ -739,7 +877,6 @@
                 {name:'魔剑',slot:'weapon',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔甲',slot:'armor',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔眼',slot:'accessory',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000}
             ];
 
-            // 强化配置（+1~+10），含保护符和幸运石
             const ENHANCE_CONFIG = [
                 {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
                 {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
@@ -752,7 +889,7 @@
                 {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade',protectCharm:true,luckyStone:true},
                 {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset',protectCharm:true,luckyStone:true}
             ];
-// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
+			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
             const MONSTERS = [
                 {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
                 {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
@@ -815,7 +952,7 @@
                 '天使': {2:{revive:true}, 3:{all_stat:0.1}},
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
-// ==================== 第 9 块：工具函数 ====================
+			// ==================== 第 9 块：工具函数 ====================
             // 常量提取（避免魔法数字）
             const WATER_COOLDOWN_MS = 30 * 60 * 1000; // 浇水冷却30分钟
             const BOSS_COOLDOWN_MINUTES = 60; // BOSS重生冷却60分钟
@@ -954,7 +1091,21 @@
             function hasSeed(cropKey) {
                 return State.items && State.items['seed_' + cropKey] && State.items['seed_' + cropKey] > 0;
             }
-// ==================== 第 10 块：数据加载层 ====================
+            // 通用合成函数（用于食品和药剂）
+            async function synthesizeProduct(recipe) {
+                for (const [item, need] of Object.entries(recipe.materials)) {
+                    if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]||item}×${need}`, true); return; }
+                }
+                if ((State.profile.gold || 0) < (recipe.cost || 0)) { showToast('金币不足', true); return; }
+                for (const [item, need] of Object.entries(recipe.materials)) { await addItem(item, -need); }
+                if (recipe.cost) {
+                    await supabase.from('profiles').update({ gold: State.profile.gold - recipe.cost }).eq('id', State.currentUser.id);
+                    State.profile.gold -= recipe.cost;
+                }
+                await addItem(recipe.name, 1);
+                showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
+            }
+			// ==================== 第 10 块：数据加载层 ====================
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -1048,7 +1199,6 @@
                 } catch (e) {
                     console.error('数据加载失败:', e);
                     showToast('网络不稳定，正在重试...', true);
-                    // 3秒后自动重试一次
                     setTimeout(async () => {
                         try {
                             await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
@@ -1062,7 +1212,7 @@
                     }, 3000);
                 }
             }
-// ==================== 第 11 块：认证函数 ====================
+			// ==================== 第 11 块：认证函数 ====================
             async function signUp(e, p, u, g) {
                 const { data, error } = await supabase.auth.signUp({ email: e, password: p, options: { data: { username: u, gender: g } } });
                 if (error) throw error;
@@ -1083,7 +1233,7 @@
                 Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], profileChannel: null, orders: [], seedShop: null, stationedPet: null });
                 render();
             }
-// ==================== 第 12 块：种植相关 ====================
+			// ==================== 第 12 块：种植相关 ====================
             async function plantCrop(pi, ct, gm) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({ crop_type: ct, planted_at: now, growth_minutes: gm, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi).select().single();
@@ -1159,7 +1309,7 @@
                 if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= WATER_COOLDOWN_MS; }
                 return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
             }
-// ==================== 第 13 块：宠物与探险 ====================
+			// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
                 const base = PET_TYPES[pt].baseAttr;
                 const { data, error } = await supabase.from('pets').insert({ owner_id: State.currentUser.id, pet_type: pt, pet_name: PET_TYPES[pt].name, level: 1, exp: 0, hp: base.hp, atk: base.atk, def: base.def, spd: base.spd, luk: base.luk, sta: base.sta, hunger: 100, happiness: 100 }).select().single();
@@ -1289,7 +1439,7 @@
                 }
                 return rewards;
             }
-// ==================== 第 14 块：装备系统 ====================
+			// ==================== 第 14 块：装备系统 ====================
             async function synthesizeEquipment(recipe) {
                 for (const [item, need] of Object.entries(recipe.materials)) { if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]}×${need}`, true); return; } }
                 if ((State.profile.gold || 0) < recipe.cost) { showToast('金币不足', true); return; }
@@ -1418,7 +1568,7 @@
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
+			// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
             async function unlockPlot() {
                 const ul = State.profile.unlocked_plots || 4;
                 if (ul >= PLOT_MAX_COUNT) return;
@@ -1540,7 +1690,7 @@
                 await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
                 State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
             }
-// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
+			// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
             function showBattleResult(data) {
                 const overlay = document.createElement('div');
                 overlay.className = 'modal-overlay active';
@@ -1649,7 +1799,7 @@
                 else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
-// ==================== 第 17 块：认证界面（Auth） ====================
+			// ==================== 第 17 块：认证界面（Auth） ====================
             const Auth = {
                 render() {
                     return `<div class="auth-form"><h1>🌱 开心农场</h1><p style="text-align:center;color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜 · 丰收</p>
@@ -1689,7 +1839,7 @@
                     };
                 }
             };
-// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
+			// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -1741,7 +1891,7 @@
                     };
                 }
             };
-// ==================== 第 19 块：排行榜界面（Leaderboard） ====================
+			// ==================== 第 19 块：排行榜界面（Leaderboard） ====================
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -1798,7 +1948,7 @@
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
             };
-// ==================== 第 20 块：战斗界面（Battle） ====================
+			// ==================== 第 20 块：战斗界面（Battle） ====================
             const Battle = {
                 render() {
                     const b = State.battle; if (!b) return '';
@@ -1826,20 +1976,20 @@
                     };
                 }
             };
-// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
+			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
             const Farm = {
                 render() {
                     const ul = State.profile?.unlocked_plots || 4;
                     const plotsHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join('');
                     const gc = State.profile?.gender || 'none';
-                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
+                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
                     ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
                     <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">取消</button></div></div>
                     <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">取消</button></div></div>
                     <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">关闭</button></div></div>
                     <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">🔄 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">关闭</button></div></div>
                     <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">关闭</button></div></div>
                     <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">关闭</button></div></div>
                     <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">关闭</button></div></div>
@@ -1868,6 +2018,7 @@
                     document.getElementById('btnExplore').onclick = () => Farm.openExplore();
                     document.getElementById('btnOrders').onclick = () => Farm.openOrders();
                     document.getElementById('btnSeedShop').onclick = () => Farm.openSeedShop();
+                    document.getElementById('btnHelp').onclick = () => Farm.openHelp();
                     document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
                     document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
                     document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
@@ -1997,7 +2148,7 @@
                 openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); },
                 openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
             };
-// ==================== 第 22 块：背包界面 ====================
+			// ==================== 第 22 块：背包界面 ====================
             Farm.openBackpack = async function() {
                 document.getElementById('modalBackpack').classList.add('active');
                 await loadItems();
@@ -2018,22 +2169,47 @@
                 document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
                 document.getElementById('btnRefreshBackpack').onclick = async () => { await loadItems(); showBp(document.querySelector('#bpTypeTabs .auth-tab.active')?.dataset?.bptype || 'all'); };
             };
-// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
+			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
             Farm.openSynthesis = async function() {
                 document.getElementById('modalSynthesis').classList.add('active');
                 await loadItems();
-                const c = document.getElementById('synthesisList');
-                c.innerHTML = SYNTHESIS_RECIPES.map((r, idx) => {
-                    const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
-                    const hasGold = (State.profile.gold || 0) >= r.cost;
-                    const canCraft = hasMaterials && hasGold;
-                    let btnClass = 'btn-synthesis', btnText = '可合成';
-                    if (!hasMaterials) { btnClass = 'btn-nomat'; btnText = '材料不足'; }
-                    else if (!hasGold) { btnClass = 'btn-nogold'; btnText = '金币不足'; }
-                    return `<div class="equipment-card"><strong>${r.name}</strong> <span class="set-badge">${r.set_name||'无'}</span> (${SLOT_NAMES[r.slot]}) - ${QUALITY_NAMES[r.quality]}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]}×${need}`).join(' ')}</div><div style="font-size:0.8rem;">费用：🪙${r.cost}</div><button class="${btnClass}" data-recipe-idx="${idx}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
-                }).join('');
-                c.querySelectorAll('.btn-synthesis').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.recipeIdx); await synthesizeEquipment(SYNTHESIS_RECIPES[idx]); Farm.openSynthesis(); }; });
-                document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); Farm.openSynthesis(); };
+                const showSynth = (type) => {
+                    const c = document.getElementById('synthesisList');
+                    let recipes = [];
+                    if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
+                    else if (type === 'food') recipes = SYNTHESIS_FOOD;
+                    else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
+                    if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
+                    c.innerHTML = recipes.map((r, idx) => {
+                        const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
+                        const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
+                        const canCraft = hasMaterials && hasGold;
+                        let btnClass = 'btn-synthesis', btnText = '可合成';
+                        if (!hasMaterials) { btnClass = 'btn-nomat'; btnText = '材料不足'; }
+                        else if (!hasGold) { btnClass = 'btn-nogold'; btnText = '金币不足'; }
+                        const setBadge = r.set_name ? `<span class="set-badge">${r.set_name}</span>` : '';
+                        const slotName = r.slot ? `(${SLOT_NAMES[r.slot]})` : '';
+                        const qualityName = r.quality ? ` - ${QUALITY_NAMES[r.quality]}` : '';
+                        return `<div class="equipment-card"><strong>${r.icon||''} ${r.name}</strong> ${setBadge} ${slotName}${qualityName}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]||'📦'}×${need}`).join(' ')}</div>${r.cost ? `<div style="font-size:0.8rem;">费用：🪙${r.cost}</div>` : ''}<button class="${btnClass}" data-recipe-idx="${idx}" data-type="${type}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
+                    }).join('');
+                    c.querySelectorAll('.btn-synthesis').forEach(btn => {
+                        btn.onclick = async () => {
+                            const idx = parseInt(btn.dataset.recipeIdx);
+                            const stype = btn.dataset.type;
+                            let recipe;
+                            if (stype === 'equipment') recipe = SYNTHESIS_RECIPES[idx];
+                            else if (stype === 'food') recipe = SYNTHESIS_FOOD[idx];
+                            else if (stype === 'potion') recipe = SYNTHESIS_POTIONS[idx];
+                            if (!recipe) return;
+                            if (stype === 'equipment') await synthesizeEquipment(recipe);
+                            else await synthesizeProduct(recipe);
+                            Farm.openSynthesis();
+                        };
+                    });
+                };
+                showSynth('equipment');
+                document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showSynth(tab.dataset.stype); }; });
+                document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); showSynth(document.querySelector('#synthTypeTabs .auth-tab.active')?.dataset?.stype || 'equipment'); };
             };
 
             Farm.openEquipment = function() {
@@ -2046,7 +2222,10 @@
                     const canEnhance = !e.equipped_to && e.enhance_level < ENHANCE_MAX_LEVEL;
                     const canDecompose = !e.equipped_to;
                     const canSell = !e.equipped_to;
-                    return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'}>${canEnhance?'强化':(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
+                    const nextLevel = e.enhance_level + 1;
+                    const config = ENHANCE_CONFIG.find(c => c.level === nextLevel);
+                    const probText = config ? ` (成功率${Math.round(config.prob*100)}%)` : '';
+                    return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'} title="强化到+${nextLevel}${probText}">${canEnhance?'强化'+probText:(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
                 }).join('');
                 c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); Farm.openEquipment(); }; });
                 c.querySelectorAll('.btn-equip').forEach(btn => {
@@ -2103,7 +2282,7 @@
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
                 c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true }; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); startPvEBattle(mon); } modal.classList.remove('active'); }; });
             };
-// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 ====================
+			// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 + 帮助弹窗 ====================
             Farm.openOrders = function() {
                 document.getElementById('modalOrders').classList.add('active');
                 const c = document.getElementById('ordersContainer');
@@ -2160,6 +2339,79 @@
                 document.getElementById('btnRefreshLog').onclick = async () => { await loadEventLog(); };
             };
 
+            Farm.openHelp = function() {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay active';
+                overlay.innerHTML = `
+                    <div class="modal" style="max-width:600px;text-align:left;">
+                        <h3>❓ 游戏帮助</h3>
+                        <div id="helpTabs" style="display:flex;gap:4px;margin-bottom:10px;">
+                            <button class="auth-tab active" data-htab="newbie">新手入门</button>
+                            <button class="auth-tab" data-htab="guide">完整攻略</button>
+                        </div>
+                        <div id="helpContent" style="max-height:65vh;overflow-y:auto;padding-right:8px;font-size:0.85rem;line-height:1.6;"></div>
+                        <button class="btn-close" id="closeHelpModal">关闭</button>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+
+                const showHelp = (tab) => {
+                    const content = overlay.querySelector('#helpContent');
+                    if (tab === 'newbie') {
+                        content.innerHTML = `
+                            <h4>🌱 欢迎来到开心农场！</h4>
+                            <p>这是一款融合了种植经营、宠物养成、装备收集、回合制战斗和好友社交的综合性农场游戏。</p>
+                            <h4>🌾 第一步：种植</h4>
+                            <p>点击空地→选择作物→确认种植。等待成熟后收获，获得金币和作物。生长中的作物可以浇水加速30%。</p>
+                            <h4>🐾 第二步：领养宠物</h4>
+                            <p>点击宠物→领养橘猫🐱、柴犬🐶或兔子🐰。派宠物探险获取材料和经验，探险中有概率学会技能（最高Lv.5）。</p>
+                            <h4>⚔️ 第三步：战斗</h4>
+                            <p>点击怪物讨伐→选择怪物→进入战斗。挑战普通怪物、精英怪和全服BOSS。BOSS被击败后60分钟重生。</p>
+                            <h4>⚒️ 第四步：打造装备</h4>
+                            <p>点击合成台→选择配方→消耗材料和金币合成装备。装备可强化+1~+10，集齐套装激活额外效果。</p>
+                            <h4>📦 第五步：完成订单</h4>
+                            <p>每天3个订单，提交作物获得金币和种子券。种子券可在商店兑换稀有种子。</p>
+                            <h4>👥 第六步：添加好友</h4>
+                            <p>排行榜→点击+好友→对方接受后成为好友。互访农场、帮浇水、偷菜。</p>
+                        `;
+                    } else {
+                        content.innerHTML = `
+                            <h4>🌾 种植系统</h4>
+                            <p>60种作物分4大类：水果🍎(16种)、花卉💐(13种)、蔬菜🥬(15种)、特色🌿(16种)。初始解锁约15种，其余需要通过探险、战斗、商店获取种子解锁。</p>
+                            <p>收获时有概率获得品质加成：普通(60%)、优质(25%)、极品(10%)、传说(5%)。品质越高金币倍率越高。浇水、宠物幸运值、丰收套装可提升品质概率。</p>
+                            <p>地块共12块，第5~12块需材料+金币解锁。第N块解锁条件：前N种材料各N个 + N×1000金币。</p>
+                            <h4>🐾 宠物系统</h4>
+                            <p>3种宠物：橘猫🐱(均衡)、柴犬🐶(防御)、兔子🐰(速度)。升级经验=等级×100+等级²×15，满级30级。宠物可驻扎农田提供特殊效果。</p>
+                            <p>探险6条路线，概率获得材料、种子、稀有物品。探险结束必须点击"查看"才能再次出发。探险中有概率学会9种技能之一，已学会的技能再次触发会升级（最高Lv.5），满4个技能时新技能随机替换旧技能。</p>
+                            <h4>⚔️ 战斗系统</h4>
+                            <p>14种普通怪物+6种精英怪+全服BOSS虫母女王🐛👸。BOSS全服共享血条，被击败后60分钟重生。参与奖500金币+材料，前三额外1000金币，最后一击额外2000金币+随机物品×5。</p>
+                            <p>9种战斗技能：爪击强化、快速愈合、铁壁防御、战吼、荆棘护甲、生命汲取、烈焰爪击、疾风步、雷电冲击。PVP可好友切磋。</p>
+                            <h4>⚒️ 装备系统</h4>
+                            <p>36件装备分武器/防具/饰品三槽位，4种品质：普通(白)、精良(蓝)、史诗(紫)、传说(金)。强化+1~+10，+1~+3安全，+4~+6失败不降级，+7~+9失败降1级，+10失败归零。保护符防降级，幸运石+15%成功率。</p>
+                            <p>12种套装，集齐2件/3件激活额外效果。分解返还30%~60%材料，出售获得金币。</p>
+                            <h4>🔧 加工系统</h4>
+                            <p>24种食品配方（葡萄酒🍷、西瓜汁🧃、蓝莓酱🫙等），5种战斗药剂（攻击🧪、防御💊、速度⚗️、生命❤️、暴击💥）。在合成台切换标签即可制作。</p>
+                            <h4>📦 商店与订单</h4>
+                            <p>每日3个随机订单，提交指定作物获得金币+种子券。商店每日刷新3种金币种子，种子券可兑换稀有种子（2~10张不等）。</p>
+                            <h4>👥 好友社交</h4>
+                            <p>添加好友后互访农场、帮浇水、偷菜（每株最多被偷2次）。排行榜分全服、好友、宠物三个维度。</p>
+                            <h4>🔓 地块解锁</h4>
+                            <p>第5~12块需要材料+金币解锁。第N块需前N种材料各N个+N×1000金币。12种基础材料通过探险和战斗获取。</p>
+                        `;
+                    }
+                };
+                showHelp('newbie');
+                overlay.querySelectorAll('#helpTabs .auth-tab').forEach(tab => {
+                    tab.onclick = () => {
+                        overlay.querySelectorAll('#helpTabs .auth-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        showHelp(tab.dataset.htab);
+                    };
+                });
+                overlay.querySelector('#closeHelpModal').onclick = () => overlay.remove();
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            };
+
             async function loadEventLog() {
                 const c = document.getElementById('eventLogContainer');
                 c.innerHTML = '<p>加载中...</p>';
@@ -2201,7 +2453,7 @@
                     default: return '未知事件';
                 }
             }
-// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
+			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
             let growthTimer;
             function startGrowthTimer() {
                 if (growthTimer) clearInterval(growthTimer);
