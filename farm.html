@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>?? 开心农场 - 丰收修复版 v3.1</title>
+    <title>🌱 开心农场 - 丰收修复版 v3.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #f5f0eb; --card: #ffffff; --text: #3d3929; --accent: #c0844e; --green: #6b8f71; --red: #c0392b; --blue: #5b7fbc; --pink: #d4869c; --radius: 16px; }
@@ -134,42 +134,42 @@
 			
 			// ==================== 第 5 块：32种作物数据 ====================
             const CROPS = {
-                strawberry:{name:'草莓',emoji:'??',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
-                grape:{name:'葡萄',emoji:'??',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
-                watermelon:{name:'西瓜',emoji:'??',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
-                blueberry:{name:'蓝莓',emoji:'??',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'},
-                apple:{name:'苹果',emoji:'??',seed:70,growth:14,min:110,max:160,type:'fruit',unlock:'探险'},
-                peach:{name:'桃子',emoji:'??',seed:85,growth:16,min:130,max:190,type:'fruit',unlock:'探险'},
-                orange:{name:'橘子',emoji:'??',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'},
-                pineapple:{name:'菠萝',emoji:'??',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'},
-                mango:{name:'芒果',emoji:'??',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'},
-                sunflower:{name:'向日葵',emoji:'??',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-                chrysanthemum:{name:'菊花',emoji:'??',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-                tulip:{name:'郁金香',emoji:'??',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'},
-                clover:{name:'三叶草',emoji:'??',seed:40,growth:8,min:60,max:90,type:'flower',unlock:'探险'},
-                rose:{name:'玫瑰',emoji:'??',seed:100,growth:20,min:180,max:260,type:'flower',unlock:'探险'},
-                lily:{name:'百合',emoji:'???',seed:90,growth:18,min:160,max:230,type:'flower',unlock:'探险'},
-                sakura:{name:'樱花',emoji:'??',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'},
-                lotus:{name:'荷花',emoji:'??',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'},
-                cactus:{name:'仙人掌花',emoji:'??',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'},
-                carrot:{name:'胡萝卜',emoji:'??',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
-                tomato:{name:'番茄',emoji:'??',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
-                corn:{name:'玉米',emoji:'??',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
-                potato:{name:'土豆',emoji:'??',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
-                cabbage:{name:'白菜',emoji:'??',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
-                rice:{name:'水稻',emoji:'??',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'},
-                pepper:{name:'辣椒',emoji:'???',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
-                mushroom:{name:'蘑菇',emoji:'??',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
-                peanut:{name:'花生',emoji:'??',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
-                tea:{name:'茶树',emoji:'??',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
-                bamboo:{name:'竹子',emoji:'??',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
+                strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
+                grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
+                watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
+                blueberry:{name:'蓝莓',emoji:'🫐',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'},
+                apple:{name:'苹果',emoji:'🍎',seed:70,growth:14,min:110,max:160,type:'fruit',unlock:'探险'},
+                peach:{name:'桃子',emoji:'🍑',seed:85,growth:16,min:130,max:190,type:'fruit',unlock:'探险'},
+                orange:{name:'橘子',emoji:'🍊',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'},
+                pineapple:{name:'菠萝',emoji:'🍍',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'},
+                mango:{name:'芒果',emoji:'🥭',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'},
+                sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+                chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+                tulip:{name:'郁金香',emoji:'🌷',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'},
+                clover:{name:'三叶草',emoji:'🍀',seed:40,growth:8,min:60,max:90,type:'flower',unlock:'探险'},
+                rose:{name:'玫瑰',emoji:'🌹',seed:100,growth:20,min:180,max:260,type:'flower',unlock:'探险'},
+                lily:{name:'百合',emoji:'🏵️',seed:90,growth:18,min:160,max:230,type:'flower',unlock:'探险'},
+                sakura:{name:'樱花',emoji:'🌸',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'},
+                lotus:{name:'荷花',emoji:'🪷',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'},
+                cactus:{name:'仙人掌花',emoji:'🌵',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'},
+                carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
+                tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
+                corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
+                potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
+                cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
+                rice:{name:'水稻',emoji:'🌾',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'},
+                pepper:{name:'辣椒',emoji:'🌶️',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
+                mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
+                peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
+                tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
+                bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
             };
 			
 			// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
             const PET_TYPES = {
-                cat:{name:'橘猫',emoji:'??',cost:50,time:2,baseAttr:{hp:80,atk:18,def:5,spd:12,luk:8,sta:60},skill:{name:'猫拳连击',cd:2,desc:'攻击2次，每次60%伤害'}},
-                dog:{name:'柴犬',emoji:'??',cost:80,time:3,baseAttr:{hp:120,atk:12,def:10,spd:8,luk:5,sta:80},skill:{name:'守护吠叫',cd:3,desc:'回复20%最大HP'}},
-                rabbit:{name:'兔子',emoji:'??',cost:30,time:1.5,baseAttr:{hp:60,atk:15,def:3,spd:18,luk:12,sta:40},skill:{name:'电光一闪',cd:2,desc:'必先手，伤害+30%'}}
+                cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:80,atk:18,def:5,spd:12,luk:8,sta:60},skill:{name:'猫拳连击',cd:2,desc:'攻击2次，每次60%伤害'}},
+                dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:12,def:10,spd:8,luk:5,sta:80},skill:{name:'守护吠叫',cd:3,desc:'回复20%最大HP'}},
+                rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:60,atk:15,def:3,spd:18,luk:12,sta:40},skill:{name:'电光一闪',cd:2,desc:'必先手，伤害+30%'}}
             };
             const PET_STATION_EFFECTS = { cat:'20%概率驱赶偷菜者', dog:'浇水效果+10%', rabbit:'生长时间-5%' };
 
@@ -192,20 +192,20 @@
                 tea:'茶树',bamboo:'竹子',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米'
             };
             const ITEM_EMOJI = {
-                hair:'??',seed:'??',dew:'??',firefly:'??',ore:'??',relic:'??',moonstone:'??',clover:'??',
-                feather:'??',scale:'??',snowflake:'??',sakura:'??',stardust:'??',charm:'??',dragon_soul:'??',
-                scroll_basic:'??',scroll_advanced:'??',scroll_rare:'??',scroll_legend:'??',
-                protect_charm:'???',lucky_stone:'??',seed_ticket:'??',
-                seed_grape:'??',seed_watermelon:'??',seed_blueberry:'??',seed_apple:'??',seed_peach:'??',
-                seed_orange:'??',seed_pineapple:'??',seed_mango:'??',seed_sunflower:'??',seed_chrysanthemum:'??',
-                seed_tulip:'??',seed_clover:'??',seed_rose:'??',seed_lily:'???',seed_sakura:'??',seed_lotus:'??',
-                seed_cactus:'??',seed_potato:'??',seed_cabbage:'??',seed_rice:'??',seed_pepper:'???',
-                seed_mushroom:'??',seed_peanut:'??',seed_tea:'??',seed_bamboo:'??',
-                grape:'??',watermelon:'??',blueberry:'??',apple:'??',peach:'??',orange:'??',
-                pineapple:'??',mango:'??',sunflower:'??',chrysanthemum:'??',tulip:'??',
-                clover:'??',rose:'??',lily:'???',sakura:'??',lotus:'??',cactus:'??',
-                potato:'??',cabbage:'??',rice:'??',pepper:'???',mushroom:'??',peanut:'??',
-                tea:'??',bamboo:'??',strawberry:'??',carrot:'??',tomato:'??',corn:'??'
+                hair:'🧶',seed:'🌰',dew:'💧',firefly:'🪲',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',
+                feather:'🪶',scale:'🔮',snowflake:'❄️',sakura:'🌸',stardust:'🌟',charm:'🍀',dragon_soul:'🔮',
+                scroll_basic:'📜',scroll_advanced:'📜',scroll_rare:'📜',scroll_legend:'📜',
+                protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',
+                seed_grape:'🍇',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_apple:'🍎',seed_peach:'🍑',
+                seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',
+                seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',
+                seed_cactus:'🌵',seed_potato:'🥔',seed_cabbage:'🥬',seed_rice:'🌾',seed_pepper:'🌶️',
+                seed_mushroom:'🍄',seed_peanut:'🥜',seed_tea:'🍃',seed_bamboo:'🎋',
+                grape:'🍇',watermelon:'🍉',blueberry:'🫐',apple:'🍎',peach:'🍑',orange:'🍊',
+                pineapple:'🍍',mango:'🥭',sunflower:'🌻',chrysanthemum:'🌼',tulip:'🌷',
+                clover:'🍀',rose:'🌹',lily:'🏵️',sakura:'🌸',lotus:'🪷',cactus:'🌵',
+                potato:'🥔',cabbage:'🥬',rice:'🌾',pepper:'🌶️',mushroom:'🍄',peanut:'🥜',
+                tea:'🍃',bamboo:'🎋',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽'
             };
             const BASE_MATERIALS = ['hair','seed','dew','firefly','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
 			
@@ -253,39 +253,39 @@
 			
 			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
             const MONSTERS = [
-                {name:'菜青虫',emoji:'??',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
-                {name:'鼻涕虫',emoji:'??',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
-                {name:'蚜虫群',emoji:'??',minLevel:1,maxLevel:5,hp:45,atk:9,def:1,spd:7,rewards:{gold:25,items:{seed:0.3}}},
-                {name:'田鼠',emoji:'??',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
-                {name:'蝗虫',emoji:'??',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
-                {name:'草蛇',emoji:'??',minLevel:5,maxLevel:10,hp:70,atk:14,def:5,spd:7,rewards:{gold:50,items:{hair:0.35}}},
-                {name:'蝙蝠',emoji:'??',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
-                {name:'刺猬',emoji:'??',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
-                {name:'狐妖',emoji:'??',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
-                {name:'野猪',emoji:'??',minLevel:15,maxLevel:25,hp:220,atk:35,def:15,spd:8,rewards:{gold:180,items:{ore:0.35}}},
-                {name:'幼龙',emoji:'??',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}},
-                {name:'毒蝎',emoji:'??',minLevel:20,maxLevel:30,hp:200,atk:50,def:12,spd:16,rewards:{gold:220,items:{relic:0.3}}},
-                {name:'地龙',emoji:'??',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,rewards:{gold:400,items:{scale:0.25}}},
-                {name:'巨猿',emoji:'??',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,rewards:{gold:450,items:{ore:0.4}}}
+                {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
+                {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
+                {name:'蚜虫群',emoji:'🐜',minLevel:1,maxLevel:5,hp:45,atk:9,def:1,spd:7,rewards:{gold:25,items:{seed:0.3}}},
+                {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
+                {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
+                {name:'草蛇',emoji:'🐍',minLevel:5,maxLevel:10,hp:70,atk:14,def:5,spd:7,rewards:{gold:50,items:{hair:0.35}}},
+                {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
+                {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
+                {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
+                {name:'野猪',emoji:'🐗',minLevel:15,maxLevel:25,hp:220,atk:35,def:15,spd:8,rewards:{gold:180,items:{ore:0.35}}},
+                {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}},
+                {name:'毒蝎',emoji:'🦂',minLevel:20,maxLevel:30,hp:200,atk:50,def:12,spd:16,rewards:{gold:220,items:{relic:0.3}}},
+                {name:'地龙',emoji:'🐲',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,rewards:{gold:400,items:{scale:0.25}}},
+                {name:'巨猿',emoji:'🦍',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,rewards:{gold:450,items:{ore:0.4}}}
             ];
             const ELITE_MONSTERS = [
-                {name:'黄金菜青虫',emoji:'???',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
-                {name:'鼠王',emoji:'????',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
-                {name:'血蝙蝠',emoji:'????',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
-                {name:'九尾狐',emoji:'???',minLevel:15,maxLevel:25,hp:270,atk:45,def:18,spd:22,rewards:{gold:350,items:{feather:0.5}}},
-                {name:'熔岩幼龙',emoji:'????',minLevel:20,maxLevel:30,hp:375,atk:60,def:22,spd:25,rewards:{gold:500,items:{scale:0.3}}},
-                {name:'水晶地龙',emoji:'????',minLevel:25,maxLevel:35,hp:525,atk:82,def:42,spd:20,rewards:{gold:800,items:{scale:0.4}}}
+                {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
+                {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
+                {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
+                {name:'九尾狐',emoji:'🦊✨',minLevel:15,maxLevel:25,hp:270,atk:45,def:18,spd:22,rewards:{gold:350,items:{feather:0.5}}},
+                {name:'熔岩幼龙',emoji:'🐉🔥',minLevel:20,maxLevel:30,hp:375,atk:60,def:22,spd:25,rewards:{gold:500,items:{scale:0.3}}},
+                {name:'水晶地龙',emoji:'🐲💎',minLevel:25,maxLevel:35,hp:525,atk:82,def:42,spd:20,rewards:{gold:800,items:{scale:0.4}}}
             ];
             const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
             const SLOT_NAMES = {weapon:'武器',armor:'防具',accessory:'饰品'};
 
             const EXPLORE_ROUTES = [
-                { id:'grassland', name:'草地小径', emoji:'??', time:0.5, cost:20, minLevel:1, materials:{hair:2,seed:1,dew:0.5}, rareItem:'dew', rareProb:0.1, eventProb:0.1, eventName:'遇到受伤小动物', eventReward:'gold50', exp:20 },
-                { id:'forest', name:'森林探索', emoji:'??', time:1, cost:40, minLevel:5, materials:{hair:3,ore:1.5,relic:0.3}, rareItem:'relic', rareProb:0.15, eventProb:0.15, eventName:'发现宝箱', eventReward:'extra_materials', exp:40 },
-                { id:'mine', name:'矿洞挖掘', emoji:'??', time:2, cost:80, minLevel:10, materials:{ore:3,relic:1.5,moonstone:0.5}, rareItem:'moonstone', rareProb:0.2, eventProb:0.2, eventName:'挖到矿石脉', eventReward:'double_materials', exp:80 },
-                { id:'ruins', name:'遗迹探险', emoji:'???', time:3, cost:150, minLevel:15, materials:{relic:3,feather:1.5,scale:0.5}, rareItem:'scale', rareProb:0.25, eventProb:0.25, eventName:'触发古老机关', eventReward:'rare_material', exp:150 },
-                { id:'dragon', name:'龙巢秘境', emoji:'??', time:4, cost:300, minLevel:20, materials:{feather:3,scale:2,dragon_soul:0.5}, rareItem:'dragon_soul', rareProb:0.3, eventProb:0.3, eventName:'龙魂祝福', eventReward:'bonus_exp', exp:300 },
-                { id:'night', name:'暗夜森林', emoji:'??', time:2, cost:100, minLevel:10, materials:{dew:3,clover:1.5,feather:0.5}, rareItem:'feather', rareProb:0.2, eventProb:0.2, eventName:'萤火虫群', eventReward:'temp_luk', exp:100 }
+                { id:'grassland', name:'草地小径', emoji:'🌿', time:0.5, cost:20, minLevel:1, materials:{hair:2,seed:1,dew:0.5}, rareItem:'dew', rareProb:0.1, eventProb:0.1, eventName:'遇到受伤小动物', eventReward:'gold50', exp:20 },
+                { id:'forest', name:'森林探索', emoji:'🌲', time:1, cost:40, minLevel:5, materials:{hair:3,ore:1.5,relic:0.3}, rareItem:'relic', rareProb:0.15, eventProb:0.15, eventName:'发现宝箱', eventReward:'extra_materials', exp:40 },
+                { id:'mine', name:'矿洞挖掘', emoji:'💎', time:2, cost:80, minLevel:10, materials:{ore:3,relic:1.5,moonstone:0.5}, rareItem:'moonstone', rareProb:0.2, eventProb:0.2, eventName:'挖到矿石脉', eventReward:'double_materials', exp:80 },
+                { id:'ruins', name:'遗迹探险', emoji:'🏛️', time:3, cost:150, minLevel:15, materials:{relic:3,feather:1.5,scale:0.5}, rareItem:'scale', rareProb:0.25, eventProb:0.25, eventName:'触发古老机关', eventReward:'rare_material', exp:150 },
+                { id:'dragon', name:'龙巢秘境', emoji:'🐉', time:4, cost:300, minLevel:20, materials:{feather:3,scale:2,dragon_soul:0.5}, rareItem:'dragon_soul', rareProb:0.3, eventProb:0.3, eventName:'龙魂祝福', eventReward:'bonus_exp', exp:300 },
+                { id:'night', name:'暗夜森林', emoji:'🌙', time:2, cost:100, minLevel:10, materials:{dew:3,clover:1.5,feather:0.5}, rareItem:'feather', rareProb:0.2, eventProb:0.2, eventName:'萤火虫群', eventReward:'temp_luk', exp:100 }
             ];
 
             const LEARNABLE_SKILLS = {
@@ -421,14 +421,14 @@
                     if (buff.type === 'burn') {
                         const dmg = Math.max(1, Math.floor(battle.opponentCurrentHp * 0.05));
                         battle.opponentCurrentHp = Math.max(0, battle.opponentCurrentHp - dmg);
-                        logBattle(`?? 灼烧伤害造成 ${dmg} 点伤害`);
+                        logBattle(`🔥 灼烧伤害造成 ${dmg} 点伤害`);
                     }
                 });
                 (myBuffs || []).forEach(buff => {
                     if (buff.type === 'burn') {
                         const dmg = Math.max(1, Math.floor(battle.myCurrentHp * 0.05));
                         battle.myCurrentHp = Math.max(0, battle.myCurrentHp - dmg);
-                        logBattle(`?? 你受到灼烧伤害 ${dmg} 点`);
+                        logBattle(`🔥 你受到灼烧伤害 ${dmg} 点`);
                     }
                 });
             }
@@ -594,7 +594,7 @@
                     const extraItems = ['hair','seed','ore','relic','feather','scale','moonstone','clover'];
                     const randItem = extraItems[Math.floor(Math.random() * extraItems.length)];
                     await addItem(randItem, 1);
-                    showToast(`?? ${qData.name}品质！额外获得 ${ITEM_EMOJI[randItem]}×1`);
+                    showToast(`🎉 ${qData.name}品质！额外获得 ${ITEM_EMOJI[randItem]}×1`);
                 }
                 addEventLog('harvest', { crop: plot.crop_type, gold: reward, quality: quality });
                 return { reward, quality };
@@ -669,7 +669,7 @@
                 pet.exploring_until = eu; pet.exploring_route = routeId;
                 State.profile.gold -= cost;
                 addEventLog('explore_start', { pet: pet.pet_name, route: route.name });
-                showToast(`${pet.pet_name} 前往${route.name}探险！花费??${cost} 预计${Math.round(actualTime * 60)}分钟`);
+                showToast(`${pet.pet_name} 前往${route.name}探险！花费🪙${cost} 预计${Math.round(actualTime * 60)}分钟`);
                 if (document.getElementById('modalPets')?.classList.contains('active')) { Farm.openPets(); } else { render(); }
             }
             async function completeExploration(pid, silent = false) {
@@ -741,24 +741,24 @@
                             await supabase.from('pet_skills').update({ level: newLevel, power: newPower, cooldown: newCooldown }).eq('id', existingSkill.id);
                             existingSkill.level = newLevel; existingSkill.power = newPower; existingSkill.cooldown = newCooldown;
                             addEventLog('skill_upgrade', { pet: pet.pet_name, skill: skillName, level: newLevel });
-                            if (!silent) showToast(`?? ${pet.pet_name} 的【${skillName}】升级至 Lv.${newLevel}！`);
+                            if (!silent) showToast(`⬆️ ${pet.pet_name} 的【${skillName}】升级至 Lv.${newLevel}！`);
                         }
                     } else if (mySkills.length < 4) {
                         const freeSlot = [0, 1, 2, 3].find(s => !mySkills.some(ps => ps.slot === s));
                         if (freeSlot !== undefined) {
                             const { data: newSkill } = await supabase.from('pet_skills').insert({ pet_id: pid, skill_name: skillName, skill_type: LEARNABLE_SKILLS[skillName].type, power: LEARNABLE_SKILLS[skillName].power, cooldown: LEARNABLE_SKILLS[skillName].cooldown, level: 1, slot: freeSlot }).select().single();
-                            if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_learn', { pet: pet.pet_name, skill: skillName }); if (!silent) showToast(`?? ${pet.pet_name} 学会了新技能：${skillName}！`); }
+                            if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_learn', { pet: pet.pet_name, skill: skillName }); if (!silent) showToast(`🎉 ${pet.pet_name} 学会了新技能：${skillName}！`); }
                         }
                     } else {
                         const replaceSkill = mySkills[Math.floor(Math.random() * mySkills.length)];
                         await supabase.from('pet_skills').delete().eq('id', replaceSkill.id);
                         State.petSkills = State.petSkills.filter(s => s.id !== replaceSkill.id);
                         const { data: newSkill } = await supabase.from('pet_skills').insert({ pet_id: pid, skill_name: skillName, skill_type: LEARNABLE_SKILLS[skillName].type, power: LEARNABLE_SKILLS[skillName].power, cooldown: LEARNABLE_SKILLS[skillName].cooldown, level: 1, slot: replaceSkill.slot }).select().single();
-                        if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_replace', { pet: pet.pet_name, old_skill: replaceSkill.skill_name, new_skill: skillName }); if (!silent) showToast(`?? ${pet.pet_name} 遗忘了【${replaceSkill.skill_name}】，学会了【${skillName}】！`); }
+                        if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_replace', { pet: pet.pet_name, old_skill: replaceSkill.skill_name, new_skill: skillName }); if (!silent) showToast(`🔄 ${pet.pet_name} 遗忘了【${replaceSkill.skill_name}】，学会了【${skillName}】！`); }
                     }
                 }
                 if (!silent) {
-                    const rt = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item] || '??'}×${qty}`).join(' ');
+                    const rt = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item] || '📦'}×${qty}`).join(' ');
                     showToast(`${pet.pet_name} 探险归来！获得 ${rt}${eventTriggered ? ' (触发：' + route.eventName + ')' : ''}`);
                 }
                 return rewards;
@@ -863,7 +863,7 @@
                 await supabase.from('equipment').delete().eq('id', eid);
                 State.equipment = State.equipment.filter(e => e.id !== eid);
                 addEventLog('sell_equipment', { name: equip.name, price });
-                showToast(`出售成功！获得 ??${price}`);
+                showToast(`出售成功！获得 🪙${price}`);
             }
             async function equipToPet(eid, pid) {
                 const equip = State.equipment.find(e => e.id === eid), pet = State.pets.find(p => p.id === pid);
@@ -951,18 +951,18 @@
                         dmg = Math.floor(calculateDamage(b.myPet, b.opponentPet) * powerMult);
                         b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
                         logBattle(`你的 ${b.myPet.pet_name} 使用【${skill.skill_name}】，造成 ${dmg} 点伤害`);
-                        if (skill.skill_name === '爪击强化') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 2, value: 0.3 }); logBattle(`? 攻击力提升30%，持续2回合`); }
-                        if (skill.skill_name === '生命汲取') { const heal = Math.floor(dmg * 0.3); b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal); logBattle(`?? 汲取生命回复了 ${heal} 点HP`); }
-                        if (skill.skill_name === '烈焰爪击') { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'burn', duration: 3 }); logBattle(`?? 对手被灼烧，每回合失去5%当前HP`); }
-                        if (skill.skill_name === '雷电冲击' && Math.random() < 0.3) { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`? 对手麻痹，无法行动`); }
+                        if (skill.skill_name === '爪击强化') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 2, value: 0.3 }); logBattle(`⚡ 攻击力提升30%，持续2回合`); }
+                        if (skill.skill_name === '生命汲取') { const heal = Math.floor(dmg * 0.3); b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal); logBattle(`💚 汲取生命回复了 ${heal} 点HP`); }
+                        if (skill.skill_name === '烈焰爪击') { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 对手被灼烧，每回合失去5%当前HP`); }
+                        if (skill.skill_name === '雷电冲击' && Math.random() < 0.3) { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 对手麻痹，无法行动`); }
                     } else if (skillInfo.type === 'heal') {
                         if (skill.skill_name === '快速愈合') { const heal = Math.floor(b.myPet.hp * (skillInfo.power / 100)); b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal); logBattle(`你的 ${b.myPet.pet_name} 使用【快速愈合】，回复 ${heal} 点HP`); }
                     } else if (skillInfo.type === 'defense') {
                         if (skill.skill_name === '铁壁防御') { b.myDefend = true; b.myIronDef = true; const reduceRate = Math.round(skill.power * 0.01 * 100); logBattle(`你的 ${b.myPet.pet_name} 使用【铁壁防御】，本回合减伤${reduceRate}%`); }
                         else if (skill.skill_name === '荆棘护甲') { b.myReflect = true; b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'reflect'); b.myBuffs.push({ type: 'reflect', duration: 2, value: skill.power / 100 }); logBattle(`你的 ${b.myPet.pet_name} 使用【荆棘护甲】，反弹${skill.power}%伤害持续2回合`); }
                     } else if (skillInfo.type === 'support') {
-                        if (skill.skill_name === '战吼') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 1, value: 0.5 }); logBattle(`? 下回合攻击力+50%`); }
-                        else if (skill.skill_name === '疾风步') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'dodge'); b.myBuffs.push({ type: 'dodge', duration: 3, value: 0.15 }); logBattle(`?? 闪避率+15%，持续3回合`); }
+                        if (skill.skill_name === '战吼') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 1, value: 0.5 }); logBattle(`⚡ 下回合攻击力+50%`); }
+                        else if (skill.skill_name === '疾风步') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'dodge'); b.myBuffs.push({ type: 'dodge', duration: 3, value: 0.15 }); logBattle(`💨 闪避率+15%，持续3回合`); }
                     }
                 } else if (action === 'attack') {
                     let atkMult = 1; (b.myBuffs || []).forEach(bf => { if (bf.type === 'attack_up') atkMult += bf.value; });
@@ -1002,7 +1002,7 @@
                 const newExpires = new Date(Date.now() + 6 * 3600000).toISOString();
                 const newRewards = { gold: 1000 + Math.floor(Math.random() * 500), items: { scale: 2 + Math.floor(Math.random() * 4) } };
                 await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
-                State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '????', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
+                State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
             }
 			
 			// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
@@ -1010,18 +1010,18 @@
                 const overlay = document.createElement('div');
                 overlay.className = 'modal-overlay active';
                 const rewardsHTML = data.won ? `
-                    <div style="margin:8px 0;font-weight:600;">?? 获得奖励：</div>
-                    ${data.rewards?.gold ? `<div>?? 金币 +${data.rewards.gold}</div>` : ''}
-                    ${data.rewards?.exp ? `<div>?? 经验 +${data.rewards.exp}</div>` : ''}
-                    ${data.rewards?.levelUp ? '<div style="color:#f0c040;">?? 宠物升级！</div>' : ''}
-                    ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'??'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
+                    <div style="margin:8px 0;font-weight:600;">🎁 获得奖励：</div>
+                    ${data.rewards?.gold ? `<div>🪙 金币 +${data.rewards.gold}</div>` : ''}
+                    ${data.rewards?.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
+                    ${data.rewards?.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
+                    ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
                 ` : '<div style="margin:8px 0;color:#888;">没有获得奖励</div>';
                 overlay.innerHTML = `
                     <div class="modal" style="max-width:320px;">
-                        <h3>${data.won ? '?? 战斗胜利！' : '?? 战斗失败'}</h3>
+                        <h3>${data.won ? '⚔️ 战斗胜利！' : '💀 战斗失败'}</h3>
                         <div style="text-align:left;padding:10px;">
-                            <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'??'} ${data.myPet?.pet_name}</div>
-                            <div>对手：${data.opponentPet?.emoji||'??'} ${data.opponentPet?.pet_name}</div>
+                            <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'🐾'} ${data.myPet?.pet_name}</div>
+                            <div>对手：${data.opponentPet?.emoji||'👾'} ${data.opponentPet?.pet_name}</div>
                             ${data.damage ? `<div>造成伤害：${data.damage} 点</div>` : ''}
                             ${rewardsHTML}
                         </div>
@@ -1100,7 +1100,7 @@
 			// ==================== 第 17 块：认证界面（Auth） ====================
             const Auth = {
                 render() {
-                    return `<div class="auth-form"><h1>?? 开心农场</h1><p style="text-align:center;color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜 · 丰收</p>
+                    return `<div class="auth-form"><h1>🌱 开心农场</h1><p style="text-align:center;color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜 · 丰收</p>
                     <div class="auth-tabs"><button class="auth-tab active" data-tab="login">登录</button><button class="auth-tab" data-tab="register">注册</button></div>
                     <div id="tab-login"><div class="form-group"><label>邮箱</label><input type="email" id="loginEmail" placeholder="请输入邮箱"></div>
                     <div class="form-group"><label>密码</label><input type="password" id="loginPassword" placeholder="请输入密码"></div>
@@ -1132,7 +1132,7 @@
                         const username = document.getElementById('regUsername').value.trim(), email = document.getElementById('regEmail').value.trim(), password = document.getElementById('regPassword').value, gender = document.getElementById('regGender').value, errorEl = document.getElementById('authError');
                         if (!username || !email || !password) { errorEl.textContent = '请填写所有必填字段'; return; }
                         if (password.length < 6) { errorEl.textContent = '密码至少6位'; return; }
-                        try { errorEl.textContent = ''; const result = await signUp(email, password, username, gender); if (result.user) { State.currentUser = result.user; showToast('注册成功！??'); await new Promise(r => setTimeout(r, 1500)); const { data: profile } = await supabase.from('profiles').select('*').eq('id', result.user.id).single(); State.profile = profile; await loadAll(); render(); } }
+                        try { errorEl.textContent = ''; const result = await signUp(email, password, username, gender); if (result.user) { State.currentUser = result.user; showToast('注册成功！🎉'); await new Promise(r => setTimeout(r, 1500)); const { data: profile } = await supabase.from('profiles').select('*').eq('id', result.user.id).single(); State.profile = profile; await loadAll(); render(); } }
                         catch (err) { errorEl.textContent = err.message || '注册失败'; }
                     };
                 }
@@ -1144,15 +1144,15 @@
                     const friend = State.visitingFriend; if (!friend) return '';
                     const plotsHTML = State.visitingPlots.map(plot => {
                         const status = getCropStatus(plot); let e, s, prog = '', cc = '';
-                        if (status.status === 'empty') { e = '??'; s = '空地'; cc = 'empty'; }
-                        else if (status.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '??'; s = '可偷菜??'; cc = 'ready'; }
-                        else { e = CROPS[plot.crop_type]?.emoji || '??'; const wh = status.waterable ? '可浇水??' : '加速中??', wc = status.waterable ? 'waterable' : 'watered'; s = `<span class="${wc}">${wh}</span> 剩${status.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`; }
+                        if (status.status === 'empty') { e = '🟫'; s = '空地'; cc = 'empty'; }
+                        else if (status.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '🌱'; s = '可偷菜🥷'; cc = 'ready'; }
+                        else { e = CROPS[plot.crop_type]?.emoji || '🌱'; const wh = status.waterable ? '可浇水💧' : '加速中🔥', wc = status.waterable ? 'waterable' : 'watered'; s = `<span class="${wc}">${wh}</span> 剩${status.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`; }
                         return `<div class="plot-card ${cc}" data-plot="${plot.plot_index}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${s}</div>${prog}</div>`;
                     }).join('');
                     return `<div class="header"><div style="display:flex;align-items:center;gap:8px;"><button class="btn-icon" id="btnBackToFarm">← 返回</button><div class="avatar ${friend.gender || 'none'}">${(friend.username || '?')[0]}</div><span class="username">${escapeHTML(friend.username || '好友')}的农场</span></div></div>
                     <div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div>
-                    <div class="modal-overlay" id="modalSteal"><div class="modal"><h3>?? 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div></div>
-                    <div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>?? 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div></div>`;
+                    <div class="modal-overlay" id="modalSteal"><div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div></div>
+                    <div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div></div>`;
                 },
                 bindEvents() {
                     document.getElementById('btnBackToFarm').onclick = () => { State.visitingFriend = null; State.visitingPlots = []; render(); };
@@ -1166,7 +1166,7 @@
                             if (plot.stolen_count >= 2) { showToast('已被偷光'); return; }
                             document.getElementById('stealInfo').textContent = `${CROPS[plot.crop_type]?.name} 已成熟，偷取约40%收益！`;
                             document.getElementById('modalSteal').classList.add('active');
-                            document.getElementById('confirmSteal').onclick = async () => { State.isSubmitting = true; try { const reward = await stealCrop(State.visitingFriend.id, pi); State.visitingPlots[pi] = { ...State.visitingPlots[pi], stolen_count: (State.visitingPlots[pi].stolen_count || 0) + 1 }; showToast(`偷取成功！??${reward}`); render(); } catch (err) { showToast(err.message || '偷菜失败', true); } finally { State.isSubmitting = false; document.getElementById('modalSteal').classList.remove('active'); } };
+                            document.getElementById('confirmSteal').onclick = async () => { State.isSubmitting = true; try { const reward = await stealCrop(State.visitingFriend.id, pi); State.visitingPlots[pi] = { ...State.visitingPlots[pi], stolen_count: (State.visitingPlots[pi].stolen_count || 0) + 1 }; showToast(`偷取成功！🪙${reward}`); render(); } catch (err) { showToast(err.message || '偷菜失败', true); } finally { State.isSubmitting = false; document.getElementById('modalSteal').classList.remove('active'); } };
                         } else if (status.status === 'growing') {
                             const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < 30 * 60 * 1000) { showToast('30分钟内已浇水'); return; }
                             document.getElementById('modalWaterFriend').classList.add('active');
@@ -1203,10 +1203,10 @@
                             return { ...pet, power, equipCount: equip.length };
                         }).sort((a, b) => b.power - a.power).slice(0, 50);
                         listEl.innerHTML = petsWithPower.map((p, idx) => {
-                            const rank = idx + 1, emoji = PET_TYPES[p.pet_type]?.emoji || '??', owner = p.profiles?.username || '未知';
+                            const rank = idx + 1, emoji = PET_TYPES[p.pet_type]?.emoji || '🐾', owner = p.profiles?.username || '未知';
                             const rc = rank <= 3 ? '#f0c040' : 'var(--accent)';
                             const isFriend = State.friendIds.has(p.owner_id);
-                            return `<div class="list-item" data-owner="${p.owner_id}" style="cursor:pointer;"><span class="rank-span" style="color:${rc};">${rank}</span><span style="font-size:1.2rem;">${emoji}</span><span style="flex:1;">${p.pet_name} Lv.${p.level}</span><span style="font-size:0.8rem;">?? ${owner} ${isFriend ? '<span class="tag-friend">好友</span>' : ''}</span><span style="font-weight:600;">战力 ${p.power}</span></div>`;
+                            return `<div class="list-item" data-owner="${p.owner_id}" style="cursor:pointer;"><span class="rank-span" style="color:${rc};">${rank}</span><span style="font-size:1.2rem;">${emoji}</span><span style="flex:1;">${p.pet_name} Lv.${p.level}</span><span style="font-size:0.8rem;">👤 ${owner} ${isFriend ? '<span class="tag-friend">好友</span>' : ''}</span><span style="font-weight:600;">战力 ${p.power}</span></div>`;
                         }).join('');
                         listEl.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const ownerId = item.dataset.owner; if (ownerId === State.currentUser.id) return; const friend = State.friendProfiles.find(p => p.id === ownerId); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', ownerId).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalLeaderboard').classList.remove('active'); render(); }); } else { showToast('非好友无法访问农场', true); } }; });
                         return;
@@ -1228,7 +1228,7 @@
                         const rank = idx + 1, isMe = p.id === State.currentUser.id, isFriend = friendIdSet.has(p.id), isSent = sentSet.has(p.id);
                         let actionBtn = ''; if (isMe) actionBtn = '<span class="tag-self">（我）</span>'; else if (isFriend) actionBtn = '<span class="tag-friend">好友</span>'; else if (isSent) actionBtn = '<button class="btn-small" disabled style="background:#ccc;">已申请</button>'; else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
                         const gc = p.gender || 'none', al = (p.username || '?')[0], rc = rank <= 3 ? '#f0c040' : 'var(--accent)';
-                        return `<div class="list-item"><span class="rank-span" style="color:${rc};">${rank}</span><div class="avatar ${gc}" style="width:30px;height:30px;">${al}</div><span style="flex:1;">${escapeHTML(p.username || '匿名')}</span><span style="color:var(--accent);">??${p.gold || 0}</span>${actionBtn}</div>`;
+                        return `<div class="list-item"><span class="rank-span" style="color:${rc};">${rank}</span><div class="avatar ${gc}" style="width:30px;height:30px;">${al}</div><span style="flex:1;">${escapeHTML(p.username || '匿名')}</span><span style="color:var(--accent);">🪙${p.gold || 0}</span>${actionBtn}</div>`;
                     }).join('');
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
@@ -1239,13 +1239,13 @@
                 render() {
                     const b = State.battle; if (!b) return '';
                     const skillBtns = (b.mySkills || []).map(s => { const cd = b.skillCooldowns[s.id] || 0; return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 ? 'disabled' : ''}>${s.skill_name}${cd > 0 ? '(' + cd + ')' : ''}</button>`; }).join('');
-                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '??+' : bf.type === 'reflect' ? '???反' : bf.type === 'dodge' ? '??闪' : '?' + bf.type}(${bf.duration})</span>`).join('');
-                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '??' : bf.type === 'paralyze' ? '?麻' : bf.type}(${bf.duration})</span>`).join('');
-                    return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>?? ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span></div>
-                    <div class="battle-container"><div class="battle-pet"><div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type]?.emoji || '??'}</div><div>${b.myPet.pet_name} ${myBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp / b.myPet.hp * 100)}%"></div></div><div>${b.myCurrentHp}/${b.myPet.hp}</div></div>
-                    <div>VS</div><div class="battle-pet"><div style="font-size:2rem;">${b.opponentPet.emoji || PET_TYPES[b.opponentPet.pet_type]?.emoji || '??'}</div><div>${b.opponentPet.pet_name} ${oppBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp / b.opponentPet.hp * 100)}%"></div></div><div>${b.opponentCurrentHp}/${b.opponentPet.hp}</div></div></div>
+                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
+                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type}(${bf.duration})</span>`).join('');
+                    return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>⚔️ ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span></div>
+                    <div class="battle-container"><div class="battle-pet"><div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type]?.emoji || '🐾'}</div><div>${b.myPet.pet_name} ${myBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp / b.myPet.hp * 100)}%"></div></div><div>${b.myCurrentHp}/${b.myPet.hp}</div></div>
+                    <div>VS</div><div class="battle-pet"><div style="font-size:2rem;">${b.opponentPet.emoji || PET_TYPES[b.opponentPet.pet_type]?.emoji || '👾'}</div><div>${b.opponentPet.pet_name} ${oppBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp / b.opponentPet.hp * 100)}%"></div></div><div>${b.opponentCurrentHp}/${b.opponentPet.hp}</div></div></div>
                     <div class="battle-log">${b.log.slice().reverse().map(l => { if (typeof l === 'string') return `<div>${l}</div>`; return `<div><span style="color:#888;">${l.time}</span> ${l.msg}</div>`; }).join('')}</div>
-                    <div class="battle-actions"><button class="battle-btn attack" id="btnAttack">??攻击</button><button class="battle-btn defend" id="btnDefend">???防御</button>${skillBtns}</div>`;
+                    <div class="battle-actions"><button class="battle-btn attack" id="btnAttack">⚔️攻击</button><button class="battle-btn defend" id="btnDefend">🛡️防御</button>${skillBtns}</div>`;
                 },
                 bindEvents() {
                     document.getElementById('btnAttack').onclick = () => executeBattleAction('attack');
@@ -1269,28 +1269,28 @@
                     const ul = State.profile?.unlocked_plots || 4;
                     const plotsHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join('');
                     const gc = State.profile?.gender || 'none';
-                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">??</button><button class="btn-icon" id="btnFriends" title="好友">??</button><button class="btn-icon" id="btnPets" title="宠物">??</button><button class="btn-icon" id="btnBackpack" title="背包">??</button><button class="btn-icon" id="btnSynthesis" title="合成台">??</button><button class="btn-icon" id="btnEquipment" title="装备">??</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">??</button><button class="btn-icon" id="btnExplore" title="宠物探险">???</button><button class="btn-icon" id="btnOrders" title="订单">??</button><button class="btn-icon" id="btnSeedShop" title="商店">??</button><button class="btn-icon" id="btnEventLog" title="事件日志">??</button><button class="btn-icon" id="btnLogout" title="退出登录">??</button></div></div>
+                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
-                    ${ul < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">?? 解锁地块 (${ul}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">?? 所有地块已解锁！</p>'}
-                    <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>?? 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">取消</button></div></div>
-                    <div class="modal-overlay" id="modalWater"><div class="modal"><h3>?? 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">取消</button></div></div>
-                    <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>?? 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>?? 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">?? 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>?? 合成台</h3><button class="btn-refresh" id="btnRefreshSynthesis">?? 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>?? 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>?? 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>??? 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>?? 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>?? 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>?? 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">?? 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">关闭</button></div></div>
-                    <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>?? 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">关闭</button></div></div>
+                    ${ul < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
+                    <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">取消</button></div></div>
+                    <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">取消</button></div></div>
+                    <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">🔄 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">关闭</button></div></div>
+                    <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">关闭</button></div></div>
                     <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">关闭</button></div></div>`;
                 },
                 plotHTML(plot) {
                     const s = getCropStatus(plot); let e, st, prog = '', cc = '';
-                    if (s.status === 'empty') { e = '??'; st = '空地'; cc = 'empty'; }
-                    else if (s.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '??'; st = '?可收获'; cc = 'ready'; }
-                    else { e = CROPS[plot.crop_type]?.emoji || '??'; const wh = s.waterable ? '可浇水??' : '加速中??', wc = s.waterable ? 'waterable' : 'watered'; st = `<span class="${wc}">${wh}</span> 剩${s.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${s.progress}%"></div></div>`; }
+                    if (s.status === 'empty') { e = '🟫'; st = '空地'; cc = 'empty'; }
+                    else if (s.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '🌱'; st = '✨可收获'; cc = 'ready'; }
+                    else { e = CROPS[plot.crop_type]?.emoji || '🌱'; const wh = s.waterable ? '可浇水💧' : '加速中🔥', wc = s.waterable ? 'waterable' : 'watered'; st = `<span class="${wc}">${wh}</span> 剩${s.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${s.progress}%"></div></div>`; }
                     return `<div class="plot-card ${cc}" data-plot="${plot.plot_index}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${st}</div>${prog}</div>`;
                 },
                 bindEvents() {
@@ -1349,7 +1349,7 @@
                                 if (idx !== -1) State.farmPlots[idx] = { ...State.farmPlots[idx], crop_type: null, planted_at: null, watered_at: null };
                                 Farm.updateGrid();
                                 const qName = result.quality ? QUALITIES[result.quality].name : '';
-                                showToast(`收获成功！${qName}品质 ??${result.reward}`);
+                                showToast(`收获成功！${qName}品质 🪙${result.reward}`);
                             }).catch(() => showToast('收获失败', true)).finally(() => { State.isSubmitting = false; });
                         } else {
                             State.selectedPlotIndex = pi;
@@ -1364,10 +1364,10 @@
                     if (type !== 'all') crops = crops.filter(([k, v]) => v.type === type);
                     container.innerHTML = crops.map(([key, info]) => {
                         const unlocked = info.unlock === '初始' || hasSeed(key);
-                        if (!unlocked) return `<div class="crop-btn locked"><div style="font-size:2rem;">?</div><div>${info.name}</div><div style="font-size:0.7rem;">未解锁</div></div>`;
+                        if (!unlocked) return `<div class="crop-btn locked"><div style="font-size:2rem;">❓</div><div>${info.name}</div><div style="font-size:0.7rem;">未解锁</div></div>`;
                         const seedPrice = info.seed;
                         const canAfford = (State.profile?.gold || 0) >= seedPrice;
-                        return `<button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${seedPrice}" ${!canAfford ? 'disabled' : ''}><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">??${seedPrice} ?${info.growth}分</div></button>`;
+                        return `<button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${seedPrice}" ${!canAfford ? 'disabled' : ''}><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">🪙${seedPrice} ⏱${info.growth}分</div></button>`;
                     }).join('');
                     container.querySelectorAll('.crop-btn:not(.locked)').forEach(btn => {
                         btn.onclick = async () => {
@@ -1392,7 +1392,7 @@
                     document.getElementById('modalFriends').classList.add('active');
                     const c = document.getElementById('friendListContainer');
                     if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
-                    c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">??${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
+                    c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
                     c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
                     c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">取消</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
                 },
@@ -1408,7 +1408,7 @@
                     let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
                     const stats = getPetBattleStats(p);
                     const skills = State.petSkills.filter(s => s.pet_id === p.id);
-                    const skillsHTML = skills.length > 0 ? skills.map(s => { const info = LEARNABLE_SKILLS[s.skill_name]; const typeClass = `skill-${s.skill_type}`; return `<div class="skill-card ${typeClass}"><strong>?? ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">冷${s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无额外技能</div>';
+                    const skillsHTML = skills.length > 0 ? skills.map(s => { const info = LEARNABLE_SKILLS[s.skill_name]; const typeClass = `skill-${s.skill_type}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">冷${s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无额外技能</div>';
                     const isStationed = State.stationedPet && State.stationedPet.id === p.id;
 
                     // 获取该宠物穿戴装备激活的套装效果
@@ -1424,24 +1424,24 @@
                             let effectsDesc = [];
                             if (b2) { for (const [k, v] of Object.entries(b2)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
                             if (b3) { for (const [k, v] of Object.entries(b3)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
-                            setHTML += `<div class="set-info-row">??? ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
+                            setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
                         }
                     }
 
-                    return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} ??${skills.length}技能</div><div class="stat-row">EXP:${p.exp} | ??${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ??${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> ???${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ?${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> ??${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> ??${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '?已驻扎' : '??驻扎'}</button></div></div>`;
+                    return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
                 }).join('');
                 c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
                 c.querySelectorAll('.btn-view').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
                 c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
             };
-            Farm.openAdopt = function() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费??${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); };
+            Farm.openAdopt = function() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); };
             Farm.openExplore = function(petId) {
                 const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active');
                 const c = document.getElementById('exploreListContainer');
                 const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0];
                 if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; }
                 const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100);
-                c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：?? #${pet.id} ${pet.pet_name} Lv.${pet.level} ??幸运${pet.luk} ??体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ?${Math.round(actualTime * 60)}分钟 ??${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join('');
+                c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join('');
                 c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; });
             };
             Farm.openBackpack = async function() {
@@ -1455,9 +1455,9 @@
                     else if (type === 'seed') filtered = allItems.filter(([k]) => k.startsWith('seed_'));
                     else if (type === 'crop') filtered = allItems.filter(([k]) => CROPS[k] !== undefined);
                     else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k));
-                    let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>??</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
+                    let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
                     if (filtered.length === 0) { html += '<p>空空如也</p>'; }
-                    else { html += filtered.map(([type, qty]) => `<div class="item-row"><span>${ITEM_EMOJI[type]||'??'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`).join(''); }
+                    else { html += filtered.map(([type, qty]) => `<div class="item-row"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`).join(''); }
                     container.innerHTML = html;
                 };
                 showBp('all');
@@ -1477,7 +1477,7 @@
                     let btnClass = 'btn-synthesis', btnText = '可合成';
                     if (!hasMaterials) { btnClass = 'btn-nomat'; btnText = '材料不足'; }
                     else if (!hasGold) { btnClass = 'btn-nogold'; btnText = '金币不足'; }
-                    return `<div class="equipment-card"><strong>${r.name}</strong> <span class="set-badge">${r.set_name||'无'}</span> (${SLOT_NAMES[r.slot]}) - ${QUALITY_NAMES[r.quality]}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]}×${need}`).join(' ')}</div><div style="font-size:0.8rem;">费用：??${r.cost}</div><button class="${btnClass}" data-recipe-idx="${idx}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
+                    return `<div class="equipment-card"><strong>${r.name}</strong> <span class="set-badge">${r.set_name||'无'}</span> (${SLOT_NAMES[r.slot]}) - ${QUALITY_NAMES[r.quality]}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]}×${need}`).join(' ')}</div><div style="font-size:0.8rem;">费用：🪙${r.cost}</div><button class="${btnClass}" data-recipe-idx="${idx}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
                 }).join('');
                 c.querySelectorAll('.btn-synthesis').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.recipeIdx); await synthesizeEquipment(SYNTHESIS_RECIPES[idx]); Farm.openSynthesis(); }; });
                 document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); Farm.openSynthesis(); };
@@ -1531,20 +1531,20 @@
                             State.bossStatus.expires_at = newExpires;
                         }
                         const remaining = Math.ceil((new Date(State.bossStatus.expires_at) - now) / 3600000 * 10) / 10;
-                        html += `<div class="boss-card"><strong>?? ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
+                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                     } else if (State.bossStatus.current_hp <= 0 && refreshesAt && refreshesAt > now) {
                         const remaining = Math.ceil((refreshesAt - now) / 60000);
-                        html += `<div class="boss-card"><strong>?? ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
+                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
                     } else {
                         await refreshBoss();
                         const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
-                        html += `<div class="boss-card"><strong>?? ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
+                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                     }
                 }
                 const eliteAvailable = ELITE_MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
                 if (eliteAvailable.length > 0 && Math.random() < 0.15) {
                     const elite = eliteAvailable[Math.floor(Math.random() * eliteAvailable.length)];
-                    html += `<div class="elite-card"><strong>? ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
+                    html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
                 }
                 html += available.map(m => `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}'>挑战</button></div>`).join('');
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
@@ -1559,9 +1559,9 @@
                 c.innerHTML = State.orders.map((order, idx) => {
                     const crop = CROPS[order.crop];
                     const hasAmount = (State.items[order.crop] || 0) >= order.amount;
-                    return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：??${order.rewardGold} + ??种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
+                    return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
                 }).join('');
-                c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 ??${order.rewardGold} + ??种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
+                c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
             };
 
             Farm.openSeedShop = function() {
@@ -1586,16 +1586,16 @@
                     { crop: 'rice', cost: 10 }, { crop: 'tea', cost: 10 }
                 ];
                 const myTickets = State.items['seed_ticket'] || 0;
-                let html = `<div style="font-weight:600;margin-bottom:8px;text-align:left;">?? 金币购买（每日3种）</div>`;
+                let html = `<div style="font-weight:600;margin-bottom:8px;text-align:left;">🪙 金币购买（每日3种）</div>`;
                 html += State.seedShop.items.map(item => {
                     const crop = CROPS[item.crop]; const price = item.price;
                     const canBuy = (State.profile.gold || 0) >= price;
-                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>??${price}</span><button class="btn-small btn-adopt" data-crop="${item.crop}" data-price="${price}" ${canBuy?'':'disabled'}>${canBuy?'购买':'金币不足'}</button></div>`;
+                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🪙${price}</span><button class="btn-small btn-adopt" data-crop="${item.crop}" data-price="${price}" ${canBuy?'':'disabled'}>${canBuy?'购买':'金币不足'}</button></div>`;
                 }).join('');
-                html += `<div style="font-weight:600;margin:12px 0 8px 0;text-align:left;">?? 种子券兑换（拥有 ${myTickets} 张）</div>`;
+                html += `<div style="font-weight:600;margin:12px 0 8px 0;text-align:left;">🎫 种子券兑换（拥有 ${myTickets} 张）</div>`;
                 html += ticketExchange.map(item => {
                     const crop = CROPS[item.crop]; const canBuy = myTickets >= item.cost;
-                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>??×${item.cost}</span><button class="btn-small btn-accept" data-crop="${item.crop}" data-cost="${item.cost}" ${canBuy?'':'disabled'}>${canBuy?'兑换':'券不足'}</button></div>`;
+                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🎫×${item.cost}</span><button class="btn-small btn-accept" data-crop="${item.crop}" data-cost="${item.cost}" ${canBuy?'':'disabled'}>${canBuy?'兑换':'券不足'}</button></div>`;
                 }).join('');
                 c.innerHTML = html;
                 c.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const price = parseInt(btn.dataset.price); try { State.profile.gold -= price; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_' + crop, 1); showToast(`购买成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('购买失败', true); } }; });
@@ -1625,27 +1625,27 @@
             function formatEventMessage(log) {
                 const d = log.event_data || {};
                 switch (log.event_type) {
-                    case 'plant': return `?? 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;
-                    case 'harvest': { const qName = d.quality ? QUALITIES[d.quality]?.name || d.quality : ''; return `?? 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币${qName ? '（'+qName+'）' : ''}`; }
-                    case 'water_self': return `?? 你为自己的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||'作物'} 浇了水`;
-                    case 'water_sent': return `?? 你帮 ?? ${d.friend} 浇了水，双方各得5金币`;
-                    case 'steal_sent': return `你偷了 ?? ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
-                    case 'adopt_pet': return `?? 你领养了一只 ${d.pet}`;
-                    case 'explore_start': return `??? ${d.pet} 前往${d.route}探险了`;
-                    case 'explore_complete': { const items = Object.entries(d.rewards||{}).map(([item,qty]) => `${ITEM_EMOJI[item]||'??'}×${qty}`).join(' '); const eventMsg = d.event ? ` · 触发事件：${d.event}` : ''; return `??? ${d.pet} 从${d.route}归来，获得 ${items}${eventMsg}`; }
-                    case 'skill_learn': return `?? ${d.pet} 学会了新技能【${d.skill}】！`;
-                    case 'skill_upgrade': return `?? ${d.pet} 的【${d.skill}】升级至 Lv.${d.level}`;
-                    case 'skill_replace': return `?? ${d.pet} 遗忘了【${d.old_skill}】，学会了【${d.new_skill}】`;
-                    case 'plot_unlock': return `?? 你解锁了第 ${d.plot} 块农田！`;
-                    case 'friend_accepted': return `?? 你和 ?? ${d.friend} 成为了好友`;
-                    case 'synthesis': return `?? 你合成了 ${d.name} (${QUALITY_NAMES[d.quality]})`;
-                    case 'enhance': return `?? 装备 ${d.name} 强化${d.success?'成功':'失败'}，当前+${d.level}`;
-                    case 'decompose': return `?? 你分解了 ${d.name}，材料已返还`;
-                    case 'sell_equipment': return `?? 你出售了 ${d.name}，获得 ${d.price} 金币`;
-                    case 'battle_win': return `?? 你战胜了 ?? ${d.opponent}，获得 ${d.gold} 金币`;
-                    case 'battle_lose': return `?? 你败给了 ?? ${d.opponent}`;
-                    case 'pve_win': return `?? 你击败了 ${d.monster}，获得 ??${d.gold} 和材料`;
-                    case 'pve_lose': return `?? 你被 ${d.monster} 击败了`;
+                    case 'plant': return `🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;
+                    case 'harvest': { const qName = d.quality ? QUALITIES[d.quality]?.name || d.quality : ''; return `🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币${qName ? '（'+qName+'）' : ''}`; }
+                    case 'water_self': return `💧 你为自己的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||'作物'} 浇了水`;
+                    case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
+                    case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
+                    case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}`;
+                    case 'explore_start': return `🗺️ ${d.pet} 前往${d.route}探险了`;
+                    case 'explore_complete': { const items = Object.entries(d.rewards||{}).map(([item,qty]) => `${ITEM_EMOJI[item]||'📦'}×${qty}`).join(' '); const eventMsg = d.event ? ` · 触发事件：${d.event}` : ''; return `🗺️ ${d.pet} 从${d.route}归来，获得 ${items}${eventMsg}`; }
+                    case 'skill_learn': return `🎉 ${d.pet} 学会了新技能【${d.skill}】！`;
+                    case 'skill_upgrade': return `⬆️ ${d.pet} 的【${d.skill}】升级至 Lv.${d.level}`;
+                    case 'skill_replace': return `🔄 ${d.pet} 遗忘了【${d.old_skill}】，学会了【${d.new_skill}】`;
+                    case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
+                    case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
+                    case 'synthesis': return `🔧 你合成了 ${d.name} (${QUALITY_NAMES[d.quality]})`;
+                    case 'enhance': return `⚔️ 装备 ${d.name} 强化${d.success?'成功':'失败'}，当前+${d.level}`;
+                    case 'decompose': return `♻️ 你分解了 ${d.name}，材料已返还`;
+                    case 'sell_equipment': return `💰 你出售了 ${d.name}，获得 ${d.price} 金币`;
+                    case 'battle_win': return `⚔️ 你战胜了 👤 ${d.opponent}，获得 ${d.gold} 金币`;
+                    case 'battle_lose': return `⚔️ 你败给了 👤 ${d.opponent}`;
+                    case 'pve_win': return `🐉 你击败了 ${d.monster}，获得 🪙${d.gold} 和材料`;
+                    case 'pve_lose': return `🐉 你被 ${d.monster} 击败了`;
                     default: return '未知事件';
                 }
             }
