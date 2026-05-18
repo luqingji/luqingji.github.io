@@ -3,106 +3,613 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - 丰收修复版 v3.1</title>
+    <title>🌱 开心农场 - v3.2 健壮版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-	/* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
-        :root { --bg: #f5f0eb; --card: #ffffff; --text: #3d3929; --accent: #c0844e; --green: #6b8f71; --red: #c0392b; --blue: #5b7fbc; --pink: #d4869c; --radius: 16px; }
+        /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
+        :root {
+            --bg: #f5f0eb;
+            --card: #ffffff;
+            --text: #3d3929;
+            --accent: #c0844e;
+            --green: #6b8f71;
+            --red: #c0392b;
+            --blue: #5b7fbc;
+            --pink: #d4869c;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --gap-xs: 4px;
+            --gap-sm: 8px;
+            --gap-md: 12px;
+            --gap-lg: 16px;
+            --gap-xl: 20px;
+            --font-xs: 0.65rem;
+            --font-sm: 0.75rem;
+            --font-md: 0.85rem;
+            --font-lg: 0.95rem;
+            --font-xl: 1.1rem;
+            --modal-width: 380px;
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.2s ease;
+        }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); background-image: radial-gradient(ellipse at 30% 20%, rgba(139,158,123,0.1) 0%, transparent 60%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .app-container { width:100%; max-width:480px; display:flex; flex-direction:column; gap:20px; }
-		/* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
-        .header { background: var(--card); border-radius: var(--radius); padding:12px 16px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 12px rgba(0,0,0,0.06); flex-wrap:wrap; gap:8px; }
-        .user-info { display:flex; align-items:center; gap:8px; }
-        .avatar { width:36px; height:36px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1rem; flex-shrink:0; }
-        .avatar.male { background: var(--blue); } .avatar.female { background: var(--pink); } .avatar.none { background: #aaa; }
-        .username { font-weight:600; color:var(--text); font-size:0.9rem; } .level { font-size:0.7rem; color:#888; }
-        .btn-icon { padding:6px 12px; background:#f0ede6; border:none; border-radius:20px; cursor:pointer; font-size:0.8rem; font-family:inherit; white-space:nowrap; position: relative; }
-        .btn-icon:hover::after { content: attr(title); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; white-space: nowrap; z-index: 10; }
-        .farm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-        .plot-card { background: var(--card); border-radius: var(--radius); padding:14px 8px; text-align:center; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; box-shadow:0 2px 8px rgba(0,0,0,0.05); cursor:pointer; transition:all 0.2s; position:relative; user-select:none; }
-        .plot-card:active { transform:scale(0.96); background:#f9f6f0; }
-        .plot-card.empty { border:2px dashed #d5cec0; color:#b0a590; }
-        .plot-card.planted { border:2px solid #c5d5b0; }
-        .plot-card.ready { border:2px solid #f0c040; animation:pulse 1.5s infinite; }
-        @keyframes pulse { 0%,100%{ box-shadow:0 0 0 0 rgba(240,192,64,0.4); } 50%{ box-shadow:0 0 0 12px rgba(240,192,64,0); } }
-        .plot-emoji { font-size:2rem; } .plot-status { font-size:0.7rem; color:#888; line-height:1.2; }
-        .progress-bar { width:100%; height:4px; background:#e9ecef; border-radius:2px; overflow:hidden; }
-        .progress-fill { height:100%; background:var(--green); border-radius:2px; transition:width 1s linear; }
-        .waterable { color:#1976d2; font-weight:600; } .watered { color:#e67e22; font-weight:600; }
-		/* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
-        .modal-overlay { display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center; }
-        .modal-overlay.active { display:flex; }
-        .modal { background:#fff; border-radius:var(--radius); padding:20px; max-width:400px; width:90%; text-align:center; max-height:80vh; overflow-y:auto; }
-        .modal h3 { margin-bottom:12px; color:var(--text); font-size:1.1rem; }
-        .crop-options { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
-        .crop-btn { padding:10px 4px; border:2px solid #e0d8cc; border-radius:12px; background:#fdfcf9; cursor:pointer; font-family:inherit; transition:all 0.2s; text-align:center; font-size:0.85rem; }
-        .crop-btn:hover { border-color:var(--accent); background:#fef9f3; }
-        .crop-btn.locked { opacity:0.4; filter:grayscale(1); cursor:not-allowed; background:#eee; }
-        .btn-close { padding:6px 20px; background:#e8e0d5; border:none; border-radius:20px; cursor:pointer; font-family:inherit; margin-top:8px; font-size:0.85rem; }
-        .auth-form { background:var(--card); border-radius:var(--radius); padding:24px 20px; box-shadow:0 4px 20px rgba(0,0,0,0.08); }
-        .auth-tabs { display:flex; margin-bottom:16px; border-radius:12px; overflow:hidden; border:1.5px solid #e0d8cc; }
-        .auth-tab { flex:1; text-align:center; padding:8px; font-weight:600; cursor:pointer; background:#fdfcf9; transition:all 0.2s; font-family:inherit; font-size:0.9rem; border:none; }
-        .auth-tab.active { background:var(--accent); color:#fff; }
-        .form-group { margin-bottom:12px; } .form-group label { display:block; font-size:0.8rem; color:#666; margin-bottom:2px; }
-        .form-group input, .form-group select { width:100%; padding:10px; border:1.5px solid #e0d8cc; border-radius:10px; font-size:0.9rem; font-family:inherit; outline:none; }
-        .btn-primary { width:100%; padding:10px; background:var(--accent); color:#fff; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; }
-        .msg-error { color:var(--red); font-size:0.8rem; text-align:center; margin-top:8px; }
-        .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#3d3929; color:#fff; padding:10px 20px; border-radius:20px; font-size:0.85rem; z-index:200; pointer-events:none; opacity:0; transition:opacity 0.3s; }
-        .toast.show { opacity:1; }
-        .list-container { max-height:60vh; overflow-y:auto; text-align:left; }
-        .list-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #f0ede6; }
-        .order-card { background: #fef9f3; border-radius: 12px; padding: 12px; margin: 8px 0; border: 1px solid var(--accent); text-align: left; }
-        .quality-common { color: #888; } .quality-good { color: #27ae60; } .quality-rare { color: #9b59b6; } .quality-legend { color: #f0c040; font-weight: 700; }
-        .tag-friend { font-size:0.7rem; color:#888; background:#f0ede6; padding:2px 8px; border-radius:10px; }
-        .tag-self { font-size:0.7rem; color:var(--accent); }
-        .btn-small { padding:4px 10px; border:none; border-radius:12px; cursor:pointer; font-size:0.7rem; font-family:inherit; }
-        .btn-accept { background:#6b8f71; color:#fff; } .btn-reject { background:#e0d8cc; color:#333; }
-        .btn-explore { background:#1976d2; color:#fff; } .btn-adopt { background:var(--accent); color:#fff; }
-        .btn-view { background:#e67e22; color:#fff; } .btn-fight { background:#c0392b; color:#fff; }
-        .btn-craft { background:#27ae60; color:#fff; } .btn-nomat { background:#aaa; color:#fff; } .btn-nogold { background:#e67e22; color:#fff; }
-        .btn-decompose { background:#e74c3c; color:#fff; } .btn-sell { background:#f39c12; color:#fff; }
-        .item-row { display:flex; align-items:center; gap:8px; padding:6px 0; }
-        .log-item { text-align:left; padding:8px 12px; border-bottom:1px solid #f0ede6; }
-        .equipment-card { background: #f9f6f0; border-radius: 12px; padding: 12px; margin: 8px 0; border-left: 4px solid var(--accent); }
-        .quality-white { border-left-color: #ccc; } .quality-blue { border-left-color: #5b7fbc; }
-        .quality-purple { border-left-color: #9b59b6; } .quality-gold { border-left-color: #f0c040; }
-        .btn-synthesis { background: #8e44ad; color: #fff; border: none; border-radius: 20px; padding: 8px 16px; cursor: pointer; font-family: inherit; font-size:0.8rem; }
-        .btn-enhance { background: #e67e22; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; margin-right:4px; }
+        body {
+            font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(ellipse at 30% 20%, rgba(139,158,123,0.1) 0%, transparent 60%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: var(--gap-xl);
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--gap-xl);
+        }
+		        /* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
+        .header {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: var(--gap-md) var(--gap-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+            gap: var(--gap-sm);
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-sm);
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .avatar.male { background: var(--blue); }
+        .avatar.female { background: var(--pink); }
+        .avatar.none { background: #aaa; }
+        .username {
+            font-weight: 600;
+            color: var(--text);
+            font-size: var(--font-md);
+        }
+        .level {
+            font-size: var(--font-xs);
+            color: #888;
+        }
+        .btn-icon {
+            padding: 6px 12px;
+            background: #f0ede6;
+            border: none;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            font-size: var(--font-sm);
+            font-family: inherit;
+            white-space: nowrap;
+            position: relative;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .btn-icon:active {
+            transform: scale(0.95);
+        }
+        .btn-icon:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: var(--font-xs);
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--gap-md);
+        }
+        .plot-card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 14px 8px;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--gap-xs);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            position: relative;
+            user-select: none;
+        }
+        .plot-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .plot-card:active {
+            transform: scale(0.96);
+            background: #f9f6f0;
+        }
+        .plot-card.empty {
+            border: 2px dashed #d5cec0;
+            color: #b0a590;
+        }
+        .plot-card.planted {
+            border: 2px solid #c5d5b0;
+        }
+        .plot-card.ready {
+            border: 2px solid #f0c040;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
+        }
+        .plot-emoji { font-size: 2rem; }
+        .plot-status {
+            font-size: var(--font-xs);
+            color: #888;
+            line-height: 1.2;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+        .waterable { color: #1976d2; font-weight: 600; }
+        .watered { color: #e67e22; font-weight: 600; }
+        .nickname {
+            display: inline-block;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+		        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            padding: var(--gap-xl);
+            max-width: var(--modal-width);
+            width: 90%;
+            text-align: center;
+            max-height: 75vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            position: relative;
+        }
+        .modal h3 {
+            margin-bottom: var(--gap-md);
+            color: var(--text);
+            font-size: var(--font-xl);
+        }
+        .crop-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--gap-sm);
+            margin-bottom: var(--gap-md);
+        }
+        .crop-btn {
+            padding: 10px 4px;
+            border: 2px solid #e0d8cc;
+            border-radius: var(--radius-md);
+            background: #fdfcf9;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all var(--transition-fast);
+            text-align: center;
+            font-size: var(--font-md);
+        }
+        .crop-btn:hover {
+            border-color: var(--accent);
+            background: #fef9f3;
+        }
+        .crop-btn.locked {
+            opacity: 0.4;
+            filter: grayscale(1);
+            cursor: not-allowed;
+            background: #eee;
+        }
+        .btn-close {
+            position: absolute;
+            top: var(--gap-sm);
+            right: var(--gap-md);
+            padding: 6px 12px;
+            background: #e8e0d5;
+            border: none;
+            border-radius: var(--radius-xl);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-md);
+            z-index: 10;
+            transition: transform var(--transition-fast);
+        }
+        .btn-close:active { transform: scale(0.95); }
+        .auth-form {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 24px var(--gap-xl);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: var(--gap-lg);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1.5px solid #e0d8cc;
+        }
+        .auth-tab {
+            flex: 1;
+            text-align: center;
+            padding: var(--gap-sm);
+            font-weight: 600;
+            cursor: pointer;
+            background: #fdfcf9;
+            transition: all var(--transition-fast);
+            font-family: inherit;
+            font-size: var(--font-md);
+            border: none;
+        }
+        .auth-tab.active {
+            background: var(--accent);
+            color: #fff;
+        }
+        .form-group { margin-bottom: var(--gap-md); }
+        .form-group label {
+            display: block;
+            font-size: var(--font-sm);
+            color: #666;
+            margin-bottom: 2px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1.5px solid #e0d8cc;
+            border-radius: 10px;
+            font-size: var(--font-md);
+            font-family: inherit;
+            outline: none;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: var(--font-lg);
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity var(--transition-fast);
+        }
+        .btn-primary:active { opacity: 0.85; }
+        .msg-error {
+            color: var(--red);
+            font-size: var(--font-sm);
+            text-align: center;
+            margin-top: var(--gap-sm);
+        }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3d3929;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: var(--radius-xl);
+            font-size: var(--font-md);
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        .list-container {
+            max-height: 60vh;
+            overflow-y: auto;
+            text-align: left;
+        }
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px var(--gap-md);
+            border-bottom: 1px solid #f0ede6;
+        }
+        .order-card {
+            background: #fef9f3;
+            border-radius: var(--radius-md);
+            padding: var(--gap-md);
+            margin: var(--gap-sm) 0;
+            border: 1px solid var(--accent);
+            text-align: left;
+        }
+        .quality-common { color: #888; }
+        .quality-good { color: #27ae60; }
+        .quality-rare { color: #9b59b6; }
+        .quality-legend { color: #f0c040; font-weight: 700; }
+        .tag-friend {
+            font-size: var(--font-xs);
+            color: #888;
+            background: #f0ede6;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .tag-self { font-size: var(--font-xs); color: var(--accent); }
+        .btn-small {
+            padding: 4px 10px;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: var(--font-xs);
+            font-family: inherit;
+        }
+        .btn-accept { background: #6b8f71; color: #fff; }
+        .btn-reject { background: #e0d8cc; color: #333; }
+        .btn-explore { background: #1976d2; color: #fff; }
+        .btn-adopt { background: var(--accent); color: #fff; }
+        .btn-view { background: #e67e22; color: #fff; }
+        .btn-fight { background: #c0392b; color: #fff; }
+        .btn-craft { background: #27ae60; color: #fff; }
+        .btn-nomat { background: #aaa; color: #fff; }
+        .btn-nogold { background: #e67e22; color: #fff; }
+        .btn-decompose { background: #e74c3c; color: #fff; }
+        .btn-sell { background: #f39c12; color: #fff; }
+        .item-row {
+            display: flex;
+            align-items: center;
+            gap: var(--gap-sm);
+            padding: 6px 0;
+        }
+        .log-item {
+            text-align: left;
+            padding: var(--gap-sm) var(--gap-md);
+            border-bottom: 1px solid #f0ede6;
+        }
+        .equipment-card {
+            background: #f9f6f0;
+            border-radius: var(--radius-md);
+            padding: var(--gap-md);
+            margin: var(--gap-sm) 0;
+            border-left: 4px solid var(--accent);
+        }
+        .quality-white { border-left-color: #ccc; }
+        .quality-blue { border-left-color: #5b7fbc; }
+        .quality-purple { border-left-color: #9b59b6; }
+        .quality-gold { border-left-color: #f0c040; }
+        .btn-synthesis {
+            background: #8e44ad;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+        }
+        .btn-enhance {
+            background: #e67e22;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-xs);
+            margin-right: var(--gap-xs);
+        }
         .btn-enhance:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-equip { background: #6ba3be; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; margin-right:4px; }
-        .btn-unequip { background: #aaa; color: #fff; border: none; border-radius: 20px; padding: 4px 10px; cursor: pointer; font-family: inherit; font-size:0.7rem; }
-        .btn-refresh { background: #6c757d; color: #fff; border: none; border-radius: 20px; padding: 6px 16px; cursor: pointer; font-family: inherit; font-size:0.8rem; margin-bottom: 8px; }
-        .battle-container { display:flex; justify-content:space-around; align-items:center; margin:16px 0; }
-        .battle-pet { text-align:center; }
-        .battle-hp { width:80px; height:10px; background:#e9ecef; border-radius:5px; margin:8px auto; }
-        .battle-hp-fill { height:100%; background:var(--green); border-radius:5px; transition: width 0.3s; }
-        .battle-log { background:#2d3436; color:#dfe6e9; border-radius:12px; padding:12px; height:120px; overflow-y:auto; font-size:0.8rem; margin:12px 0; text-align:left; display:flex; flex-direction:column-reverse; }
-        .battle-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-        .battle-btn { padding:8px 16px; border:none; border-radius:20px; font-weight:600; cursor:pointer; font-family:inherit; font-size:0.8rem; }
-        .battle-btn.attack { background:#e74c3c; color:#fff; } .battle-btn.defend { background:#3498db; color:#fff; } .battle-btn.skill { background:#f39c12; color:#fff; }
-        .battle-btn:disabled { opacity:0.5; }
-        .boss-card { background: linear-gradient(135deg, #fef9f3, #fdf0e0); border-radius: 16px; padding: 16px; margin: 12px 0; border: 2px solid #f0c040; }
-        .elite-card { background: linear-gradient(135deg, #f5f0ff, #ede0f5); border-radius: 16px; padding: 12px; margin: 8px 0; border: 2px solid #9b59b6; }
-        .route-card { background: #f9f6f0; border-radius: 12px; padding: 12px; margin: 8px 0; border-left: 4px solid #1976d2; cursor: pointer; transition: all 0.2s; }
-        .route-card:hover { background: #eef4ff; border-left-color: #0d47a1; }
-        .route-card.locked { opacity: 0.5; cursor: not-allowed; border-left-color: #ccc; }
-        .skill-card { background: #f9f6f0; border-radius: 12px; padding: 10px; margin: 4px 0; font-size:0.8rem; }
-        .skill-attack { border-left: 3px solid #e74c3c; } .skill-heal { border-left: 3px solid #27ae60; }
-        .skill-defense { border-left: 3px solid #3498db; } .skill-support { border-left: 3px solid #f39c12; } .skill-special { border-left: 3px solid #9b59b6; }
-        .pet-detail-card { background: #fefdf9; border-radius: 12px; padding: 12px; margin: 6px 0; }
-        .buff-tag { display: inline-block; background: #f39c12; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 0.65rem; margin-left: 4px; }
-        .set-badge { display: inline-block; background: #6c5ce7; color: #fff; border-radius: 8px; padding: 1px 5px; font-size: 0.6rem; margin-left: 4px; }
-        .set-info-row { font-size:0.75rem; color:#6c5ce7; margin:2px 0; }
-        .stat-row { font-size:0.7rem; color:#666; }
-        .stat-bonus { color:#27ae60; font-weight:600; }
+        .btn-equip {
+            background: #6ba3be;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-xs);
+            margin-right: var(--gap-xs);
+        }
+        .btn-unequip {
+            background: #aaa;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 4px 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-xs);
+        }
+        .btn-refresh {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-xl);
+            padding: 6px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            margin-bottom: var(--gap-sm);
+        }
+        .battle-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: var(--gap-lg) 0;
+        }
+        .battle-pet { text-align: center; }
+        .battle-hp {
+            width: 80px;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin: var(--gap-sm) auto;
+        }
+        .battle-hp-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 5px;
+            transition: width 0.3s;
+        }
+        .battle-log {
+            background: #2d3436;
+            color: #dfe6e9;
+            border-radius: var(--radius-md);
+            padding: var(--gap-md);
+            height: 120px;
+            overflow-y: auto;
+            font-size: var(--font-sm);
+            margin: var(--gap-md) 0;
+            text-align: left;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+        .battle-actions {
+            display: flex;
+            gap: var(--gap-sm);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .battle-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--radius-xl);
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: var(--font-sm);
+        }
+        .battle-btn.attack { background: #e74c3c; color: #fff; }
+        .battle-btn.defend { background: #3498db; color: #fff; }
+        .battle-btn.skill { background: #f39c12; color: #fff; }
+        .battle-btn:disabled { opacity: 0.5; }
+        .boss-card {
+            background: linear-gradient(135deg, #fef9f3, #fdf0e0);
+            border-radius: var(--radius-lg);
+            padding: var(--gap-lg);
+            margin: var(--gap-md) 0;
+            border: 2px solid #f0c040;
+        }
+        .elite-card {
+            background: linear-gradient(135deg, #f5f0ff, #ede0f5);
+            border-radius: var(--radius-lg);
+            padding: var(--gap-md);
+            margin: var(--gap-sm) 0;
+            border: 2px solid #9b59b6;
+        }
+        .route-card {
+            background: #f9f6f0;
+            border-radius: var(--radius-md);
+            padding: var(--gap-md);
+            margin: var(--gap-sm) 0;
+            border-left: 4px solid #1976d2;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .route-card:hover {
+            background: #eef4ff;
+            border-left-color: #0d47a1;
+        }
+        .route-card.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-left-color: #ccc;
+        }
+        .skill-card {
+            background: #f9f6f0;
+            border-radius: var(--radius-md);
+            padding: 10px;
+            margin: var(--gap-xs) 0;
+            font-size: var(--font-sm);
+        }
+        .skill-attack { border-left: 3px solid #e74c3c; }
+        .skill-heal { border-left: 3px solid #27ae60; }
+        .skill-defense { border-left: 3px solid #3498db; }
+        .skill-support { border-left: 3px solid #f39c12; }
+        .skill-special { border-left: 3px solid #9b59b6; }
+        .pet-detail-card {
+            background: #fefdf9;
+            border-radius: var(--radius-md);
+            padding: var(--gap-md);
+            margin: 6px 0;
+        }
+        .buff-tag {
+            display: inline-block;
+            background: #f39c12;
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 6px;
+            font-size: var(--font-xs);
+            margin-left: var(--gap-xs);
+        }
+        .set-badge {
+            display: inline-block;
+            background: #6c5ce7;
+            color: #fff;
+            border-radius: var(--radius-sm);
+            padding: 1px 5px;
+            font-size: 0.6rem;
+            margin-left: var(--gap-xs);
+        }
+        .set-info-row {
+            font-size: var(--font-xs);
+            color: #6c5ce7;
+            margin: 2px 0;
+        }
+        .stat-row { font-size: var(--font-xs); color: #666; }
+        .stat-bonus { color: #27ae60; font-weight: 600; }
     </style>
 </head>
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-    <script>
-		// ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ====================
+	    <script>
+        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
         (function() {
             const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
@@ -232,17 +739,18 @@
                 {name:'魔剑',slot:'weapon',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔甲',slot:'armor',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔眼',slot:'accessory',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000}
             ];
 
+            // 强化配置（+1~+10），含保护符和幸运石
             const ENHANCE_CONFIG = [
-                {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none'},
-                {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none'},
-                {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none'},
-                {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none'},
-                {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none'},
-                {level:6,cost:2000,materials:{ore:8,relic:3},prob:0.7,penalty:'none'},
-                {level:7,cost:3000,materials:{scale:3,moonstone:2},prob:0.6,penalty:'downgrade'},
-                {level:8,cost:5000,materials:{scale:5,moonstone:3},prob:0.5,penalty:'downgrade'},
-                {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade'},
-                {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'}
+                {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:6,cost:2000,materials:{ore:8,relic:3},prob:0.7,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:7,cost:3000,materials:{scale:3,moonstone:2},prob:0.6,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:8,cost:5000,materials:{scale:5,moonstone:3},prob:0.5,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset',protectCharm:true,luckyStone:true}
             ];
 			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
             const MONSTERS = [
@@ -308,6 +816,16 @@
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
 			// ==================== 第 9 块：工具函数 ====================
+            // 常量提取（避免魔法数字）
+            const WATER_COOLDOWN_MS = 30 * 60 * 1000; // 浇水冷却30分钟
+            const BOSS_COOLDOWN_MINUTES = 60; // BOSS重生冷却60分钟
+            const BOSS_EXPIRE_HOURS = 6; // BOSS过期时间6小时
+            const MAX_LOG_COUNT = 200; // 日志最大保留条数
+            const PET_MAX_LEVEL = 30; // 宠物等级上限
+            const SKILL_MAX_LEVEL = 5; // 技能等级上限
+            const ENHANCE_MAX_LEVEL = 10; // 强化等级上限
+            const PLOT_MAX_COUNT = 12; // 最大地块数
+
             function showToast(msg, isError = false) {
                 const t = document.getElementById('toast');
                 t.textContent = msg;
@@ -351,7 +869,7 @@
                     }
                     return;
                 }
-                // 增加物品
+                // 增加物品：使用 RPC 原子操作
                 const { error } = await supabase.rpc('add_item_quantity', { p_user_id: uid, p_item_type: it, p_qty: qty });
                 if (error) {
                     console.warn('RPC失败，使用备用方案:', error.message);
@@ -523,9 +1041,26 @@
                 }
             }
             async function loadAll() {
-                await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
-                await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-                generateOrders();
+                try {
+                    await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+                    await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                    generateOrders();
+                } catch (e) {
+                    console.error('数据加载失败:', e);
+                    showToast('网络不稳定，正在重试...', true);
+                    // 3秒后自动重试一次
+                    setTimeout(async () => {
+                        try {
+                            await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+                            await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                            generateOrders();
+                            render();
+                        } catch (e2) {
+                            console.error('重试失败:', e2);
+                            showToast('加载失败，请刷新页面重试', true);
+                        }
+                    }, 3000);
+                }
             }
 			// ==================== 第 11 块：认证函数 ====================
             async function signUp(e, p, u, g) {
@@ -612,7 +1147,7 @@
                 return sr;
             }
             function getCropStatus(plot) {
-                if (!plot.crop_type || !plot.planted_at) return { status: 'empty' };
+                if (!plot?.crop_type || !plot?.planted_at) return { status: 'empty' };
                 const now = new Date(), planted = new Date(plot.planted_at);
                 let gm = plot.growth_minutes * 60 * 1000;
                 if (plot.watered_at) gm = Math.floor(gm * 0.7);
@@ -621,7 +1156,7 @@
                 if (now >= mt) return { status: 'ready', progress: 100 };
                 const el = now - planted, prog = Math.floor((el / gm) * 100), rem = mt - now, remMin = Math.ceil(rem / 60000);
                 let wa = true;
-                if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= 30 * 60 * 1000; }
+                if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= WATER_COOLDOWN_MS; }
                 return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
             }
 			// ==================== 第 13 块：宠物与探险 ====================
@@ -696,23 +1231,26 @@
                     else if (route.eventReward === 'extra_materials') { for (const [item, qty] of Object.entries(route.materials)) { rewards[item] = (rewards[item] || 0) + Math.floor(qty); } }
                     else if (route.eventReward === 'bonus_exp') { pet.exp = (pet.exp || 0) + 200; }
                 }
-                const ne = (pet.exp || 0) + (route.exp || 30);
-                let nl = pet.level || 1;
-                // 新升级曲线：所需经验 = 等级*100 + 等级^2*15
-                if (ne >= nl * 100 + nl * nl * 15) {
-                    nl++;
-                    if (nl > 30) nl = 30;
-                    const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
-                    pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
-                    pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
-                    pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
-                    await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta }).eq('id', pid);
+                // 新升级曲线 + 满级保护
+                if ((pet.level || 0) < PET_MAX_LEVEL) {
+                    const ne = (pet.exp || 0) + (route.exp || 30);
+                    pet.exp = ne;
+                    let nl = pet.level || 1;
+                    while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
+                        nl++;
+                        const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
+                        pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
+                        pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
+                        pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
+                        if (!silent && nl > pet.level) showToast(`🎉 ${pet.pet_name} 升级至 Lv.${nl}！`);
+                    }
+                    if (nl !== pet.level) {
+                        pet.level = nl;
+                        await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pid);
+                    }
                 }
-                // 满级保护：如果已经30级，不再增加经验
-                if ((pet.level || 0) >= 30) { /* 经验不再增加 */ }
-                else { pet.exp = ne; }
-                await supabase.from('pets').update({ exploring_until: null, exp: pet.exp, level: nl }).eq('id', pid);
-                pet.exploring_until = null; pet.level = nl;
+                await supabase.from('pets').update({ exploring_until: null, exp: pet.exp, level: pet.level }).eq('id', pid);
+                pet.exploring_until = null;
                 for (const [item, qty] of Object.entries(rewards)) { await addItem(item, qty); }
                 addEventLog('explore_complete', { pet: pet.pet_name, route: route.name, rewards, event: eventTriggered ? route.eventName : null });
                 const learnProb = 0.1 + (pet.luk || 0) * 0.01 + ((route.rareProb > 0.2) ? 0.05 : 0);
@@ -722,7 +1260,7 @@
                     const skillName = skillNames[Math.floor(Math.random() * skillNames.length)];
                     const existingSkill = mySkills.find(s => s.skill_name === skillName);
                     if (existingSkill) {
-                        if (existingSkill.level < 5) {
+                        if (existingSkill.level < SKILL_MAX_LEVEL) {
                             const newLevel = existingSkill.level + 1;
                             const newPower = Math.floor(existingSkill.power * 1.1);
                             const newCooldown = Math.max(1, existingSkill.cooldown - 1);
@@ -770,20 +1308,32 @@
                 addEventLog('synthesis', { name: newEq.name, quality: q });
                 showToast(`合成成功！获得 ${newEq.name} (${QUALITY_NAMES[q]})`);
             }
-            async function enhanceEquipment(eid) {
+            async function enhanceEquipment(eid, useProtectCharm = false, useLuckyStone = false) {
                 const equip = State.equipment.find(e => e.id === eid);
                 if (!equip) return;
-                if (equip.enhance_level >= 10) { showToast('已达最高强化等级'); return; }
+                if (equip.enhance_level >= ENHANCE_MAX_LEVEL) { showToast('已达最高强化等级'); return; }
                 if (equip.equipped_to) { showToast('请先卸下装备再强化'); return; }
                 const nextLevel = equip.enhance_level + 1;
                 const config = ENHANCE_CONFIG.find(c => c.level === nextLevel);
                 if (!config) return;
                 for (const [item, need] of Object.entries(config.materials)) { if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]}×${need}`, true); return; } }
                 if ((State.profile.gold || 0) < config.cost) { showToast('金币不足', true); return; }
+                // 检查保护符
+                if (useProtectCharm && config.protectCharm) {
+                    if ((State.items['protect_charm'] || 0) < 1) { showToast('需要保护符×1', true); return; }
+                    await addItem('protect_charm', -1);
+                }
+                // 检查幸运石
+                let prob = config.prob;
+                if (useLuckyStone && config.luckyStone) {
+                    if ((State.items['lucky_stone'] || 0) < 1) { showToast('需要幸运石×1', true); return; }
+                    await addItem('lucky_stone', -1);
+                    prob = Math.min(1, prob + 0.15);
+                }
                 for (const [item, need] of Object.entries(config.materials)) { await addItem(item, -need); }
                 await supabase.from('profiles').update({ gold: State.profile.gold - config.cost }).eq('id', State.currentUser.id);
                 State.profile.gold -= config.cost;
-                const success = Math.random() < config.prob;
+                const success = Math.random() < prob;
                 if (success) {
                     const nl = nextLevel;
                     const baseAtk = Math.round(equip.atk_bonus / Math.max(1, (1 + equip.enhance_level * 0.1)));
@@ -796,7 +1346,7 @@
                     equip.enhance_level = nl; equip.atk_bonus = newAtk; equip.def_bonus = newDef; equip.luk_bonus = newLuk;
                     showToast(`强化成功！+${nl}`);
                 } else {
-                    if (config.penalty === 'downgrade') {
+                    if (config.penalty === 'downgrade' && !useProtectCharm) {
                         const nl = Math.max(0, equip.enhance_level - 1);
                         const baseAtk = Math.round(equip.atk_bonus / Math.max(1, (1 + equip.enhance_level * 0.1)));
                         const baseDef = Math.round(equip.def_bonus / Math.max(1, (1 + equip.enhance_level * 0.1)));
@@ -807,12 +1357,12 @@
                         await supabase.from('equipment').update({ enhance_level: nl, atk_bonus: newAtk, def_bonus: newDef, luk_bonus: newLuk }).eq('id', eid);
                         equip.enhance_level = nl; equip.atk_bonus = newAtk; equip.def_bonus = newDef; equip.luk_bonus = newLuk;
                         showToast('强化失败，降级了...', true);
-                    } else if (config.penalty === 'reset') {
+                    } else if (config.penalty === 'reset' && !useProtectCharm) {
                         await supabase.from('equipment').update({ enhance_level: 0, atk_bonus: Math.round(equip.atk_bonus / (1 + equip.enhance_level * 0.1)), def_bonus: Math.round(equip.def_bonus / (1 + equip.enhance_level * 0.1)), luk_bonus: Math.round(equip.luk_bonus / (1 + equip.enhance_level * 0.1)) }).eq('id', eid);
                         equip.enhance_level = 0;
                         showToast('强化失败，等级归零...', true);
                     } else {
-                        showToast('强化失败，但未降级', true);
+                        showToast('强化失败，但被保护符守护未降级', true);
                     }
                 }
                 addEventLog('enhance', { name: equip.name, level: equip.enhance_level, success });
@@ -871,7 +1421,7 @@
 			// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
             async function unlockPlot() {
                 const ul = State.profile.unlocked_plots || 4;
-                if (ul >= 12) return;
+                if (ul >= PLOT_MAX_COUNT) return;
                 const plotNum = ul + 1; const k = plotNum; const goldCost = k * 1000;
                 if ((State.profile.gold || 0) < goldCost) { showToast(`解锁第${plotNum}块需要金币 ${goldCost}，目前不足`, true); return; }
                 const requiredMaterials = BASE_MATERIALS.slice(0, k);
@@ -902,7 +1452,7 @@
                     const oppPet = getPetBattleStats(op);
                     const mySkills = State.petSkills.filter(s => s.pet_id === myPetId);
                     const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
-                    State.battle = { type: 'pvp', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], friendId, friendName: friend.username, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [] };
+                    State.battle = { type: 'pvp', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], friendId, friendName: friend.username, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
                     render();
                 } catch (e) { showToast(e.message || '战斗初始化失败', true); }
                 finally { State.isSubmitting = false; }
@@ -918,7 +1468,7 @@
                 const oppPet = { ...monster, hp: bossHp, atk: Math.floor(monster.atk * scale), def: Math.floor(monster.def * scale), spd: monster.spd, maxHp: monster.maxHp || monster.hp, pet_name: monster.name, pet_type: 'monster', skill: { name: '冲撞', cd: 2 } };
                 const mySkills = State.petSkills.filter(s => s.pet_id === State.pets[0]?.id);
                 const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
-                State.battle = { type: 'pve', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], monster, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, bossDamage: 0, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [] };
+                State.battle = { type: 'pve', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], monster, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, bossDamage: 0, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
                 render();
             }
             function executeBattleAction(action, skillId = null) {
@@ -985,7 +1535,7 @@
 
             async function refreshBoss() {
                 const newHp = 800 + Math.floor(Math.random() * 200);
-                const newExpires = new Date(Date.now() + 6 * 3600000).toISOString();
+                const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
                 const newRewards = { gold: 1000 + Math.floor(Math.random() * 500), items: { scale: 2 + Math.floor(Math.random() * 4) } };
                 await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
                 State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
@@ -1022,7 +1572,9 @@
             }
 
             async function endBattle(won) {
-                const b = State.battle; if (!b) return;
+                const b = State.battle;
+                if (!b || b.isEnding) return;
+                b.isEnding = true;
                 if (b.type === 'pvp') {
                     await supabase.from('battle_logs').insert({ attacker_id: State.currentUser.id, defender_id: b.friendId, attacker_pet_id: b.myPet.id, defender_pet_id: b.opponentPet.id, winner_id: won ? State.currentUser.id : b.friendId, battle_data: { log: b.log } });
                     if (won) {
@@ -1047,7 +1599,23 @@
                         if (mon.isElite && battleSeedDrops[mon.name] && Math.random() < 0.15) { await addItem(battleSeedDrops[mon.name], 1); droppedItems[battleSeedDrops[mon.name]] = (droppedItems[battleSeedDrops[mon.name]] || 0) + 1; }
                         if (mon.isBoss && Math.random() < 0.1) { await addItem('seed_tea', 1); droppedItems['seed_tea'] = (droppedItems['seed_tea'] || 0) + 1; }
                         const pet = State.pets[0]; let levelUp = false;
-                        if (pet) { const ne = (pet.exp || 0) + 50; let nl = pet.level || 1; if (ne >= nl * 100 + nl * nl * 15) { nl++; if (nl > 30) nl = 30; levelUp = true; const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1; pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf)); pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf)); pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf)); await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta }).eq('id', pet.id); } if ((pet.level || 0) >= 30) { /* 满级不再增加经验 */ } else { pet.exp = ne; } await supabase.from('pets').update({ exp: pet.exp, level: nl }).eq('id', pet.id); pet.level = nl; }
+                        if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
+                            const ne = (pet.exp || 0) + 50;
+                            pet.exp = ne;
+                            let nl = pet.level || 1;
+                            while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
+                                nl++;
+                                levelUp = true;
+                                const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
+                                pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
+                                pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
+                                pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
+                            }
+                            if (nl !== pet.level) {
+                                pet.level = nl;
+                                await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pet.id);
+                            }
+                        }
                         addEventLog('pve_win', { monster: mon.name, gold: gr });
                         showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr, items: droppedItems, exp: 50, levelUp } });
                         if (mon.isBoss) {
@@ -1059,10 +1627,10 @@
                                 try { const lastHitUserId = State.currentUser.id; const { data: profile } = await supabase.from('profiles').select('gold').eq('id', lastHitUserId).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 2000 }).eq('id', lastHitUserId); const possibleItems = ['hair', 'seed', 'ore', 'relic', 'feather', 'scale', 'moonstone', 'clover']; for (let i = 0; i < 5; i++) { const randItem = possibleItems[Math.floor(Math.random() * possibleItems.length)]; await addItem(randItem, 1, lastHitUserId); } showToast('最后一击！额外获得 2000 金币 + 随机物品×5'); } catch (e) { }
                             }
                             await supabase.from('boss_participants').delete().neq('id', 0);
-                            const cooldownMinutes = 60; const refreshesAt = new Date(Date.now() + cooldownMinutes * 60000).toISOString();
+                            const refreshesAt = new Date(Date.now() + BOSS_COOLDOWN_MINUTES * 60000).toISOString();
                             await supabase.from('boss_status').update({ current_hp: 0, refreshes_at: refreshesAt }).eq('id', 1);
                             State.bossStatus.current_hp = 0; State.bossStatus.refreshes_at = refreshesAt;
-                            showToast(`BOSS 已被击败！将在 ${cooldownMinutes} 分钟后重生`);
+                            showToast(`BOSS 已被击败！将在 ${BOSS_COOLDOWN_MINUTES} 分钟后重生`);
                         }
                     } else {
                         addEventLog('pve_lose', { monster: b.monster.name });
@@ -1124,15 +1692,30 @@
 			// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
             const FriendFarm = {
                 render() {
-                    const friend = State.visitingFriend; if (!friend) return '';
-                    const plotsHTML = State.visitingPlots.map(plot => {
-                        const status = getCropStatus(plot); let e, s, prog = '', cc = '';
-                        if (status.status === 'empty') { e = '🟫'; s = '空地'; cc = 'empty'; }
-                        else if (status.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '🌱'; s = '可偷菜🥷'; cc = 'ready'; }
-                        else { e = CROPS[plot.crop_type]?.emoji || '🌱'; const wh = status.waterable ? '可浇水💧' : '加速中🔥', wc = status.waterable ? 'waterable' : 'watered'; s = `<span class="${wc}">${wh}</span> 剩${status.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${status.progress}%"></div></div>`; }
-                        return `<div class="plot-card ${cc}" data-plot="${plot.plot_index}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${s}</div>${prog}</div>`;
+                    const friend = State.visitingFriend;
+                    if (!friend) return '';
+                    // 修复：确保 visitingPlots 存在且为数组，并对每个 plot 做空值保护
+                    const plotsData = State.visitingPlots || [];
+                    const plotsHTML = plotsData.map(plot => {
+                        if (!plot) return `<div class="plot-card empty" data-plot="?"><div class="plot-emoji">🟫</div><div style="font-size:0.8rem;">空地</div></div>`;
+                        const status = getCropStatus(plot);
+                        let e, s, prog = '', cc = '';
+                        if (status?.status === 'empty') {
+                            e = '🟫'; s = '空地'; cc = 'empty';
+                        } else if (status?.status === 'ready') {
+                            e = CROPS[plot.crop_type]?.emoji || '🌱';
+                            s = '可偷菜🥷'; cc = 'ready';
+                        } else {
+                            e = CROPS[plot.crop_type]?.emoji || '🌱';
+                            const wh = status?.waterable ? '可浇水💧' : '加速中🔥';
+                            const wc = status?.waterable ? 'waterable' : 'watered';
+                            s = `<span class="${wc}">${wh}</span> 剩${status?.remainingMin ?? '?'}分`;
+                            cc = 'planted';
+                            prog = `<div class="progress-bar"><div class="progress-fill" style="width:${status?.progress ?? 0}%"></div></div>`;
+                        }
+                        return `<div class="plot-card ${cc}" data-plot="${plot.plot_index ?? ''}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${s}</div>${prog}</div>`;
                     }).join('');
-                    return `<div class="header"><div style="display:flex;align-items:center;gap:8px;"><button class="btn-icon" id="btnBackToFarm">← 返回</button><div class="avatar ${friend.gender || 'none'}">${(friend.username || '?')[0]}</div><span class="username">${escapeHTML(friend.username || '好友')}的农场</span></div></div>
+                    return `<div class="header"><div style="display:flex;align-items:center;gap:8px;"><button class="btn-icon" id="btnBackToFarm">← 返回</button><div class="avatar ${friend.gender || 'none'}">${(friend.username || '?')[0]}</div><span class="username nickname">${escapeHTML(friend.username || '好友')}</span></div></div>
                     <div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div>
                     <div class="modal-overlay" id="modalSteal"><div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div></div>
                     <div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div></div>`;
@@ -1151,7 +1734,7 @@
                             document.getElementById('modalSteal').classList.add('active');
                             document.getElementById('confirmSteal').onclick = async () => { State.isSubmitting = true; try { const reward = await stealCrop(State.visitingFriend.id, pi); State.visitingPlots[pi] = { ...State.visitingPlots[pi], stolen_count: (State.visitingPlots[pi].stolen_count || 0) + 1 }; showToast(`偷取成功！🪙${reward}`); render(); } catch (err) { showToast(err.message || '偷菜失败', true); } finally { State.isSubmitting = false; document.getElementById('modalSteal').classList.remove('active'); } };
                         } else if (status.status === 'growing') {
-                            const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < 30 * 60 * 1000) { showToast('30分钟内已浇水'); return; }
+                            const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < WATER_COOLDOWN_MS) { showToast('30分钟内已浇水'); return; }
                             document.getElementById('modalWaterFriend').classList.add('active');
                             document.getElementById('confirmWaterFriend').onclick = async () => { State.isSubmitting = true; try { await waterPlot(State.visitingFriend.id, pi); await supabase.from('profiles').update({ gold: State.profile.gold + 5 }).eq('id', State.currentUser.id); const { data: friend } = await supabase.from('profiles').select('gold').eq('id', State.visitingFriend.id).single(); await supabase.from('profiles').update({ gold: (friend.gold || 0) + 5 }).eq('id', State.visitingFriend.id); State.profile.gold += 5; addEventLog('water_sent', { friend: State.visitingFriend.username }); showToast('浇水成功！你获得5金币'); render(); } catch (err) { showToast('浇水失败', true); } finally { State.isSubmitting = false; document.getElementById('modalWaterFriend').classList.remove('active'); } };
                         }
@@ -1188,7 +1771,7 @@
                             const rank = idx + 1, emoji = PET_TYPES[p.pet_type]?.emoji || '🐾', owner = p.profiles?.username || '未知';
                             const rc = rank <= 3 ? '#f0c040' : 'var(--accent)';
                             const isFriend = State.friendIds.has(p.owner_id);
-                            return `<div class="list-item" data-owner="${p.owner_id}" style="cursor:pointer;"><span class="rank-span" style="color:${rc};">${rank}</span><span style="font-size:1.2rem;">${emoji}</span><span style="flex:1;">${p.pet_name} Lv.${p.level}</span><span style="font-size:0.8rem;">👤 ${owner} ${isFriend ? '<span class="tag-friend">好友</span>' : ''}</span><span style="font-weight:600;">战力 ${p.power}</span></div>`;
+                            return `<div class="list-item" data-owner="${p.owner_id}" style="cursor:pointer;"><span class="rank-span" style="color:${rc};">${rank}</span><span style="font-size:1.2rem;">${emoji}</span><span style="flex:1;">${p.pet_name} Lv.${p.level}</span><span class="nickname">👤 ${escapeHTML(owner)}</span> ${isFriend ? '<span class="tag-friend">好友</span>' : ''}<span style="font-weight:600;">战力 ${p.power}</span></div>`;
                         }).join('');
                         listEl.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const ownerId = item.dataset.owner; if (ownerId === State.currentUser.id) return; const friend = State.friendProfiles.find(p => p.id === ownerId); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', ownerId).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalLeaderboard').classList.remove('active'); render(); }); } else { showToast('非好友无法访问农场', true); } }; });
                         return;
@@ -1200,7 +1783,7 @@
                     State.friendIds = friendIdSet;
                     if (received.length > 0 && mode === 'global') {
                         reqArea.style.display = 'block';
-                        reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => { const sender = allProfiles?.find(p => p.id === req.from_user); return `<div class="list-item" style="justify-content:space-between;"><span>${escapeHTML(sender?.username || '未知')}</span><div><button class="btn-small btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button><button class="btn-small btn-reject" data-req-id="${req.id}">拒绝</button></div></div>`; }).join('');
+                        reqArea.innerHTML = '<strong>好友申请</strong>' + received.map(req => { const sender = allProfiles?.find(p => p.id === req.from_user); return `<div class="list-item" style="justify-content:space-between;"><span class="nickname">${escapeHTML(sender?.username || '未知')}</span><div><button class="btn-small btn-accept" data-req-id="${req.id}" data-from="${req.from_user}">接受</button><button class="btn-small btn-reject" data-req-id="${req.id}">拒绝</button></div></div>`; }).join('');
                         reqArea.querySelectorAll('.btn-accept').forEach(btn => { btn.onclick = async () => { const reqId = btn.dataset.reqId, fromId = btn.dataset.from; try { await supabase.from('friendships').update({ status: 'accepted' }).eq('id', reqId); addEventLog('friend_accepted', { friend: allProfiles?.find(p => p.id === fromId)?.username || '好友' }); showToast('已接受好友申请！'); await Leaderboard.refresh('global'); } catch (err) { showToast('操作失败', true); } }; });
                         reqArea.querySelectorAll('.btn-reject').forEach(btn => { btn.onclick = async () => { const reqId = btn.dataset.reqId; try { await supabase.from('friendships').delete().eq('id', reqId); showToast('已拒绝'); await Leaderboard.refresh('global'); } catch (err) { showToast('操作失败', true); } }; });
                     }
@@ -1210,7 +1793,7 @@
                         const rank = idx + 1, isMe = p.id === State.currentUser.id, isFriend = friendIdSet.has(p.id), isSent = sentSet.has(p.id);
                         let actionBtn = ''; if (isMe) actionBtn = '<span class="tag-self">（我）</span>'; else if (isFriend) actionBtn = '<span class="tag-friend">好友</span>'; else if (isSent) actionBtn = '<button class="btn-small" disabled style="background:#ccc;">已申请</button>'; else actionBtn = `<button class="btn-small btn-adopt" data-uid="${p.id}">+好友</button>`;
                         const gc = p.gender || 'none', al = (p.username || '?')[0], rc = rank <= 3 ? '#f0c040' : 'var(--accent)';
-                        return `<div class="list-item"><span class="rank-span" style="color:${rc};">${rank}</span><div class="avatar ${gc}" style="width:30px;height:30px;">${al}</div><span style="flex:1;">${escapeHTML(p.username || '匿名')}</span><span style="color:var(--accent);">🪙${p.gold || 0}</span>${actionBtn}</div>`;
+                        return `<div class="list-item"><span class="rank-span" style="color:${rc};">${rank}</span><div class="avatar ${gc}" style="width:30px;height:30px;">${al}</div><span class="nickname" style="flex:1;">${escapeHTML(p.username || '匿名')}</span><span style="color:var(--accent);">🪙${p.gold || 0}</span>${actionBtn}</div>`;
                     }).join('');
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
@@ -1243,7 +1826,7 @@
                     };
                 }
             };
-			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定） ====================
+			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
             const Farm = {
                 render() {
                     const ul = State.profile?.unlocked_plots || 4;
@@ -1251,7 +1834,7 @@
                     const gc = State.profile?.gender || 'none';
                     return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
-                    ${ul < 12 ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/12)</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
+                    ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
                     <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">取消</button></div></div>
                     <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">取消</button></div></div>
                     <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">关闭</button></div></div>
@@ -1304,7 +1887,7 @@
 
                     document.getElementById('confirmWater').onclick = async () => {
                         if (State.isSubmitting) return; const pi = State.selectedPlotIndex, plot = State.farmPlots.find(p => p.plot_index === pi);
-                        const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < 30 * 60 * 1000) { showToast('30分钟内已浇水'); return; }
+                        const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < WATER_COOLDOWN_MS) { showToast('30分钟内已浇水'); return; }
                         State.isSubmitting = true; try { const up = await waterPlot(State.currentUser.id, pi); const idx = State.farmPlots.findIndex(p => p.plot_index === pi); if (idx !== -1) State.farmPlots[idx] = up; addEventLog('water_self', { plot: pi, crop: plot.crop_type }); Farm.updateGrid(); showToast('浇水成功！'); } catch (err) { showToast('浇水失败', true); } finally { State.isSubmitting = false; document.getElementById('modalWater').classList.remove('active'); }
                     };
 
@@ -1372,62 +1955,54 @@
                     document.getElementById('modalFriends').classList.add('active');
                     const c = document.getElementById('friendListContainer');
                     if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
-                    c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
+                    c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span class="nickname" style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
                     c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
                     c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">取消</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
                 },
-            };
-			// ==================== 第 22 块：宠物/探险/背包弹窗 + 驻扎功能 ====================
-            Farm.openPets = function() {
-                document.getElementById('modalPets').classList.add('active');
-                const c = document.getElementById('petListContainer');
-                if (State.pets.length === 0) { c.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>'; document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); }; return; }
-                c.innerHTML = State.pets.map(p => {
-                    const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
-                    let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
-                    const stats = getPetBattleStats(p);
-                    const skills = State.petSkills.filter(s => s.pet_id === p.id);
-                    const skillsHTML = skills.length > 0 ? skills.map(s => { const info = LEARNABLE_SKILLS[s.skill_name]; const typeClass = `skill-${s.skill_type}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">冷${s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无额外技能</div>';
-                    const isStationed = State.stationedPet && State.stationedPet.id === p.id;
+                openPets() {
+                    document.getElementById('modalPets').classList.add('active');
+                    const c = document.getElementById('petListContainer');
+                    if (State.pets.length === 0) { c.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>'; document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); }; return; }
+                    c.innerHTML = State.pets.map(p => {
+                        const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
+                        let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
+                        const stats = getPetBattleStats(p);
+                        const skills = State.petSkills.filter(s => s.pet_id === p.id);
+                        const skillsHTML = skills.length > 0 ? skills.map(s => { const info = LEARNABLE_SKILLS[s.skill_name]; const typeClass = `skill-${s.skill_type}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">冷${s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无额外技能</div>';
+                        const isStationed = State.stationedPet && State.stationedPet.id === p.id;
 
-                    // 获取该宠物穿戴装备激活的套装效果
-                    const equipped = State.equipment.filter(e => e.equipped_to === p.id);
-                    const sets = {};
-                    equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
-                    let setHTML = '';
-                    for (const [setName, slots] of Object.entries(sets)) {
-                        const count = slots.length;
-                        if (count >= 2) {
-                            const b2 = SET_BONUSES[setName]?.[2];
-                            const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
-                            let effectsDesc = [];
-                            if (b2) { for (const [k, v] of Object.entries(b2)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
-                            if (b3) { for (const [k, v] of Object.entries(b3)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
-                            setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
+                        // 获取该宠物穿戴装备激活的套装效果
+                        const equipped = State.equipment.filter(e => e.equipped_to === p.id);
+                        const sets = {};
+                        equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
+                        let setHTML = '';
+                        for (const [setName, slots] of Object.entries(sets)) {
+                            const count = slots.length;
+                            if (count >= 2) {
+                                const b2 = SET_BONUSES[setName]?.[2];
+                                const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
+                                let effectsDesc = [];
+                                if (b2) { for (const [k, v] of Object.entries(b2)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
+                                if (b3) { for (const [k, v] of Object.entries(b3)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
+                                setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
+                            }
                         }
-                    }
 
-                    return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
-                }).join('');
-                c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
-                c.querySelectorAll('.btn-view').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
-                c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
+                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
+                    }).join('');
+                    c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
+                    c.querySelectorAll('.btn-view').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
+                    c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
+                },
+                openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); },
+                openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
             };
-            Farm.openAdopt = function() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); };
-            Farm.openExplore = function(petId) {
-                const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active');
-                const c = document.getElementById('exploreListContainer');
-                const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0];
-                if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; }
-                const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100);
-                c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join('');
-                c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; });
-            };
+			// ==================== 第 22 块：背包界面 ====================
             Farm.openBackpack = async function() {
                 document.getElementById('modalBackpack').classList.add('active');
                 await loadItems();
                 const showBp = (type) => {
-                    const container = document.getElementById('itemListContainer');
+                    const c = document.getElementById('itemListContainer');
                     const allItems = Object.entries(State.items);
                     let filtered = allItems;
                     if (type === 'material') filtered = allItems.filter(([k]) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura','stardust','charm','dragon_soul','firefly'].includes(k));
@@ -1437,7 +2012,7 @@
                     let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
                     if (filtered.length === 0) { html += '<p>空空如也</p>'; }
                     else { html += filtered.map(([type, qty]) => `<div class="item-row"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`).join(''); }
-                    container.innerHTML = html;
+                    c.innerHTML = html;
                 };
                 showBp('all');
                 document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
@@ -1468,7 +2043,7 @@
                 c.innerHTML = State.equipment.map(e => {
                     const pn = e.equipped_to ? State.pets.find(p => p.id === e.equipped_to)?.pet_name : '未装备';
                     const qc = `quality-${e.quality}`;
-                    const canEnhance = !e.equipped_to && e.enhance_level < 10;
+                    const canEnhance = !e.equipped_to && e.enhance_level < ENHANCE_MAX_LEVEL;
                     const canDecompose = !e.equipped_to;
                     const canSell = !e.equipped_to;
                     return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'}>${canEnhance?'强化':(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
@@ -1504,7 +2079,7 @@
                     const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
                     if (State.bossStatus.current_hp > 0) {
                         if (new Date(State.bossStatus.expires_at) <= now) {
-                            const newExpires = new Date(Date.now() + 6 * 3600000).toISOString();
+                            const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
                             await supabase.from('boss_status').update({ expires_at: newExpires }).eq('id', 1);
                             State.bossStatus.expires_at = newExpires;
                         }
@@ -1593,8 +2168,8 @@
                 if (logs.length === 0) { c.innerHTML = '<p>暂无事件记录。</p>'; return; }
                 c.innerHTML = logs.map(log => { const time = formatTime(log.created_at), content = formatEventMessage(log); return `<div class="log-item"><div style="font-size:0.7rem;color:#888;">${time}</div><div>${content}</div></div>`; }).join('');
                 const { count } = await supabase.from('event_logs').select('*', { count: 'exact', head: true }).eq('user_id', State.currentUser.id);
-                if (count > 200) {
-                    const { data: oldLogs } = await supabase.from('event_logs').select('id').eq('user_id', State.currentUser.id).order('created_at', { ascending: true }).limit(count - 200);
+                if (count > MAX_LOG_COUNT) {
+                    const { data: oldLogs } = await supabase.from('event_logs').select('id').eq('user_id', State.currentUser.id).order('created_at', { ascending: true }).limit(count - MAX_LOG_COUNT);
                     const oldIds = oldLogs.map(l => l.id);
                     await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
                 }
