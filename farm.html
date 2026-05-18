@@ -52,151 +52,151 @@
             flex-direction: column;
             gap: var(--gap-xl);
         }
-		        /* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
-        .header {
-            background: var(--card);
-            border-radius: var(--radius-lg);
-            padding: var(--gap-md) var(--gap-lg);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-            flex-wrap: wrap;
-            gap: var(--gap-sm);
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: var(--gap-sm);
-        }
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-        .avatar.male { background: var(--blue); }
-        .avatar.female { background: var(--pink); }
-        .avatar.none { background: #aaa; }
-        .username {
-            font-weight: 600;
-            color: var(--text);
-            font-size: var(--font-md);
-        }
-        .level {
-            font-size: var(--font-xs);
-            color: #888;
-        }
-        .btn-icon {
-            padding: 6px 12px;
-            background: #f0ede6;
-            border: none;
-            border-radius: var(--radius-xl);
-            cursor: pointer;
-            font-size: var(--font-sm);
-            font-family: inherit;
-            white-space: nowrap;
-            position: relative;
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-        }
-        .btn-icon:active {
-            transform: scale(0.95);
-        }
-        .btn-icon:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: var(--font-xs);
-            white-space: nowrap;
-            z-index: 10;
-        }
-        .farm-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: var(--gap-md);
-        }
-        .plot-card {
-            background: var(--card);
-            border-radius: var(--radius-lg);
-            padding: 14px 8px;
-            text-align: center;
-            min-height: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: var(--gap-xs);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            cursor: pointer;
-            transition: all var(--transition-normal);
-            position: relative;
-            user-select: none;
-        }
-        .plot-card:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            transform: translateY(-2px);
-        }
-        .plot-card:active {
-            transform: scale(0.96);
-            background: #f9f6f0;
-        }
-        .plot-card.empty {
-            border: 2px dashed #d5cec0;
-            color: #b0a590;
-        }
-        .plot-card.planted {
-            border: 2px solid #c5d5b0;
-        }
-        .plot-card.ready {
-            border: 2px solid #f0c040;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
-            50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
-        }
-        .plot-emoji { font-size: 2rem; }
-        .plot-status {
-            font-size: var(--font-xs);
-            color: #888;
-            line-height: 1.2;
-        }
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: #e9ecef;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: var(--green);
-            border-radius: 2px;
-            transition: width 1s linear;
-        }
-        .waterable { color: #1976d2; font-weight: 600; }
-        .watered { color: #e67e22; font-weight: 600; }
-        .nickname {
-            display: inline-block;
-            max-width: 100px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            vertical-align: middle;
-        }
-		        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
+/* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
+.header {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-md) var(--gap-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    flex-wrap: wrap;
+    gap: var(--gap-sm);
+}
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+}
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+.avatar.male { background: var(--blue); }
+.avatar.female { background: var(--pink); }
+.avatar.none { background: #aaa; }
+.username {
+    font-weight: 600;
+    color: var(--text);
+    font-size: var(--font-md);
+}
+.level {
+    font-size: var(--font-xs);
+    color: #888;
+}
+.btn-icon {
+    padding: 6px 12px;
+    background: #f0ede6;
+    border: none;
+    border-radius: var(--radius-xl);
+    cursor: pointer;
+    font-size: var(--font-sm);
+    font-family: inherit;
+    white-space: nowrap;
+    position: relative;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-icon:active {
+    transform: scale(0.95);
+}
+.btn-icon:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: var(--font-xs);
+    white-space: nowrap;
+    z-index: 10;
+}
+.farm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: var(--gap-md);
+}
+.plot-card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 14px 8px;
+    text-align: center;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap-xs);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    position: relative;
+    user-select: none;
+}
+.plot-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+.plot-card:active {
+    transform: scale(0.96);
+    background: #f9f6f0;
+}
+.plot-card.empty {
+    border: 2px dashed #d5cec0;
+    color: #b0a590;
+}
+.plot-card.planted {
+    border: 2px solid #c5d5b0;
+}
+.plot-card.ready {
+    border: 2px solid #f0c040;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
+    50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
+}
+.plot-emoji { font-size: 2rem; }
+.plot-status {
+    font-size: var(--font-xs);
+    color: #888;
+    line-height: 1.2;
+}
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 1s linear;
+}
+.waterable { color: #1976d2; font-weight: 600; }
+.watered { color: #e67e22; font-weight: 600; }
+.nickname {
+    display: inline-block;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -608,34 +608,34 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
+<script>
+    /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
+    (function() {
+        const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-	        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
-        (function() {
-            const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-            const State = {
-                currentUser: null,
-                profile: null,
-                farmPlots: [],
-                friendIds: new Set(),
-                friendProfiles: [],
-                visitingFriend: null,
-                visitingPlots: [],
-                isSubmitting: false,
-                pets: [],
-                items: {},
-                equipment: [],
-                battle: null,
-                bossStatus: null,
-                petSkills: [],
-                profileChannel: null,
-                orders: [],
-                seedShop: null,
-                stationedPet: null
-            };
-			// ==================== 第 5 块：32种作物数据 ====================
+        const State = {
+            currentUser: null,
+            profile: null,
+            farmPlots: [],
+            friendIds: new Set(),
+            friendProfiles: [],
+            visitingFriend: null,
+            visitingPlots: [],
+            isSubmitting: false,
+            pets: [],
+            items: {},
+            equipment: [],
+            battle: null,
+            bossStatus: null,
+            petSkills: [],
+            profileChannel: null,
+            orders: [],
+            seedShop: null,
+            stationedPet: null
+        };
+// ==================== 第 5 块：32种作物数据 ====================
             const CROPS = {
                 strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
                 grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
@@ -667,7 +667,7 @@
                 tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
                 bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
             };
-			// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
+// ==================== 第 6 块：宠物类型 + 驻扎效果 + 物品名称/图标 ====================
             const PET_TYPES = {
                 cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:80,atk:18,def:5,spd:12,luk:8,sta:60},skill:{name:'猫拳连击',cd:2,desc:'攻击2次，每次60%伤害'}},
                 dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:12,def:10,spd:8,luk:5,sta:80},skill:{name:'守护吠叫',cd:3,desc:'回复20%最大HP'}},
@@ -710,7 +710,7 @@
                 tea:'🍃',bamboo:'🎋',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽'
             };
             const BASE_MATERIALS = ['hair','seed','dew','firefly','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-			// ==================== 第 7 块：品质系统 + 种子商店 + 合成配方 + 强化配置 ====================
+// ==================== 第 7 块：品质系统 + 种子商店 + 合成配方 + 强化配置 ====================
             const QUALITIES = {
                 common:{name:'普通',prob:0.6,mult:1.0,extra:null,cls:'quality-common'},
                 good:{name:'优质',prob:0.25,mult:1.5,extra:null,cls:'quality-good'},
@@ -752,7 +752,7 @@
                 {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade',protectCharm:true,luckyStone:true},
                 {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset',protectCharm:true,luckyStone:true}
             ];
-			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
+// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
             const MONSTERS = [
                 {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
                 {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
@@ -815,7 +815,7 @@
                 '天使': {2:{revive:true}, 3:{all_stat:0.1}},
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
-			// ==================== 第 9 块：工具函数 ====================
+// ==================== 第 9 块：工具函数 ====================
             // 常量提取（避免魔法数字）
             const WATER_COOLDOWN_MS = 30 * 60 * 1000; // 浇水冷却30分钟
             const BOSS_COOLDOWN_MINUTES = 60; // BOSS重生冷却60分钟
@@ -954,7 +954,7 @@
             function hasSeed(cropKey) {
                 return State.items && State.items['seed_' + cropKey] && State.items['seed_' + cropKey] > 0;
             }
-			// ==================== 第 10 块：数据加载层 ====================
+// ==================== 第 10 块：数据加载层 ====================
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
@@ -1062,7 +1062,7 @@
                     }, 3000);
                 }
             }
-			// ==================== 第 11 块：认证函数 ====================
+// ==================== 第 11 块：认证函数 ====================
             async function signUp(e, p, u, g) {
                 const { data, error } = await supabase.auth.signUp({ email: e, password: p, options: { data: { username: u, gender: g } } });
                 if (error) throw error;
@@ -1083,7 +1083,7 @@
                 Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], profileChannel: null, orders: [], seedShop: null, stationedPet: null });
                 render();
             }
-			// ==================== 第 12 块：种植相关 ====================
+// ==================== 第 12 块：种植相关 ====================
             async function plantCrop(pi, ct, gm) {
                 const now = new Date().toISOString();
                 const { data, error } = await supabase.from('farm_plots').update({ crop_type: ct, planted_at: now, growth_minutes: gm, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi).select().single();
@@ -1159,7 +1159,7 @@
                 if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= WATER_COOLDOWN_MS; }
                 return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
             }
-			// ==================== 第 13 块：宠物与探险 ====================
+// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
                 const base = PET_TYPES[pt].baseAttr;
                 const { data, error } = await supabase.from('pets').insert({ owner_id: State.currentUser.id, pet_type: pt, pet_name: PET_TYPES[pt].name, level: 1, exp: 0, hp: base.hp, atk: base.atk, def: base.def, spd: base.spd, luk: base.luk, sta: base.sta, hunger: 100, happiness: 100 }).select().single();
@@ -1289,7 +1289,7 @@
                 }
                 return rewards;
             }
-			// ==================== 第 14 块：装备系统 ====================
+// ==================== 第 14 块：装备系统 ====================
             async function synthesizeEquipment(recipe) {
                 for (const [item, need] of Object.entries(recipe.materials)) { if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]}×${need}`, true); return; } }
                 if ((State.profile.gold || 0) < recipe.cost) { showToast('金币不足', true); return; }
@@ -1418,7 +1418,7 @@
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-			// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
+// ==================== 第 15 块：地块解锁 + 战斗系统 ====================
             async function unlockPlot() {
                 const ul = State.profile.unlocked_plots || 4;
                 if (ul >= PLOT_MAX_COUNT) return;
@@ -1540,7 +1540,7 @@
                 await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
                 State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
             }
-			// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
+// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
             function showBattleResult(data) {
                 const overlay = document.createElement('div');
                 overlay.className = 'modal-overlay active';
@@ -1649,7 +1649,7 @@
                 else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
                 else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
             }
-			// ==================== 第 17 块：认证界面（Auth） ====================
+// ==================== 第 17 块：认证界面（Auth） ====================
             const Auth = {
                 render() {
                     return `<div class="auth-form"><h1>🌱 开心农场</h1><p style="text-align:center;color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜 · 丰收</p>
@@ -1689,7 +1689,7 @@
                     };
                 }
             };
-			// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
+// ==================== 第 18 块：好友农场界面（FriendFarm） ====================
             const FriendFarm = {
                 render() {
                     const friend = State.visitingFriend;
@@ -1741,7 +1741,7 @@
                     };
                 }
             };
-			// ==================== 第 19 块：排行榜界面（Leaderboard） ====================
+// ==================== 第 19 块：排行榜界面（Leaderboard） ====================
             const Leaderboard = {
                 async open() {
                     document.getElementById('modalLeaderboard').classList.add('active');
@@ -1798,7 +1798,7 @@
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
             };
-			// ==================== 第 20 块：战斗界面（Battle） ====================
+// ==================== 第 20 块：战斗界面（Battle） ====================
             const Battle = {
                 render() {
                     const b = State.battle; if (!b) return '';
@@ -1826,7 +1826,7 @@
                     };
                 }
             };
-			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
+// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
             const Farm = {
                 render() {
                     const ul = State.profile?.unlocked_plots || 4;
@@ -1997,7 +1997,7 @@
                 openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">取消</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); },
                 openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
             };
-			// ==================== 第 22 块：背包界面 ====================
+// ==================== 第 22 块：背包界面 ====================
             Farm.openBackpack = async function() {
                 document.getElementById('modalBackpack').classList.add('active');
                 await loadItems();
@@ -2018,7 +2018,7 @@
                 document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
                 document.getElementById('btnRefreshBackpack').onclick = async () => { await loadItems(); showBp(document.querySelector('#bpTypeTabs .auth-tab.active')?.dataset?.bptype || 'all'); };
             };
-			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
+// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
             Farm.openSynthesis = async function() {
                 document.getElementById('modalSynthesis').classList.add('active');
                 await loadItems();
@@ -2103,7 +2103,7 @@
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
                 c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true }; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); startPvEBattle(mon); } modal.classList.remove('active'); }; });
             };
-			// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 ====================
+// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 ====================
             Farm.openOrders = function() {
                 document.getElementById('modalOrders').classList.add('active');
                 const c = document.getElementById('ordersContainer');
@@ -2201,7 +2201,7 @@
                     default: return '未知事件';
                 }
             }
-			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
+// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
             let growthTimer;
             function startGrowthTimer() {
                 if (growthTimer) clearInterval(growthTimer);
