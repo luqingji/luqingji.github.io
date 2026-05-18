@@ -43,11 +43,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: var(--gap-xl);
+            padding: 0;
         }
         .app-container {
             width: 100%;
-            max-width: 480px;
+            max-width: 100%;
             display: flex;
             flex-direction: column;
             gap: var(--gap-xl);
@@ -124,7 +124,7 @@
         }
         .farm-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: var(--gap-md);
         }
         .plot-card {
@@ -214,7 +214,7 @@
             background: #fff;
             border-radius: var(--radius-lg);
             padding: var(--gap-xl);
-            max-width: var(--modal-width);
+            max-width: min(var(--modal-width), 90vw);
             width: 90%;
             text-align: center;
             max-height: 75vh;
@@ -608,8 +608,7 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-	    <script>
-        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
+	        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
         (function() {
             const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
