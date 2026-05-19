@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v4.0 大丰收版</title>
+    <title>🌱 开心农场 - v3.2 健壮版</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -635,11 +635,16 @@
                 equipment: [],
                 battle: null,
                 bossStatus: null,
-                petSkills: [],
+                petSkills: [],        // 保留旧字段，兼容已学技能（后续迁移到主动技能书系统）
+                passiveSkills: {},    // 新增：宠物被动技能映射 { petId: skillId }
                 profileChannel: null,
                 orders: [],
                 seedShop: null,
-                stationedPet: null
+                stationedPet: null,
+                mails: [],            // 新增：邮箱列表
+                processingTasks: [],  // 新增：加工任务列表 [{ id, recipeName, icon, finishAt }]
+                monsterLog: {},       // 新增：怪物讨伐日志 { monsterName: { kills: n, affixes: [] } }
+                monsterAffixes: []    // 新增：当前刷新的怪物词缀列表
             };
 			// ==================== 第 5A 块：60种作物数据（前半） ====================
             const CROPS = {
@@ -692,8 +697,8 @@
                 green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'},
                 lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'},
                 beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'},
-			// ==================== 第 5B 块：60种作物数据（后半） ====================
-                // ===== 特色经济类 9种 =====
+            };
+			                // ===== 特色经济类 9种 =====
                 mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
                 peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
                 tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
@@ -719,6 +724,26 @@
                 rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:60,atk:15,def:3,spd:18,luk:12,sta:40},skill:{name:'电光一闪',cd:2,desc:'必先手，伤害+30%'}}
             };
             const PET_STATION_EFFECTS = { cat:'20%概率驱赶偷菜者', dog:'浇水效果+10%', rabbit:'生长时间-5%' };
+            
+            // 宠物性格
+            const PET_NATURES = [
+                { id:'brave', name:'勇敢', pos:'攻击+10%', neg:'速度-10%', atk_bonus:0.1, spd_penalty:-0.1 },
+                { id:'calm', name:'沉稳', pos:'防御+10%', neg:'攻击-10%', def_bonus:0.1, atk_penalty:-0.1 },
+                { id:'hasty', name:'急躁', pos:'速度+10%', neg:'防御-10%', spd_bonus:0.1, def_penalty:-0.1 },
+                { id:'tough', name:'顽强', pos:'HP+10%', neg:'幸运-10%', hp_bonus:0.1, luk_penalty:-0.1 },
+                { id:'lucky', name:'幸运', pos:'幸运+10%', neg:'体力-10%', luk_bonus:0.1, sta_penalty:-0.1 },
+                { id:'energetic', name:'活力', pos:'体力+10%', neg:'HP-10%', sta_bonus:0.1, hp_penalty:-0.1 },
+                { id:'balanced', name:'均衡', pos:'无加成', neg:'无减益' }
+            ];
+            
+            // 宠物槽位解锁条件
+            const PET_SLOT_UNLOCK = [
+                { slot:2, desc:'第1只宠物达到Lv.10', gold:5000, cond:{petLevel:10} },
+                { slot:3, desc:'解锁8块农田', gold:20000, cond:{plots:8} },
+                { slot:4, desc:'击败任意精英怪×5', gold:50000, cond:{eliteKills:5}, materials:{scale:10} },
+                { slot:5, desc:'宠物探险完成50次', gold:100000, cond:{explores:50}, materials:{dragon_soul:5} },
+                { slot:6, desc:'击败BOSS虫母女王×3', gold:200000, cond:{bossKills:3}, materials:{stardust:10} }
+            ];
 
             const ITEM_NAMES = {
                 hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',firefly:'萤火虫',ore:'矿石碎片',relic:'古代遗物',
@@ -766,6 +791,19 @@
                 // 战斗药剂
                 potion_atk:'攻击药剂',potion_def:'防御药剂',potion_spd:'速度药剂',
                 potion_hp:'生命药剂',potion_crit:'暴击药剂',
+                // 技能书（24种主动技能书 + 15种被动技能书）
+                book_fire_claw:'《烈焰爪击》',book_fire_storm:'《火焰风暴》',book_fire_breath:'《灼热吐息》',book_fire_burn:'《燃烧殆尽》',
+                book_water_ball:'《水流弹》',book_water_heal:'《治愈之雨》',book_water_ice:'《寒冰屏障》',book_water_trap:'《漩涡陷阱》',
+                book_grass_vine:'《藤蔓缠绕》',book_grass_photo:'《光合作用》',book_grass_spore:'《毒孢子》',book_grass_drain:'《生命汲取》',
+                book_thunder_bolt:'《雷电冲击》',book_thunder_chain:'《连锁闪电》',book_thunder_shield:'《电磁护盾》',book_thunder_wrath:'《雷霆万钧》',
+                book_dark_strike:'《暗影突袭》',book_dark_curse:'《诅咒》',book_dark_fear:'《恐惧嚎叫》',book_dark_trade:'《生命交易》',
+                book_light_ball:'《圣光弹》',book_light_aura:'《治愈光环》',book_light_purify:'《净化》',book_light_hammer:'《审判之锤》',
+                // 被动技能书
+                book_passive_fire:'《炎之魂》',book_passive_water:'《水之魂》',book_passive_grass:'《草之魂》',
+                book_passive_thunder:'《雷之魂》',book_passive_dark:'《暗之魂》',book_passive_light:'《光之魂》',
+                book_passive_brave:'《勇猛》',book_passive_tough:'《坚韧》',book_passive_swift:'《疾风》',
+                book_passive_iron:'《铁壁》',book_passive_wise:'《睿智》',book_passive_regen:'《再生》',
+                book_passive_unyield:'《不屈》',book_passive_focus:'《专注》',book_passive_lucky:'《幸运儿》',
             };
             const ITEM_EMOJI = {
                 hair:'🧶',seed:'🌰',dew:'💧',firefly:'🪲',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',
@@ -808,10 +846,21 @@
                 smoothie_banana:'🥤',dried_kiwi:'🥝',water_coconut:'🥥',mask_cucumber:'🥒',
                 // 战斗药剂
                 potion_atk:'🧪',potion_def:'💊',potion_spd:'⚗️',potion_hp:'❤️',potion_crit:'💥',
+                // 技能书图标统一用📕，被动用📘
+                book_fire_claw:'📕',book_fire_storm:'📕',book_fire_breath:'📕',book_fire_burn:'📕',
+                book_water_ball:'📕',book_water_heal:'📕',book_water_ice:'📕',book_water_trap:'📕',
+                book_grass_vine:'📕',book_grass_photo:'📕',book_grass_spore:'📕',book_grass_drain:'📕',
+                book_thunder_bolt:'📕',book_thunder_chain:'📕',book_thunder_shield:'📕',book_thunder_wrath:'📕',
+                book_dark_strike:'📕',book_dark_curse:'📕',book_dark_fear:'📕',book_dark_trade:'📕',
+                book_light_ball:'📕',book_light_aura:'📕',book_light_purify:'📕',book_light_hammer:'📕',
+                book_passive_fire:'📘',book_passive_water:'📘',book_passive_grass:'📘',
+                book_passive_thunder:'📘',book_passive_dark:'📘',book_passive_light:'📘',
+                book_passive_brave:'📘',book_passive_tough:'📘',book_passive_swift:'📘',
+                book_passive_iron:'📘',book_passive_wise:'📘',book_passive_regen:'📘',
+                book_passive_unyield:'📘',book_passive_focus:'📘',book_passive_lucky:'📘',
             };
             const BASE_MATERIALS = ['hair','seed','dew','firefly','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
 
-            // 更新种子商店，增加更多可购买种子
             const SEED_SHOP = [
                 {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
                 {crop:'chrysanthemum',price:800},{crop:'grape',price:1200},{crop:'peanut',price:1200},
@@ -820,13 +869,97 @@
                 {crop:'cherry',price:1200},{crop:'lemon',price:800},{crop:'herb',price:600},
                 {crop:'beans',price:500},{crop:'chestnut',price:1000}
             ];
-			// ==================== 第 7A 块：品质系统 + 种子商店 + 加工配方 ====================
+			// ==================== 第 7A 块：品质系统 + 被动技能 + 主动技能 ====================
             const QUALITIES = {
                 common:{name:'普通',prob:0.6,mult:1.0,extra:null,cls:'quality-common'},
                 good:{name:'优质',prob:0.25,mult:1.5,extra:null,cls:'quality-good'},
                 rare:{name:'极品',prob:0.1,mult:2.0,extra:'随机材料×1',cls:'quality-rare'},
                 legend:{name:'传说',prob:0.05,mult:3.0,extra:'随机稀有材料+全服广播',cls:'quality-legend'}
             };
+
+            // ==================== 被动技能（15种） ====================
+            const PASSIVE_SKILLS = {
+                // 元素属性类
+                fire_soul: { id:'fire_soul', name:'炎之魂', desc:'火系伤害+20%，受到水系伤害+15%', atk_type:'fire', atk_bonus:0.2, def_penalty:{water:0.15} },
+                water_soul: { id:'water_soul', name:'水之魂', desc:'水系伤害+20%，受到雷系伤害+15%', atk_type:'water', atk_bonus:0.2, def_penalty:{thunder:0.15} },
+                grass_soul: { id:'grass_soul', name:'草之魂', desc:'草系伤害+20%，受到火系伤害+15%', atk_type:'grass', atk_bonus:0.2, def_penalty:{fire:0.15} },
+                thunder_soul: { id:'thunder_soul', name:'雷之魂', desc:'雷系伤害+20%，受到草系伤害+15%', atk_type:'thunder', atk_bonus:0.2, def_penalty:{grass:0.15} },
+                dark_soul: { id:'dark_soul', name:'暗之魂', desc:'暗系伤害+15%，免疫灼烧', atk_type:'dark', atk_bonus:0.15, immune:'burn' },
+                light_soul: { id:'light_soul', name:'光之魂', desc:'光系伤害+15%，免疫麻痹', atk_type:'light', atk_bonus:0.15, immune:'paralyze' },
+                // 战斗风格类
+                brave: { id:'brave', name:'勇猛', desc:'攻击力+15%，防御力-10%', atk_bonus:0.15, def_penalty:0.1 },
+                tough: { id:'tough', name:'坚韧', desc:'防御力+20%，速度-10%', def_bonus:0.2, spd_penalty:0.1 },
+                swift: { id:'swift', name:'疾风', desc:'速度+25%，HP-15%', spd_bonus:0.25, hp_penalty:0.15 },
+                iron: { id:'iron', name:'铁壁', desc:'受到物理伤害-15%，受到魔法伤害+10%', physical_reduce:0.15, magical_increase:0.1 },
+                wise: { id:'wise', name:'睿智', desc:'技能能量消耗-1（最低1），普通攻击伤害-20%', energy_reduce:1, atk_penalty:0.2 },
+                // 生存能力类
+                regen: { id:'regen', name:'再生', desc:'每回合结束回复3%最大HP', heal_per_turn:0.03 },
+                unyielding: { id:'unyielding', name:'不屈', desc:'HP低于20%时，防御力+50%', low_hp_def_bonus:0.5, threshold:0.2 },
+                focus: { id:'focus', name:'专注', desc:'命中率+15%，不会被闪避', hit_bonus:0.15, no_miss:true },
+                lucky: { id:'lucky', name:'幸运儿', desc:'暴击率+10%，掉落奖励+20%', crit_bonus:0.1, drop_bonus:0.2 },
+            };
+
+            // ==================== 主动技能（24种） ====================
+            const ACTIVE_SKILLS = {
+                // 火系 4个
+                fire_claw: { name:'烈焰爪击', type:'attack', element:'fire', power:150, energy:4, cooldown:4, desc:'150%伤害+灼烧(每回合5%当前HP)', burn:true },
+                fire_storm: { name:'火焰风暴', type:'attack', element:'fire', power:120, energy:6, cooldown:5, desc:'120%全体伤害，灼烧所有敌人', aoe:true, burn:true },
+                fire_breath: { name:'灼热吐息', type:'attack', element:'fire', power:100, energy:3, cooldown:3, desc:'100%伤害，50%概率附加灼烧', burn_chance:0.5 },
+                fire_burn: { name:'燃烧殆尽', type:'attack', element:'fire', power:300, energy:8, cooldown:6, desc:'300%伤害，自身攻击力-30%持续2回合', self_debuff:{atk:-0.3,duration:2} },
+                // 水系 4个
+                water_ball: { name:'水流弹', type:'attack', element:'water', power:120, energy:3, cooldown:2, desc:'120%伤害' },
+                water_heal: { name:'治愈之雨', type:'heal', element:'water', power:25, energy:5, cooldown:4, desc:'回复25%最大HP，解除灼烧', heal_percent:0.25, cure:'burn' },
+                water_ice: { name:'寒冰屏障', type:'defense', element:'water', power:0, energy:4, cooldown:5, desc:'本回合无敌，下回合无法行动', invincible:true, skip_next:true },
+                water_trap: { name:'漩涡陷阱', type:'attack', element:'water', power:80, energy:4, cooldown:3, desc:'80%伤害，降低对方速度30%持续2回合', debuff:{spd:-0.3,duration:2} },
+                // 草系 4个
+                grass_vine: { name:'藤蔓缠绕', type:'attack', element:'grass', power:80, energy:3, cooldown:3, desc:'80%伤害，50%概率束缚（无法攻击1回合）', bind_chance:0.5 },
+                grass_photo: { name:'光合作用', type:'heal', element:'grass', power:0, energy:4, cooldown:5, desc:'回复20%HP+20%能量上限', heal_percent:0.2, energy_bonus:0.2 },
+                grass_spore: { name:'毒孢子', type:'attack', element:'grass', power:60, energy:4, cooldown:4, desc:'60%伤害，中毒(每回合5%HP)持续3回合', poison:true, poison_duration:3 },
+                grass_drain: { name:'生命汲取', type:'heal', element:'grass', power:100, energy:3, cooldown:3, desc:'100%伤害，回复造成伤害的30%', drain:0.3 },
+                // 雷系 4个
+                thunder_bolt: { name:'雷电冲击', type:'attack', element:'thunder', power:200, energy:5, cooldown:5, desc:'200%伤害，30%概率麻痹', paralyze_chance:0.3 },
+                thunder_chain: { name:'连锁闪电', type:'attack', element:'thunder', power:100, energy:6, cooldown:4, desc:'100%伤害，20%概率额外攻击一次', chain_chance:0.2 },
+                thunder_shield: { name:'电磁护盾', type:'defense', element:'thunder', power:0, energy:3, cooldown:4, desc:'反弹30%魔法伤害持续2回合', reflect_magic:0.3, duration:2 },
+                thunder_wrath: { name:'雷霆万钧', type:'attack', element:'thunder', power:250, energy:8, cooldown:7, desc:'250%伤害，但自身受到20%反伤', recoil:0.2 },
+                // 暗系 4个
+                dark_strike: { name:'暗影突袭', type:'attack', element:'dark', power:130, energy:3, cooldown:2, desc:'130%伤害，无视20%防御', ignore_def:0.2 },
+                dark_curse: { name:'诅咒', type:'special', element:'dark', power:0, energy:5, cooldown:5, desc:'对方每回合失去5%HP，持续3回合', curse_duration:3, curse_dmg:0.05 },
+                dark_fear: { name:'恐惧嚎叫', type:'special', element:'dark', power:0, energy:4, cooldown:4, desc:'40%概率使对方跳过下回合', skip_chance:0.4 },
+                dark_trade: { name:'生命交易', type:'heal', element:'dark', power:0, energy:2, cooldown:6, desc:'消耗20%当前HP，回复40%能量', hp_cost:0.2, energy_gain:0.4 },
+                // 光系 4个
+                light_ball: { name:'圣光弹', type:'attack', element:'light', power:120, energy:3, cooldown:2, desc:'120%伤害，对暗系伤害+50%', bonus_vs_dark:0.5 },
+                light_aura: { name:'治愈光环', type:'heal', element:'light', power:0, energy:4, cooldown:4, desc:'回复全体15%HP', heal_percent:0.15 },
+                light_purify: { name:'净化', type:'heal', element:'light', power:0, energy:2, cooldown:3, desc:'解除所有负面状态', cure_all:true },
+                light_hammer: { name:'审判之锤', type:'attack', element:'light', power:200, energy:7, cooldown:6, desc:'200%伤害，无视防御', ignore_def:1.0 },
+            };
+			// ==================== 第 7B 块：装备合成配方 + 强化配置 + 加工配方 ====================
+            const SYNTHESIS_RECIPES = [
+                {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草鞋',slot:'accessory',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
+                {name:'见习短剑',slot:'weapon',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习盾',slot:'armor',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习徽章',slot:'accessory',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},
+                {name:'旅行杖',slot:'weapon',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},{name:'旅行斗篷',slot:'armor',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},{name:'旅行水壶',slot:'accessory',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
+                {name:'丰收镰刀',slot:'weapon',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},{name:'围裙',slot:'armor',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},{name:'幸运草帽',slot:'accessory',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},
+                {name:'矿镐',slot:'weapon',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},{name:'矿工服',slot:'armor',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},{name:'矿灯',slot:'accessory',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},
+                {name:'猎弓',slot:'weapon',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},{name:'叶之衣',slot:'armor',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},{name:'树精戒指',slot:'accessory',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},
+                {name:'三叉戟',slot:'weapon',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},{name:'鳞甲',slot:'armor',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},{name:'珍珠项链',slot:'accessory',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},
+                {name:'暗影匕首',slot:'weapon',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},{name:'夜行衣',slot:'armor',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},{name:'影之戒',slot:'accessory',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},
+                {name:'龙枪',slot:'weapon',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},{name:'龙鳞甲',slot:'armor',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},{name:'龙瞳吊坠',slot:'accessory',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},
+                {name:'星之杖',slot:'weapon',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},{name:'星空袍',slot:'armor',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},{name:'星戒',slot:'accessory',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},
+                {name:'圣剑',slot:'weapon',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},{name:'天使羽衣',slot:'armor',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},{name:'光之环',slot:'accessory',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},
+                {name:'魔剑',slot:'weapon',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔甲',slot:'armor',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔眼',slot:'accessory',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000}
+            ];
+
+            const ENHANCE_CONFIG = [
+                {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
+                {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:6,cost:2000,materials:{ore:8,relic:3},prob:0.7,penalty:'none',protectCharm:false,luckyStone:true},
+                {level:7,cost:3000,materials:{scale:3,moonstone:2},prob:0.6,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:8,cost:5000,materials:{scale:5,moonstone:3},prob:0.5,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade',protectCharm:true,luckyStone:true},
+                {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset',protectCharm:true,luckyStone:true}
+            ];
 
             // ==================== 加工食品配方 ====================
             const SYNTHESIS_FOOD = [
@@ -864,59 +997,42 @@
                 { name:'生命药剂', icon:'❤️', materials:{honey:3, clover:1}, cost:400, time:30, type:'potion', effect:'下次战斗HP+30%' },
                 { name:'暴击药剂', icon:'💥', materials:{scale:2, stardust:1}, cost:500, time:30, type:'potion', effect:'下次战斗暴击率+15%' },
             ];
-			// ==================== 第 7B 块：装备合成配方 + 强化配置 ====================
-            const SYNTHESIS_RECIPES = [
-                {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},{name:'草鞋',slot:'accessory',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
-                {name:'见习短剑',slot:'weapon',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习盾',slot:'armor',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},{name:'见习徽章',slot:'accessory',quality:'white',set_name:'见习',materials:{ore:3,hair:2},cost:200},
-                {name:'旅行杖',slot:'weapon',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},{name:'旅行斗篷',slot:'armor',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},{name:'旅行水壶',slot:'accessory',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
-                {name:'丰收镰刀',slot:'weapon',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},{name:'围裙',slot:'armor',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},{name:'幸运草帽',slot:'accessory',quality:'blue',set_name:'丰收',materials:{seed:4,dew:3},cost:500},
-                {name:'矿镐',slot:'weapon',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},{name:'矿工服',slot:'armor',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},{name:'矿灯',slot:'accessory',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},
-                {name:'猎弓',slot:'weapon',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},{name:'叶之衣',slot:'armor',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},{name:'树精戒指',slot:'accessory',quality:'purple',set_name:'森林',materials:{hair:5,feather:3},cost:1200},
-                {name:'三叉戟',slot:'weapon',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},{name:'鳞甲',slot:'armor',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},{name:'珍珠项链',slot:'accessory',quality:'purple',set_name:'海洋',materials:{scale:4,dew:3},cost:1200},
-                {name:'暗影匕首',slot:'weapon',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},{name:'夜行衣',slot:'armor',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},{name:'影之戒',slot:'accessory',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3},cost:3000},
-                {name:'龙枪',slot:'weapon',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},{name:'龙鳞甲',slot:'armor',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},{name:'龙瞳吊坠',slot:'accessory',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3},cost:3000},
-                {name:'星之杖',slot:'weapon',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},{name:'星空袍',slot:'armor',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},{name:'星戒',slot:'accessory',quality:'gold',set_name:'星辰',materials:{stardust:5,moonstone:3},cost:3000},
-                {name:'圣剑',slot:'weapon',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},{name:'天使羽衣',slot:'armor',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},{name:'光之环',slot:'accessory',quality:'gold',set_name:'天使',materials:{feather:5,scale:3},cost:3000},
-                {name:'魔剑',slot:'weapon',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔甲',slot:'armor',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000},{name:'魔眼',slot:'accessory',quality:'gold',set_name:'魔王',materials:{dragon_soul:5,relic:3},cost:3000}
-            ];
-
-            const ENHANCE_CONFIG = [
-                {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
-                {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
-                {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none',protectCharm:false,luckyStone:false},
-                {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none',protectCharm:false,luckyStone:true},
-                {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none',protectCharm:false,luckyStone:true},
-                {level:6,cost:2000,materials:{ore:8,relic:3},prob:0.7,penalty:'none',protectCharm:false,luckyStone:true},
-                {level:7,cost:3000,materials:{scale:3,moonstone:2},prob:0.6,penalty:'downgrade',protectCharm:true,luckyStone:true},
-                {level:8,cost:5000,materials:{scale:5,moonstone:3},prob:0.5,penalty:'downgrade',protectCharm:true,luckyStone:true},
-                {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade',protectCharm:true,luckyStone:true},
-                {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset',protectCharm:true,luckyStone:true}
-            ];
-			// ==================== 第 8 块：怪物数据 + 探险路线 + 可学技能 + 套装效果 ====================
+			// ==================== 第 8 块：怪物数据 + 探险路线 + 怪物技能 + 词缀 + 套装效果 ====================
             const MONSTERS = [
-                {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
-                {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
-                {name:'蚜虫群',emoji:'🐜',minLevel:1,maxLevel:5,hp:45,atk:9,def:1,spd:7,rewards:{gold:25,items:{seed:0.3}}},
-                {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
-                {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
-                {name:'草蛇',emoji:'🐍',minLevel:5,maxLevel:10,hp:70,atk:14,def:5,spd:7,rewards:{gold:50,items:{hair:0.35}}},
-                {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
-                {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
-                {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
-                {name:'野猪',emoji:'🐗',minLevel:15,maxLevel:25,hp:220,atk:35,def:15,spd:8,rewards:{gold:180,items:{ore:0.35}}},
-                {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}},
-                {name:'毒蝎',emoji:'🦂',minLevel:20,maxLevel:30,hp:200,atk:50,def:12,spd:16,rewards:{gold:220,items:{relic:0.3}}},
-                {name:'地龙',emoji:'🐲',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,rewards:{gold:400,items:{scale:0.25}}},
-                {name:'巨猿',emoji:'🦍',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,rewards:{gold:450,items:{ore:0.4}}}
+                {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,skills:[],rewards:{gold:20,items:{hair:0.3}}},
+                {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,skills:['water_ball'],rewards:{gold:15,items:{dew:0.3}}},
+                {name:'蚜虫群',emoji:'🐜',minLevel:1,maxLevel:5,hp:45,atk:9,def:1,spd:7,skills:['grass_spore'],rewards:{gold:25,items:{seed:0.3}}},
+                {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,skills:[],rewards:{gold:40,items:{seed:0.35}}},
+                {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,skills:['grass_vine'],rewards:{gold:45,items:{dew:0.35}}},
+                {name:'草蛇',emoji:'🐍',minLevel:5,maxLevel:10,hp:70,atk:14,def:5,spd:7,skills:['grass_vine','grass_spore'],rewards:{gold:50,items:{hair:0.35}}},
+                {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,skills:['dark_strike'],rewards:{gold:70,items:{ore:0.3}}},
+                {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,skills:['thunder_shield'],rewards:{gold:80,items:{relic:0.25}}},
+                {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,skills:['dark_fear','dark_curse'],rewards:{gold:150,items:{feather:0.2}}},
+                {name:'野猪',emoji:'🐗',minLevel:15,maxLevel:25,hp:220,atk:35,def:15,spd:8,skills:[],rewards:{gold:180,items:{ore:0.35}}},
+                {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,skills:['fire_breath','fire_claw'],rewards:{gold:250,items:{scale:0.15}}},
+                {name:'毒蝎',emoji:'🦂',minLevel:20,maxLevel:30,hp:200,atk:50,def:12,spd:16,skills:['grass_spore','grass_drain'],rewards:{gold:220,items:{relic:0.3}}},
+                {name:'地龙',emoji:'🐲',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,skills:['thunder_bolt','thunder_chain'],rewards:{gold:400,items:{scale:0.25}}},
+                {name:'巨猿',emoji:'🦍',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,skills:['fire_storm'],rewards:{gold:450,items:{ore:0.4}}}
             ];
             const ELITE_MONSTERS = [
-                {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
-                {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
-                {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
-                {name:'九尾狐',emoji:'🦊✨',minLevel:15,maxLevel:25,hp:270,atk:45,def:18,spd:22,rewards:{gold:350,items:{feather:0.5}}},
-                {name:'熔岩幼龙',emoji:'🐉🔥',minLevel:20,maxLevel:30,hp:375,atk:60,def:22,spd:25,rewards:{gold:500,items:{scale:0.3}}},
-                {name:'水晶地龙',emoji:'🐲💎',minLevel:25,maxLevel:35,hp:525,atk:82,def:42,spd:20,rewards:{gold:800,items:{scale:0.4}}}
+                {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,skills:['fire_breath'],rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
+                {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,skills:['thunder_bolt'],rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
+                {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,skills:['dark_strike','dark_trade'],rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
+                {name:'九尾狐',emoji:'🦊✨',minLevel:15,maxLevel:25,hp:270,atk:45,def:18,spd:22,skills:['fire_claw','fire_storm','dark_fear'],rewards:{gold:350,items:{feather:0.5}}},
+                {name:'熔岩幼龙',emoji:'🐉🔥',minLevel:20,maxLevel:30,hp:375,atk:60,def:22,spd:25,skills:['fire_storm','fire_burn'],rewards:{gold:500,items:{scale:0.3}}},
+                {name:'水晶地龙',emoji:'🐲💎',minLevel:25,maxLevel:35,hp:525,atk:82,def:42,spd:20,skills:['thunder_wrath','thunder_shield','light_aura'],rewards:{gold:800,items:{scale:0.4}}}
             ];
+            
+            // 怪物词缀
+            const MONSTER_AFFIXES = [
+                { id:'swift', name:'迅捷', color:'#3498db', desc:'速度翻倍', effect:{spd_mult:2}, reward:{gold:1.2} },
+                { id:'hard', name:'硬化', color:'#e67e22', desc:'防御翻倍，攻击减半', effect:{def_mult:2,atk_mult:0.5}, reward:{items:1.5} },
+                { id:'vampire', name:'吸血鬼', color:'#c0392b', desc:'攻击附带15%吸血', effect:{lifesteal:0.15}, reward:{gold:1.5} },
+                { id:'treasure', name:'宝藏', color:'#f0c040', desc:'血量翻倍，3倍金币', effect:{hp_mult:2}, reward:{gold:3} },
+                { id:'clone', name:'分身', color:'#9b59b6', desc:'召唤一个30%属性的分身', effect:{clone:0.3}, reward:{exp:1.5} },
+                { id:'bomb', name:'自爆', color:'#e74c3c', desc:'死亡时造成30%HP伤害', effect:{bomb:0.3}, reward:{gold:2} },
+            ];
+            
             const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
             const SLOT_NAMES = {weapon:'武器',armor:'防具',accessory:'饰品'};
 
@@ -928,18 +1044,6 @@
                 { id:'dragon', name:'龙巢秘境', emoji:'🐉', time:4, cost:300, minLevel:20, materials:{feather:3,scale:2,dragon_soul:0.5}, rareItem:'dragon_soul', rareProb:0.3, eventProb:0.3, eventName:'龙魂祝福', eventReward:'bonus_exp', exp:300 },
                 { id:'night', name:'暗夜森林', emoji:'🌙', time:2, cost:100, minLevel:10, materials:{dew:3,clover:1.5,feather:0.5}, rareItem:'feather', rareProb:0.2, eventProb:0.2, eventName:'萤火虫群', eventReward:'temp_luk', exp:100 }
             ];
-
-            const LEARNABLE_SKILLS = {
-                '爪击强化': { type:'attack', power:130, cooldown:3, desc:'攻击力+30%，持续2回合' },
-                '快速愈合': { type:'heal', power:15, cooldown:4, desc:'回复15%最大HP' },
-                '铁壁防御': { type:'defense', power:40, cooldown:4, desc:'本回合减伤40%' },
-                '战吼': { type:'support', power:50, cooldown:4, desc:'下回合攻击力+50%' },
-                '荆棘护甲': { type:'defense', power:20, cooldown:4, desc:'反弹20%伤害，持续2回合' },
-                '生命汲取': { type:'heal', power:100, cooldown:3, desc:'造成伤害的30%转化为HP' },
-                '烈焰爪击': { type:'attack', power:150, cooldown:4, desc:'150%伤害+灼烧(每回合5%当前HP)' },
-                '疾风步': { type:'support', power:0, cooldown:5, desc:'闪避率+15%，持续3回合' },
-                '雷电冲击': { type:'attack', power:200, cooldown:5, desc:'200%伤害，30%概率麻痹' }
-            };
 
             const SET_BONUSES = {
                 '稻草人': {2:{def:10}, 3:{exp_bonus:0.1}},
@@ -955,16 +1059,22 @@
                 '天使': {2:{revive:true}, 3:{all_stat:0.1}},
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
-			// ==================== 第 9 块：工具函数 ====================
-            // 常量提取（避免魔法数字）
-            const WATER_COOLDOWN_MS = 30 * 60 * 1000; // 浇水冷却30分钟
-            const BOSS_COOLDOWN_MINUTES = 60; // BOSS重生冷却60分钟
-            const BOSS_EXPIRE_HOURS = 6; // BOSS过期时间6小时
-            const MAX_LOG_COUNT = 200; // 日志最大保留条数
-            const PET_MAX_LEVEL = 30; // 宠物等级上限
-            const SKILL_MAX_LEVEL = 5; // 技能等级上限
-            const ENHANCE_MAX_LEVEL = 10; // 强化等级上限
-            const PLOT_MAX_COUNT = 12; // 最大地块数
+			// ==================== 第 9 块：工具函数 + 怪物AI重写 ====================
+            // 常量提取
+            const WATER_COOLDOWN_MS = 30 * 60 * 1000;
+            const BOSS_COOLDOWN_MINUTES = 60;
+            const BOSS_EXPIRE_HOURS = 6;
+            const MAX_LOG_COUNT = 200;
+            const PET_MAX_LEVEL = 30;
+            const SKILL_MAX_LEVEL = 5;
+            const ENHANCE_MAX_LEVEL = 10;
+            const PLOT_MAX_COUNT = 12;
+            const MAX_PET_SLOTS = 6;
+            const MAX_ENERGY = 10;
+            const INITIAL_ENERGY = 3;
+            const ENERGY_PER_TURN = 1;
+            const ATTACK_ENERGY_GAIN = 1;
+            const DEFEND_ENERGY_GAIN = 1;
 
             function showToast(msg, isError = false) {
                 const t = document.getElementById('toast');
@@ -1009,7 +1119,6 @@
                     }
                     return;
                 }
-                // 增加物品：使用 RPC 原子操作
                 const { error } = await supabase.rpc('add_item_quantity', { p_user_id: uid, p_item_type: it, p_qty: qty });
                 if (error) {
                     console.warn('RPC失败，使用备用方案:', error.message);
@@ -1039,25 +1148,133 @@
                 }
                 return effects;
             }
+            
+            // 获取宠物完整属性（含天生个体值、性格、被动、装备）
             function getPetBattleStats(pet) {
                 const equip = State.equipment.filter(e => e.equipped_to === pet.id);
-                let atk = pet.atk, def = pet.def, spd = pet.spd, luk = pet.luk;
+                let atk = pet.atk, def = pet.def, spd = pet.spd, luk = pet.luk, hp = pet.hp, sta = pet.sta;
+                // 装备加成
                 equip.forEach(e => { atk += e.atk_bonus; def += e.def_bonus; spd += e.spd_bonus; luk += e.luk_bonus; });
-                return { ...pet, atk, def, spd, luk, maxHp: pet.hp };
+                // 性格加成
+                if (pet.nature) {
+                    const nature = PET_NATURES.find(n => n.id === pet.nature);
+                    if (nature) {
+                        if (nature.atk_bonus) atk = Math.floor(atk * (1 + nature.atk_bonus));
+                        if (nature.def_bonus) def = Math.floor(def * (1 + nature.def_bonus));
+                        if (nature.spd_bonus) spd = Math.floor(spd * (1 + nature.spd_bonus));
+                        if (nature.luk_bonus) luk = Math.floor(luk * (1 + nature.luk_bonus));
+                        if (nature.hp_bonus) hp = Math.floor(hp * (1 + nature.hp_bonus));
+                        if (nature.sta_bonus) sta = Math.floor(sta * (1 + nature.sta_bonus));
+                        if (nature.atk_penalty) atk = Math.floor(atk * (1 + nature.atk_penalty));
+                        if (nature.def_penalty) def = Math.floor(def * (1 + nature.def_penalty));
+                        if (nature.spd_penalty) spd = Math.floor(spd * (1 + nature.spd_penalty));
+                        if (nature.luk_penalty) luk = Math.floor(luk * (1 + nature.luk_penalty));
+                        if (nature.hp_penalty) hp = Math.floor(hp * (1 + nature.hp_penalty));
+                        if (nature.sta_penalty) sta = Math.floor(sta * (1 + nature.sta_penalty));
+                    }
+                }
+                // 被动技能加成
+                const passiveId = State.passiveSkills?.[pet.id];
+                if (passiveId && PASSIVE_SKILLS[passiveId]) {
+                    const passive = PASSIVE_SKILLS[passiveId];
+                    if (passive.atk_bonus && !passive.atk_type) atk = Math.floor(atk * (1 + passive.atk_bonus));
+                    if (passive.def_bonus && typeof passive.def_bonus === 'number') def = Math.floor(def * (1 + passive.def_bonus));
+                    if (passive.spd_bonus && typeof passive.spd_bonus === 'number') spd = Math.floor(spd * (1 + passive.spd_bonus));
+                    if (passive.hp_penalty) hp = Math.floor(hp * (1 - passive.hp_penalty));
+                    if (passive.def_penalty && typeof passive.def_penalty === 'number') def = Math.floor(def * (1 - passive.def_penalty));
+                    if (passive.spd_penalty && typeof passive.spd_penalty === 'number') spd = Math.floor(spd * (1 - passive.spd_penalty));
+                }
+                return { ...pet, atk, def, spd, luk, hp, sta, maxHp: hp };
             }
-            function calculateDamage(at, df, isSkill = false) {
-                const ak = at.atk, de = df.def;
+            
+            function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive = null, dfPassive = null) {
+                let ak = at.atk, de = df.def;
+                // 属性克制
+                let elementMult = 1;
+                if (skillElement && dfPassive) {
+                    const dfPassiveData = PASSIVE_SKILLS[dfPassive];
+                    if (dfPassiveData?.def_penalty?.[skillElement]) {
+                        elementMult += dfPassiveData.def_penalty[skillElement];
+                    }
+                }
+                if (skillElement && atPassive) {
+                    const atPassiveData = PASSIVE_SKILLS[atPassive];
+                    if (atPassiveData?.atk_type === skillElement && atPassiveData?.atk_bonus) {
+                        elementMult += atPassiveData.atk_bonus;
+                    }
+                }
                 let dmg = Math.max(1, ak - de + Math.floor(Math.random() * 10));
+                dmg = Math.floor(dmg * elementMult);
                 if (isSkill) dmg = Math.floor(dmg * 1.3);
                 return dmg;
             }
-            function aiChooseAction(pet, opponent, skillCd) {
-                const hpRatio = pet.currentHp / pet.maxHp;
-                if (pet.pet_type === 'dog' && hpRatio < 0.3 && skillCd <= 0) return 'skill';
-                if (hpRatio < 0.3) return Math.random() < 0.4 ? 'defend' : 'attack';
-                if (hpRatio < 0.6) return Math.random() < 0.25 ? 'skill' : (Math.random() < 0.5 ? 'attack' : 'defend');
-                return Math.random() < 0.2 ? 'skill' : (Math.random() < 0.1 ? 'defend' : 'attack');
+            
+            // 怪物AI：基于能量和技能的智能出招
+            function monsterAI(battle) {
+                const skills = battle.opponentSkills || [];
+                const energy = battle.opponentEnergy || 0;
+                const skillCd = battle.oppSkillCooldowns || {};
+                const hpRatio = battle.opponentCurrentHp / (battle.opponentPet.hp || battle.opponentPet.maxHp || 1);
+                const playerHpRatio = battle.myCurrentHp / (battle.myPet.hp || battle.myPet.maxHp || 1);
+
+                // 优先级1：血量低于30%且有治疗技能 → 回血
+                if (hpRatio < 0.3 && skills.some(s => {
+                    const skillData = ACTIVE_SKILLS[s];
+                    return skillData?.type === 'heal' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                })) {
+                    const healSkill = skills.find(s => {
+                        const skillData = ACTIVE_SKILLS[s];
+                        return skillData?.type === 'heal' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    });
+                    if (healSkill) return 'skill:' + healSkill;
+                }
+
+                // 优先级2：能量足够且有控制技能 → 控制
+                if (skills.some(s => {
+                    const skillData = ACTIVE_SKILLS[s];
+                    return (skillData?.paralyze_chance || skillData?.bind_chance || skillData?.skip_chance) && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                })) {
+                    const controlSkill = skills.find(s => {
+                        const skillData = ACTIVE_SKILLS[s];
+                        return (skillData?.paralyze_chance || skillData?.bind_chance || skillData?.skip_chance) && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    });
+                    if (controlSkill) return 'skill:' + controlSkill;
+                }
+
+                // 优先级3：能量足够且有高伤害技能 → 攻击
+                if (skills.some(s => {
+                    const skillData = ACTIVE_SKILLS[s];
+                    return skillData?.type === 'attack' && (skillData.power || 100) >= 150 && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                })) {
+                    const bestSkill = skills.filter(s => {
+                        const skillData = ACTIVE_SKILLS[s];
+                        return skillData?.type === 'attack' && (skillData.power || 100) >= 150 && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    }).sort((a, b) => (ACTIVE_SKILLS[b]?.power || 100) - (ACTIVE_SKILLS[a]?.power || 100))[0];
+                    if (bestSkill) return 'skill:' + bestSkill;
+                }
+
+                // 优先级4：能量足够且有任意攻击技能 → 攻击
+                if (skills.some(s => {
+                    const skillData = ACTIVE_SKILLS[s];
+                    return skillData?.type === 'attack' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                })) {
+                    const anySkill = skills.find(s => {
+                        const skillData = ACTIVE_SKILLS[s];
+                        return skillData?.type === 'attack' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    });
+                    if (anySkill) return 'skill:' + anySkill;
+                }
+
+                // 优先级5：玩家血量低且自身能量够 → 收割
+                if (playerHpRatio < 0.3 && energy >= 3) return 'attack';
+
+                // 优先级6：能量不够 → 防御攒能量
+                if (energy < 3) return 'defend';
+
+                // 默认攻击
+                return 'attack';
             }
+            
             function logBattle(msg) {
                 const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
                 State.battle.log.push({ time, msg });
@@ -1073,6 +1290,16 @@
                         battle.opponentCurrentHp = Math.max(0, battle.opponentCurrentHp - dmg);
                         logBattle(`🔥 灼烧伤害造成 ${dmg} 点伤害`);
                     }
+                    if (buff.type === 'poison') {
+                        const dmg = Math.max(1, Math.floor(battle.opponentCurrentHp * 0.05));
+                        battle.opponentCurrentHp = Math.max(0, battle.opponentCurrentHp - dmg);
+                        logBattle(`☠️ 中毒伤害造成 ${dmg} 点伤害`);
+                    }
+                    if (buff.type === 'curse') {
+                        const dmg = Math.max(1, Math.floor(battle.opponentCurrentHp * 0.05));
+                        battle.opponentCurrentHp = Math.max(0, battle.opponentCurrentHp - dmg);
+                        logBattle(`👁️ 诅咒伤害造成 ${dmg} 点伤害`);
+                    }
                 });
                 (myBuffs || []).forEach(buff => {
                     if (buff.type === 'burn') {
@@ -1080,7 +1307,35 @@
                         battle.myCurrentHp = Math.max(0, battle.myCurrentHp - dmg);
                         logBattle(`🔥 你受到灼烧伤害 ${dmg} 点`);
                     }
+                    if (buff.type === 'poison') {
+                        const dmg = Math.max(1, Math.floor(battle.myCurrentHp * 0.05));
+                        battle.myCurrentHp = Math.max(0, battle.myCurrentHp - dmg);
+                        logBattle(`☠️ 你受到中毒伤害 ${dmg} 点`);
+                    }
+                    if (buff.type === 'curse') {
+                        const dmg = Math.max(1, Math.floor(battle.myCurrentHp * 0.05));
+                        battle.myCurrentHp = Math.max(0, battle.myCurrentHp - dmg);
+                        logBattle(`👁️ 你受到诅咒伤害 ${dmg} 点`);
+                    }
                 });
+            }
+            function applyPassiveEffects(battle) {
+                const myPassiveId = State.passiveSkills?.[battle.myPet.id];
+                if (myPassiveId === 'regen') {
+                    const heal = Math.max(1, Math.floor(battle.myPet.hp * 0.03));
+                    battle.myCurrentHp = Math.min(battle.myPet.hp, battle.myCurrentHp + heal);
+                    logBattle(`❤️ 再生回复了 ${heal} 点HP`);
+                }
+                if (myPassiveId === 'unyielding') {
+                    const hpRatio = battle.myCurrentHp / battle.myPet.hp;
+                    if (hpRatio < 0.2) {
+                        battle.myBuffs = battle.myBuffs || [];
+                        if (!battle.myBuffs.some(b => b.type === 'unyielding')) {
+                            battle.myBuffs.push({ type: 'unyielding', duration: 99, value: 0.5 });
+                            logBattle(`💪 不屈：防御力+50%！`);
+                        }
+                    }
+                }
             }
             function calculateQuality() {
                 const rand = Math.random();
@@ -1094,7 +1349,6 @@
             function hasSeed(cropKey) {
                 return State.items && State.items['seed_' + cropKey] && State.items['seed_' + cropKey] > 0;
             }
-            // 通用合成函数（用于食品和药剂）
             async function synthesizeProduct(recipe) {
                 for (const [item, need] of Object.entries(recipe.materials)) {
                     if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]||item}×${need}`, true); return; }
@@ -1105,20 +1359,30 @@
                     await supabase.from('profiles').update({ gold: State.profile.gold - recipe.cost }).eq('id', State.currentUser.id);
                     State.profile.gold -= recipe.cost;
                 }
-                await addItem(recipe.name, 1);
-                showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
+                // 如果是加工品（有时间），添加到加工队列
+                if (recipe.time) {
+                    const finishAt = new Date(Date.now() + recipe.time * 60000).toISOString();
+                    State.processingTasks.push({ id: Date.now(), name: recipe.name, icon: recipe.icon, finishAt });
+                    showToast(`开始加工 ${recipe.icon} ${recipe.name}，预计${recipe.time}分钟后完成`);
+                } else {
+                    await addItem(recipe.name, 1);
+                    showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
+                }
             }
-			// ==================== 第 10 块：数据加载层 ====================
+			// ==================== 第 10 块：数据加载层扩展 ====================
             async function loadProfile() {
                 let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
                 if (error) throw error;
                 if (!data) {
                     const un = State.currentUser.user_metadata?.username || '农夫', ge = State.currentUser.user_metadata?.gender || 'none';
-                    await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4 });
+                    await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1 });
                     for (let i = 0; i < 4; i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
                     const { data: np } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single();
                     State.profile = np;
-                } else State.profile = data;
+                } else {
+                    if (!data.pet_slots) data.pet_slots = 1;
+                    State.profile = data;
+                }
             }
             async function loadFarmPlots() {
                 const { data, error } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
@@ -1178,6 +1442,34 @@
                 if (!error) State.petSkills = data || [];
                 else State.petSkills = [];
             }
+            async function loadPassiveSkills() {
+                // 被动技能从pets表的passive_skill字段加载，映射到State.passiveSkills
+                State.passiveSkills = {};
+                for (const pet of State.pets) {
+                    if (pet.passive_skill) {
+                        State.passiveSkills[pet.id] = pet.passive_skill;
+                    }
+                }
+            }
+            async function loadMails() {
+                try {
+                    const { data, error } = await supabase.from('mail').select('*').eq('receiver_id', State.currentUser.id).order('created_at', { ascending: false }).limit(20);
+                    if (!error) State.mails = data || [];
+                    else State.mails = [];
+                } catch (e) { State.mails = []; }
+            }
+            async function loadProcessingTasks() {
+                // 从内存State中过滤掉已完成的加工任务
+                const now = new Date();
+                const activeTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) > now);
+                // 已完成的任务自动发放奖励
+                const finishedTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) <= now);
+                for (const task of finishedTasks) {
+                    await addItem(task.name, 1);
+                    showToast(`加工完成！获得 ${task.icon} ${task.name}`);
+                }
+                State.processingTasks = activeTasks;
+            }
             function generateOrders() {
                 State.orders = [];
                 const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
@@ -1198,6 +1490,7 @@
                 try {
                     await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                     await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                    await loadPassiveSkills(); await loadMails(); await loadProcessingTasks();
                     generateOrders();
                 } catch (e) {
                     console.error('数据加载失败:', e);
@@ -1206,6 +1499,7 @@
                         try {
                             await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                             await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                            await loadPassiveSkills(); await loadMails(); await loadProcessingTasks();
                             generateOrders();
                             render();
                         } catch (e2) {
@@ -1233,7 +1527,7 @@
                 if (State.profileChannel) { supabase.removeChannel(State.profileChannel); State.profileChannel = null; }
                 await supabase.auth.signOut();
                 localStorage.removeItem('session_token');
-                Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], profileChannel: null, orders: [], seedShop: null, stationedPet: null });
+                Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], passiveSkills: {}, profileChannel: null, orders: [], seedShop: null, stationedPet: null, mails: [], processingTasks: [], monsterLog: {}, monsterAffixes: [] });
                 render();
             }
 			// ==================== 第 12 块：种植相关 ====================
@@ -1314,11 +1608,35 @@
             }
 			// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
+                // 检查槽位
+                const slots = State.profile?.pet_slots || 1;
+                if (State.pets.length >= slots) { showToast(`宠物槽位已满（${State.pets.length}/${slots}），请先解锁新槽位`, true); return null; }
                 const base = PET_TYPES[pt].baseAttr;
-                const { data, error } = await supabase.from('pets').insert({ owner_id: State.currentUser.id, pet_type: pt, pet_name: PET_TYPES[pt].name, level: 1, exp: 0, hp: base.hp, atk: base.atk, def: base.def, spd: base.spd, luk: base.luk, sta: base.sta, hunger: 100, happiness: 100 }).select().single();
+                // 随机生成天生个体值（±15%）
+                const iv = {
+                    hp: Math.round(base.hp * (0.85 + Math.random() * 0.3)),
+                    atk: Math.round(base.atk * (0.85 + Math.random() * 0.3)),
+                    def: Math.round(base.def * (0.85 + Math.random() * 0.3)),
+                    spd: Math.round(base.spd * (0.85 + Math.random() * 0.3)),
+                    luk: Math.round(base.luk * (0.85 + Math.random() * 0.3)),
+                    sta: Math.round(base.sta * (0.85 + Math.random() * 0.3)),
+                };
+                // 随机性格
+                const nature = PET_NATURES[Math.floor(Math.random() * PET_NATURES.length)];
+                // 随机被动技能（从15种被动中随机）
+                const passiveKeys = Object.keys(PASSIVE_SKILLS);
+                const passiveId = passiveKeys[Math.floor(Math.random() * passiveKeys.length)];
+                const { data, error } = await supabase.from('pets').insert({
+                    owner_id: State.currentUser.id, pet_type: pt, pet_name: PET_TYPES[pt].name,
+                    level: 1, exp: 0, hp: iv.hp, atk: iv.atk, def: iv.def, spd: iv.spd, luk: iv.luk, sta: iv.sta,
+                    hunger: 100, happiness: 100,
+                    nature: nature.id, passive_skill: passiveId
+                }).select().single();
                 if (error) throw error;
                 State.pets.push(data);
-                addEventLog('adopt_pet', { pet: PET_TYPES[pt].name });
+                State.passiveSkills[data.id] = passiveId;
+                addEventLog('adopt_pet', { pet: PET_TYPES[pt].name, nature: nature.name, passive: PASSIVE_SKILLS[passiveId]?.name });
+                showToast(`领养成功！性格${nature.name}，被动${PASSIVE_SKILLS[passiveId]?.name}`);
                 return data;
             }
             async function startExplore(pid, routeId) {
@@ -1384,17 +1702,17 @@
                     else if (route.eventReward === 'extra_materials') { for (const [item, qty] of Object.entries(route.materials)) { rewards[item] = (rewards[item] || 0) + Math.floor(qty); } }
                     else if (route.eventReward === 'bonus_exp') { pet.exp = (pet.exp || 0) + 200; }
                 }
-                // 新升级曲线 + 满级保护
+                // 满级保护
                 if ((pet.level || 0) < PET_MAX_LEVEL) {
                     const ne = (pet.exp || 0) + (route.exp || 30);
                     pet.exp = ne;
                     let nl = pet.level || 1;
                     while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
                         nl++;
-                        const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
-                        pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
-                        pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
-                        pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
+                        const lf = nl - 1;
+                        pet.hp = Math.floor(pet.hp * (1 + 0.02)); pet.atk = Math.floor(pet.atk * (1 + 0.02));
+                        pet.def = Math.floor(pet.def * (1 + 0.015)); pet.spd = Math.floor(pet.spd * (1 + 0.01));
+                        pet.luk = Math.floor(pet.luk * (1 + 0.01)); pet.sta = Math.floor(pet.sta * (1 + 0.02));
                         if (!silent && nl > pet.level) showToast(`🎉 ${pet.pet_name} 升级至 Lv.${nl}！`);
                     }
                     if (nl !== pet.level) {
@@ -1406,35 +1724,22 @@
                 pet.exploring_until = null;
                 for (const [item, qty] of Object.entries(rewards)) { await addItem(item, qty); }
                 addEventLog('explore_complete', { pet: pet.pet_name, route: route.name, rewards, event: eventTriggered ? route.eventName : null });
-                const learnProb = 0.1 + (pet.luk || 0) * 0.01 + ((route.rareProb > 0.2) ? 0.05 : 0);
-                if (Math.random() < learnProb) {
-                    const mySkills = State.petSkills.filter(s => s.pet_id === pid);
-                    const skillNames = Object.keys(LEARNABLE_SKILLS);
-                    const skillName = skillNames[Math.floor(Math.random() * skillNames.length)];
-                    const existingSkill = mySkills.find(s => s.skill_name === skillName);
-                    if (existingSkill) {
-                        if (existingSkill.level < SKILL_MAX_LEVEL) {
-                            const newLevel = existingSkill.level + 1;
-                            const newPower = Math.floor(existingSkill.power * 1.1);
-                            const newCooldown = Math.max(1, existingSkill.cooldown - 1);
-                            await supabase.from('pet_skills').update({ level: newLevel, power: newPower, cooldown: newCooldown }).eq('id', existingSkill.id);
-                            existingSkill.level = newLevel; existingSkill.power = newPower; existingSkill.cooldown = newCooldown;
-                            addEventLog('skill_upgrade', { pet: pet.pet_name, skill: skillName, level: newLevel });
-                            if (!silent) showToast(`⬆️ ${pet.pet_name} 的【${skillName}】升级至 Lv.${newLevel}！`);
-                        }
-                    } else if (mySkills.length < 4) {
-                        const freeSlot = [0, 1, 2, 3].find(s => !mySkills.some(ps => ps.slot === s));
-                        if (freeSlot !== undefined) {
-                            const { data: newSkill } = await supabase.from('pet_skills').insert({ pet_id: pid, skill_name: skillName, skill_type: LEARNABLE_SKILLS[skillName].type, power: LEARNABLE_SKILLS[skillName].power, cooldown: LEARNABLE_SKILLS[skillName].cooldown, level: 1, slot: freeSlot }).select().single();
-                            if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_learn', { pet: pet.pet_name, skill: skillName }); if (!silent) showToast(`🎉 ${pet.pet_name} 学会了新技能：${skillName}！`); }
-                        }
-                    } else {
-                        const replaceSkill = mySkills[Math.floor(Math.random() * mySkills.length)];
-                        await supabase.from('pet_skills').delete().eq('id', replaceSkill.id);
-                        State.petSkills = State.petSkills.filter(s => s.id !== replaceSkill.id);
-                        const { data: newSkill } = await supabase.from('pet_skills').insert({ pet_id: pid, skill_name: skillName, skill_type: LEARNABLE_SKILLS[skillName].type, power: LEARNABLE_SKILLS[skillName].power, cooldown: LEARNABLE_SKILLS[skillName].cooldown, level: 1, slot: replaceSkill.slot }).select().single();
-                        if (newSkill) { State.petSkills.push(newSkill); addEventLog('skill_replace', { pet: pet.pet_name, old_skill: replaceSkill.skill_name, new_skill: skillName }); if (!silent) showToast(`🔄 ${pet.pet_name} 遗忘了【${replaceSkill.skill_name}】，学会了【${skillName}】！`); }
-                    }
+                
+                // 技能书掉落（取代原来的直接学习技能）
+                const bookDropProb = 0.1 + (pet.luk || 0) * 0.01 + ((route.rareProb > 0.2) ? 0.05 : 0);
+                if (Math.random() < bookDropProb) {
+                    const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
+                    const randomBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
+                    rewards[randomBook] = (rewards[randomBook] || 0) + 1;
+                    await addItem(randomBook, 1);
+                    if (!silent) showToast(`📕 探险中获得技能书：${ITEM_NAMES[randomBook] || randomBook}！`);
+                }
+                // 被动技能书稀有掉落
+                if (Math.random() < 0.03) {
+                    const passiveBookKeys = Object.keys(PASSIVE_SKILLS).map(k => 'book_passive_' + k);
+                    const randomPassiveBook = passiveBookKeys[Math.floor(Math.random() * passiveBookKeys.length)];
+                    await addItem(randomPassiveBook, 1);
+                    if (!silent) showToast(`📘 探险中获得被动技能书：${ITEM_NAMES[randomPassiveBook] || randomPassiveBook}！`);
                 }
                 if (!silent) {
                     const rt = Object.entries(rewards).map(([item, qty]) => `${ITEM_EMOJI[item] || '📦'}×${qty}`).join(' ');
@@ -1471,12 +1776,10 @@
                 if (!config) return;
                 for (const [item, need] of Object.entries(config.materials)) { if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]}×${need}`, true); return; } }
                 if ((State.profile.gold || 0) < config.cost) { showToast('金币不足', true); return; }
-                // 检查保护符
                 if (useProtectCharm && config.protectCharm) {
                     if ((State.items['protect_charm'] || 0) < 1) { showToast('需要保护符×1', true); return; }
                     await addItem('protect_charm', -1);
                 }
-                // 检查幸运石
                 let prob = config.prob;
                 if (useLuckyStone && config.luckyStone) {
                     if ((State.items['lucky_stone'] || 0) < 1) { showToast('需要幸运石×1', true); return; }
@@ -1604,8 +1907,14 @@
                     const myPet = getPetBattleStats(State.pets.find(p => p.id === myPetId));
                     const oppPet = getPetBattleStats(op);
                     const mySkills = State.petSkills.filter(s => s.pet_id === myPetId);
+                    const oppSkills = State.petSkills.filter(s => s.pet_id === op.id) || [];
                     const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
-                    State.battle = { type: 'pvp', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], friendId, friendName: friend.username, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
+                    const oppCooldowns = {}; oppSkills.forEach(s => oppCooldowns[s.id] = 0);
+                    State.battle = { type: 'pvp', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, 
+                        log: [], friendId, friendName: friend.username, skillCooldowns: cooldowns, oppSkillCooldowns: oppCooldowns,
+                        oppSkillCd: 0, turn: 0, mySkills, opponentSkills: oppSkills.map(s => s.skill_name),
+                        myEnergy: INITIAL_ENERGY, oppEnergy: INITIAL_ENERGY,
+                        myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
                     render();
                 } catch (e) { showToast(e.message || '战斗初始化失败', true); }
                 finally { State.isSubmitting = false; }
@@ -1616,73 +1925,256 @@
                 if (!myPet) { showToast('请先领养宠物'); return; }
                 let bossHp = monster.hp || monster.maxHp;
                 if (monster.isBoss && State.bossStatus) { bossHp = State.bossStatus.current_hp; if (bossHp <= 0) { showToast('BOSS已被击败！'); return; } }
-                const myLevel = myPet.level || 1;
-                const scale = Math.min(1.5, Math.max(0.5, myLevel / (monster.maxLevel || 1)));
-                const oppPet = { ...monster, hp: bossHp, atk: Math.floor(monster.atk * scale), def: Math.floor(monster.def * scale), spd: monster.spd, maxHp: monster.maxHp || monster.hp, pet_name: monster.name, pet_type: 'monster', skill: { name: '冲撞', cd: 2 } };
+                // 怪物属性不缩放，直接使用基础属性
+                let monHp = monster.hp, monAtk = monster.atk, monDef = monster.def, monSpd = monster.spd;
+                // 应用词缀效果
+                const affixes = State.monsterAffixes || [];
+                if (affixes.length > 0) {
+                    for (const affix of affixes) {
+                        if (affix.effect.hp_mult) monHp = Math.floor(monHp * affix.effect.hp_mult);
+                        if (affix.effect.atk_mult) monAtk = Math.floor(monAtk * affix.effect.atk_mult);
+                        if (affix.effect.def_mult) monDef = Math.floor(monDef * affix.effect.def_mult);
+                        if (affix.effect.spd_mult) monSpd = Math.floor(monSpd * affix.effect.spd_mult);
+                    }
+                }
+                const oppPet = { ...monster, hp: bossHp || monHp, atk: monAtk, def: monDef, spd: monSpd, maxHp: monster.maxHp || monster.hp || monHp, pet_name: monster.name, pet_type: 'monster', skill: { name: '冲撞', cd: 2 } };
                 const mySkills = State.petSkills.filter(s => s.pet_id === State.pets[0]?.id);
                 const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
-                State.battle = { type: 'pve', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp, log: [], monster, skillCooldowns: cooldowns, oppSkillCd: 0, turn: 0, mySkills, bossDamage: 0, myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
+                const oppSkills = monster.skills || [];
+                const oppCooldowns = {}; oppSkills.forEach(s => oppCooldowns[s] = 0);
+                State.battle = { type: 'pve', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp,
+                    log: [], monster, skillCooldowns: cooldowns, oppSkillCooldowns: oppCooldowns,
+                    oppSkillCd: 0, turn: 0, mySkills, opponentSkills: oppSkills,
+                    myEnergy: INITIAL_ENERGY, oppEnergy: INITIAL_ENERGY,
+                    bossDamage: 0, affixes: affixes,
+                    myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
+                if (affixes.length > 0) {
+                    const affixNames = affixes.map(a => `[${a.name}]`).join(' ');
+                    logBattle(`怪物词缀：${affixNames}`);
+                }
                 render();
             }
             function executeBattleAction(action, skillId = null) {
                 if (!State.battle) return; const b = State.battle;
-                let oppParalyzed = (b.oppBuffs || []).some(bf => bf.type === 'paralyze'); let dmg = 0;
+                let oppParalyzed = (b.oppBuffs || []).some(bf => bf.type === 'paralyze');
+                let oppBound = (b.oppBuffs || []).some(bf => bf.type === 'bind');
+                let dmg = 0;
+                // 技能释放
                 if (action === 'skill' && skillId) {
                     const skill = b.mySkills.find(s => s.id === skillId);
                     if (!skill) return;
                     const cd = b.skillCooldowns[skillId] || 0;
                     if (cd > 0) { showToast('技能冷却中'); return; }
-                    const skillInfo = LEARNABLE_SKILLS[skill.skill_name];
-                    if (!skillInfo) return;
-                    b.skillCooldowns[skillId] = skill.cooldown;
-                    if (skillInfo.type === 'attack' || skillInfo.type === 'special') {
-                        let powerMult = skillInfo.power / 100;
-                        dmg = Math.floor(calculateDamage(b.myPet, b.opponentPet) * powerMult);
+                    const skillData = ACTIVE_SKILLS[skill.skill_name];
+                    if (!skillData) return;
+                    const energyCost = skillData.energy || 0;
+                    // 睿智被动：能耗-1
+                    const myPassiveId = State.passiveSkills?.[b.myPet.id];
+                    let actualCost = energyCost;
+                    if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
+                    if ((b.myEnergy || 0) < actualCost) { showToast(`能量不足！需要⚡${actualCost}`); return; }
+                    b.myEnergy = Math.max(0, (b.myEnergy || 0) - actualCost);
+                    b.skillCooldowns[skillId] = skillData.cooldown || 0;
+                    if (skillData.type === 'attack' || skillData.type === 'special') {
+                        let powerMult = (skillData.power || 100) / 100;
+                        const element = skillData.element || null;
+                        const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
+                        dmg = calculateDamage(b.myPet, b.opponentPet, true, element, myPassiveId, oppPassiveId);
+                        dmg = Math.floor(dmg * powerMult);
                         b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
-                        logBattle(`你的 ${b.myPet.pet_name} 使用【${skill.skill_name}】，造成 ${dmg} 点伤害`);
-                        if (skill.skill_name === '爪击强化') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 2, value: 0.3 }); logBattle(`⚡ 攻击力提升30%，持续2回合`); }
-                        if (skill.skill_name === '生命汲取') { const heal = Math.floor(dmg * 0.3); b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal); logBattle(`💚 汲取生命回复了 ${heal} 点HP`); }
-                        if (skill.skill_name === '烈焰爪击') { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 对手被灼烧，每回合失去5%当前HP`); }
-                        if (skill.skill_name === '雷电冲击' && Math.random() < 0.3) { b.oppBuffs = b.oppBuffs || []; b.oppBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 对手麻痹，无法行动`); }
-                    } else if (skillInfo.type === 'heal') {
-                        if (skill.skill_name === '快速愈合') { const heal = Math.floor(b.myPet.hp * (skillInfo.power / 100)); b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal); logBattle(`你的 ${b.myPet.pet_name} 使用【快速愈合】，回复 ${heal} 点HP`); }
-                    } else if (skillInfo.type === 'defense') {
-                        if (skill.skill_name === '铁壁防御') { b.myDefend = true; b.myIronDef = true; const reduceRate = Math.round(skill.power * 0.01 * 100); logBattle(`你的 ${b.myPet.pet_name} 使用【铁壁防御】，本回合减伤${reduceRate}%`); }
-                        else if (skill.skill_name === '荆棘护甲') { b.myReflect = true; b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'reflect'); b.myBuffs.push({ type: 'reflect', duration: 2, value: skill.power / 100 }); logBattle(`你的 ${b.myPet.pet_name} 使用【荆棘护甲】，反弹${skill.power}%伤害持续2回合`); }
-                    } else if (skillInfo.type === 'support') {
-                        if (skill.skill_name === '战吼') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'attack_up'); b.myBuffs.push({ type: 'attack_up', duration: 1, value: 0.5 }); logBattle(`⚡ 下回合攻击力+50%`); }
-                        else if (skill.skill_name === '疾风步') { b.myBuffs = b.myBuffs || []; b.myBuffs = b.myBuffs.filter(bf => bf.type !== 'dodge'); b.myBuffs.push({ type: 'dodge', duration: 3, value: 0.15 }); logBattle(`💨 闪避率+15%，持续3回合`); }
+                        logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
+                        if (skillData.burn || skillData.burn_chance > 0) {
+                            if (skillData.burn || Math.random() < (skillData.burn_chance || 0)) {
+                                b.oppBuffs = b.oppBuffs || [];
+                                b.oppBuffs.push({ type: 'burn', duration: 3 });
+                                logBattle(`🔥 对手被灼烧，每回合失去5%当前HP`);
+                            }
+                        }
+                        if (skillData.paralyze_chance && Math.random() < skillData.paralyze_chance) {
+                            b.oppBuffs = b.oppBuffs || [];
+                            b.oppBuffs.push({ type: 'paralyze', duration: 2 });
+                            logBattle(`⚡ 对手麻痹，无法行动`);
+                        }
+                        if (skillData.bind_chance && Math.random() < skillData.bind_chance) {
+                            b.oppBuffs = b.oppBuffs || [];
+                            b.oppBuffs.push({ type: 'bind', duration: 1 });
+                            logBattle(`🌿 对手被束缚`);
+                        }
+                        if (skillData.poison) {
+                            b.oppBuffs = b.oppBuffs || [];
+                            b.oppBuffs.push({ type: 'poison', duration: skillData.poison_duration || 3 });
+                            logBattle(`☠️ 对手中毒了`);
+                        }
+                        if (skillData.drain) {
+                            const heal = Math.floor(dmg * skillData.drain);
+                            b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal);
+                            logBattle(`💚 生命汲取回复了 ${heal} 点HP`);
+                        }
+                        if (skillData.chain_chance && Math.random() < skillData.chain_chance) {
+                            const chainDmg = Math.floor(dmg * 0.5);
+                            b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - chainDmg);
+                            logBattle(`⚡ 连锁闪电额外造成 ${chainDmg} 点伤害`);
+                        }
+                        if (skillData.recoil) {
+                            const recoilDmg = Math.floor(dmg * skillData.recoil);
+                            b.myCurrentHp = Math.max(0, b.myCurrentHp - recoilDmg);
+                            logBattle(`💔 反伤受到 ${recoilDmg} 点伤害`);
+                        }
+                        if (skillData.self_debuff) {
+                            b.myBuffs = b.myBuffs || [];
+                            b.myBuffs.push({ type: 'self_atk_down', duration: skillData.self_debuff.duration || 2, value: skillData.self_debuff.atk || 0 });
+                            logBattle(`⚠️ 自身攻击力下降`);
+                        }
+                    } else if (skillData.type === 'heal') {
+                        if (skillData.heal_percent) {
+                            const heal = Math.floor(b.myPet.hp * skillData.heal_percent);
+                            b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + heal);
+                            logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，回复 ${heal} 点HP`);
+                        }
+                        if (skillData.cure === 'burn') {
+                            b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'burn');
+                            logBattle(`💧 灼烧被解除了`);
+                        }
+                        if (skillData.cure_all) {
+                            b.myBuffs = [];
+                            logBattle(`✨ 所有负面状态被净化`);
+                        }
+                        if (skillData.energy_bonus) {
+                            b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + Math.floor(MAX_ENERGY * skillData.energy_bonus));
+                            logBattle(`⚡ 能量上限提升`);
+                        }
+                        if (skillData.hp_cost) {
+                            const cost = Math.floor(b.myCurrentHp * skillData.hp_cost);
+                            b.myCurrentHp = Math.max(0, b.myCurrentHp - cost);
+                            if (skillData.energy_gain) {
+                                b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + Math.floor(MAX_ENERGY * skillData.energy_gain));
+                                logBattle(`🌑 消耗${cost}HP，回复了大量能量`);
+                            }
+                        }
+                    } else if (skillData.type === 'defense') {
+                        if (skillData.invincible) {
+                            b.myBuffs = b.myBuffs || [];
+                            b.myBuffs.push({ type: 'invincible', duration: 1 });
+                            if (skillData.skip_next) b.myBuffs.push({ type: 'skip_next', duration: 1 });
+                            logBattle(`❄️ 寒冰屏障：本回合无敌！`);
+                        }
+                        if (skillData.reflect_magic) {
+                            b.myBuffs = b.myBuffs || [];
+                            b.myBuffs.push({ type: 'reflect_magic', duration: skillData.duration || 2, value: skillData.reflect_magic });
+                            logBattle(`⚡ 电磁护盾：反弹魔法伤害${Math.round(skillData.reflect_magic*100)}%`);
+                        }
+                    } else if (skillData.type === 'special') {
+                        if (skillData.curse_duration) {
+                            b.oppBuffs = b.oppBuffs || [];
+                            b.oppBuffs.push({ type: 'curse', duration: skillData.curse_duration, value: skillData.curse_dmg || 0.05 });
+                            logBattle(`👁️ 对手被诅咒了`);
+                        }
+                        if (skillData.skip_chance && Math.random() < skillData.skip_chance) {
+                            b.oppBuffs = b.oppBuffs || [];
+                            b.oppBuffs.push({ type: 'skip_next', duration: 1 });
+                            logBattle(`😱 对手陷入恐惧`);
+                        }
                     }
                 } else if (action === 'attack') {
-                    let atkMult = 1; (b.myBuffs || []).forEach(bf => { if (bf.type === 'attack_up') atkMult += bf.value; });
-                    let baseDmg = calculateDamage(b.myPet, b.opponentPet); dmg = Math.floor(baseDmg * atkMult);
+                    dmg = calculateDamage(b.myPet, b.opponentPet);
                     b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
-                    logBattle(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害`);
-                } else if (action === 'defend') { logBattle('你选择防御'); b.myDefend = true; }
+                    b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ATTACK_ENERGY_GAIN);
+                    logBattle(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害 ⚡+1`);
+                } else if (action === 'defend') {
+                    b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + DEFEND_ENERGY_GAIN);
+                    logBattle(`你选择防御 ⚡+1`);
+                    b.myDefend = true;
+                }
 
-                if (b.type === 'pve' && b.monster && b.monster.isBoss && dmg > 0) { b.bossDamage = (b.bossDamage || 0) + dmg; const newBossHp = Math.max(0, (State.bossStatus?.current_hp || b.opponentPet.maxHp) - dmg); if (State.bossStatus) State.bossStatus.current_hp = newBossHp; supabase.from('boss_status').update({ current_hp: newBossHp }).eq('id', 1).then(() => { }); }
-                for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; } if (b.oppSkillCd > 0) b.oppSkillCd--;
-                if (b.opponentCurrentHp > 0 && !oppParalyzed) {
-                    const oppPetForAi = { ...b.opponentPet, currentHp: b.opponentCurrentHp, maxHp: b.opponentPet.maxHp || b.opponentPet.hp };
-                    const oppAction = aiChooseAction(oppPetForAi, b.myPet, b.oppSkillCd);
-                    if (oppAction === 'attack') {
-                        const dodgeBuff = (b.myBuffs || []).find(bf => bf.type === 'dodge');
-                        if (dodgeBuff && Math.random() < (dodgeBuff.value || 0.15)) { logBattle(`对手攻击被闪避！`); }
-                        else {
-                            let odmg = calculateDamage(b.opponentPet, b.myPet);
-                            if (b.myDefend) { const reduceRate = b.myIronDef ? 0.4 : 0.5; odmg = Math.floor(odmg * reduceRate); }
-                            b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
-                            logBattle(`对手 ${b.opponentPet.pet_name} 攻击，造成 ${odmg} 点伤害`);
-                            const reflectBuff = (b.myBuffs || []).find(bf => bf.type === 'reflect');
-                            if (reflectBuff) { const reflectDmg = Math.floor(odmg * (reflectBuff.value || 0.2)); b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - reflectDmg); logBattle(`荆棘护甲反弹 ${reflectDmg} 点伤害`); }
+                if (b.type === 'pve' && b.monster && b.monster.isBoss && dmg > 0) {
+                    b.bossDamage = (b.bossDamage || 0) + dmg;
+                    const newBossHp = Math.max(0, (State.bossStatus?.current_hp || b.opponentPet.maxHp) - dmg);
+                    if (State.bossStatus) State.bossStatus.current_hp = newBossHp;
+                    supabase.from('boss_status').update({ current_hp: newBossHp }).eq('id', 1).then(() => { });
+                }
+                // 冷却递减
+                for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; }
+                for (const key in b.oppSkillCooldowns) { if (b.oppSkillCooldowns[key] > 0) b.oppSkillCooldowns[key]--; }
+
+                // 对手行动
+                const isInvincible = (b.myBuffs || []).some(bf => bf.type === 'invincible');
+                const oppSkip = (b.oppBuffs || []).some(bf => bf.type === 'skip_next');
+                if (b.opponentCurrentHp > 0 && !oppSkip && !oppParalyzed && !oppBound) {
+                    // 使用怪物AI
+                    const aiResult = monsterAI(b);
+                    if (aiResult === 'attack') {
+                        let odmg = calculateDamage(b.opponentPet, b.myPet);
+                        if (b.myDefend) odmg = Math.floor(odmg * 0.5);
+                        if (isInvincible) odmg = 0;
+                        // 吸血词缀
+                        if (b.affixes?.some(a => a.id === 'vampire')) {
+                            const lifesteal = Math.floor(odmg * 0.15);
+                            b.opponentCurrentHp = Math.min(b.opponentPet.hp || b.opponentPet.maxHp, b.opponentCurrentHp + lifesteal);
+                            logBattle(`🧛 吸血鬼吸取了 ${lifesteal} 点HP`);
                         }
-                    } else if (oppAction === 'defend') { logBattle(`对手 ${b.opponentPet.pet_name} 防御`); b.oppDefend = true; }
-                    else { b.oppSkillCd = PET_TYPES[b.opponentPet.pet_type]?.skill?.cd || 2; const dodgeBuff = (b.myBuffs || []).find(bf => bf.type === 'dodge'); if (dodgeBuff && Math.random() < (dodgeBuff.value || 0.15)) { logBattle(`对手技能被闪避！`); } else { let odmg = calculateDamage(b.opponentPet, b.myPet, true); if (b.myDefend) { const reduceRate = b.myIronDef ? 0.4 : 0.5; odmg = Math.floor(odmg * reduceRate); } b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg); logBattle(`对手 ${b.opponentPet.pet_name} 使用技能，造成 ${odmg} 点伤害`); const reflectBuff = (b.myBuffs || []).find(bf => bf.type === 'reflect'); if (reflectBuff) { const reflectDmg = Math.floor(odmg * (reflectBuff.value || 0.2)); b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - reflectDmg); logBattle(`荆棘护甲反弹 ${reflectDmg} 点伤害`); } } }
-                } else if (oppParalyzed) { logBattle(`对手因麻痹无法行动`); }
-                b.myDefend = false; b.myIronDef = false; b.myReflect = false; b.oppDefend = false;
-                applyDOTs(b.myBuffs, b.oppBuffs, b); b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
+                        b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
+                        b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ATTACK_ENERGY_GAIN);
+                        logBattle(`对手 ${b.opponentPet.pet_name} 攻击，造成 ${odmg} 点伤害`);
+                    } else if (aiResult === 'defend') {
+                        b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + DEFEND_ENERGY_GAIN);
+                        logBattle(`对手 ${b.opponentPet.pet_name} 防御 ⚡+1`);
+                    } else if (aiResult && aiResult.startsWith('skill:')) {
+                        const skillName = aiResult.split(':')[1];
+                        const skillData = ACTIVE_SKILLS[skillName];
+                        if (skillData && (b.oppEnergy || 0) >= (skillData.energy || 0)) {
+                            b.oppEnergy = Math.max(0, (b.oppEnergy || 0) - (skillData.energy || 0));
+                            const oppSkillCd = skillData.cooldown || 2;
+                            b.oppSkillCooldowns[skillName] = oppSkillCd;
+                            if (skillData.type === 'attack') {
+                                let odmg = calculateDamage(b.opponentPet, b.myPet, true, skillData.element);
+                                odmg = Math.floor(odmg * (skillData.power || 100) / 100);
+                                if (b.myDefend) odmg = Math.floor(odmg * 0.5);
+                                if (isInvincible) odmg = 0;
+                                b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
+                                logBattle(`对手 使用【${skillData.name}】，造成 ${odmg} 点伤害`);
+                                if (skillData.burn) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 你被灼烧了`); }
+                                if (skillData.paralyze_chance && Math.random() < skillData.paralyze_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 你被麻痹了`); }
+                                if (skillData.poison) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'poison', duration: skillData.poison_duration || 3 }); logBattle(`☠️ 你中毒了`); }
+                            } else if (skillData.type === 'heal' && skillData.heal_percent) {
+                                const heal = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * skillData.heal_percent);
+                                b.opponentCurrentHp = Math.min((b.opponentPet.hp || b.opponentPet.maxHp), b.opponentCurrentHp + heal);
+                                logBattle(`对手 使用【${skillData.name}】，回复 ${heal} 点HP`);
+                            } else if (skillData.invincible) {
+                                b.oppBuffs = b.oppBuffs || [];
+                                b.oppBuffs.push({ type: 'invincible', duration: 1 });
+                                logBattle(`对手 使用【${skillData.name}】，本回合无敌`);
+                            } else if (skillData.curse_duration) {
+                                b.myBuffs = b.myBuffs || [];
+                                b.myBuffs.push({ type: 'curse', duration: skillData.curse_duration, value: skillData.curse_dmg || 0.05 });
+                                logBattle(`对手 使用【${skillData.name}】，你被诅咒了`);
+                            }
+                        }
+                    }
+                } else if (oppSkip) { logBattle(`对手因恐惧跳过回合`); b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'skip_next'); }
+                else if (oppParalyzed) { logBattle(`对手因麻痹无法行动`); }
+                else if (oppBound) { logBattle(`对手因束缚无法攻击`); b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'bind'); }
+
+                // 每回合自动回能
+                b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ENERGY_PER_TURN);
+                b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ENERGY_PER_TURN);
+
+                b.myDefend = false; b.oppDefend = false;
+                applyPassiveEffects(b);
+                applyDOTs(b.myBuffs, b.oppBuffs, b);
+                b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
+                // 清除一次性buff
+                b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
+                b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
                 if (b.myCurrentHp <= 0) { logBattle('你输了！'); endBattle(false); }
-                else if (b.opponentCurrentHp <= 0) { logBattle('你赢了！'); endBattle(true); }
+                else if (b.opponentCurrentHp <= 0) {
+                    // 自爆词缀
+                    if (b.affixes?.some(a => a.id === 'bomb')) {
+                        const bombDmg = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * 0.3);
+                        b.myCurrentHp = Math.max(0, b.myCurrentHp - bombDmg);
+                        logBattle(`💥 自爆造成 ${bombDmg} 点伤害`);
+                    }
+                    logBattle('你赢了！'); endBattle(true);
+                }
                 render();
             }
 
@@ -1703,6 +2195,7 @@
                     ${data.rewards?.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
                     ${data.rewards?.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
                     ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
+                    ${data.rewards?.book ? `<div>📕 获得技能书：${ITEM_NAMES[data.rewards.book]||data.rewards.book}</div>` : ''}
                 ` : '<div style="margin:8px 0;color:#888;">没有获得奖励</div>';
                 overlay.innerHTML = `
                     <div class="modal" style="max-width:320px;">
@@ -1745,12 +2238,22 @@
                 if (b.type === 'pve') {
                     if (won) {
                         const mon = b.monster; const gr = mon.rewards.gold;
-                        await supabase.from('profiles').update({ gold: State.profile.gold + gr }).eq('id', State.currentUser.id); State.profile.gold += gr;
+                        // 词缀金币加成
+                        let goldMult = 1;
+                        if (b.affixes) { for (const a of b.affixes) { if (a.reward?.gold) goldMult *= a.reward.gold; } }
+                        const finalGold = Math.floor(gr * goldMult);
+                        await supabase.from('profiles').update({ gold: State.profile.gold + finalGold }).eq('id', State.currentUser.id); State.profile.gold += finalGold;
                         const droppedItems = {};
-                        if (mon.rewards.items) { for (const [item, prob] of Object.entries(mon.rewards.items)) { if (Math.random() < prob) { await addItem(item, 1); droppedItems[item] = (droppedItems[item] || 0) + 1; } } }
-                        const battleSeedDrops = { '鼠王': 'seed_rice', '血蝙蝠': 'seed_lotus', '九尾狐': 'seed_cactus', '熔岩幼龙': 'seed_watermelon', '水晶地龙': 'seed_tea' };
-                        if (mon.isElite && battleSeedDrops[mon.name] && Math.random() < 0.15) { await addItem(battleSeedDrops[mon.name], 1); droppedItems[battleSeedDrops[mon.name]] = (droppedItems[battleSeedDrops[mon.name]] || 0) + 1; }
-                        if (mon.isBoss && Math.random() < 0.1) { await addItem('seed_tea', 1); droppedItems['seed_tea'] = (droppedItems['seed_tea'] || 0) + 1; }
+                        let itemMult = 1;
+                        if (b.affixes) { for (const a of b.affixes) { if (a.reward?.items) itemMult *= a.reward.items; } }
+                        if (mon.rewards.items) { for (const [item, prob] of Object.entries(mon.rewards.items)) { if (Math.random() < prob * itemMult) { await addItem(item, 1); droppedItems[item] = (droppedItems[item] || 0) + 1; } } }
+                        // 战斗技能书掉落
+                        let droppedBook = null;
+                        if (Math.random() < 0.05) {
+                            const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
+                            droppedBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
+                            await addItem(droppedBook, 1);
+                        }
                         const pet = State.pets[0]; let levelUp = false;
                         if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
                             const ne = (pet.exp || 0) + 50;
@@ -1759,18 +2262,22 @@
                             while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
                                 nl++;
                                 levelUp = true;
-                                const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
-                                pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
-                                pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
-                                pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
+                                const lf = nl - 1;
+                                pet.hp = Math.floor(pet.hp * (1 + 0.02)); pet.atk = Math.floor(pet.atk * (1 + 0.02));
+                                pet.def = Math.floor(pet.def * (1 + 0.015)); pet.spd = Math.floor(pet.spd * (1 + 0.01));
+                                pet.luk = Math.floor(pet.luk * (1 + 0.01)); pet.sta = Math.floor(pet.sta * (1 + 0.02));
                             }
                             if (nl !== pet.level) {
                                 pet.level = nl;
                                 await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pet.id);
                             }
                         }
-                        addEventLog('pve_win', { monster: mon.name, gold: gr });
-                        showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr, items: droppedItems, exp: 50, levelUp } });
+                        // 更新讨伐日志
+                        if (!State.monsterLog[mon.name]) State.monsterLog[mon.name] = { kills: 0, affixes: [] };
+                        State.monsterLog[mon.name].kills++;
+                        if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
+                        addEventLog('pve_win', { monster: mon.name, gold: finalGold });
+                        showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
                         if (mon.isBoss) {
                             await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
                             const { data: participants } = await supabase.from('boss_participants').select('user_id,damage_dealt').order('damage_dealt', { ascending: false });
@@ -1847,7 +2354,6 @@
                 render() {
                     const friend = State.visitingFriend;
                     if (!friend) return '';
-                    // 修复：确保 visitingPlots 存在且为数组，并对每个 plot 做空值保护
                     const plotsData = State.visitingPlots || [];
                     const plotsHTML = plotsData.map(plot => {
                         if (!plot) return `<div class="plot-card empty" data-plot="?"><div class="plot-emoji">🟫</div><div style="font-size:0.8rem;">空地</div></div>`;
@@ -1870,8 +2376,8 @@
                     }).join('');
                     return `<div class="header"><div style="display:flex;align-items:center;gap:8px;"><button class="btn-icon" id="btnBackToFarm">← 返回</button><div class="avatar ${friend.gender || 'none'}">${(friend.username || '?')[0]}</div><span class="username nickname">${escapeHTML(friend.username || '好友')}</span></div></div>
                     <div class="farm-grid" id="friendFarmGrid">${plotsHTML}</div>
-                    <div class="modal-overlay" id="modalSteal"><div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">取消</button></div></div>
-                    <div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">取消</button></div></div>`;
+                    <div class="modal-overlay" id="modalSteal"><div class="modal"><h3>🥷 偷菜</h3><p id="stealInfo">确定要偷取吗？</p><button class="btn-water" id="confirmSteal" style="background:#e67e22;color:#fff;border:none;border-radius:20px;padding:8px 24px;">偷菜</button><button class="btn-close" id="closeStealModal">×</button></div></div>
+                    <div class="modal-overlay" id="modalWaterFriend"><div class="modal"><h3>💧 帮好友浇水</h3><p>双方各得5金币奖励！</p><button class="btn-water" id="confirmWaterFriend" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水</button><button class="btn-close" id="closeWaterFriendModal">×</button></div></div>`;
                 },
                 bindEvents() {
                     document.getElementById('btnBackToFarm').onclick = () => { State.visitingFriend = null; State.visitingPlots = []; render(); };
@@ -1917,6 +2423,30 @@
                             const equip = (allEquip || []).filter(e => e.equipped_to === pet.id);
                             let atk = pet.atk, def = pet.def, spd = pet.spd, luk = pet.luk, hp = pet.hp;
                             equip.forEach(e => { atk += e.atk_bonus; def += e.def_bonus; spd += e.spd_bonus; luk += e.luk_bonus; });
+                            // 性格加成
+                            if (pet.nature) {
+                                const nature = PET_NATURES.find(n => n.id === pet.nature);
+                                if (nature) {
+                                    if (nature.atk_bonus) atk = Math.floor(atk * (1 + nature.atk_bonus));
+                                    if (nature.def_bonus) def = Math.floor(def * (1 + nature.def_bonus));
+                                    if (nature.spd_bonus) spd = Math.floor(spd * (1 + nature.spd_bonus));
+                                    if (nature.luk_bonus) luk = Math.floor(luk * (1 + nature.luk_bonus));
+                                    if (nature.hp_bonus) hp = Math.floor(hp * (1 + nature.hp_bonus));
+                                    if (nature.atk_penalty) atk = Math.floor(atk * (1 + nature.atk_penalty));
+                                    if (nature.def_penalty) def = Math.floor(def * (1 + nature.def_penalty));
+                                    if (nature.spd_penalty) spd = Math.floor(spd * (1 + nature.spd_penalty));
+                                    if (nature.luk_penalty) luk = Math.floor(luk * (1 + nature.luk_penalty));
+                                    if (nature.hp_penalty) hp = Math.floor(hp * (1 + nature.hp_penalty));
+                                }
+                            }
+                            // 被动技能加成
+                            if (pet.passive_skill && PASSIVE_SKILLS[pet.passive_skill]) {
+                                const passive = PASSIVE_SKILLS[pet.passive_skill];
+                                if (passive.atk_bonus && !passive.atk_type) atk = Math.floor(atk * (1 + passive.atk_bonus));
+                                if (passive.def_bonus && typeof passive.def_bonus === 'number') def = Math.floor(def * (1 + passive.def_bonus));
+                                if (passive.spd_bonus && typeof passive.spd_bonus === 'number') spd = Math.floor(spd * (1 + passive.spd_bonus));
+                                if (passive.hp_penalty) hp = Math.floor(hp * (1 - passive.hp_penalty));
+                            }
                             const power = atk + def + spd + luk + hp;
                             return { ...pet, power, equipCount: equip.length };
                         }).sort((a, b) => b.power - a.power).slice(0, 50);
@@ -1951,18 +2481,52 @@
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
             };
-			// ==================== 第 20 块：战斗界面（Battle） ====================
+			// ==================== 第 20 块：战斗界面（Battle，含能量条和被动显示） ====================
             const Battle = {
                 render() {
                     const b = State.battle; if (!b) return '';
-                    const skillBtns = (b.mySkills || []).map(s => { const cd = b.skillCooldowns[s.id] || 0; return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 ? 'disabled' : ''}>${s.skill_name}${cd > 0 ? '(' + cd + ')' : ''}</button>`; }).join('');
-                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
-                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type}(${bf.duration})</span>`).join('');
+                    const myPassiveId = State.passiveSkills?.[b.myPet.id];
+                    const myPassiveName = myPassiveId ? PASSIVE_SKILLS[myPassiveId]?.name : '';
+                    const oppPassiveId = b.type === 'pvp' ? (State.passiveSkills?.[b.opponentPet.id] || '') : '';
+                    const oppPassiveName = oppPassiveId ? PASSIVE_SKILLS[oppPassiveId]?.name : '';
+                    const myEnergy = b.myEnergy || 0;
+                    const oppEnergy = b.oppEnergy || 0;
+                    const skillBtns = (b.mySkills || []).map(s => {
+                        const cd = b.skillCooldowns[s.id] || 0;
+                        const skillData = ACTIVE_SKILLS[s.skill_name];
+                        const energyCost = skillData ? (skillData.energy || 0) : 0;
+                        let actualCost = energyCost;
+                        if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
+                        return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${s.skill_name}⚡${actualCost}${cd > 0 ? '(' + cd + ')' : ''}</button>`;
+                    }).join('');
+                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
+                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type}(${bf.duration})</span>`).join('');
                     return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>⚔️ ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span></div>
-                    <div class="battle-container"><div class="battle-pet"><div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type]?.emoji || '🐾'}</div><div>${b.myPet.pet_name} ${myBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp / b.myPet.hp * 100)}%"></div></div><div>${b.myCurrentHp}/${b.myPet.hp}</div></div>
-                    <div>VS</div><div class="battle-pet"><div style="font-size:2rem;">${b.opponentPet.emoji || PET_TYPES[b.opponentPet.pet_type]?.emoji || '👾'}</div><div>${b.opponentPet.pet_name} ${oppBuffsStr}</div><div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp / b.opponentPet.hp * 100)}%"></div></div><div>${b.opponentCurrentHp}/${b.opponentPet.hp}</div></div></div>
+                    <div class="battle-container">
+                        <div class="battle-pet">
+                            <div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type]?.emoji || '🐾'}</div>
+                            <div>${b.myPet.pet_name}</div>
+                            ${myPassiveName ? `<div style="font-size:0.7rem;color:#f0c040;">📘${myPassiveName}</div>` : ''}
+                            <div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp / b.myPet.hp * 100)}%"></div></div>
+                            <div>❤️${b.myCurrentHp}/${b.myPet.hp}</div>
+                            <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${(myEnergy/MAX_ENERGY)*100}%;height:100%;background:#f0c040;border-radius:3px;transition:width 0.3s;"></div></div>
+                            <div style="font-size:0.65rem;">⚡${myEnergy}/${MAX_ENERGY}</div>
+                            <div>${myBuffsStr}</div>
+                        </div>
+                        <div>VS</div>
+                        <div class="battle-pet">
+                            <div style="font-size:2rem;">${b.opponentPet.emoji || PET_TYPES[b.opponentPet.pet_type]?.emoji || '👾'}</div>
+                            <div>${b.opponentPet.pet_name}</div>
+                            ${oppPassiveName ? `<div style="font-size:0.7rem;color:#f0c040;">📘${oppPassiveName}</div>` : ''}
+                            <div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp / (b.opponentPet.hp || b.opponentPet.maxHp || 1) * 100)}%"></div></div>
+                            <div>❤️${b.opponentCurrentHp}/${b.opponentPet.hp || b.opponentPet.maxHp}</div>
+                            <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${(oppEnergy/MAX_ENERGY)*100}%;height:100%;background:#c0392b;border-radius:3px;transition:width 0.3s;"></div></div>
+                            <div style="font-size:0.65rem;">⚡${oppEnergy}/${MAX_ENERGY}</div>
+                            <div>${oppBuffsStr}</div>
+                        </div>
+                    </div>
                     <div class="battle-log">${b.log.slice().reverse().map(l => { if (typeof l === 'string') return `<div>${l}</div>`; return `<div><span style="color:#888;">${l.time}</span> ${l.msg}</div>`; }).join('')}</div>
-                    <div class="battle-actions"><button class="battle-btn attack" id="btnAttack">⚔️攻击</button><button class="battle-btn defend" id="btnDefend">🛡️防御</button>${skillBtns}</div>`;
+                    <div class="battle-actions"><button class="battle-btn attack" id="btnAttack">⚔️攻击⚡+1</button><button class="battle-btn defend" id="btnDefend">🛡️防御⚡+1</button>${skillBtns}</div>`;
                 },
                 bindEvents() {
                     document.getElementById('btnAttack').onclick = () => executeBattleAction('attack');
@@ -1985,12 +2549,14 @@
                     const ul = State.profile?.unlocked_plots || 4;
                     const plotsHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join('');
                     const gc = State.profile?.gender || 'none';
-                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}只</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
+                    const slots = State.profile?.pet_slots || 1;
+                    const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
+                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
                     <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
                     ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
                     <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
                     <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
+                    <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物 (${State.pets.length}/${slots})</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
                     <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">🔄 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">×</button></div></div>
                     <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">×</button></div></div>
                     <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">×</button></div></div>
@@ -1998,6 +2564,7 @@
                     <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
                     <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
                     <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
+                    <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
                     <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
                     <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
                     <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
@@ -2021,6 +2588,7 @@
                     document.getElementById('btnExplore').onclick = () => Farm.openExplore();
                     document.getElementById('btnOrders').onclick = () => Farm.openOrders();
                     document.getElementById('btnSeedShop').onclick = () => Farm.openSeedShop();
+                    document.getElementById('btnMail').onclick = () => Farm.openMail();
                     document.getElementById('btnHelp').onclick = () => Farm.openHelp();
                     document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
                     document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
@@ -2033,6 +2601,7 @@
                     document.getElementById('closeExploreModal').onclick = () => document.getElementById('modalExplore').classList.remove('active');
                     document.getElementById('closeOrdersModal').onclick = () => document.getElementById('modalOrders').classList.remove('active');
                     document.getElementById('closeSeedShopModal').onclick = () => document.getElementById('modalSeedShop').classList.remove('active');
+                    document.getElementById('closeMailModal').onclick = () => document.getElementById('modalMail').classList.remove('active');
                     document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
                     document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
                     document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
@@ -2116,16 +2685,20 @@
                 openPets() {
                     document.getElementById('modalPets').classList.add('active');
                     const c = document.getElementById('petListContainer');
-                    if (State.pets.length === 0) { c.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>'; document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); }; return; }
+                    const slots = State.profile?.pet_slots || 1;
+                    if (State.pets.length === 0) { c.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>'; if (slots > State.pets.length) { document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); }; } else { c.innerHTML += '<p style="color:#888;">槽位已满，请先解锁新槽位</p>'; } return; }
                     c.innerHTML = State.pets.map(p => {
                         const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
                         let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
                         const stats = getPetBattleStats(p);
                         const skills = State.petSkills.filter(s => s.pet_id === p.id);
-                        const skillsHTML = skills.length > 0 ? skills.map(s => { const info = LEARNABLE_SKILLS[s.skill_name]; const typeClass = `skill-${s.skill_type}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">冷${s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无额外技能</div>';
+                        const skillsHTML = skills.length > 0 ? skills.map(s => { const skillData = ACTIVE_SKILLS[s.skill_name]; const info = skillData || LEARNABLE_SKILLS?.[s.skill_name]; const typeClass = `skill-${info?.type || 'attack'}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">⚡${skillData?.energy||'?'} 冷${skillData?.cooldown||s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无主动技能（使用技能书学习）</div>';
                         const isStationed = State.stationedPet && State.stationedPet.id === p.id;
-
-                        // 获取该宠物穿戴装备激活的套装效果
+                        const natureData = p.nature ? PET_NATURES.find(n => n.id === p.nature) : null;
+                        const natureName = natureData ? natureData.name : '未知';
+                        const passiveData = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]] : null;
+                        const passiveName = passiveData ? passiveData.name : '无被动';
+                        // 套装效果
                         const equipped = State.equipment.filter(e => e.equipped_to === p.id);
                         const sets = {};
                         equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
@@ -2141,17 +2714,70 @@
                                 setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
                             }
                         }
-
-                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
+                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
                     }).join('');
+                    // 槽位未满时显示领养按钮
+                    if (State.pets.length < slots) {
+                        c.innerHTML += `<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养新宠物（${State.pets.length}/${slots}）</button>`;
+                        document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
+                    } else {
+                        c.innerHTML += `<p style="font-size:0.75rem;color:#888;margin-top:8px;">🔒 槽位已满（${State.pets.length}/${slots}），可解锁更多槽位</p>`;
+                        c.innerHTML += `<button class="btn-small btn-view" id="btnOpenSlots">🔓 解锁槽位</button>`;
+                        document.getElementById('btnOpenSlots').onclick = () => Farm.openPetSlots();
+                    }
                     c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
                     c.querySelectorAll('.btn-view').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
                     c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
                 },
                 openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">×</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); },
                 openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
+                openPetSlots() {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay active';
+                    const slots = State.profile?.pet_slots || 1;
+                    overlay.innerHTML = `
+                        <div class="modal" style="max-width:400px;text-align:left;">
+                            <h3>🔓 解锁宠物槽位</h3>
+                            <div style="max-height:60vh;overflow-y:auto;">
+                                ${PET_SLOT_UNLOCK.map(s => {
+                                    const unlocked = slots >= s.slot;
+                                    const canUnlock = !unlocked && (State.profile?.gold || 0) >= s.gold;
+                                    let condMet = true;
+                                    if (s.cond?.petLevel) condMet = State.pets.some(p => p.level >= s.cond.petLevel);
+                                    if (s.cond?.plots) condMet = (State.profile?.unlocked_plots || 4) >= s.cond.plots;
+                                    if (s.cond?.eliteKills) condMet = Object.values(State.monsterLog || {}).reduce((sum, m) => sum + (m.kills || 0), 0) >= s.cond.eliteKills;
+                                    if (s.cond?.explores) condMet = (State.profile?.explore_count || 0) >= s.cond.explores;
+                                    if (s.cond?.bossKills) condMet = ((State.monsterLog || {})['虫母女王']?.kills || 0) >= s.cond.bossKills;
+                                    const hasMaterials = !s.materials || Object.entries(s.materials).every(([item, need]) => (State.items[item] || 0) >= need);
+                                    const canClick = canUnlock && condMet && hasMaterials;
+                                    return `<div class="list-item" style="justify-content:space-between;"><div><div>🔒 槽位${s.slot}</div><div style="font-size:0.75rem;color:#888;">${s.desc}</div><div style="font-size:0.7rem;color:${condMet?'#27ae60':'#c0392b'};">${condMet?'✅条件满足':'❌条件不足'}</div></div><button class="btn-small btn-adopt" data-slot="${s.slot}" ${canClick?'':'disabled'}>${unlocked?'✅已解锁':canClick?'🔓解锁🪙'+s.gold:'金币不足'}</button></div>`;
+                                }).join('')}
+                            </div>
+                            <button class="btn-close" id="closePetSlots">×</button>
+                        </div>
+                    `;
+                    document.body.appendChild(overlay);
+                    overlay.querySelector('#closePetSlots').onclick = () => overlay.remove();
+                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                    overlay.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
+                        btn.onclick = async () => {
+                            const slot = parseInt(btn.dataset.slot);
+                            const unlockData = PET_SLOT_UNLOCK.find(s => s.slot === slot);
+                            if (!unlockData) return;
+                            try {
+                                State.profile.gold -= unlockData.gold;
+                                await supabase.from('profiles').update({ gold: State.profile.gold, pet_slots: slot }).eq('id', State.currentUser.id);
+                                if (unlockData.materials) { for (const [item, need] of Object.entries(unlockData.materials)) await addItem(item, -need); }
+                                State.profile.pet_slots = slot;
+                                showToast(`解锁成功！宠物槽位+1（${slot}/${MAX_PET_SLOTS}）`);
+                                overlay.remove();
+                                Farm.openPets();
+                            } catch (e) { showToast('解锁失败', true); }
+                        };
+                    });
+                },
             };
-			// ==================== 第 22 块：背包界面 ====================
+			// ==================== 第 22 块：背包界面（含技能书使用） ====================
             Farm.openBackpack = async function() {
                 document.getElementById('modalBackpack').classList.add('active');
                 await loadItems();
@@ -2162,11 +2788,27 @@
                     if (type === 'material') filtered = allItems.filter(([k]) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura','stardust','charm','dragon_soul','firefly'].includes(k));
                     else if (type === 'seed') filtered = allItems.filter(([k]) => k.startsWith('seed_'));
                     else if (type === 'crop') filtered = allItems.filter(([k]) => CROPS[k] !== undefined);
-                    else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k));
+                    else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k) || k.startsWith('book_') || k.startsWith('potion_'));
                     let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
                     if (filtered.length === 0) { html += '<p>空空如也</p>'; }
-                    else { html += filtered.map(([type, qty]) => `<div class="item-row"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`).join(''); }
+                    else { html += filtered.map(([type, qty]) => {
+                        const isBook = type.startsWith('book_');
+                        const isPotion = type.startsWith('potion_');
+                        return `<div class="item-row ${isBook || isPotion ? 'clickable-item' : ''}" data-item="${type}" style="${isBook || isPotion ? 'cursor:pointer;background:#fef9f3;border-radius:8px;padding:4px;' : ''}"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`;
+                    }).join(''); }
                     c.innerHTML = html;
+                    // 技能书点击事件
+                    c.querySelectorAll('.clickable-item').forEach(item => {
+                        item.onclick = () => {
+                            const itemType = item.dataset.item;
+                            if (itemType.startsWith('book_')) {
+                                document.getElementById('modalBackpack').classList.remove('active');
+                                Farm.openSkillBook(itemType);
+                            } else if (itemType.startsWith('potion_')) {
+                                showToast('战斗药剂请在战斗前使用');
+                            }
+                        };
+                    });
                 };
                 showBp('all');
                 document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
@@ -2176,14 +2818,27 @@
             Farm.openSynthesis = async function() {
                 document.getElementById('modalSynthesis').classList.add('active');
                 await loadItems();
+                // 显示加工队列
+                const showProcessing = () => {
+                    const now = new Date();
+                    const activeTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) > now);
+                    if (activeTasks.length > 0) {
+                        const taskHTML = activeTasks.map(t => {
+                            const rem = Math.ceil((new Date(t.finishAt) - now) / 60000);
+                            return `<div class="item-row" style="background:#fef9f3;border-radius:8px;padding:8px;margin:4px 0;"><span>${t.icon}</span><span style="flex:1;">${t.name}</span><span style="color:#e67e22;">⏳${rem}分钟</span></div>`;
+                        }).join('');
+                        document.getElementById('synthesisList').innerHTML = `<div style="font-weight:600;margin-bottom:8px;">⏳ 加工队列</div>${taskHTML}<hr style="margin:8px 0;">`;
+                    }
+                };
                 const showSynth = (type) => {
                     const c = document.getElementById('synthesisList');
+                    showProcessing();
                     let recipes = [];
                     if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
                     else if (type === 'food') recipes = SYNTHESIS_FOOD;
                     else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
-                    if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
-                    c.innerHTML = recipes.map((r, idx) => {
+                    if (recipes.length === 0) { c.innerHTML += '<p>暂无配方</p>'; return; }
+                    c.innerHTML += recipes.map((r, idx) => {
                         const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
                         const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
                         const canCraft = hasMaterials && hasGold;
@@ -2193,7 +2848,8 @@
                         const setBadge = r.set_name ? `<span class="set-badge">${r.set_name}</span>` : '';
                         const slotName = r.slot ? `(${SLOT_NAMES[r.slot]})` : '';
                         const qualityName = r.quality ? ` - ${QUALITY_NAMES[r.quality]}` : '';
-                        return `<div class="equipment-card"><strong>${r.icon||''} ${r.name}</strong> ${setBadge} ${slotName}${qualityName}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]||'📦'}×${need}`).join(' ')}</div>${r.cost ? `<div style="font-size:0.8rem;">费用：🪙${r.cost}</div>` : ''}<button class="${btnClass}" data-recipe-idx="${idx}" data-type="${type}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
+                        const timeText = r.time ? ` ⏳${r.time}分钟` : '';
+                        return `<div class="equipment-card"><strong>${r.icon||''} ${r.name}</strong> ${setBadge} ${slotName}${qualityName}${timeText}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]||'📦'}×${need}`).join(' ')}</div>${r.cost ? `<div style="font-size:0.8rem;">费用：🪙${r.cost}</div>` : ''}<button class="${btnClass}" data-recipe-idx="${idx}" data-type="${type}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
                     }).join('');
                     c.querySelectorAll('.btn-synthesis').forEach(btn => {
                         btn.onclick = async () => {
@@ -2236,7 +2892,7 @@
                         const eid = parseInt(btn.dataset.equipId);
                         const petList = State.pets.map(p => `<button class="btn-small" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('');
                         const overlay = document.createElement('div'); overlay.className = 'modal-overlay active';
-                        overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">取消</button></div>`;
+                        overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">×</button></div>`;
                         document.body.appendChild(overlay);
                         overlay.querySelector('#cancelEquip').onclick = () => overlay.remove();
                         overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); Farm.openEquipment(); }; });
@@ -2255,7 +2911,10 @@
                 const myPet = State.pets[0];
                 const myLevel = myPet ? myPet.level : 1;
                 const available = MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
+                // 随机抽取3~4个怪物
+                const shuffled = [...available].sort(() => Math.random() - 0.5).slice(0, Math.min(4, available.length));
                 let html = '';
+                // BOSS显示
                 if (State.bossStatus) {
                     const now = new Date();
                     const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
@@ -2276,16 +2935,33 @@
                         html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                     }
                 }
+                // 随机怪物
+                State.monsterAffixes = [];
+                shuffled.forEach(m => {
+                    // 随机1~2个词缀
+                    const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
+                    const affixes = [];
+                    if (affixCount > 0) {
+                        const shuffledAffixes = [...MONSTER_AFFIXES].sort(() => Math.random() - 0.5);
+                        for (let i = 0; i < affixCount; i++) affixes.push(shuffledAffixes[i]);
+                    }
+                    if (affixes.length > 0) {
+                        const affixNames = affixes.map(a => `<span style="font-size:0.7rem;background:${a.color};color:#fff;border-radius:4px;padding:1px 4px;margin:0 2px;">${a.name}</span>`).join('');
+                        html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}<br>${affixNames}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='${JSON.stringify(affixes.map(a=>a.id))}'>挑战</button></div>`;
+                    } else {
+                        html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='[]'>挑战</button></div>`;
+                    }
+                });
+                // 精英怪随机出现
                 const eliteAvailable = ELITE_MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
                 if (eliteAvailable.length > 0 && Math.random() < 0.15) {
                     const elite = eliteAvailable[Math.floor(Math.random() * eliteAvailable.length)];
                     html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
                 }
-                html += available.map(m => `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}'>挑战</button></div>`).join('');
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
-                c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true }; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); startPvEBattle(mon); } modal.classList.remove('active'); }; });
+                c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
             };
-			// ==================== 第 24 块：订单/商店/日志弹窗 + 日志格式化 + 帮助弹窗 ====================
+			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书使用/帮助弹窗 + 日志格式化 ====================
             Farm.openOrders = function() {
                 document.getElementById('modalOrders').classList.add('active');
                 const c = document.getElementById('ordersContainer');
@@ -2307,23 +2983,17 @@
                     State.seedShop = { date: today, items: shuffled };
                 }
                 const ticketExchange = [
-                    { crop: 'potato', cost: 2 }, { crop: 'cabbage', cost: 2 },
-                    { crop: 'sunflower', cost: 2 }, { crop: 'chrysanthemum', cost: 2 },
-                    { crop: 'grape', cost: 2 }, { crop: 'peanut', cost: 2 },
-                    { crop: 'mushroom', cost: 5 }, { crop: 'pepper', cost: 5 },
-                    { crop: 'watermelon', cost: 5 }, { crop: 'blueberry', cost: 5 },
-                    { crop: 'apple', cost: 5 }, { crop: 'peach', cost: 5 },
-                    { crop: 'orange', cost: 5 }, { crop: 'tulip', cost: 5 },
-                    { crop: 'rose', cost: 5 }, { crop: 'lily', cost: 5 },
-                    { crop: 'pineapple', cost: 10 }, { crop: 'mango', cost: 10 },
-                    { crop: 'lotus', cost: 10 }, { crop: 'cactus', cost: 10 },
+                    { crop: 'potato', cost: 2 }, { crop: 'cabbage', cost: 2 }, { crop: 'sunflower', cost: 2 }, { crop: 'chrysanthemum', cost: 2 },
+                    { crop: 'grape', cost: 2 }, { crop: 'peanut', cost: 2 }, { crop: 'mushroom', cost: 5 }, { crop: 'pepper', cost: 5 },
+                    { crop: 'watermelon', cost: 5 }, { crop: 'blueberry', cost: 5 }, { crop: 'apple', cost: 5 }, { crop: 'peach', cost: 5 },
+                    { crop: 'orange', cost: 5 }, { crop: 'tulip', cost: 5 }, { crop: 'rose', cost: 5 }, { crop: 'lily', cost: 5 },
+                    { crop: 'pineapple', cost: 10 }, { crop: 'mango', cost: 10 }, { crop: 'lotus', cost: 10 }, { crop: 'cactus', cost: 10 },
                     { crop: 'rice', cost: 10 }, { crop: 'tea', cost: 10 }
                 ];
                 const myTickets = State.items['seed_ticket'] || 0;
                 let html = `<div style="font-weight:600;margin-bottom:8px;text-align:left;">🪙 金币购买（每日3种）</div>`;
                 html += State.seedShop.items.map(item => {
-                    const crop = CROPS[item.crop]; const price = item.price;
-                    const canBuy = (State.profile.gold || 0) >= price;
+                    const crop = CROPS[item.crop]; const price = item.price; const canBuy = (State.profile.gold || 0) >= price;
                     return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🪙${price}</span><button class="btn-small btn-adopt" data-crop="${item.crop}" data-price="${price}" ${canBuy?'':'disabled'}>${canBuy?'购买':'金币不足'}</button></div>`;
                 }).join('');
                 html += `<div style="font-weight:600;margin:12px 0 8px 0;text-align:left;">🎫 种子券兑换（拥有 ${myTickets} 张）</div>`;
@@ -2334,6 +3004,122 @@
                 c.innerHTML = html;
                 c.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const price = parseInt(btn.dataset.price); try { State.profile.gold -= price; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_' + crop, 1); showToast(`购买成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('购买失败', true); } }; });
                 c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const cost = parseInt(btn.dataset.cost); try { await addItem('seed_ticket', -cost); await addItem('seed_' + crop, 1); showToast(`兑换成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('兑换失败', true); } }; });
+            };
+
+            Farm.openMail = async function() {
+                document.getElementById('modalMail').classList.add('active');
+                const c = document.getElementById('mailListContainer');
+                await loadMails();
+                if (State.mails.length === 0) { c.innerHTML = '<p>暂无邮件</p>'; return; }
+                c.innerHTML = State.mails.map((m, idx) => {
+                    const items = m.items && typeof m.items === 'object' ? Object.entries(m.items).filter(([k,v]) => v > 0).map(([k,v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join(', ') : '';
+                    return `<div class="order-card" style="background:${m.is_read ? '#fff' : '#fef9f3'};"><div style="font-weight:600;">${m.is_read ? '' : '🔵 '}${m.title}</div><div style="font-size:0.8rem;color:#888;">发件人：${escapeHTML(m.sender_name||'系统')}</div>${m.content ? `<div style="font-size:0.8rem;margin:4px 0;">${escapeHTML(m.content)}</div>` : ''}${items ? `<div style="font-size:0.8rem;color:#27ae60;">附件：${items}</div>` : ''}<div style="margin-top:6px;">${!m.is_claimed && m.items && Object.keys(m.items).some(k => m.items[k] > 0) ? `<button class="btn-small btn-accept" data-mail-idx="${idx}">领取附件</button>` : (m.is_claimed ? '<span style="color:#888;">已领取</span>' : '')}</div></div>`;
+                }).join('');
+                // 标记已读
+                for (const m of State.mails) { if (!m.is_read) { m.is_read = true; supabase.from('mail').update({ is_read: true }).eq('id', m.id).then(() => {}); } }
+                // 领取附件
+                c.querySelectorAll('.btn-accept').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.mailIdx); const mail = State.mails[idx]; if (!mail || mail.is_claimed) return; try { if (mail.items) { for (const [item, qty] of Object.entries(mail.items)) { if (qty > 0) await addItem(item, qty); } } mail.is_claimed = true; await supabase.from('mail').update({ is_claimed: true }).eq('id', mail.id); showToast('附件已领取！'); Farm.openMail(); } catch (e) { showToast('领取失败', true); } }; });
+            };
+
+            // 技能书使用
+            Farm.openSkillBook = function(bookKey) {
+                const qty = State.items[bookKey] || 0;
+                if (qty <= 0) { showToast('没有该技能书'); return; }
+                // 判断是主动还是被动技能书
+                const isPassive = bookKey.startsWith('book_passive_');
+                const skillId = isPassive ? bookKey.replace('book_passive_', '') : bookKey.replace('book_', '');
+                const skillData = isPassive ? PASSIVE_SKILLS[skillId] : ACTIVE_SKILLS[skillId];
+                if (!skillData) { showToast('未知技能书'); return; }
+                if (State.pets.length === 0) { showToast('请先领养宠物'); return; }
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay active';
+                overlay.innerHTML = `
+                    <div class="modal" style="max-width:400px;text-align:left;">
+                        <h3>📕 使用技能书</h3>
+                        <div style="margin-bottom:8px;"><strong>${skillData.name}</strong>：${skillData.desc}</div>
+                        <div style="font-weight:600;margin:8px 0;">选择宠物学习：</div>
+                        <div id="skillBookPetList"></div>
+                        <button class="btn-close" id="closeSkillBook">×</button>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                const petList = overlay.querySelector('#skillBookPetList');
+                petList.innerHTML = State.pets.map(p => {
+                    if (isPassive) {
+                        const currentPassive = State.passiveSkills?.[p.id];
+                        const currentName = currentPassive ? PASSIVE_SKILLS[currentPassive]?.name : '无';
+                        return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">当前被动：${currentName}</span></div>`;
+                    } else {
+                        const currentSkills = State.petSkills.filter(s => s.pet_id === p.id);
+                        const skillNames = currentSkills.map(s => s.skill_name).join(', ') || '暂无技能';
+                        const hasSlot = currentSkills.length < 4;
+                        return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">${hasSlot ? `空位${4-currentSkills.length}个` : '技能已满'}</span><span style="font-size:0.65rem;color:#888;">${skillNames}</span></div>`;
+                    }
+                }).join('');
+                overlay.querySelector('#closeSkillBook').onclick = () => overlay.remove();
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                petList.querySelectorAll('.list-item').forEach(item => {
+                    item.onclick = async () => {
+                        const pid = parseInt(item.dataset.petId);
+                        if (isPassive) {
+                            // 被动技能直接替换
+                            try {
+                                await addItem(bookKey, -1);
+                                State.passiveSkills[pid] = skillId;
+                                await supabase.from('pets').update({ passive_skill: skillId }).eq('id', pid);
+                                showToast(`${State.pets.find(p=>p.id===pid)?.pet_name} 习得被动：${skillData.name}！`);
+                                overlay.remove();
+                            } catch (e) { showToast('学习失败', true); }
+                        } else {
+                            // 主动技能
+                            const currentSkills = State.petSkills.filter(s => s.pet_id === pid);
+                            if (currentSkills.length < 4) {
+                                // 有空位，直接学习
+                                try {
+                                    await addItem(bookKey, -1);
+                                    const freeSlot = [0,1,2,3].find(s => !currentSkills.some(cs => cs.slot === s));
+                                    const { data: newSkill } = await supabase.from('pet_skills').insert({
+                                        pet_id: pid, skill_name: skillId, skill_type: skillData.type,
+                                        power: skillData.power || 100, cooldown: skillData.cooldown || 3, level: 1, slot: freeSlot
+                                    }).select().single();
+                                    if (newSkill) { State.petSkills.push(newSkill); showToast(`习得主动技能：${skillData.name}！`); }
+                                    overlay.remove();
+                                } catch (e) { showToast('学习失败', true); }
+                            } else {
+                                // 技能已满，需要替换
+                                overlay.innerHTML = `
+                                    <div class="modal" style="max-width:400px;text-align:left;">
+                                        <h3>🔄 替换技能</h3>
+                                        <div style="margin-bottom:8px;">学习 <strong>${skillData.name}</strong>，请选择要替换的技能：</div>
+                                        <div id="replaceSkillList">${currentSkills.map(s => {
+                                            const sd = ACTIVE_SKILLS[s.skill_name];
+                                            return `<div class="list-item" style="cursor:pointer;" data-skill-id="${s.id}"><span>📜 ${sd?.name||s.skill_name} Lv.${s.level}</span></div>`;
+                                        }).join('')}</div>
+                                        <button class="btn-close" id="backSkillBook">← 返回</button>
+                                    </div>
+                                `;
+                                overlay.querySelector('#backSkillBook').onclick = () => { overlay.remove(); Farm.openSkillBook(bookKey); };
+                                overlay.querySelectorAll('#replaceSkillList .list-item').forEach(sItem => {
+                                    sItem.onclick = async () => {
+                                        const oldSkillId = parseInt(sItem.dataset.skillId);
+                                        try {
+                                            await addItem(bookKey, -1);
+                                            await supabase.from('pet_skills').delete().eq('id', oldSkillId);
+                                            State.petSkills = State.petSkills.filter(s => s.id !== oldSkillId);
+                                            const oldSkill = currentSkills.find(s => s.id === oldSkillId);
+                                            const { data: newSkill } = await supabase.from('pet_skills').insert({
+                                                pet_id: pid, skill_name: skillId, skill_type: skillData.type,
+                                                power: skillData.power || 100, cooldown: skillData.cooldown || 3, level: 1, slot: oldSkill?.slot || 0
+                                            }).select().single();
+                                            if (newSkill) { State.petSkills.push(newSkill); showToast(`替换成功！习得 ${skillData.name}`); }
+                                            overlay.remove();
+                                        } catch (e) { showToast('替换失败', true); }
+                                    };
+                                });
+                            }
+                        }
+                    };
+                });
             };
 
             Farm.openEventLog = async function() {
@@ -2357,49 +3143,25 @@
                     </div>
                 `;
                 document.body.appendChild(overlay);
-
                 const showHelp = (tab) => {
                     const content = overlay.querySelector('#helpContent');
                     if (tab === 'newbie') {
                         content.innerHTML = `
-                            <h4>🌱 欢迎来到开心农场！</h4>
-                            <p>这是一款融合了种植经营、宠物养成、装备收集、回合制战斗和好友社交的综合性农场游戏。</p>
-                            <h4>🌾 第一步：种植</h4>
-                            <p>点击空地→选择作物→确认种植。等待成熟后收获，获得金币和作物。生长中的作物可以浇水加速30%。</p>
-                            <h4>🐾 第二步：领养宠物</h4>
-                            <p>点击宠物→领养橘猫🐱、柴犬🐶或兔子🐰。派宠物探险获取材料和经验，探险中有概率学会技能（最高Lv.5）。</p>
-                            <h4>⚔️ 第三步：战斗</h4>
-                            <p>点击怪物讨伐→选择怪物→进入战斗。挑战普通怪物、精英怪和全服BOSS。BOSS被击败后60分钟重生。</p>
-                            <h4>⚒️ 第四步：打造装备</h4>
-                            <p>点击合成台→选择配方→消耗材料和金币合成装备。装备可强化+1~+10，集齐套装激活额外效果。</p>
-                            <h4>📦 第五步：完成订单</h4>
-                            <p>每天3个订单，提交作物获得金币和种子券。种子券可在商店兑换稀有种子。</p>
-                            <h4>👥 第六步：添加好友</h4>
-                            <p>排行榜→点击+好友→对方接受后成为好友。互访农场、帮浇水、偷菜。</p>
+                            <h4>🌱 欢迎来到开心农场！</h4><p>这是一款融合种植经营、宠物养成、装备收集、回合制战斗和好友社交的游戏。</p>
+                            <h4>🌾 第一步：种植</h4><p>点击空地→选择作物→播种。成熟后收获获金币和作物，存入背包提交订单。</p>
+                            <h4>🐾 第二步：领养宠物</h4><p>宠物→领养。每只宠物出生自带天生个体值、性格和被动技能。</p>
+                            <h4>📕 第三步：学习技能</h4><p>探险和战斗掉落技能书，在背包中使用，自由选择给哪只宠物学习。</p>
+                            <h4>⚔️ 第四步：战斗</h4><p>怪物讨伐页随机刷新怪物和词缀。消耗能量释放技能，属性克制伤害更高。</p>
+                            <h4>⚒️ 第五步：打造装备</h4><p>合成台合成装备，可强化+1~+10，集齐套装激活额外效果。</p>
                         `;
                     } else {
                         content.innerHTML = `
-                            <h4>🌾 种植系统</h4>
-                            <p>60种作物分4大类：水果🍎(16种)、花卉💐(13种)、蔬菜🥬(15种)、特色🌿(16种)。初始解锁约15种，其余需要通过探险、战斗、商店获取种子解锁。</p>
-                            <p>收获时有概率获得品质加成：普通(60%)、优质(25%)、极品(10%)、传说(5%)。品质越高金币倍率越高。浇水、宠物幸运值、丰收套装可提升品质概率。</p>
-                            <p>地块共12块，第5~12块需材料+金币解锁。第N块解锁条件：前N种材料各N个 + N×1000金币。</p>
-                            <h4>🐾 宠物系统</h4>
-                            <p>3种宠物：橘猫🐱(均衡)、柴犬🐶(防御)、兔子🐰(速度)。升级经验=等级×100+等级²×15，满级30级。宠物可驻扎农田提供特殊效果。</p>
-                            <p>探险6条路线，概率获得材料、种子、稀有物品。探险结束必须点击"查看"才能再次出发。探险中有概率学会9种技能之一，已学会的技能再次触发会升级（最高Lv.5），满4个技能时新技能随机替换旧技能。</p>
-                            <h4>⚔️ 战斗系统</h4>
-                            <p>14种普通怪物+6种精英怪+全服BOSS虫母女王🐛👸。BOSS全服共享血条，被击败后60分钟重生。参与奖500金币+材料，前三额外1000金币，最后一击额外2000金币+随机物品×5。</p>
-                            <p>9种战斗技能：爪击强化、快速愈合、铁壁防御、战吼、荆棘护甲、生命汲取、烈焰爪击、疾风步、雷电冲击。PVP可好友切磋。</p>
-                            <h4>⚒️ 装备系统</h4>
-                            <p>36件装备分武器/防具/饰品三槽位，4种品质：普通(白)、精良(蓝)、史诗(紫)、传说(金)。强化+1~+10，+1~+3安全，+4~+6失败不降级，+7~+9失败降1级，+10失败归零。保护符防降级，幸运石+15%成功率。</p>
-                            <p>12种套装，集齐2件/3件激活额外效果。分解返还30%~60%材料，出售获得金币。</p>
-                            <h4>🔧 加工系统</h4>
-                            <p>24种食品配方（葡萄酒🍷、西瓜汁🧃、蓝莓酱🫙等），5种战斗药剂（攻击🧪、防御💊、速度⚗️、生命❤️、暴击💥）。在合成台切换标签即可制作。</p>
-                            <h4>📦 商店与订单</h4>
-                            <p>每日3个随机订单，提交指定作物获得金币+种子券。商店每日刷新3种金币种子，种子券可兑换稀有种子（2~10张不等）。</p>
-                            <h4>👥 好友社交</h4>
-                            <p>添加好友后互访农场、帮浇水、偷菜（每株最多被偷2次）。排行榜分全服、好友、宠物三个维度。</p>
-                            <h4>🔓 地块解锁</h4>
-                            <p>第5~12块需要材料+金币解锁。第N块需前N种材料各N个+N×1000金币。12种基础材料通过探险和战斗获取。</p>
+                            <h4>🌾 种植系统</h4><p>60种作物，品质系统（普通/优质/极品/传说）。作物存入背包提交订单换金币和种子券。</p>
+                            <h4>🐾 宠物系统</h4><p>3种宠物，天生个体值±15%、7种性格、15种被动技能。满级30级，最多6个槽位。</p>
+                            <h4>📕 技能系统</h4><p>24种主动技能（6属性各4个）+ 15种被动技能。技能书掉落+背包使用。能量系统：初始3点，每回合+1。</p>
+                            <h4>⚔️ 战斗系统</h4><p>怪物随机刷新+词缀系统。属性克制：火→草→水→雷→火，光暗互克。怪物AI智能出招。</p>
+                            <h4>🔧 加工系统</h4><p>合成台制作食品和药剂。加工需等待时间，队列显示倒计时。</p>
+                            <h4>📬 邮箱系统</h4><p>系统邮件和好友邮件，附件直接领取到背包。</p>
                         `;
                     }
                 };
@@ -2437,12 +3199,9 @@
                     case 'water_self': return `💧 你为自己的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||'作物'} 浇了水`;
                     case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
                     case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
-                    case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}`;
+                    case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}（性格${d.nature||'?'}，被动${d.passive||'?'}）`;
                     case 'explore_start': return `🗺️ ${d.pet} 前往${d.route}探险了`;
                     case 'explore_complete': { const items = Object.entries(d.rewards||{}).map(([item,qty]) => `${ITEM_EMOJI[item]||'📦'}×${qty}`).join(' '); const eventMsg = d.event ? ` · 触发事件：${d.event}` : ''; return `🗺️ ${d.pet} 从${d.route}归来，获得 ${items}${eventMsg}`; }
-                    case 'skill_learn': return `🎉 ${d.pet} 学会了新技能【${d.skill}】！`;
-                    case 'skill_upgrade': return `⬆️ ${d.pet} 的【${d.skill}】升级至 Lv.${d.level}`;
-                    case 'skill_replace': return `🔄 ${d.pet} 遗忘了【${d.old_skill}】，学会了【${d.new_skill}】`;
                     case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
                     case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
                     case 'synthesis': return `🔧 你合成了 ${d.name} (${QUALITY_NAMES[d.quality]})`;
@@ -2458,6 +3217,7 @@
             }
 			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
             let growthTimer;
+            let processingTimer;
             function startGrowthTimer() {
                 if (growthTimer) clearInterval(growthTimer);
                 growthTimer = setInterval(() => {
@@ -2465,6 +3225,14 @@
                         Farm.updateGrid();
                     }
                 }, 30000);
+            }
+            function startProcessingTimer() {
+                if (processingTimer) clearInterval(processingTimer);
+                processingTimer = setInterval(async () => {
+                    if (State.currentUser && !State.battle) {
+                        await loadProcessingTasks();
+                    }
+                }, 10000); // 每10秒检查一次加工任务是否完成
             }
 
             async function init() {
@@ -2501,7 +3269,11 @@
                         await loadEquipment();
                         await loadBossStatus();
                         await loadPetSkills();
+                        await loadPassiveSkills();
+                        await loadMails();
+                        await loadProcessingTasks();
                         generateOrders();
+                        startProcessingTimer();
                     } catch (e) { console.error(e); }
                 }
                 render();
