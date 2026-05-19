@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 - v3.2 健壮版</title>
+    <title>🌱 开心农场 v5.1「元素觉醒·完全版」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -258,19 +258,15 @@
         }
         .btn-close {
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
-            padding: 0;
+            top: var(--gap-sm);
+            right: var(--gap-md);
+            padding: 6px 12px;
             background: #e8e0d5;
             border: none;
-            border-radius: 50%;
+            border-radius: var(--radius-xl);
             cursor: pointer;
             font-family: inherit;
-            font-size: 16px;
-            line-height: 24px;
-            text-align: center;
+            font-size: var(--font-md);
             z-index: 10;
             transition: transform var(--transition-fast);
         }
@@ -697,8 +693,7 @@
                 green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'},
                 lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'},
                 beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'},
-				
-			                // ===== 特色经济类 9种 =====
+				                // ===== 特色经济类 9种 =====
                 mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
                 peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
                 tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
@@ -1608,11 +1603,9 @@
             }
 			// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
-                // 检查槽位
                 const slots = State.profile?.pet_slots || 1;
                 if (State.pets.length >= slots) { showToast(`宠物槽位已满（${State.pets.length}/${slots}），请先解锁新槽位`, true); return null; }
                 const base = PET_TYPES[pt].baseAttr;
-                // 随机生成天生个体值（±15%）
                 const iv = {
                     hp: Math.round(base.hp * (0.85 + Math.random() * 0.3)),
                     atk: Math.round(base.atk * (0.85 + Math.random() * 0.3)),
@@ -1621,16 +1614,13 @@
                     luk: Math.round(base.luk * (0.85 + Math.random() * 0.3)),
                     sta: Math.round(base.sta * (0.85 + Math.random() * 0.3)),
                 };
-                // 随机性格
                 const nature = PET_NATURES[Math.floor(Math.random() * PET_NATURES.length)];
-                // 随机被动技能（从15种被动中随机）
                 const passiveKeys = Object.keys(PASSIVE_SKILLS);
                 const passiveId = passiveKeys[Math.floor(Math.random() * passiveKeys.length)];
                 const { data, error } = await supabase.from('pets').insert({
                     owner_id: State.currentUser.id, pet_type: pt, pet_name: PET_TYPES[pt].name,
                     level: 1, exp: 0, hp: iv.hp, atk: iv.atk, def: iv.def, spd: iv.spd, luk: iv.luk, sta: iv.sta,
-                    hunger: 100, happiness: 100,
-                    nature: nature.id, passive_skill: passiveId
+                    hunger: 100, happiness: 100, nature: nature.id, passive_skill: passiveId
                 }).select().single();
                 if (error) throw error;
                 State.pets.push(data);
@@ -1654,6 +1644,11 @@
                 const sets = getActiveSetEffects();
                 for (const eff of sets) { if (eff.bonus.explore_time) cost = Math.floor(cost * eff.bonus.explore_time); }
                 if ((State.profile.gold || 0) < cost) { showToast('金币不足！', true); return; }
+                // 驻扎宠物去探险时自动取消驻扎
+                if (State.stationedPet && State.stationedPet.id === pid) {
+                    State.stationedPet = null;
+                    showToast('已自动取消驻扎');
+                }
                 const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100);
                 let actualTime = Math.max(0.1, route.time * staFactor);
                 for (const eff of sets) { if (eff.bonus.explore_time) actualTime = Math.floor(actualTime * eff.bonus.explore_time * 10) / 10; }
@@ -1702,7 +1697,6 @@
                     else if (route.eventReward === 'extra_materials') { for (const [item, qty] of Object.entries(route.materials)) { rewards[item] = (rewards[item] || 0) + Math.floor(qty); } }
                     else if (route.eventReward === 'bonus_exp') { pet.exp = (pet.exp || 0) + 200; }
                 }
-                // 满级保护
                 if ((pet.level || 0) < PET_MAX_LEVEL) {
                     const ne = (pet.exp || 0) + (route.exp || 30);
                     pet.exp = ne;
@@ -1724,17 +1718,14 @@
                 pet.exploring_until = null;
                 for (const [item, qty] of Object.entries(rewards)) { await addItem(item, qty); }
                 addEventLog('explore_complete', { pet: pet.pet_name, route: route.name, rewards, event: eventTriggered ? route.eventName : null });
-                
-                // 技能书掉落（取代原来的直接学习技能）
+                // 技能书掉落
                 const bookDropProb = 0.1 + (pet.luk || 0) * 0.01 + ((route.rareProb > 0.2) ? 0.05 : 0);
                 if (Math.random() < bookDropProb) {
                     const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
                     const randomBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
-                    rewards[randomBook] = (rewards[randomBook] || 0) + 1;
                     await addItem(randomBook, 1);
                     if (!silent) showToast(`📕 探险中获得技能书：${ITEM_NAMES[randomBook] || randomBook}！`);
                 }
-                // 被动技能书稀有掉落
                 if (Math.random() < 0.03) {
                     const passiveBookKeys = Object.keys(PASSIVE_SKILLS).map(k => 'book_passive_' + k);
                     const randomPassiveBook = passiveBookKeys[Math.floor(Math.random() * passiveBookKeys.length)];
@@ -1921,13 +1912,13 @@
             }
             async function startPvEBattle(monster) {
                 if (State.isSubmitting) return;
-                const myPet = getPetBattleStats(State.pets[0]);
+                // 多宠物选择：使用选中的宠物ID，如无则用第一只
+                const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
+                const myPet = getPetBattleStats(State.pets.find(p => p.id === selectedPetId));
                 if (!myPet) { showToast('请先领养宠物'); return; }
                 let bossHp = monster.hp || monster.maxHp;
                 if (monster.isBoss && State.bossStatus) { bossHp = State.bossStatus.current_hp; if (bossHp <= 0) { showToast('BOSS已被击败！'); return; } }
-                // 怪物属性不缩放，直接使用基础属性
                 let monHp = monster.hp, monAtk = monster.atk, monDef = monster.def, monSpd = monster.spd;
-                // 应用词缀效果
                 const affixes = State.monsterAffixes || [];
                 if (affixes.length > 0) {
                     for (const affix of affixes) {
@@ -1937,8 +1928,8 @@
                         if (affix.effect.spd_mult) monSpd = Math.floor(monSpd * affix.effect.spd_mult);
                     }
                 }
-                const oppPet = { ...monster, hp: bossHp || monHp, atk: monAtk, def: monDef, spd: monSpd, maxHp: monster.maxHp || monster.hp || monHp, pet_name: monster.name, pet_type: 'monster', skill: { name: '冲撞', cd: 2 } };
-                const mySkills = State.petSkills.filter(s => s.pet_id === State.pets[0]?.id);
+                const oppPet = { ...monster, hp: bossHp || monHp, atk: monAtk, def: monDef, spd: monSpd, maxHp: monster.maxHp || monster.hp || monHp, pet_name: monster.name, pet_type: 'monster' };
+                const mySkills = State.petSkills.filter(s => s.pet_id === selectedPetId);
                 const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
                 const oppSkills = monster.skills || [];
                 const oppCooldowns = {}; oppSkills.forEach(s => oppCooldowns[s] = 0);
@@ -1959,7 +1950,6 @@
                 let oppParalyzed = (b.oppBuffs || []).some(bf => bf.type === 'paralyze');
                 let oppBound = (b.oppBuffs || []).some(bf => bf.type === 'bind');
                 let dmg = 0;
-                // 技能释放
                 if (action === 'skill' && skillId) {
                     const skill = b.mySkills.find(s => s.id === skillId);
                     if (!skill) return;
@@ -1968,7 +1958,6 @@
                     const skillData = ACTIVE_SKILLS[skill.skill_name];
                     if (!skillData) return;
                     const energyCost = skillData.energy || 0;
-                    // 睿智被动：能耗-1
                     const myPassiveId = State.passiveSkills?.[b.myPet.id];
                     let actualCost = energyCost;
                     if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
@@ -2092,21 +2081,17 @@
                     if (State.bossStatus) State.bossStatus.current_hp = newBossHp;
                     supabase.from('boss_status').update({ current_hp: newBossHp }).eq('id', 1).then(() => { });
                 }
-                // 冷却递减
                 for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; }
                 for (const key in b.oppSkillCooldowns) { if (b.oppSkillCooldowns[key] > 0) b.oppSkillCooldowns[key]--; }
 
-                // 对手行动
                 const isInvincible = (b.myBuffs || []).some(bf => bf.type === 'invincible');
                 const oppSkip = (b.oppBuffs || []).some(bf => bf.type === 'skip_next');
                 if (b.opponentCurrentHp > 0 && !oppSkip && !oppParalyzed && !oppBound) {
-                    // 使用怪物AI
                     const aiResult = monsterAI(b);
                     if (aiResult === 'attack') {
                         let odmg = calculateDamage(b.opponentPet, b.myPet);
                         if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                         if (isInvincible) odmg = 0;
-                        // 吸血词缀
                         if (b.affixes?.some(a => a.id === 'vampire')) {
                             const lifesteal = Math.floor(odmg * 0.15);
                             b.opponentCurrentHp = Math.min(b.opponentPet.hp || b.opponentPet.maxHp, b.opponentCurrentHp + lifesteal);
@@ -2154,7 +2139,6 @@
                 else if (oppParalyzed) { logBattle(`对手因麻痹无法行动`); }
                 else if (oppBound) { logBattle(`对手因束缚无法攻击`); b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'bind'); }
 
-                // 每回合自动回能
                 b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ENERGY_PER_TURN);
                 b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ENERGY_PER_TURN);
 
@@ -2162,12 +2146,10 @@
                 applyPassiveEffects(b);
                 applyDOTs(b.myBuffs, b.oppBuffs, b);
                 b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
-                // 清除一次性buff
                 b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
                 b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
                 if (b.myCurrentHp <= 0) { logBattle('你输了！'); endBattle(false); }
                 else if (b.opponentCurrentHp <= 0) {
-                    // 自爆词缀
                     if (b.affixes?.some(a => a.id === 'bomb')) {
                         const bombDmg = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * 0.3);
                         b.myCurrentHp = Math.max(0, b.myCurrentHp - bombDmg);
@@ -2238,7 +2220,6 @@
                 if (b.type === 'pve') {
                     if (won) {
                         const mon = b.monster; const gr = mon.rewards.gold;
-                        // 词缀金币加成
                         let goldMult = 1;
                         if (b.affixes) { for (const a of b.affixes) { if (a.reward?.gold) goldMult *= a.reward.gold; } }
                         const finalGold = Math.floor(gr * goldMult);
@@ -2247,14 +2228,15 @@
                         let itemMult = 1;
                         if (b.affixes) { for (const a of b.affixes) { if (a.reward?.items) itemMult *= a.reward.items; } }
                         if (mon.rewards.items) { for (const [item, prob] of Object.entries(mon.rewards.items)) { if (Math.random() < prob * itemMult) { await addItem(item, 1); droppedItems[item] = (droppedItems[item] || 0) + 1; } } }
-                        // 战斗技能书掉落
                         let droppedBook = null;
                         if (Math.random() < 0.05) {
                             const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
                             droppedBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
                             await addItem(droppedBook, 1);
                         }
-                        const pet = State.pets[0]; let levelUp = false;
+                        // 宠物经验与升级
+                        const pet = State.pets.find(p => p.id === (b.myPet.id || State.pets[0]?.id));
+                        let levelUp = false;
                         if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
                             const ne = (pet.exp || 0) + 50;
                             pet.exp = ne;
@@ -2262,10 +2244,10 @@
                             while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
                                 nl++;
                                 levelUp = true;
-                                const lf = nl - 1;
-                                pet.hp = Math.floor(pet.hp * (1 + 0.02)); pet.atk = Math.floor(pet.atk * (1 + 0.02));
-                                pet.def = Math.floor(pet.def * (1 + 0.015)); pet.spd = Math.floor(pet.spd * (1 + 0.01));
-                                pet.luk = Math.floor(pet.luk * (1 + 0.01)); pet.sta = Math.floor(pet.sta * (1 + 0.02));
+                                const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
+                                pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
+                                pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
+                                pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
                             }
                             if (nl !== pet.level) {
                                 pet.level = nl;
@@ -2497,10 +2479,10 @@
                         const energyCost = skillData ? (skillData.energy || 0) : 0;
                         let actualCost = energyCost;
                         if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
-                        return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${s.skill_name}⚡${actualCost}${cd > 0 ? '(' + cd + ')' : ''}</button>`;
+                        return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${skillData?.name||s.skill_name}⚡${actualCost}${cd > 0 ? '(' + cd + ')' : ''}</button>`;
                     }).join('');
-                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
-                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type}(${bf.duration})</span>`).join('');
+                    const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
+                    const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
                     return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>⚔️ ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span></div>
                     <div class="battle-container">
                         <div class="battle-pet">
@@ -2584,7 +2566,7 @@
                     document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
                     document.getElementById('btnSynthesis').onclick = () => Farm.openSynthesis();
                     document.getElementById('btnEquipment').onclick = () => Farm.openEquipment();
-                    document.getElementById('btnPvE').onclick = () => { render(); Farm.openPvE(); };
+                    document.getElementById('btnPvE').onclick = () => Farm.selectBattlePet();
                     document.getElementById('btnExplore').onclick = () => Farm.openExplore();
                     document.getElementById('btnOrders').onclick = () => Farm.openOrders();
                     document.getElementById('btnSeedShop').onclick = () => Farm.openSeedShop();
@@ -2686,19 +2668,27 @@
                     document.getElementById('modalPets').classList.add('active');
                     const c = document.getElementById('petListContainer');
                     const slots = State.profile?.pet_slots || 1;
-                    if (State.pets.length === 0) { c.innerHTML = '<p>还没有宠物，领养一只吧！</p><button class="btn-primary" id="btnAdopt">领养宠物</button>'; if (slots > State.pets.length) { document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); }; } else { c.innerHTML += '<p style="color:#888;">槽位已满，请先解锁新槽位</p>'; } return; }
+                    if (State.pets.length === 0) {
+                        c.innerHTML = '<p>还没有宠物，领养一只吧！</p>';
+                        if (slots > 0) {
+                            c.innerHTML += '<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养宠物</button>';
+                            document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
+                        } else {
+                            c.innerHTML += '<p style="color:#888;">槽位已满，请先解锁新槽位</p>';
+                        }
+                        return;
+                    }
                     c.innerHTML = State.pets.map(p => {
                         const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
-                        let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
+                        let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看收获</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
                         const stats = getPetBattleStats(p);
                         const skills = State.petSkills.filter(s => s.pet_id === p.id);
-                        const skillsHTML = skills.length > 0 ? skills.map(s => { const skillData = ACTIVE_SKILLS[s.skill_name]; const info = skillData || ACTIVE_SKILLS?.[s.skill_name]; const typeClass = `skill-${info?.type || 'attack'}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">⚡${skillData?.energy||'?'} 冷${skillData?.cooldown||s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无主动技能（使用技能书学习）</div>';
+                        const skillsHTML = skills.length > 0 ? skills.map(s => { const skillData = ACTIVE_SKILLS[s.skill_name]; const info = skillData || ACTIVE_SKILLS?.[s.skill_name]; const typeClass = `skill-${info?.type || 'attack'}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${info?.name||s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">⚡${skillData?.energy||'?'} 冷${skillData?.cooldown||s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无主动技能（使用技能书学习）</div>';
                         const isStationed = State.stationedPet && State.stationedPet.id === p.id;
                         const natureData = p.nature ? PET_NATURES.find(n => n.id === p.nature) : null;
                         const natureName = natureData ? natureData.name : '未知';
                         const passiveData = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]] : null;
                         const passiveName = passiveData ? passiveData.name : '无被动';
-                        // 套装效果
                         const equipped = State.equipment.filter(e => e.equipped_to === p.id);
                         const sets = {};
                         equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
@@ -2714,9 +2704,8 @@
                                 setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
                             }
                         }
-                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button></div></div>`;
+                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button> <button class="btn-small" data-pet-detail="${p.id}" style="background:#6c5ce7;color:#fff;">📊属性</button></div></div>`;
                     }).join('');
-                    // 槽位未满时显示领养按钮
                     if (State.pets.length < slots) {
                         c.innerHTML += `<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养新宠物（${State.pets.length}/${slots}）</button>`;
                         document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
@@ -2726,10 +2715,12 @@
                         document.getElementById('btnOpenSlots').onclick = () => Farm.openPetSlots();
                     }
                     c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
-                    c.querySelectorAll('.btn-view').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
+                    c.querySelectorAll('.btn-view[data-pet-id]').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
                     c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
+                    // 属性详情按钮
+                    c.querySelectorAll('[data-pet-detail]').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petDetail); Farm.openPetDetail(pid); }; });
                 },
-                openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">×</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { await adoptPet(pt); showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } catch (e) { showToast('领养失败', true); } }; }); },
+                openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">×</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { const result = await adoptPet(pt); if (result) { showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } } catch (e) { showToast('领养失败', true); } }; }); },
                 openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
                 openPetSlots() {
                     const overlay = document.createElement('div');
@@ -2776,6 +2767,165 @@
                         };
                     });
                 },
+                // 多宠物PVE选择入口
+                selectBattlePet() {
+                    const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
+                    if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
+                    if (availablePets.length === 1) {
+                        State.selectedBattlePetId = availablePets[0].id;
+                        Farm.openPvE();
+                        return;
+                    }
+                    const overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay active';
+                    overlay.innerHTML = `
+                        <div class="modal" style="max-width:400px;">
+                            <h3>⚔️ 选择出战宠物</h3>
+                            <div id="battlePetList">
+                                ${State.pets.map(p => {
+                                    const stats = getPetBattleStats(p);
+                                    const isExploring = p.exploring_until && new Date(p.exploring_until) > new Date();
+                                    const passiveName = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]]?.name : '';
+                                    return `<div class="list-item ${isExploring ? '' : 'clickable'}" data-pet-id="${p.id}" style="${isExploring ? 'opacity:0.5;' : 'cursor:pointer;'}">
+                                        <span style="font-size:2rem;">${PET_TYPES[p.pet_type]?.emoji||'🐾'}</span>
+                                        <div style="flex:1;">
+                                            <div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level}</div>
+                                            <div style="font-size:0.7rem;">❤️${stats.hp} ⚔️${stats.atk} 🛡️${stats.def} ${passiveName ? '📘'+passiveName : ''}</div>
+                                        </div>
+                                        ${isExploring ? '<span style="color:#888;">探险中</span>' : ''}
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            <button class="btn-close" id="closeBattlePet">×</button>
+                        </div>
+                    `;
+                    document.body.appendChild(overlay);
+                    overlay.querySelector('#closeBattlePet').onclick = () => overlay.remove();
+                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                    overlay.querySelectorAll('.list-item.clickable').forEach(item => {
+                        item.onclick = () => {
+                            const pid = parseInt(item.dataset.petId);
+                            State.selectedBattlePetId = pid;
+                            overlay.remove();
+                            Farm.openPvE();
+                        };
+                    });
+                },
+                // 宠物属性详情弹窗（含性格、被动数值）
+                openPetDetail(pid) {
+                    const pet = State.pets.find(p => p.id === pid);
+                    if (!pet) return;
+                    const stats = getPetBattleStats(pet);
+                    const natureData = pet.nature ? PET_NATURES.find(n => n.id === pet.nature) : null;
+                    const passiveId = State.passiveSkills?.[pet.id];
+                    const passiveData = passiveId ? PASSIVE_SKILLS[passiveId] : null;
+                    const equipped = State.equipment.filter(e => e.equipped_to === pet.id);
+                    const skills = State.petSkills.filter(s => s.pet_id === pet.id);
+                    const isStationed = State.stationedPet && State.stationedPet.id === pet.id;
+                    
+                    const sets = {};
+                    equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
+                    
+                    function getPassiveEffectText(passive) {
+                        if (!passive) return '无被动';
+                        const effects = [];
+                        if (passive.atk_type && passive.atk_bonus) {
+                            effects.push(`${passive.atk_type==='fire'?'🔥':passive.atk_type==='water'?'💧':passive.atk_type==='grass'?'🌿':passive.atk_type==='thunder'?'⚡':passive.atk_type==='dark'?'🌑':'✨'}系伤害+${Math.round(passive.atk_bonus*100)}%`);
+                        }
+                        if (passive.def_penalty && typeof passive.def_penalty === 'object') {
+                            for (const [elem, val] of Object.entries(passive.def_penalty)) {
+                                effects.push(`受到${elem==='water'?'💧水':elem==='thunder'?'⚡雷':elem==='fire'?'🔥火':elem==='grass'?'🌿草':elem}系伤害+${Math.round(val*100)}%`);
+                            }
+                        }
+                        if (passive.atk_bonus && !passive.atk_type) effects.push(`攻击力+${Math.round(passive.atk_bonus*100)}%`);
+                        if (passive.def_bonus && typeof passive.def_bonus === 'number') effects.push(`防御力+${Math.round(passive.def_bonus*100)}%`);
+                        if (passive.spd_bonus && typeof passive.spd_bonus === 'number') effects.push(`速度+${Math.round(passive.spd_bonus*100)}%`);
+                        if (passive.hp_penalty) effects.push(`HP-${Math.round(passive.hp_penalty*100)}%`);
+                        if (passive.def_penalty && typeof passive.def_penalty === 'number') effects.push(`防御力-${Math.round(passive.def_penalty*100)}%`);
+                        if (passive.spd_penalty && typeof passive.spd_penalty === 'number') effects.push(`速度-${Math.round(passive.spd_penalty*100)}%`);
+                        if (passive.atk_penalty) effects.push(`普通攻击伤害-${Math.round(passive.atk_penalty*100)}%`);
+                        if (passive.physical_reduce) effects.push(`受到物理伤害-${Math.round(passive.physical_reduce*100)}%`);
+                        if (passive.magical_increase) effects.push(`受到魔法伤害+${Math.round(passive.magical_increase*100)}%`);
+                        if (passive.energy_reduce) effects.push(`技能能量消耗-${passive.energy_reduce}`);
+                        if (passive.heal_per_turn) effects.push(`每回合回复${Math.round(passive.heal_per_turn*100)}%最大HP`);
+                        if (passive.low_hp_def_bonus) effects.push(`HP低于${Math.round(passive.threshold*100)}%时防御+${Math.round(passive.low_hp_def_bonus*100)}%`);
+                        if (passive.hit_bonus) effects.push(`命中率+${Math.round(passive.hit_bonus*100)}%`);
+                        if (passive.no_miss) effects.push('不会被闪避');
+                        if (passive.crit_bonus) effects.push(`暴击率+${Math.round(passive.crit_bonus*100)}%`);
+                        if (passive.drop_bonus) effects.push(`掉落奖励+${Math.round(passive.drop_bonus*100)}%`);
+                        if (passive.immune) effects.push(`免疫${passive.immune==='burn'?'🔥灼烧':'⚡麻痹'}`);
+                        return effects.join('，') || passive.desc || '特殊效果';
+                    }
+                    
+                    function getNatureEffectText(nature) {
+                        if (!nature || nature.id === 'balanced') return '无加成，无减益';
+                        const parts = [];
+                        if (nature.pos) parts.push(`✅ ${nature.pos}`);
+                        if (nature.neg) parts.push(`❌ ${nature.neg}`);
+                        return parts.join('，') || '无';
+                    }
+                    
+                    const overlay = document.createElement('div');
+                    overlay.className = 'modal-overlay active';
+                    overlay.innerHTML = `
+                        <div class="modal" style="max-width:420px;text-align:left;font-size:0.85rem;">
+                            <h3 style="text-align:center;">📊 宠物属性详情</h3>
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;">
+                                <span style="font-size:2.5rem;">${PET_TYPES[pet.pet_type]?.emoji||'🐾'}</span>
+                                <div>
+                                    <div><strong>#${pet.id} ${pet.pet_name}</strong> Lv.${pet.level}</div>
+                                    <div style="font-size:0.75rem;">EXP: ${pet.exp} | ${isStationed ? '✅ 已驻扎农田' : '🏠 未驻扎'}</div>
+                                </div>
+                            </div>
+                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🏷️ 性格</div>
+                            <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
+                                <strong>${natureData?.name||'未知'}</strong>
+                                <div style="font-size:0.8rem;color:#666;">${getNatureEffectText(natureData)}</div>
+                            </div>
+                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📘 被动技能</div>
+                            <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
+                                <strong>${passiveData?.name||'无'}</strong>
+                                <div style="font-size:0.8rem;color:#666;">${getPassiveEffectText(passiveData)}</div>
+                            </div>
+                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📊 属性详情</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;">
+                                <div>❤️ HP：<strong>${stats.hp}</strong> ${stats.hp !== pet.hp ? `<span style="color:#27ae60;">(+${stats.hp - pet.hp})</span>` : ''}</div>
+                                <div>⚔️ 攻击：<strong>${stats.atk}</strong> ${stats.atk !== pet.atk ? `<span style="color:#27ae60;">(+${stats.atk - pet.atk})</span>` : ''}</div>
+                                <div>🛡️ 防御：<strong>${stats.def}</strong> ${stats.def !== pet.def ? `<span style="color:#27ae60;">(+${stats.def - pet.def})</span>` : ''}</div>
+                                <div>⚡ 速度：<strong>${stats.spd}</strong> ${stats.spd !== pet.spd ? `<span style="color:#27ae60;">(+${stats.spd - pet.spd})</span>` : ''}</div>
+                                <div>🍀 幸运：<strong>${stats.luk}</strong> ${stats.luk !== pet.luk ? `<span style="color:#27ae60;">(+${stats.luk - pet.luk})</span>` : ''}</div>
+                                <div>💪 体力：<strong>${pet.sta||50}</strong></div>
+                            </div>
+                            ${equipped.length > 0 ? `
+                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🛡️ 装备加成 (${equipped.length}件)</div>
+                            ${equipped.map(e => `<div style="font-size:0.8rem;padding:2px 0;">${e.name} +${e.enhance_level||0} (${QUALITY_NAMES[e.quality]||'?'}) → 攻+${e.atk_bonus} 防+${e.def_bonus} 幸+${e.luk_bonus}</div>`).join('')}
+                            ` : '<div style="color:#888;margin:4px 0;">🛡️ 未装备任何物品</div>'}
+                            ${Object.keys(sets).length > 0 ? `
+                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">⚔️ 套装效果</div>
+                            ${Object.entries(sets).map(([setName, slots]) => {
+                                const count = slots.length;
+                                if (count < 2) return '';
+                                const b2 = SET_BONUSES[setName]?.[2];
+                                const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
+                                let desc = [`${setName}·${count}件`];
+                                if (b2) { for (const [k,v] of Object.entries(b2)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='spd') desc.push(`速度+${v}`); else if (k==='luk') desc.push(`幸运+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k==='lifesteal') desc.push(`吸血${Math.round(v*100)}%`); } }
+                                if (b3) { for (const [k,v] of Object.entries(b3)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); } }
+                                return `<div style="font-size:0.8rem;color:#6c5ce7;">🛡️ ${desc.join('，')}</div>`;
+                            }).join('')}
+                            ` : ''}
+                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📜 主动技能 (${skills.length}/4)</div>
+                            ${skills.length > 0 ? skills.map(s => {
+                                const sd = ACTIVE_SKILLS[s.skill_name];
+                                return `<div style="font-size:0.8rem;padding:2px 0;">📜 ${sd?.name||s.skill_name} Lv.${s.level} ⚡${sd?.energy||'?'} 冷${sd?.cooldown||s.cooldown}回合 — ${sd?.desc||''}</div>`;
+                            }).join('') : '<div style="color:#888;font-size:0.8rem;">暂无技能（使用技能书学习）</div>'}
+                            ${isStationed ? `<div style="margin-top:8px;padding:6px;background:#fef9f3;border-radius:6px;font-size:0.8rem;">🏠 驻扎效果：${PET_STATION_EFFECTS[pet.pet_type]}</div>` : ''}
+                            <button class="btn-close" id="closePetDetail">×</button>
+                        </div>
+                    `;
+                    document.body.appendChild(overlay);
+                    overlay.querySelector('#closePetDetail').onclick = () => overlay.remove();
+                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                },
             };
 			// ==================== 第 22 块：背包界面（含技能书使用） ====================
             Farm.openBackpack = async function() {
@@ -2818,27 +2968,14 @@
             Farm.openSynthesis = async function() {
                 document.getElementById('modalSynthesis').classList.add('active');
                 await loadItems();
-                // 显示加工队列
-                const showProcessing = () => {
-                    const now = new Date();
-                    const activeTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) > now);
-                    if (activeTasks.length > 0) {
-                        const taskHTML = activeTasks.map(t => {
-                            const rem = Math.ceil((new Date(t.finishAt) - now) / 60000);
-                            return `<div class="item-row" style="background:#fef9f3;border-radius:8px;padding:8px;margin:4px 0;"><span>${t.icon}</span><span style="flex:1;">${t.name}</span><span style="color:#e67e22;">⏳${rem}分钟</span></div>`;
-                        }).join('');
-                        document.getElementById('synthesisList').innerHTML = `<div style="font-weight:600;margin-bottom:8px;">⏳ 加工队列</div>${taskHTML}<hr style="margin:8px 0;">`;
-                    }
-                };
                 const showSynth = (type) => {
                     const c = document.getElementById('synthesisList');
-                    showProcessing();
                     let recipes = [];
                     if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
                     else if (type === 'food') recipes = SYNTHESIS_FOOD;
                     else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
-                    if (recipes.length === 0) { c.innerHTML += '<p>暂无配方</p>'; return; }
-                    c.innerHTML += recipes.map((r, idx) => {
+                    if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
+                    c.innerHTML = recipes.map((r, idx) => {
                         const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
                         const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
                         const canCraft = hasMaterials && hasGold;
@@ -2868,7 +3005,7 @@
                 };
                 showSynth('equipment');
                 document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showSynth(tab.dataset.stype); }; });
-                document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); showSynth(document.querySelector('#synthTypeTabs .auth-tab.active')?.dataset?.stype || 'equipment'); };
+                document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); const activeTab = document.querySelector('#synthTypeTabs .auth-tab.active'); const currentType = activeTab?.dataset?.stype || 'equipment'; showSynth(currentType); };
             };
 
             Farm.openEquipment = function() {
@@ -2908,13 +3045,12 @@
                 if (!modal) { render(); setTimeout(() => Farm.openPvE(), 100); return; }
                 modal.classList.add('active');
                 const c = document.getElementById('pveListContainer');
-                const myPet = State.pets[0];
+                const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
+                const myPet = State.pets.find(p => p.id === selectedPetId);
                 const myLevel = myPet ? myPet.level : 1;
                 const available = MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
-                // 随机抽取3~4个怪物
                 const shuffled = [...available].sort(() => Math.random() - 0.5).slice(0, Math.min(4, available.length));
                 let html = '';
-                // BOSS显示
                 if (State.bossStatus) {
                     const now = new Date();
                     const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
@@ -2935,10 +3071,8 @@
                         html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                     }
                 }
-                // 随机怪物
                 State.monsterAffixes = [];
                 shuffled.forEach(m => {
-                    // 随机1~2个词缀
                     const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
                     const affixes = [];
                     if (affixCount > 0) {
@@ -2952,7 +3086,6 @@
                         html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='[]'>挑战</button></div>`;
                     }
                 });
-                // 精英怪随机出现
                 const eliteAvailable = ELITE_MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
                 if (eliteAvailable.length > 0 && Math.random() < 0.15) {
                     const elite = eliteAvailable[Math.floor(Math.random() * eliteAvailable.length)];
@@ -3015,9 +3148,7 @@
                     const items = m.items && typeof m.items === 'object' ? Object.entries(m.items).filter(([k,v]) => v > 0).map(([k,v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join(', ') : '';
                     return `<div class="order-card" style="background:${m.is_read ? '#fff' : '#fef9f3'};"><div style="font-weight:600;">${m.is_read ? '' : '🔵 '}${m.title}</div><div style="font-size:0.8rem;color:#888;">发件人：${escapeHTML(m.sender_name||'系统')}</div>${m.content ? `<div style="font-size:0.8rem;margin:4px 0;">${escapeHTML(m.content)}</div>` : ''}${items ? `<div style="font-size:0.8rem;color:#27ae60;">附件：${items}</div>` : ''}<div style="margin-top:6px;">${!m.is_claimed && m.items && Object.keys(m.items).some(k => m.items[k] > 0) ? `<button class="btn-small btn-accept" data-mail-idx="${idx}">领取附件</button>` : (m.is_claimed ? '<span style="color:#888;">已领取</span>' : '')}</div></div>`;
                 }).join('');
-                // 标记已读
                 for (const m of State.mails) { if (!m.is_read) { m.is_read = true; supabase.from('mail').update({ is_read: true }).eq('id', m.id).then(() => {}); } }
-                // 领取附件
                 c.querySelectorAll('.btn-accept').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.mailIdx); const mail = State.mails[idx]; if (!mail || mail.is_claimed) return; try { if (mail.items) { for (const [item, qty] of Object.entries(mail.items)) { if (qty > 0) await addItem(item, qty); } } mail.is_claimed = true; await supabase.from('mail').update({ is_claimed: true }).eq('id', mail.id); showToast('附件已领取！'); Farm.openMail(); } catch (e) { showToast('领取失败', true); } }; });
             };
 
@@ -3025,7 +3156,6 @@
             Farm.openSkillBook = function(bookKey) {
                 const qty = State.items[bookKey] || 0;
                 if (qty <= 0) { showToast('没有该技能书'); return; }
-                // 判断是主动还是被动技能书
                 const isPassive = bookKey.startsWith('book_passive_');
                 const skillId = isPassive ? bookKey.replace('book_passive_', '') : bookKey.replace('book_', '');
                 const skillData = isPassive ? PASSIVE_SKILLS[skillId] : ACTIVE_SKILLS[skillId];
@@ -3051,7 +3181,10 @@
                         return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">当前被动：${currentName}</span></div>`;
                     } else {
                         const currentSkills = State.petSkills.filter(s => s.pet_id === p.id);
-                        const skillNames = currentSkills.map(s => s.skill_name).join(', ') || '暂无技能';
+                        const skillNames = currentSkills.map(s => {
+                            const sd = ACTIVE_SKILLS[s.skill_name];
+                            return sd ? sd.name : s.skill_name;
+                        }).join(', ') || '暂无技能';
                         const hasSlot = currentSkills.length < 4;
                         return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">${hasSlot ? `空位${4-currentSkills.length}个` : '技能已满'}</span><span style="font-size:0.65rem;color:#888;">${skillNames}</span></div>`;
                     }
@@ -3062,7 +3195,6 @@
                     item.onclick = async () => {
                         const pid = parseInt(item.dataset.petId);
                         if (isPassive) {
-                            // 被动技能直接替换
                             try {
                                 await addItem(bookKey, -1);
                                 State.passiveSkills[pid] = skillId;
@@ -3071,10 +3203,8 @@
                                 overlay.remove();
                             } catch (e) { showToast('学习失败', true); }
                         } else {
-                            // 主动技能
                             const currentSkills = State.petSkills.filter(s => s.pet_id === pid);
                             if (currentSkills.length < 4) {
-                                // 有空位，直接学习
                                 try {
                                     await addItem(bookKey, -1);
                                     const freeSlot = [0,1,2,3].find(s => !currentSkills.some(cs => cs.slot === s));
@@ -3086,7 +3216,6 @@
                                     overlay.remove();
                                 } catch (e) { showToast('学习失败', true); }
                             } else {
-                                // 技能已满，需要替换
                                 overlay.innerHTML = `
                                     <div class="modal" style="max-width:400px;text-align:left;">
                                         <h3>🔄 替换技能</h3>
@@ -3158,7 +3287,7 @@
                         content.innerHTML = `
                             <h4>🌾 种植系统</h4><p>60种作物，品质系统（普通/优质/极品/传说）。作物存入背包提交订单换金币和种子券。</p>
                             <h4>🐾 宠物系统</h4><p>3种宠物，天生个体值±15%、7种性格、15种被动技能。满级30级，最多6个槽位。</p>
-                            <h4>📕 技能系统</h4><p>24种主动技能（6属性各4个）+ 15种被动技能。技能书掉落+背包使用。能量系统：初始3点，每回合+1。</p>
+                            <h4>📕 技能系统</h4><p>24种主动技能（6属性各4个）+ 15种被动技能。技能书掉落+背包使用。能量系统：初始3点，每回合+1，上限10。</p>
                             <h4>⚔️ 战斗系统</h4><p>怪物随机刷新+词缀系统。属性克制：火→草→水→雷→火，光暗互克。怪物AI智能出招。</p>
                             <h4>🔧 加工系统</h4><p>合成台制作食品和药剂。加工需等待时间，队列显示倒计时。</p>
                             <h4>📬 邮箱系统</h4><p>系统邮件和好友邮件，附件直接领取到背包。</p>
