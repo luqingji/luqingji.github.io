@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v5.2「元素觉醒·完全版」</title>
+    <title>🌱 开心农场 v5.1「元素觉醒·完全版」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -2823,7 +2823,7 @@
                         };
                     });
                 },
-                // 宠物属性详情弹窗（含性格、被动数值）
+                // 宠物属性详情弹窗（含性格、被动数值，符号已修复）
                 openPetDetail(pid) {
                     const pet = State.pets.find(p => p.id === pid);
                     if (!pet) return;
@@ -2901,12 +2901,12 @@
                             </div>
                             <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📊 属性详情</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;">
-                                <div>❤️ HP：<strong>${stats.hp}</strong> ${stats.hp !== pet.hp ? `<span style="color:#27ae60;">(+${stats.hp - pet.hp})</span>` : ''}</div>
-                                <div>⚔️ 攻击：<strong>${stats.atk}</strong> ${stats.atk !== pet.atk ? `<span style="color:#27ae60;">(+${stats.atk - pet.atk})</span>` : ''}</div>
-                                <div>🛡️ 防御：<strong>${stats.def}</strong> ${stats.def !== pet.def ? `<span style="color:#27ae60;">(+${stats.def - pet.def})</span>` : ''}</div>
-                                <div>⚡ 速度：<strong>${stats.spd}</strong> ${stats.spd !== pet.spd ? `<span style="color:#27ae60;">(+${stats.spd - pet.spd})</span>` : ''}</div>
-                                <div>🍀 幸运：<strong>${stats.luk}</strong> ${stats.luk !== pet.luk ? `<span style="color:#27ae60;">(+${stats.luk - pet.luk})</span>` : ''}</div>
-                                <div>💪 体力：<strong>${pet.sta||50}</strong></div>
+                                <div>❤️ HP：<strong>${stats.hp}</strong> ${stats.hp !== pet.hp ? `<span style="color:${stats.hp > pet.hp ? '#27ae60' : '#c0392b'};">(${stats.hp > pet.hp ? '+' : ''}${stats.hp - pet.hp})</span>` : ''}</div>
+                                <div>⚔️ 攻击：<strong>${stats.atk}</strong> ${stats.atk !== pet.atk ? `<span style="color:${stats.atk > pet.atk ? '#27ae60' : '#c0392b'};">(${stats.atk > pet.atk ? '+' : ''}${stats.atk - pet.atk})</span>` : ''}</div>
+                                <div>🛡️ 防御：<strong>${stats.def}</strong> ${stats.def !== pet.def ? `<span style="color:${stats.def > pet.def ? '#27ae60' : '#c0392b'};">(${stats.def > pet.def ? '+' : ''}${stats.def - pet.def})</span>` : ''}</div>
+                                <div>⚡ 速度：<strong>${stats.spd}</strong> ${stats.spd !== pet.spd ? `<span style="color:${stats.spd > pet.spd ? '#27ae60' : '#c0392b'};">(${stats.spd > pet.spd ? '+' : ''}${stats.spd - pet.spd})</span>` : ''}</div>
+                                <div>🍀 幸运：<strong>${stats.luk}</strong> ${stats.luk !== pet.luk ? `<span style="color:${stats.luk > pet.luk ? '#27ae60' : '#c0392b'};">(${stats.luk > pet.luk ? '+' : ''}${stats.luk - pet.luk})</span>` : ''}</div>
+                                <div>💪 体力：<strong>${stats.sta||pet.sta||50}</strong> ${(stats.sta||pet.sta)!== pet.sta ? `<span style="color:${(stats.sta||pet.sta) > pet.sta ? '#27ae60' : '#c0392b'};">(${(stats.sta||pet.sta) > pet.sta ? '+' : ''}${(stats.sta||pet.sta) - pet.sta})</span>` : ''}</div>
                             </div>
                             ${equipped.length > 0 ? `
                             <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🛡️ 装备加成 (${equipped.length}件)</div>
