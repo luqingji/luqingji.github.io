@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v5.3「元素觉醒·完全版」</title>
+    <title>🌱 开心农场 v6.0「元素觉醒·完全版」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -992,7 +992,7 @@
                 { name:'生命药剂', icon:'❤️', materials:{honey:3, clover:1}, cost:400, time:30, type:'potion', effect:'下次战斗HP+30%' },
                 { name:'暴击药剂', icon:'💥', materials:{scale:2, stardust:1}, cost:500, time:30, type:'potion', effect:'下次战斗暴击率+15%' },
             ];
-			// ==================== 第 8 块：怪物数据 + 探险路线 + 怪物技能 + 词缀 + 套装效果 ====================
+			// ==================== 第 8 块：怪物数据 + 探险路线 + 怪物词缀 + 套装效果 + 怪物地图 ====================
             const MONSTERS = [
                 {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,skills:[],rewards:{gold:20,items:{hair:0.3}}},
                 {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,skills:['water_ball'],rewards:{gold:15,items:{dew:0.3}}},
@@ -1054,6 +1054,92 @@
                 '天使': {2:{revive:true}, 3:{all_stat:0.1}},
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
+
+            // ==================== 怪物地图定义 ====================
+            const PVE_MAPS = [
+                {
+                    id: 'grassland',
+                    name: '微风草原',
+                    emoji: '🌿',
+                    minLevel: 1,
+                    maxLevel: 10,
+                    unlockCond: null,
+                    unlockDesc: '初始解锁',
+                    monsterIds: ['菜青虫','鼻涕虫','蚜虫群','田鼠','蝗虫','草蛇'],
+                    eliteIds: ['黄金菜青虫'],
+                    bg: '#f5f9e9'
+                },
+                {
+                    id: 'forest',
+                    name: '幽暗森林',
+                    emoji: '🌲',
+                    minLevel: 10,
+                    maxLevel: 20,
+                    unlockCond: { type: 'elite_kills', count: 3 },
+                    unlockDesc: '击败任意精英怪×3',
+                    monsterIds: ['蝙蝠','刺猬','狐妖','野猪'],
+                    eliteIds: ['鼠王','血蝙蝠'],
+                    bg: '#e9f0e9'
+                },
+                {
+                    id: 'mine',
+                    name: '废弃矿洞',
+                    emoji: '💎',
+                    minLevel: 20,
+                    maxLevel: 30,
+                    unlockCond: { type: 'plots', count: 8 },
+                    unlockDesc: '解锁8块农田',
+                    monsterIds: ['幼龙','毒蝎','地龙','巨猿'],
+                    eliteIds: ['九尾狐'],
+                    bg: '#f0ebe4'
+                },
+                {
+                    id: 'ruins',
+                    name: '古老遗迹',
+                    emoji: '🏛️',
+                    minLevel: 25,
+                    maxLevel: 35,
+                    unlockCond: { type: 'pet_level', count: 25 },
+                    unlockDesc: '任意宠物达到Lv.25',
+                    monsterIds: [],
+                    eliteIds: ['黄金菜青虫','鼠王','血蝙蝠','九尾狐','熔岩幼龙','水晶地龙'],
+                    bg: '#ede8f0'
+                },
+                {
+                    id: 'boss_lair',
+                    name: '虫母巢穴',
+                    emoji: '👹',
+                    minLevel: 1,
+                    maxLevel: 35,
+                    unlockCond: null,
+                    unlockDesc: '全服共享BOSS',
+                    monsterIds: [],
+                    eliteIds: [],
+                    isBoss: true,
+                    bg: '#fdf0e0'
+                }
+            ];
+
+            // 辅助函数：判断地图是否解锁
+            function isMapUnlocked(mapData) {
+                if (!mapData.unlockCond) return true;
+                const cond = mapData.unlockCond;
+                if (cond.type === 'elite_kills') {
+                    return Object.values(State.monsterLog || {}).reduce((sum, m) => sum + (m.kills || 0), 0) >= cond.count;
+                }
+                if (cond.type === 'plots') {
+                    return (State.profile?.unlocked_plots || 4) >= cond.count;
+                }
+                if (cond.type === 'pet_level') {
+                    return State.pets.some(p => p.level >= cond.count);
+                }
+                return false;
+            }
+
+            // 辅助函数：根据名字获取怪物数据
+            function getMonsterByName(name) {
+                return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
+            }
 			// ==================== 第 9 块：工具函数 + 怪物AI重写 ====================
             const WATER_COOLDOWN_MS = 30 * 60 * 1000;
             const BOSS_COOLDOWN_MINUTES = 60;
@@ -2558,7 +2644,7 @@
                     <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
                     <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
                     <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
+                    <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-mtype="inbox">收件箱</button><button class="auth-tab" data-mtype="outbox">发件箱</button><button class="auth-tab" data-mtype="compose">写邮件</button></div><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
                     <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
                     <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
                     <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
@@ -2779,13 +2865,13 @@
                         };
                     });
                 },
-                // 多宠物PVE选择入口
+                // 多宠物PVE选择入口 → 改为先选地图
                 selectBattlePet() {
                     const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
                     if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
                     if (availablePets.length === 1) {
                         State.selectedBattlePetId = availablePets[0].id;
-                        Farm.openPvE();
+                        Farm.openPvEMap();  // 改为地图选择
                         return;
                     }
                     const overlay = document.createElement('div');
@@ -2819,7 +2905,7 @@
                             const pid = parseInt(item.dataset.petId);
                             State.selectedBattlePetId = pid;
                             overlay.remove();
-                            Farm.openPvE();
+                            Farm.openPvEMap();  // 改为地图选择
                         };
                     });
                 },
@@ -3052,7 +3138,49 @@
                 c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); Farm.openEquipment(); } }; });
             };
 
+            // 地图选择弹窗
+            Farm.openPvEMap = function() {
+                const overlay = document.createElement('div');
+                overlay.className = 'modal-overlay active';
+                const mapsHTML = PVE_MAPS.map(m => {
+                    const unlocked = isMapUnlocked(m);
+                    const monsterNames = [...m.monsterIds, ...m.eliteIds].join('·');
+                    return `
+                        <div class="route-card ${unlocked ? '' : 'locked'}" data-map-id="${m.id}" 
+                             style="background:${m.bg};${unlocked ? 'cursor:pointer;' : ''}">
+                            <strong>${m.emoji} ${m.name}</strong>
+                            <span style="font-size:0.75rem;color:#888;">Lv.${m.minLevel}~${m.maxLevel}</span>
+                            <div style="font-size:0.75rem;color:#666;">${monsterNames || (m.isBoss ? '虫母女王' : '精英汇集')}</div>
+                            ${!unlocked ? `<div style="color:#c0392b;font-size:0.7rem;">🔒 ${m.unlockDesc}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                overlay.innerHTML = `
+                    <div class="modal" style="max-width:420px;">
+                        <h3>🗺️ 选择讨伐地图</h3>
+                        <div class="list-container">${mapsHTML}</div>
+                        <button class="btn-close" id="closeMapSelect">×</button>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                overlay.querySelector('#closeMapSelect').onclick = () => overlay.remove();
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                overlay.querySelectorAll('.route-card:not(.locked)').forEach(card => {
+                    card.onclick = () => {
+                        const mapId = card.dataset.mapId;
+                        State.selectedMapId = mapId;
+                        overlay.remove();
+                        Farm.openPvE();
+                    };
+                });
+            };
+
+            // 地图内怪物列表
             Farm.openPvE = async function() {
+                const mapId = State.selectedMapId || 'grassland';
+                const mapData = PVE_MAPS.find(m => m.id === mapId);
+                if (!mapData) return;
+                
                 const modal = document.getElementById('modalPvE');
                 if (!modal) { render(); setTimeout(() => Farm.openPvE(), 100); return; }
                 modal.classList.add('active');
@@ -3060,29 +3188,47 @@
                 const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
                 const myPet = State.pets.find(p => p.id === selectedPetId);
                 const myLevel = myPet ? myPet.level : 1;
-                const available = MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
-                const shuffled = [...available].sort(() => Math.random() - 0.5).slice(0, Math.min(4, available.length));
+                
                 let html = '';
-                if (State.bossStatus) {
-                    const now = new Date();
-                    const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
-                    if (State.bossStatus.current_hp > 0) {
-                        if (new Date(State.bossStatus.expires_at) <= now) {
-                            const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
-                            await supabase.from('boss_status').update({ expires_at: newExpires }).eq('id', 1);
-                            State.bossStatus.expires_at = newExpires;
+                
+                // BOSS地图特殊处理
+                if (mapData.isBoss) {
+                    if (State.bossStatus) {
+                        const now = new Date();
+                        const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
+                        if (State.bossStatus.current_hp > 0) {
+                            if (new Date(State.bossStatus.expires_at) <= now) {
+                                const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
+                                await supabase.from('boss_status').update({ expires_at: newExpires }).eq('id', 1);
+                                State.bossStatus.expires_at = newExpires;
+                            }
+                            const remaining = Math.ceil((new Date(State.bossStatus.expires_at) - now) / 3600000 * 10) / 10;
+                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
+                        } else if (State.bossStatus.current_hp <= 0 && refreshesAt && refreshesAt > now) {
+                            const remaining = Math.ceil((refreshesAt - now) / 60000);
+                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
+                        } else {
+                            await refreshBoss();
+                            const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
+                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                         }
-                        const remaining = Math.ceil((new Date(State.bossStatus.expires_at) - now) / 3600000 * 10) / 10;
-                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
-                    } else if (State.bossStatus.current_hp <= 0 && refreshesAt && refreshesAt > now) {
-                        const remaining = Math.ceil((refreshesAt - now) / 60000);
-                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
-                    } else {
-                        await refreshBoss();
-                        const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
-                        html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
                     }
+                    html += `<button class="btn-icon" id="btnBackToMaps" style="margin-top:8px;">← 返回地图</button>`;
+                    c.innerHTML = html;
+                    if (document.getElementById('btnBackToMaps')) {
+                        document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
+                    }
+                    c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); modal.classList.remove('active'); }; });
+                    return;
                 }
+                
+                // 普通地图
+                const availableMonsters = mapData.monsterIds.map(getMonsterByName).filter(Boolean);
+                const availableElites = mapData.eliteIds.map(getMonsterByName).filter(Boolean);
+                
+                // 随机刷新3~4个普通怪
+                const shuffled = [...availableMonsters].sort(() => Math.random() - 0.5).slice(0, Math.min(4, availableMonsters.length));
+                
                 State.monsterAffixes = [];
                 shuffled.forEach(m => {
                     const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
@@ -3098,13 +3244,21 @@
                         html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='[]'>挑战</button></div>`;
                     }
                 });
-                const eliteAvailable = ELITE_MONSTERS.filter(m => myLevel >= m.minLevel && myLevel <= m.maxLevel + 5);
-                if (eliteAvailable.length > 0 && Math.random() < 0.15) {
-                    const elite = eliteAvailable[Math.floor(Math.random() * eliteAvailable.length)];
+                
+                // 精英怪常驻显示（不随机刷新）
+                availableElites.forEach(elite => {
                     html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
-                }
+                });
+                
+                html += `<button class="btn-icon" id="btnBackToMaps" style="margin-top:8px;">← 返回地图</button>`;
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
-                c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.boss) { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); } else if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
+                
+                if (html) {
+                    if (document.getElementById('btnBackToMaps')) {
+                        document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
+                    }
+                    c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
+                }
             };
 			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书使用/帮助弹窗 + 日志格式化 ====================
             Farm.openOrders = function() {
