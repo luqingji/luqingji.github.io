@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v6.0「元素觉醒·完全版」</title>
+    <title>🌱 开心农场 v6.1「元素觉醒·完全版」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -746,6 +746,7 @@
                 sakura:'樱花花瓣',stardust:'星光粉尘',charm:'幸运符',dragon_soul:'龙魂碎片',
                 scroll_basic:'基础技能卷轴',scroll_advanced:'进阶技能卷轴',scroll_rare:'稀有技能卷轴',scroll_legend:'传说技能卷轴',
                 protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',
+                auto_battle_ticket:'自动战斗券',   // ← 新增
                 // 原有种子
                 seed_grape:'葡萄种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_apple:'苹果种子',
                 seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',
@@ -805,6 +806,7 @@
                 feather:'🪶',scale:'🔮',snowflake:'❄️',sakura:'🌸',stardust:'🌟',charm:'🍀',dragon_soul:'🔮',
                 scroll_basic:'📜',scroll_advanced:'📜',scroll_rare:'📜',scroll_legend:'📜',
                 protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',
+                auto_battle_ticket:'🎫',   // ← 新增
                 // 原有种子
                 seed_grape:'🍇',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_apple:'🍎',seed_peach:'🍑',
                 seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',
@@ -1140,7 +1142,7 @@
             function getMonsterByName(name) {
                 return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
             }
-			// ==================== 第 9 块：工具函数 + 怪物AI重写 ====================
+			// ==================== 第 9 块：工具函数 + 怪物AI修复版 ====================
             const WATER_COOLDOWN_MS = 30 * 60 * 1000;
             const BOSS_COOLDOWN_MINUTES = 60;
             const BOSS_EXPIRE_HOURS = 6;
@@ -1229,12 +1231,10 @@
                 return effects;
             }
             
-            // 获取宠物完整属性（含天生个体值、性格、被动、装备）
             function getPetBattleStats(pet) {
                 const equip = State.equipment.filter(e => e.equipped_to === pet.id);
                 let atk = pet.atk, def = pet.def, spd = pet.spd, luk = pet.luk, hp = pet.hp, sta = pet.sta;
                 equip.forEach(e => { atk += e.atk_bonus; def += e.def_bonus; spd += e.spd_bonus; luk += e.luk_bonus; });
-                // 性格加成
                 if (pet.nature) {
                     const nature = PET_NATURES.find(n => n.id === pet.nature);
                     if (nature) {
@@ -1252,7 +1252,6 @@
                         if (nature.sta_penalty) sta = Math.floor(sta * (1 + nature.sta_penalty));
                     }
                 }
-                // 被动技能加成
                 const passiveId = State.passiveSkills?.[pet.id];
                 if (passiveId && PASSIVE_SKILLS[passiveId]) {
                     const passive = PASSIVE_SKILLS[passiveId];
@@ -1266,10 +1265,8 @@
                 return { ...pet, atk, def, spd, luk, hp, sta, maxHp: hp };
             }
             
-            // 伤害计算（含属性克制、铁壁物理/魔法判定）
             function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive = null, dfPassive = null, skillType = null) {
                 let ak = at.atk, de = df.def;
-                // 属性克制
                 let elementMult = 1;
                 if (skillElement && dfPassive) {
                     const dfPassiveData = PASSIVE_SKILLS[dfPassive];
@@ -1286,7 +1283,6 @@
                 let dmg = Math.max(1, ak - de + Math.floor(Math.random() * 10));
                 dmg = Math.floor(dmg * elementMult);
                 if (isSkill) dmg = Math.floor(dmg * 1.3);
-                // 铁壁被动：物理伤害-15%，魔法伤害+10%
                 if (dfPassive === 'iron') {
                     if (skillType === 'special') {
                         dmg = Math.floor(dmg * 1.1);
@@ -1297,7 +1293,7 @@
                 return dmg;
             }
             
-            // 怪物AI：基于能量和技能的智能出招
+            // 怪物AI修复版：减少防御倾向，增加攻击兜底
             function monsterAI(battle) {
                 const skills = battle.opponentSkills || [];
                 const energy = battle.opponentEnergy || 0;
@@ -1305,52 +1301,55 @@
                 const hpRatio = battle.opponentCurrentHp / (battle.opponentPet.hp || battle.opponentPet.maxHp || 1);
                 const playerHpRatio = battle.myCurrentHp / (battle.myPet.hp || battle.myPet.maxHp || 1);
 
-                if (hpRatio < 0.3 && skills.some(s => {
-                    const skillData = ACTIVE_SKILLS[s];
-                    return skillData?.type === 'heal' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                // 优先级1：血量低于25%且有治疗技能 → 回血
+                if (hpRatio < 0.25 && skills.some(s => {
+                    const sd = ACTIVE_SKILLS[s];
+                    return sd?.type === 'heal' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                 })) {
                     const healSkill = skills.find(s => {
-                        const skillData = ACTIVE_SKILLS[s];
-                        return skillData?.type === 'heal' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                        const sd = ACTIVE_SKILLS[s];
+                        return sd?.type === 'heal' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                     });
                     if (healSkill) return 'skill:' + healSkill;
                 }
 
-                if (skills.some(s => {
-                    const skillData = ACTIVE_SKILLS[s];
-                    return (skillData?.paralyze_chance || skillData?.bind_chance || skillData?.skip_chance) && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                // 优先级2：能量>=5且有控制技能 → 控制
+                if (energy >= 5 && skills.some(s => {
+                    const sd = ACTIVE_SKILLS[s];
+                    return (sd?.paralyze_chance || sd?.bind_chance || sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
                 })) {
                     const controlSkill = skills.find(s => {
-                        const skillData = ACTIVE_SKILLS[s];
-                        return (skillData?.paralyze_chance || skillData?.bind_chance || skillData?.skip_chance) && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                        const sd = ACTIVE_SKILLS[s];
+                        return (sd?.paralyze_chance || sd?.bind_chance || sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
                     });
                     if (controlSkill) return 'skill:' + controlSkill;
                 }
 
+                // 优先级3：有攻击技能 → 使用
                 if (skills.some(s => {
-                    const skillData = ACTIVE_SKILLS[s];
-                    return skillData?.type === 'attack' && (skillData.power || 100) >= 150 && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    const sd = ACTIVE_SKILLS[s];
+                    return sd?.type === 'attack' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                 })) {
                     const bestSkill = skills.filter(s => {
-                        const skillData = ACTIVE_SKILLS[s];
-                        return skillData?.type === 'attack' && (skillData.power || 100) >= 150 && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                        const sd = ACTIVE_SKILLS[s];
+                        return sd?.type === 'attack' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                     }).sort((a, b) => (ACTIVE_SKILLS[b]?.power || 100) - (ACTIVE_SKILLS[a]?.power || 100))[0];
                     if (bestSkill) return 'skill:' + bestSkill;
                 }
 
-                if (skills.some(s => {
-                    const skillData = ACTIVE_SKILLS[s];
-                    return skillData?.type === 'attack' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                // 优先级4：能量>=4且有特殊技能 → 使用
+                if (energy >= 4 && skills.some(s => {
+                    const sd = ACTIVE_SKILLS[s];
+                    return (sd?.type === 'special' || sd?.type === 'defense') && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                 })) {
-                    const anySkill = skills.find(s => {
-                        const skillData = ACTIVE_SKILLS[s];
-                        return skillData?.type === 'attack' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
+                    const specSkill = skills.find(s => {
+                        const sd = ACTIVE_SKILLS[s];
+                        return (sd?.type === 'special' || sd?.type === 'defense') && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
                     });
-                    if (anySkill) return 'skill:' + anySkill;
+                    if (specSkill) return 'skill:' + specSkill;
                 }
 
-                if (playerHpRatio < 0.3 && energy >= 3) return 'attack';
-                if (energy < 3) return 'defend';
+                // 优先级5：没有技能或能量不够 → 直接攻击（不再防御）
                 return 'attack';
             }
             
@@ -2865,13 +2864,13 @@
                         };
                     });
                 },
-                // 多宠物PVE选择入口 → 改为先选地图
+                // 多宠物PVE选择入口 → 先选地图
                 selectBattlePet() {
                     const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
                     if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
                     if (availablePets.length === 1) {
                         State.selectedBattlePetId = availablePets[0].id;
-                        Farm.openPvEMap();  // 改为地图选择
+                        Farm.openPvEMap();  // 进入地图选择
                         return;
                     }
                     const overlay = document.createElement('div');
@@ -2905,7 +2904,7 @@
                             const pid = parseInt(item.dataset.petId);
                             State.selectedBattlePetId = pid;
                             overlay.remove();
-                            Farm.openPvEMap();  // 改为地图选择
+                            Farm.openPvEMap();  // 进入地图选择
                         };
                     });
                 },
@@ -3175,7 +3174,7 @@
                 });
             };
 
-            // 地图内怪物列表
+            // 地图内怪物列表 + 自动战斗入口
             Farm.openPvE = async function() {
                 const mapId = State.selectedMapId || 'grassland';
                 const mapData = PVE_MAPS.find(m => m.id === mapId);
@@ -3245,12 +3244,18 @@
                     }
                 });
                 
-                // 精英怪常驻显示（不随机刷新）
+                // 精英怪常驻显示
                 availableElites.forEach(elite => {
                     html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
                 });
                 
-                html += `<button class="btn-icon" id="btnBackToMaps" style="margin-top:8px;">← 返回地图</button>`;
+                // 自动战斗按钮
+                const myTickets = State.items['auto_battle_ticket'] || 0;
+                html += `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="btn-icon" id="btnBackToMaps">← 返回地图</button>
+                    <button class="btn-small btn-fight" id="btnAutoBattle" style="background:#8e44ad;color:#fff;">⚔️ 自动战斗 (🎫${myTickets})</button>
+                </div>`;
+                
                 c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
                 
                 if (html) {
@@ -3258,258 +3263,384 @@
                         document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
                     }
                     c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
-                }
-            };
-			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书使用/帮助弹窗 + 日志格式化 ====================
-            Farm.openOrders = function() {
-                document.getElementById('modalOrders').classList.add('active');
-                const c = document.getElementById('ordersContainer');
-                if (!State.orders || State.orders.length === 0) { c.innerHTML = '<p>今日订单已刷新，请稍后再来</p>'; return; }
-                c.innerHTML = State.orders.map((order, idx) => {
-                    const crop = CROPS[order.crop];
-                    const hasAmount = (State.items[order.crop] || 0) >= order.amount;
-                    return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
-                }).join('');
-                c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
-            };
-
-            Farm.openSeedShop = function() {
-                document.getElementById('modalSeedShop').classList.add('active');
-                const c = document.getElementById('seedShopContainer');
-                const today = new Date().toDateString();
-                if (!State.seedShop || State.seedShop.date !== today) {
-                    const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
-                    State.seedShop = { date: today, items: shuffled };
-                }
-                const ticketExchange = [
-                    { crop: 'potato', cost: 2 }, { crop: 'cabbage', cost: 2 }, { crop: 'sunflower', cost: 2 }, { crop: 'chrysanthemum', cost: 2 },
-                    { crop: 'grape', cost: 2 }, { crop: 'peanut', cost: 2 }, { crop: 'mushroom', cost: 5 }, { crop: 'pepper', cost: 5 },
-                    { crop: 'watermelon', cost: 5 }, { crop: 'blueberry', cost: 5 }, { crop: 'apple', cost: 5 }, { crop: 'peach', cost: 5 },
-                    { crop: 'orange', cost: 5 }, { crop: 'tulip', cost: 5 }, { crop: 'rose', cost: 5 }, { crop: 'lily', cost: 5 },
-                    { crop: 'pineapple', cost: 10 }, { crop: 'mango', cost: 10 }, { crop: 'lotus', cost: 10 }, { crop: 'cactus', cost: 10 },
-                    { crop: 'rice', cost: 10 }, { crop: 'tea', cost: 10 }
-                ];
-                const myTickets = State.items['seed_ticket'] || 0;
-                let html = `<div style="font-weight:600;margin-bottom:8px;text-align:left;">🪙 金币购买（每日3种）</div>`;
-                html += State.seedShop.items.map(item => {
-                    const crop = CROPS[item.crop]; const price = item.price; const canBuy = (State.profile.gold || 0) >= price;
-                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🪙${price}</span><button class="btn-small btn-adopt" data-crop="${item.crop}" data-price="${price}" ${canBuy?'':'disabled'}>${canBuy?'购买':'金币不足'}</button></div>`;
-                }).join('');
-                html += `<div style="font-weight:600;margin:12px 0 8px 0;text-align:left;">🎫 种子券兑换（拥有 ${myTickets} 张）</div>`;
-                html += ticketExchange.map(item => {
-                    const crop = CROPS[item.crop]; const canBuy = myTickets >= item.cost;
-                    return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🎫×${item.cost}</span><button class="btn-small btn-accept" data-crop="${item.crop}" data-cost="${item.cost}" ${canBuy?'':'disabled'}>${canBuy?'兑换':'券不足'}</button></div>`;
-                }).join('');
-                c.innerHTML = html;
-                c.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const price = parseInt(btn.dataset.price); try { State.profile.gold -= price; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_' + crop, 1); showToast(`购买成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('购买失败', true); } }; });
-                c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const cost = parseInt(btn.dataset.cost); try { await addItem('seed_ticket', -cost); await addItem('seed_' + crop, 1); showToast(`兑换成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('兑换失败', true); } }; });
-            };
-
-            Farm.openMail = async function() {
-                document.getElementById('modalMail').classList.add('active');
-                const c = document.getElementById('mailListContainer');
-                await loadMails();
-                if (State.mails.length === 0) { c.innerHTML = '<p>暂无邮件</p>'; return; }
-                c.innerHTML = State.mails.map((m, idx) => {
-                    const items = m.items && typeof m.items === 'object' ? Object.entries(m.items).filter(([k,v]) => v > 0).map(([k,v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join(', ') : '';
-                    return `<div class="order-card" style="background:${m.is_read ? '#fff' : '#fef9f3'};"><div style="font-weight:600;">${m.is_read ? '' : '🔵 '}${m.title}</div><div style="font-size:0.8rem;color:#888;">发件人：${escapeHTML(m.sender_name||'系统')}</div>${m.content ? `<div style="font-size:0.8rem;margin:4px 0;">${escapeHTML(m.content)}</div>` : ''}${items ? `<div style="font-size:0.8rem;color:#27ae60;">附件：${items}</div>` : ''}<div style="margin-top:6px;">${!m.is_claimed && m.items && Object.keys(m.items).some(k => m.items[k] > 0) ? `<button class="btn-small btn-accept" data-mail-idx="${idx}">领取附件</button>` : (m.is_claimed ? '<span style="color:#888;">已领取</span>' : '')}</div></div>`;
-                }).join('');
-                for (const m of State.mails) { if (!m.is_read) { m.is_read = true; supabase.from('mail').update({ is_read: true }).eq('id', m.id).then(() => {}); } }
-                c.querySelectorAll('.btn-accept').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.mailIdx); const mail = State.mails[idx]; if (!mail || mail.is_claimed) return; try { if (mail.items) { for (const [item, qty] of Object.entries(mail.items)) { if (qty > 0) await addItem(item, qty); } } mail.is_claimed = true; await supabase.from('mail').update({ is_claimed: true }).eq('id', mail.id); showToast('附件已领取！'); Farm.openMail(); } catch (e) { showToast('领取失败', true); } }; });
-            };
-
-            // 技能书使用
-            Farm.openSkillBook = function(bookKey) {
-                const qty = State.items[bookKey] || 0;
-                if (qty <= 0) { showToast('没有该技能书'); return; }
-                const isPassive = bookKey.startsWith('book_passive_');
-                const skillId = isPassive ? bookKey.replace('book_passive_', '') : bookKey.replace('book_', '');
-                const skillData = isPassive ? PASSIVE_SKILLS[skillId] : ACTIVE_SKILLS[skillId];
-                if (!skillData) { showToast('未知技能书'); return; }
-                if (State.pets.length === 0) { showToast('请先领养宠物'); return; }
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay active';
-                overlay.innerHTML = `
-                    <div class="modal" style="max-width:400px;text-align:left;">
-                        <h3>📕 使用技能书</h3>
-                        <div style="margin-bottom:8px;"><strong>${skillData.name}</strong>：${skillData.desc}</div>
-                        <div style="font-weight:600;margin:8px 0;">选择宠物学习：</div>
-                        <div id="skillBookPetList"></div>
-                        <button class="btn-close" id="closeSkillBook">×</button>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                const petList = overlay.querySelector('#skillBookPetList');
-                petList.innerHTML = State.pets.map(p => {
-                    if (isPassive) {
-                        const currentPassive = State.passiveSkills?.[p.id];
-                        const currentName = currentPassive ? PASSIVE_SKILLS[currentPassive]?.name : '无';
-                        return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">当前被动：${currentName}</span></div>`;
-                    } else {
-                        const currentSkills = State.petSkills.filter(s => s.pet_id === p.id);
-                        const skillNames = currentSkills.map(s => {
-                            const sd = ACTIVE_SKILLS[s.skill_name];
-                            return sd ? sd.name : s.skill_name;
-                        }).join(', ') || '暂无技能';
-                        const hasSlot = currentSkills.length < 4;
-                        return `<div class="list-item" style="cursor:pointer;justify-content:space-between;" data-pet-id="${p.id}"><span>${PET_TYPES[p.pet_type]?.emoji||'🐾'} #${p.id} ${p.pet_name}</span><span style="font-size:0.7rem;">${hasSlot ? `空位${4-currentSkills.length}个` : '技能已满'}</span><span style="font-size:0.65rem;color:#888;">${skillNames}</span></div>`;
+                    // 自动战斗按钮事件
+                    const autoBtn = document.getElementById('btnAutoBattle');
+                    if (autoBtn) {
+                        autoBtn.onclick = () => { modal.classList.remove('active'); Farm.openAutoBattle(); };
                     }
-                }).join('');
-                overlay.querySelector('#closeSkillBook').onclick = () => overlay.remove();
-                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-                petList.querySelectorAll('.list-item').forEach(item => {
-                    item.onclick = async () => {
-                        const pid = parseInt(item.dataset.petId);
-                        if (isPassive) {
-                            try {
-                                await addItem(bookKey, -1);
-                                State.passiveSkills[pid] = skillId;
-                                await supabase.from('pets').update({ passive_skill: skillId }).eq('id', pid);
-                                showToast(`${State.pets.find(p=>p.id===pid)?.pet_name} 习得被动：${skillData.name}！`);
-                                overlay.remove();
-                            } catch (e) { showToast('学习失败', true); }
-                        } else {
-                            const currentSkills = State.petSkills.filter(s => s.pet_id === pid);
-                            if (currentSkills.length < 4) {
-                                try {
-                                    await addItem(bookKey, -1);
-                                    const freeSlot = [0,1,2,3].find(s => !currentSkills.some(cs => cs.slot === s));
-                                    const { data: newSkill } = await supabase.from('pet_skills').insert({
-                                        pet_id: pid, skill_name: skillId, skill_type: skillData.type,
-                                        power: skillData.power || 100, cooldown: skillData.cooldown || 3, level: 1, slot: freeSlot
-                                    }).select().single();
-                                    if (newSkill) { State.petSkills.push(newSkill); showToast(`习得主动技能：${skillData.name}！`); }
-                                    overlay.remove();
-                                } catch (e) { showToast('学习失败', true); }
-                            } else {
-                                overlay.innerHTML = `
-                                    <div class="modal" style="max-width:400px;text-align:left;">
-                                        <h3>🔄 替换技能</h3>
-                                        <div style="margin-bottom:8px;">学习 <strong>${skillData.name}</strong>，请选择要替换的技能：</div>
-                                        <div id="replaceSkillList">${currentSkills.map(s => {
-                                            const sd = ACTIVE_SKILLS[s.skill_name];
-                                            return `<div class="list-item" style="cursor:pointer;" data-skill-id="${s.id}"><span>📜 ${sd?.name||s.skill_name} Lv.${s.level}</span></div>`;
-                                        }).join('')}</div>
-                                        <button class="btn-close" id="backSkillBook">← 返回</button>
-                                    </div>
-                                `;
-                                overlay.querySelector('#backSkillBook').onclick = () => { overlay.remove(); Farm.openSkillBook(bookKey); };
-                                overlay.querySelectorAll('#replaceSkillList .list-item').forEach(sItem => {
-                                    sItem.onclick = async () => {
-                                        const oldSkillId = parseInt(sItem.dataset.skillId);
-                                        try {
-                                            await addItem(bookKey, -1);
-                                            await supabase.from('pet_skills').delete().eq('id', oldSkillId);
-                                            State.petSkills = State.petSkills.filter(s => s.id !== oldSkillId);
-                                            const oldSkill = currentSkills.find(s => s.id === oldSkillId);
-                                            const { data: newSkill } = await supabase.from('pet_skills').insert({
-                                                pet_id: pid, skill_name: skillId, skill_type: skillData.type,
-                                                power: skillData.power || 100, cooldown: skillData.cooldown || 3, level: 1, slot: oldSkill?.slot || 0
-                                            }).select().single();
-                                            if (newSkill) { State.petSkills.push(newSkill); showToast(`替换成功！习得 ${skillData.name}`); }
-                                            overlay.remove();
-                                        } catch (e) { showToast('替换失败', true); }
-                                    };
-                                });
-                            }
+                }
+            };
+			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书使用/帮助弹窗 + 自动战斗 ====================
+Farm.openOrders = function() {
+    document.getElementById('modalOrders').classList.add('active');
+    const c = document.getElementById('ordersContainer');
+    if (!State.orders || State.orders.length === 0) { c.innerHTML = '<p>今日订单已刷新，请稍后再来</p>'; return; }
+    c.innerHTML = State.orders.map((order, idx) => {
+        const crop = CROPS[order.crop];
+        const hasAmount = (State.items[order.crop] || 0) >= order.amount;
+        return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
+    }).join('');
+    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
+};
+
+Farm.openSeedShop = function() {
+    document.getElementById('modalSeedShop').classList.add('active');
+    const c = document.getElementById('seedShopContainer');
+    const today = new Date().toDateString();
+    if (!State.seedShop || State.seedShop.date !== today) {
+        const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
+        State.seedShop = { date: today, items: shuffled };
+    }
+    const ticketExchange = [
+        { crop: 'potato', cost: 2 }, { crop: 'cabbage', cost: 2 }, { crop: 'sunflower', cost: 2 }, { crop: 'chrysanthemum', cost: 2 },
+        { crop: 'grape', cost: 2 }, { crop: 'peanut', cost: 2 }, { crop: 'mushroom', cost: 5 }, { crop: 'pepper', cost: 5 },
+        { crop: 'watermelon', cost: 5 }, { crop: 'blueberry', cost: 5 }, { crop: 'apple', cost: 5 }, { crop: 'peach', cost: 5 },
+        { crop: 'orange', cost: 5 }, { crop: 'tulip', cost: 5 }, { crop: 'rose', cost: 5 }, { crop: 'lily', cost: 5 },
+        { crop: 'pineapple', cost: 10 }, { crop: 'mango', cost: 10 }, { crop: 'lotus', cost: 10 }, { crop: 'cactus', cost: 10 },
+        { crop: 'rice', cost: 10 }, { crop: 'tea', cost: 10 }
+    ];
+    const myTickets = State.items['seed_ticket'] || 0;
+    let html = `<div style="font-weight:600;margin-bottom:8px;text-align:left;">🪙 金币购买（每日3种）</div>`;
+    html += State.seedShop.items.map(item => {
+        const crop = CROPS[item.crop]; const price = item.price; const canBuy = (State.profile.gold || 0) >= price;
+        return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🪙${price}</span><button class="btn-small btn-adopt" data-crop="${item.crop}" data-price="${price}" ${canBuy?'':'disabled'}>${canBuy?'购买':'金币不足'}</button></div>`;
+    }).join('');
+    html += `<div style="font-weight:600;margin:12px 0 8px 0;text-align:left;">🎫 种子券兑换（拥有 ${myTickets} 张）</div>`;
+    html += ticketExchange.map(item => {
+        const crop = CROPS[item.crop]; const canBuy = myTickets >= item.cost;
+        return `<div class="list-item" style="justify-content:space-between;"><span style="font-size:1.5rem;">${crop.emoji}</span><span style="flex:1;">${crop.name}种子</span><span>🎫×${item.cost}</span><button class="btn-small btn-accept" data-crop="${item.crop}" data-cost="${item.cost}" ${canBuy?'':'disabled'}>${canBuy?'兑换':'券不足'}</button></div>`;
+    }).join('');
+    c.innerHTML = html;
+    c.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const price = parseInt(btn.dataset.price); try { State.profile.gold -= price; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_' + crop, 1); showToast(`购买成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('购买失败', true); } }; });
+    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const crop = btn.dataset.crop; const cost = parseInt(btn.dataset.cost); try { await addItem('seed_ticket', -cost); await addItem('seed_' + crop, 1); showToast(`兑换成功！获得${CROPS[crop].name}种子`); Farm.openSeedShop(); } catch (e) { showToast('兑换失败', true); } }; });
+};
+
+// ==================== 邮箱系统（收件箱/发件箱/写邮件） ====================
+Farm.openMail = async function() {
+    document.getElementById('modalMail').classList.add('active');
+    const c = document.getElementById('mailListContainer');
+    
+    const showMailTab = async (type) => {
+        if (type === 'inbox') {
+            await loadMails();
+            if (State.mails.length === 0) { c.innerHTML = '<p>收件箱为空</p>'; return; }
+            c.innerHTML = State.mails.map((m, idx) => {
+                const items = m.items && typeof m.items === 'object' ? Object.entries(m.items).filter(([k,v]) => v > 0).map(([k,v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join(', ') : '';
+                return `<div class="order-card" style="background:${m.is_read ? '#fff' : '#fef9f3'};">
+                    <div style="font-weight:600;">${m.is_read ? '' : '🔵 '}${m.title}</div>
+                    <div style="font-size:0.8rem;color:#888;">发件人：${escapeHTML(m.sender_name||'系统')}</div>
+                    ${m.content ? `<div style="font-size:0.8rem;margin:4px 0;">${escapeHTML(m.content)}</div>` : ''}
+                    ${items ? `<div style="font-size:0.8rem;color:#27ae60;">附件：${items}</div>` : ''}
+                    <div style="margin-top:6px;">
+                        ${!m.is_claimed && m.items && Object.keys(m.items).some(k => m.items[k] > 0) 
+                            ? `<button class="btn-small btn-accept" data-mail-idx="${idx}">领取附件</button>` 
+                            : (m.is_claimed ? '<span style="color:#888;">已领取</span>' : '')}
+                    </div>
+                </div>`;
+            }).join('');
+            for (const m of State.mails) { 
+                if (!m.is_read) { m.is_read = true; supabase.from('mail').update({ is_read: true }).eq('id', m.id).then(() => {}); }
+            }
+            c.querySelectorAll('.btn-accept').forEach(btn => { btn.onclick = async () => { 
+                const idx = parseInt(btn.dataset.mailIdx); const mail = State.mails[idx]; 
+                if (!mail || mail.is_claimed) return; 
+                try { 
+                    if (mail.items) { for (const [item, qty] of Object.entries(mail.items)) { if (qty > 0) await addItem(item, qty); } }
+                    mail.is_claimed = true; 
+                    await supabase.from('mail').update({ is_claimed: true }).eq('id', mail.id); 
+                    showToast('附件已领取！'); 
+                    Farm.openMail(); 
+                } catch (e) { showToast('领取失败', true); } 
+            }; });
+        } else if (type === 'outbox') {
+            const { data: sentMails, error } = await supabase.from('mail').select('*').eq('sender_id', State.currentUser.id).order('created_at', { ascending: false }).limit(20);
+            if (error) { c.innerHTML = '<p>加载失败</p>'; return; }
+            if (sentMails.length === 0) { c.innerHTML = '<p>发件箱为空</p>'; return; }
+            c.innerHTML = sentMails.map(m => {
+                const items = m.items && typeof m.items === 'object' ? Object.entries(m.items).filter(([k,v]) => v > 0).map(([k,v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join(', ') : '';
+                return `<div class="order-card">
+                    <div style="font-weight:600;">${m.title}</div>
+                    <div style="font-size:0.8rem;color:#888;">收件人：${escapeHTML(m.receiver_name||'未知')}</div>
+                    ${m.content ? `<div style="font-size:0.8rem;margin:4px 0;">${escapeHTML(m.content)}</div>` : ''}
+                    ${items ? `<div style="font-size:0.8rem;">附件：${items}</div>` : ''}
+                    <div style="font-size:0.7rem;color:#aaa;">${formatTime(m.created_at)}</div>
+                </div>`;
+            }).join('');
+        } else if (type === 'compose') {
+            c.innerHTML = `
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem;">收件人昵称</label>
+                    <input type="text" id="mailReceiverName" placeholder="输入好友昵称" style="width:100%;padding:8px;border:1px solid #e0d8cc;border-radius:8px;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem;">主题</label>
+                    <input type="text" id="mailTitle" placeholder="邮件主题" style="width:100%;padding:8px;border:1px solid #e0d8cc;border-radius:8px;margin-top:4px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem;">正文</label>
+                    <textarea id="mailContent" placeholder="想说的话..." style="width:100%;padding:8px;border:1px solid #e0d8cc;border-radius:8px;margin-top:4px;height:80px;"></textarea>
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:0.85rem;">附件（可选，每行一个：物品ID 数量）</label>
+                    <textarea id="mailItems" placeholder="例如：&#10;hair 3&#10;seed 2" style="width:100%;padding:8px;border:1px solid #e0d8cc;border-radius:8px;margin-top:4px;height:60px;"></textarea>
+                </div>
+                <button class="btn-primary" id="btnSendMail">发送邮件</button>
+            `;
+            document.getElementById('btnSendMail').onclick = async () => {
+                const receiverName = document.getElementById('mailReceiverName').value.trim();
+                const title = document.getElementById('mailTitle').value.trim();
+                const content = document.getElementById('mailContent').value.trim();
+                const itemsText = document.getElementById('mailItems').value.trim();
+                if (!receiverName || !title) { showToast('收件人和主题不能为空', true); return; }
+                
+                // 查找收件人
+                const { data: receiverProfile } = await supabase.from('profiles').select('id,username').eq('username', receiverName).maybeSingle();
+                if (!receiverProfile) { showToast('找不到该昵称的用户', true); return; }
+                
+                let items = {};
+                if (itemsText) {
+                    const lines = itemsText.split('\n').filter(l => l.trim());
+                    for (const line of lines) {
+                        const [itemKey, qtyStr] = line.trim().split(/\s+/);
+                        if (itemKey && qtyStr && ITEM_NAMES[itemKey]) {
+                            const need = parseInt(qtyStr);
+                            if ((State.items[itemKey] || 0) < need) { showToast(`你背包里的 ${ITEM_NAMES[itemKey]} 不足`, true); return; }
+                            items[itemKey] = (items[itemKey] || 0) + need;
                         }
-                    };
-                });
-            };
-
-            Farm.openEventLog = async function() {
-                document.getElementById('modalEventLog').classList.add('active');
-                await loadEventLog();
-                document.getElementById('btnRefreshLog').onclick = async () => { await loadEventLog(); };
-            };
-
-            Farm.openHelp = function() {
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay active';
-                overlay.innerHTML = `
-                    <div class="modal" style="max-width:600px;text-align:left;">
-                        <h3>❓ 游戏帮助</h3>
-                        <div id="helpTabs" style="display:flex;gap:4px;margin-bottom:10px;">
-                            <button class="auth-tab active" data-htab="newbie">新手入门</button>
-                            <button class="auth-tab" data-htab="guide">完整攻略</button>
-                        </div>
-                        <div id="helpContent" style="max-height:65vh;overflow-y:auto;padding-right:8px;font-size:0.85rem;line-height:1.6;"></div>
-                        <button class="btn-close" id="closeHelpModal">×</button>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                const showHelp = (tab) => {
-                    const content = overlay.querySelector('#helpContent');
-                    if (tab === 'newbie') {
-                        content.innerHTML = `
-                            <h4>🌱 欢迎来到开心农场！</h4><p>这是一款融合种植经营、宠物养成、装备收集、回合制战斗和好友社交的游戏。</p>
-                            <h4>🌾 第一步：种植</h4><p>点击空地→选择作物→播种。成熟后收获获金币和作物，存入背包提交订单。</p>
-                            <h4>🐾 第二步：领养宠物</h4><p>宠物→领养。每只宠物出生自带天生个体值、性格和被动技能。</p>
-                            <h4>📕 第三步：学习技能</h4><p>探险和战斗掉落技能书，在背包中使用，自由选择给哪只宠物学习。</p>
-                            <h4>⚔️ 第四步：战斗</h4><p>怪物讨伐页随机刷新怪物和词缀。消耗能量释放技能，属性克制伤害更高。</p>
-                            <h4>⚒️ 第五步：打造装备</h4><p>合成台合成装备，可强化+1~+10，集齐套装激活额外效果。</p>
-                        `;
-                    } else {
-                        content.innerHTML = `
-                            <h4>🌾 种植系统</h4><p>60种作物，品质系统（普通/优质/极品/传说）。作物存入背包提交订单换金币和种子券。</p>
-                            <h4>🐾 宠物系统</h4><p>3种宠物，天生个体值±15%、7种性格、15种被动技能。满级30级，最多6个槽位。</p>
-                            <h4>📕 技能系统</h4><p>24种主动技能（6属性各4个）+ 15种被动技能。技能书掉落+背包使用。能量系统：初始3点，每回合+1，上限10。</p>
-                            <h4>⚔️ 战斗系统</h4><p>怪物随机刷新+词缀系统。属性克制：火→草→水→雷→火，光暗互克。怪物AI智能出招。</p>
-                            <h4>🔧 加工系统</h4><p>合成台制作食品和药剂。加工需等待时间，队列显示倒计时。</p>
-                            <h4>📬 邮箱系统</h4><p>系统邮件和好友邮件，附件直接领取到背包。</p>
-                        `;
                     }
+                }
+                
+                // 扣除附件物品
+                for (const [item, qty] of Object.entries(items)) {
+                    await addItem(item, -qty);
+                }
+                
+                const mailData = {
+                    receiver_id: receiverProfile.id,
+                    receiver_name: receiverProfile.username,
+                    sender_id: State.currentUser.id,
+                    sender_name: State.profile.username,
+                    title: title,
+                    content: content,
+                    items: items,
+                    is_read: false,
+                    is_claimed: false
                 };
-                showHelp('newbie');
-                overlay.querySelectorAll('#helpTabs .auth-tab').forEach(tab => {
-                    tab.onclick = () => {
-                        overlay.querySelectorAll('#helpTabs .auth-tab').forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        showHelp(tab.dataset.htab);
-                    };
-                });
-                overlay.querySelector('#closeHelpModal').onclick = () => overlay.remove();
-                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+                
+                const { error } = await supabase.from('mail').insert(mailData);
+                if (error) { showToast('发送失败', true); return; }
+                showToast(`邮件已发送给 ${receiverName}！`);
+                // 切回收件箱
+                showMailTab('inbox');
             };
+        }
+    };
+    
+    showMailTab('inbox');
+    document.querySelectorAll('#mailTypeTabs .auth-tab').forEach(tab => {
+        tab.onclick = () => {
+            document.querySelectorAll('#mailTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            showMailTab(tab.dataset.mtype);
+        };
+    });
+};
 
-            async function loadEventLog() {
-                const c = document.getElementById('eventLogContainer');
-                c.innerHTML = '<p>加载中...</p>';
-                const { data: logs, error } = await supabase.from('event_logs').select('*').eq('user_id', State.currentUser.id).order('created_at', { ascending: false }).limit(50);
-                if (error) { c.innerHTML = '<p>加载失败</p>'; return; }
-                if (logs.length === 0) { c.innerHTML = '<p>暂无事件记录。</p>'; return; }
-                c.innerHTML = logs.map(log => { const time = formatTime(log.created_at), content = formatEventMessage(log); return `<div class="log-item"><div style="font-size:0.7rem;color:#888;">${time}</div><div>${content}</div></div>`; }).join('');
-                const { count } = await supabase.from('event_logs').select('*', { count: 'exact', head: true }).eq('user_id', State.currentUser.id);
-                if (count > MAX_LOG_COUNT) {
-                    const { data: oldLogs } = await supabase.from('event_logs').select('id').eq('user_id', State.currentUser.id).order('created_at', { ascending: true }).limit(count - MAX_LOG_COUNT);
-                    const oldIds = oldLogs.map(l => l.id);
-                    await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
+// ==================== 自动战斗系统 ====================
+Farm.openAutoBattle = function() {
+    const myTickets = State.items['auto_battle_ticket'] || 0;
+    if (myTickets <= 0) { showToast('你没有自动战斗券！请通过商店或活动获取', true); return; }
+    if (State.pets.length === 0) { showToast('请先领养宠物', true); return; }
+    
+    // 选择宠物
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.innerHTML = `
+        <div class="modal" style="max-width:400px;">
+            <h3>⚔️ 自动战斗</h3>
+            <p style="font-size:0.85rem;">将自动挑战当前地图的普通怪物，消耗 🎫×1，上限30次。</p>
+            <div id="autoBattlePetList"></div>
+            <button class="btn-close" id="closeAutoBattle">×</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    const petListDiv = overlay.querySelector('#autoBattlePetList');
+    petListDiv.innerHTML = State.pets.map(p => {
+        const stats = getPetBattleStats(p);
+        const isExploring = p.exploring_until && new Date(p.exploring_until) > new Date();
+        return `<div class="list-item ${isExploring ? '' : 'clickable'}" data-pet-id="${p.id}" style="${isExploring ? 'opacity:0.5;' : 'cursor:pointer;'}">
+            <span style="font-size:2rem;">${PET_TYPES[p.pet_type]?.emoji||'🐾'}</span>
+            <div style="flex:1;"><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level}</div>
+            ${isExploring ? '<span style="color:#888;">探险中</span>' : ''}
+        </div>`;
+    }).join('');
+    
+    overlay.querySelector('#closeAutoBattle').onclick = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    
+    petListDiv.querySelectorAll('.list-item.clickable').forEach(item => {
+        item.onclick = async () => {
+            const pid = parseInt(item.dataset.petId);
+            const pet = State.pets.find(p => p.id === pid);
+            if (!pet) return;
+            overlay.remove();
+            await Farm.startAutoBattle(pid);
+        };
+    });
+};
+
+Farm.startAutoBattle = async function(petId) {
+    const mapId = State.selectedMapId || 'grassland';
+    const mapData = PVE_MAPS.find(m => m.id === mapId);
+    if (!mapData || mapData.isBoss) { showToast('自动战斗不支持BOSS地图', true); return; }
+    
+    const availableMonsters = mapData.monsterIds.map(getMonsterByName).filter(Boolean);
+    if (availableMonsters.length === 0) { showToast('当前地图没有可自动战斗的怪物', true); return; }
+    
+    const myTickets = State.items['auto_battle_ticket'] || 0;
+    if (myTickets <= 0) { showToast('自动战斗券不足', true); return; }
+    
+    const battleCount = Math.min(30, myTickets);
+    showToast(`开始自动战斗 ×${battleCount} 次，消耗 🎫×${battleCount}`);
+    
+    // 扣除所有战斗券
+    await addItem('auto_battle_ticket', -battleCount);
+    
+    let totalGold = 0;
+    let totalExp = 0;
+    let totalItems = {};
+    let wins = 0;
+    let losses = 0;
+    let levelUps = 0;
+    
+    const pet = State.pets.find(p => p.id === petId);
+    if (!pet) return;
+    
+    for (let i = 0; i < battleCount; i++) {
+        // 随机选择一只普通怪
+        const monster = availableMonsters[Math.floor(Math.random() * availableMonsters.length)];
+        
+        // 模拟战斗（简化版，不进入UI）
+        const myStats = getPetBattleStats(pet);
+        const oppStats = { ...monster, hp: monster.hp, atk: monster.atk, def: monster.def, spd: monster.spd, maxHp: monster.hp };
+        
+        // 随机决定是否出现词缀
+        let affixes = [];
+        if (Math.random() < 0.5) {
+            const shuffled = [...MONSTER_AFFIXES].sort(() => Math.random() - 0.5);
+            affixes = shuffled.slice(0, Math.random() < 0.3 ? 2 : 1);
+        }
+        for (const a of affixes) {
+            if (a.effect.hp_mult) oppStats.hp = Math.floor(oppStats.hp * a.effect.hp_mult);
+            if (a.effect.atk_mult) oppStats.atk = Math.floor(oppStats.atk * a.effect.atk_mult);
+            if (a.effect.def_mult) oppStats.def = Math.floor(oppStats.def * a.effect.def_mult);
+            if (a.effect.spd_mult) oppStats.spd = Math.floor(oppStats.spd * a.effect.spd_mult);
+        }
+        
+        // 简化的胜负判定：战力对比 + 随机因素
+        const myPower = myStats.atk * 2 + myStats.def + myStats.spd + myStats.hp * 0.5;
+        const oppPower = oppStats.atk * 2 + oppStats.def + oppStats.spd + oppStats.hp * 0.5;
+        const winChance = myPower / (myPower + oppPower) * 0.9 + 0.05; // 基础胜率，避免极端
+        const won = Math.random() < winChance;
+        
+        if (won) {
+            wins++;
+            // 奖励计算
+            const goldReward = Math.floor(monster.rewards.gold * (0.8 + Math.random() * 0.4));
+            totalGold += goldReward;
+            totalExp += 50;
+            
+            // 物品掉落
+            if (monster.rewards.items) {
+                for (const [item, prob] of Object.entries(monster.rewards.items)) {
+                    if (Math.random() < prob) {
+                        totalItems[item] = (totalItems[item] || 0) + 1;
+                    }
                 }
             }
-            function formatEventMessage(log) {
-                const d = log.event_data || {};
-                switch (log.event_type) {
-                    case 'plant': return `🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;
-                    case 'harvest': { const qName = d.quality ? QUALITIES[d.quality]?.name || d.quality : ''; return `🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币${qName ? '（'+qName+'）' : ''}`; }
-                    case 'water_self': return `💧 你为自己的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||'作物'} 浇了水`;
-                    case 'water_sent': return `💧 你帮 👤 ${d.friend} 浇了水，双方各得5金币`;
-                    case 'steal_sent': return `你偷了 👤 ${d.victim} 的 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;
-                    case 'adopt_pet': return `🐾 你领养了一只 ${d.pet}（性格${d.nature||'?'}，被动${d.passive||'?'}）`;
-                    case 'explore_start': return `🗺️ ${d.pet} 前往${d.route}探险了`;
-                    case 'explore_complete': { const items = Object.entries(d.rewards||{}).map(([item,qty]) => `${ITEM_EMOJI[item]||'📦'}×${qty}`).join(' '); const eventMsg = d.event ? ` · 触发事件：${d.event}` : ''; return `🗺️ ${d.pet} 从${d.route}归来，获得 ${items}${eventMsg}`; }
-                    case 'plot_unlock': return `🔓 你解锁了第 ${d.plot} 块农田！`;
-                    case 'friend_accepted': return `🤝 你和 👤 ${d.friend} 成为了好友`;
-                    case 'synthesis': return `🔧 你合成了 ${d.name} (${QUALITY_NAMES[d.quality]})`;
-                    case 'enhance': return `⚔️ 装备 ${d.name} 强化${d.success?'成功':'失败'}，当前+${d.level}`;
-                    case 'decompose': return `♻️ 你分解了 ${d.name}，材料已返还`;
-                    case 'sell_equipment': return `💰 你出售了 ${d.name}，获得 ${d.price} 金币`;
-                    case 'battle_win': return `⚔️ 你战胜了 👤 ${d.opponent}，获得 ${d.gold} 金币`;
-                    case 'battle_lose': return `⚔️ 你败给了 👤 ${d.opponent}`;
-                    case 'pve_win': return `🐉 你击败了 ${d.monster}，获得 🪙${d.gold} 和材料`;
-                    case 'pve_lose': return `🐉 你被 ${d.monster} 击败了`;
-                    default: return '未知事件';
+            
+            // 技能书掉落
+            if (Math.random() < 0.05) {
+                const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
+                const randBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
+                totalItems[randBook] = (totalItems[randBook] || 0) + 1;
+            }
+            
+            // 经验与升级
+            if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
+                const ne = (pet.exp || 0) + 50;
+                pet.exp = ne;
+                let nl = pet.level || 1;
+                while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
+                    nl++;
+                    levelUps++;
+                    // 属性增长
+                    const base = PET_TYPES[pet.pet_type].baseAttr;
+                    pet.hp = Math.floor(base.hp * (1 + 0.02 * (nl - 1)));
+                    pet.atk = Math.floor(base.atk * (1 + 0.02 * (nl - 1)));
+                    pet.def = Math.floor(base.def * (1 + 0.015 * (nl - 1)));
+                    pet.spd = Math.floor(base.spd * (1 + 0.01 * (nl - 1)));
+                    pet.luk = Math.floor(base.luk * (1 + 0.01 * (nl - 1)));
+                    pet.sta = Math.floor(base.sta * (1 + 0.02 * (nl - 1)));
+                }
+                if (nl !== pet.level) {
+                    pet.level = nl;
                 }
             }
+            
+            // 更新讨伐日志
+            if (!State.monsterLog[monster.name]) State.monsterLog[monster.name] = { kills: 0, affixes: [] };
+            State.monsterLog[monster.name].kills++;
+            if (affixes.length > 0) {
+                for (const a of affixes) {
+                    if (!State.monsterLog[monster.name].affixes.includes(a.id)) {
+                        State.monsterLog[monster.name].affixes.push(a.id);
+                    }
+                }
+            }
+        } else {
+            losses++;
+        }
+    }
+    
+    // 结算奖励
+    if (totalGold > 0) {
+        State.profile.gold += totalGold;
+        await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id);
+    }
+    for (const [item, qty] of Object.entries(totalItems)) {
+        await addItem(item, qty);
+    }
+    if (pet.exp !== undefined) {
+        await supabase.from('pets').update({ 
+            level: pet.level, exp: pet.exp,
+            hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta
+        }).eq('id', pet.id);
+    }
+    
+    addEventLog('auto_battle', { map: mapData.name, wins, losses, gold: totalGold, items: totalItems });
+    
+    // 显示结果
+    const itemsStr = Object.entries(totalItems).map(([k, v]) => `${ITEM_EMOJI[k]||'📦'} ${ITEM_NAMES[k]||k} ×${v}`).join('，');
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.innerHTML = `
+        <div class="modal" style="max-width:380px;">
+            <h3>⚔️ 自动战斗结束</h3>
+            <div style="text-align:left;padding:10px;">
+                <div>🗺️ 地图：${mapData.name}</div>
+                <div>🐾 出战：${pet.pet_name} Lv.${pet.level}</div>
+                <div>✅ 胜利：${wins} 场 | ❌ 失败：${losses} 场</div>
+                <div>🪙 金币：+${totalGold}</div>
+                ${levelUps > 0 ? `<div style="color:#f0c040;">⬆️ 升级了 ${levelUps} 次！当前 Lv.${pet.level}</div>` : ''}
+                ${itemsStr ? `<div style="margin-top:4px;">🎁 获得物品：${itemsStr}</div>` : '<div>未获得额外物品</div>'}
+            </div>
+            <button class="btn-primary" id="btnAutoResultConfirm">确定</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#btnAutoResultConfirm').onclick = () => { overlay.remove(); loadPets().then(() => render()); };
+};
 			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
             let growthTimer;
             let processingTimer;
