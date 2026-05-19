@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v5.1「元素觉醒·完全版」</title>
+    <title>🌱 开心农场 v5.2「元素觉醒·完全版」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -1055,7 +1055,6 @@
                 '魔王': {2:{atk:25}, 3:{lifesteal:0.1}}
             };
 			// ==================== 第 9 块：工具函数 + 怪物AI重写 ====================
-            // 常量提取
             const WATER_COOLDOWN_MS = 30 * 60 * 1000;
             const BOSS_COOLDOWN_MINUTES = 60;
             const BOSS_EXPIRE_HOURS = 6;
@@ -1148,7 +1147,6 @@
             function getPetBattleStats(pet) {
                 const equip = State.equipment.filter(e => e.equipped_to === pet.id);
                 let atk = pet.atk, def = pet.def, spd = pet.spd, luk = pet.luk, hp = pet.hp, sta = pet.sta;
-                // 装备加成
                 equip.forEach(e => { atk += e.atk_bonus; def += e.def_bonus; spd += e.spd_bonus; luk += e.luk_bonus; });
                 // 性格加成
                 if (pet.nature) {
@@ -1182,7 +1180,8 @@
                 return { ...pet, atk, def, spd, luk, hp, sta, maxHp: hp };
             }
             
-            function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive = null, dfPassive = null) {
+            // 伤害计算（含属性克制、铁壁物理/魔法判定）
+            function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive = null, dfPassive = null, skillType = null) {
                 let ak = at.atk, de = df.def;
                 // 属性克制
                 let elementMult = 1;
@@ -1201,6 +1200,14 @@
                 let dmg = Math.max(1, ak - de + Math.floor(Math.random() * 10));
                 dmg = Math.floor(dmg * elementMult);
                 if (isSkill) dmg = Math.floor(dmg * 1.3);
+                // 铁壁被动：物理伤害-15%，魔法伤害+10%
+                if (dfPassive === 'iron') {
+                    if (skillType === 'special') {
+                        dmg = Math.floor(dmg * 1.1);
+                    } else {
+                        dmg = Math.floor(dmg * 0.85);
+                    }
+                }
                 return dmg;
             }
             
@@ -1212,7 +1219,6 @@
                 const hpRatio = battle.opponentCurrentHp / (battle.opponentPet.hp || battle.opponentPet.maxHp || 1);
                 const playerHpRatio = battle.myCurrentHp / (battle.myPet.hp || battle.myPet.maxHp || 1);
 
-                // 优先级1：血量低于30%且有治疗技能 → 回血
                 if (hpRatio < 0.3 && skills.some(s => {
                     const skillData = ACTIVE_SKILLS[s];
                     return skillData?.type === 'heal' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
@@ -1224,7 +1230,6 @@
                     if (healSkill) return 'skill:' + healSkill;
                 }
 
-                // 优先级2：能量足够且有控制技能 → 控制
                 if (skills.some(s => {
                     const skillData = ACTIVE_SKILLS[s];
                     return (skillData?.paralyze_chance || skillData?.bind_chance || skillData?.skip_chance) && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
@@ -1236,7 +1241,6 @@
                     if (controlSkill) return 'skill:' + controlSkill;
                 }
 
-                // 优先级3：能量足够且有高伤害技能 → 攻击
                 if (skills.some(s => {
                     const skillData = ACTIVE_SKILLS[s];
                     return skillData?.type === 'attack' && (skillData.power || 100) >= 150 && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
@@ -1248,7 +1252,6 @@
                     if (bestSkill) return 'skill:' + bestSkill;
                 }
 
-                // 优先级4：能量足够且有任意攻击技能 → 攻击
                 if (skills.some(s => {
                     const skillData = ACTIVE_SKILLS[s];
                     return skillData?.type === 'attack' && energy >= (skillData.energy || 0) && !(skillCd[s] > 0);
@@ -1260,13 +1263,8 @@
                     if (anySkill) return 'skill:' + anySkill;
                 }
 
-                // 优先级5：玩家血量低且自身能量够 → 收割
                 if (playerHpRatio < 0.3 && energy >= 3) return 'attack';
-
-                // 优先级6：能量不够 → 防御攒能量
                 if (energy < 3) return 'defend';
-
-                // 默认攻击
                 return 'attack';
             }
             
@@ -1354,7 +1352,6 @@
                     await supabase.from('profiles').update({ gold: State.profile.gold - recipe.cost }).eq('id', State.currentUser.id);
                     State.profile.gold -= recipe.cost;
                 }
-                // 如果是加工品（有时间），添加到加工队列
                 if (recipe.time) {
                     const finishAt = new Date(Date.now() + recipe.time * 60000).toISOString();
                     State.processingTasks.push({ id: Date.now(), name: recipe.name, icon: recipe.icon, finishAt });
@@ -1968,7 +1965,8 @@
                         let powerMult = (skillData.power || 100) / 100;
                         const element = skillData.element || null;
                         const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
-                        dmg = calculateDamage(b.myPet, b.opponentPet, true, element, myPassiveId, oppPassiveId);
+                        // 传入 skillData.type 以支持铁壁判定
+                        dmg = calculateDamage(b.myPet, b.opponentPet, true, element, myPassiveId, oppPassiveId, skillData.type);
                         dmg = Math.floor(dmg * powerMult);
                         b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
                         logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
@@ -2065,7 +2063,10 @@
                         }
                     }
                 } else if (action === 'attack') {
-                    dmg = calculateDamage(b.myPet, b.opponentPet);
+                    const myPassiveId = State.passiveSkills?.[b.myPet.id];
+                    const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
+                    // 普通攻击，skillType 传 null
+                    dmg = calculateDamage(b.myPet, b.opponentPet, false, null, myPassiveId, oppPassiveId, null);
                     b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
                     b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ATTACK_ENERGY_GAIN);
                     logBattle(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害 ⚡+1`);
@@ -2088,8 +2089,11 @@
                 const oppSkip = (b.oppBuffs || []).some(bf => bf.type === 'skip_next');
                 if (b.opponentCurrentHp > 0 && !oppSkip && !oppParalyzed && !oppBound) {
                     const aiResult = monsterAI(b);
+                    const myPassiveId = State.passiveSkills?.[b.myPet.id];
+                    const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
                     if (aiResult === 'attack') {
-                        let odmg = calculateDamage(b.opponentPet, b.myPet);
+                        // 对手普通攻击
+                        let odmg = calculateDamage(b.opponentPet, b.myPet, false, null, oppPassiveId, myPassiveId, null);
                         if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                         if (isInvincible) odmg = 0;
                         if (b.affixes?.some(a => a.id === 'vampire')) {
@@ -2110,13 +2114,21 @@
                             b.oppEnergy = Math.max(0, (b.oppEnergy || 0) - (skillData.energy || 0));
                             const oppSkillCd = skillData.cooldown || 2;
                             b.oppSkillCooldowns[skillName] = oppSkillCd;
-                            if (skillData.type === 'attack') {
-                                let odmg = calculateDamage(b.opponentPet, b.myPet, true, skillData.element);
+                            if (skillData.type === 'attack' || skillData.type === 'special') {
+                                // 对手技能攻击，传入 skillData.type
+                                let odmg = calculateDamage(b.opponentPet, b.myPet, true, skillData.element, oppPassiveId, myPassiveId, skillData.type);
                                 odmg = Math.floor(odmg * (skillData.power || 100) / 100);
                                 if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                                 if (isInvincible) odmg = 0;
                                 b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
                                 logBattle(`对手 使用【${skillData.name}】，造成 ${odmg} 点伤害`);
+                                // 电磁护盾反弹魔法伤害
+                                const reflectMagicBuff = (b.myBuffs || []).find(bf => bf.type === 'reflect_magic');
+                                if (reflectMagicBuff && skillData.type === 'special') {
+                                    const reflectMagicDmg = Math.floor(odmg * (reflectMagicBuff.value || 0.3));
+                                    b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - reflectMagicDmg);
+                                    logBattle(`⚡ 电磁护盾反弹 ${reflectMagicDmg} 点魔法伤害`);
+                                }
                                 if (skillData.burn) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 你被灼烧了`); }
                                 if (skillData.paralyze_chance && Math.random() < skillData.paralyze_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 你被麻痹了`); }
                                 if (skillData.poison) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'poison', duration: skillData.poison_duration || 3 }); logBattle(`☠️ 你中毒了`); }
