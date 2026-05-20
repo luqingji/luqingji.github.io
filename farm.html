@@ -1242,8 +1242,13 @@ const ENERGY_PER_TURN = 1;
 const ATTACK_ENERGY_GAIN = 1;
 const DEFEND_ENERGY_GAIN = 1;
 
-// 全局日志序号（用于战斗日志排序）
+// 全局日志序号（每场战斗从 #1 开始）
 let logIndex = 0;
+
+// 重置日志序号（每场新战斗开始时调用）
+function resetLogIndex() {
+    logIndex = 0;
+}
 
 function showToast(msg, isError = false) {
     const t = document.getElementById('toast');
@@ -2058,7 +2063,7 @@ async function synthesizeProduct(recipe) {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-			// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2081,6 +2086,7 @@ async function unlockPlot() {
 }
 
 async function startBattle(myPetId, friendId) {
+    resetLogIndex();  // 每场新战斗重置日志序号
     if (State.isSubmitting) return; State.isSubmitting = true;
     try {
         const { data: friend } = await supabase.from('profiles').select('id,username').eq('id', friendId).single();
@@ -2106,6 +2112,7 @@ async function startBattle(myPetId, friendId) {
     finally { State.isSubmitting = false; }
 }
 async function startPvEBattle(monster) {
+    resetLogIndex();  // 每场新战斗重置日志序号
     if (State.isSubmitting) return;
     const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
     const myPet = getPetBattleStats(State.pets.find(p => p.id === selectedPetId));
@@ -2214,7 +2221,7 @@ function executeBattleAction(action, skillId = null) {
                 dmg = Math.floor(dmg * powerMult);
                 if (Math.random() < potionCrit) dmg = Math.floor(dmg * 1.5);
                 b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
-                logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
+                logBattle(`你的 ${b.myPet.pet_name 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
                 if (skillData.burn || skillData.burn_chance > 0) {
                     if (skillData.burn || Math.random() < (skillData.burn_chance || 0)) {
                         b.oppBuffs = b.oppBuffs || [];
@@ -2791,8 +2798,8 @@ const Battle = {
         const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
         
-        // 日志渲染：按 idx 序号倒序排列，确保同一秒内的日志顺序正确
-        const logHTML = b.log.slice().sort((a, b) => (b.idx || 0) - (a.idx || 0)).map(l => {
+        // 日志渲染：按 idx 升序排列（最新日志在底部），自动滚动到底部
+        const logHTML = b.log.slice().sort((a, b) => (a.idx || 0) - (b.idx || 0)).map(l => {
             if (typeof l === 'string') return `<div>${l}</div>`;
             const msg = l.msg || '';
             return `<div><span style="color:#888;">${l.time}</span> ${msg}</div>`;
