@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v5.4.1「药剂工坊与怪物图鉴」</title>
+    <title>🌱 开心农场 v5.4.2「药剂工坊与怪物图鉴」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 核心样式变量 ==================== */
@@ -256,7 +256,7 @@
 <body>
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
-	    <script>
+	   <script>
         /* ================================================================
          *  第 2 块：游戏数据定义（作物 / 宠物 / 物品 / 技能 / 装备 / 怪物 / 地图）
          *  - 纯粹的游戏常量与配置数据，不包含任何函数逻辑
@@ -653,8 +653,8 @@
             { id:'ruins', name:'古老遗迹', emoji:'🏛️', minLevel:25, maxLevel:35, unlockCond:{ type:'pet_level', count:25 }, unlockDesc:'任意宠物达到Lv.25', monsterIds:[], eliteIds:['黄金菜青虫','鼠王','血蝙蝠','九尾狐','熔岩幼龙','水晶地龙'], bg:'#ede8f0' },
             { id:'boss_lair', name:'虫母巢穴', emoji:'👹', minLevel:1, maxLevel:35, unlockCond:null, unlockDesc:'全服共享BOSS', monsterIds:[], eliteIds:[], isBoss:true, bg:'#fdf0e0' }
         ];
-		</script>
-		    <script>
+		  </script>
+		  <script>
         /* ================================================================
          *  第 3 块：全局状态与核心数据加载 (State / Supabase / loadAll)
          *  - 管理游戏运行时状态，封装认证与数据持久化逻辑
@@ -964,8 +964,8 @@
                 listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
             }
         };
-		    </script>
-		    <script>
+		  </script>
+		  <script>
         /* ================================================================
          *  第 4 块：通用工具函数 (Utility Functions)
          *  - 包含游戏内所有核心逻辑复用函数，如战斗计算、状态管理等
@@ -1319,7 +1319,7 @@
             return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
         }
     </script>
-	    <script>
+	   <script>
         /* ================================================================
          *  第 5 块：农场与社交系统 (Farm & FriendFarm)
          *  - 主农场界面、好友农场、宠物/背包/好友/探险等弹窗逻辑
@@ -1671,8 +1671,8 @@
                 };
             }
         };
-    </script>
-	    <script>
+		  </script>
+	   <script>
         /* ================================================================
          *  第 6 块：战斗系统 (Battle System)
          *  - PvE / PvP 战斗界面渲染、行动执行、结算、Boss战
@@ -2058,7 +2058,7 @@
             State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
         }
     </script>
-	    <script>
+	   <script>
         /* ================================================================
          *  第 7 块：实用功能集 (Utility Panels)
          *  - 合成/装备/商店/订单/邮箱/技能书/帮助/日志等弹窗逻辑
@@ -2566,7 +2566,7 @@
             overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
         };
     </script>
-	    <script>
+	   <script>
         /* ================================================================
          *  第 8 块：启动与定时器 (Initialization & Timers)
          *  - 全局定时器、初始化、渲染入口
