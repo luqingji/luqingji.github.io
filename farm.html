@@ -2221,7 +2221,7 @@ function executeBattleAction(action, skillId = null) {
                 dmg = Math.floor(dmg * powerMult);
                 if (Math.random() < potionCrit) dmg = Math.floor(dmg * 1.5);
                 b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
-                logBattle(`你的 ${b.myPet.pet_name 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
+                logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
                 if (skillData.burn || skillData.burn_chance > 0) {
                     if (skillData.burn || Math.random() < (skillData.burn_chance || 0)) {
                         b.oppBuffs = b.oppBuffs || [];
