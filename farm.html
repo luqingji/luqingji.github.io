@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v6.2「元素觉醒·完全版」</title>
+    <title>🌱 开心农场 v5.4「药剂工坊与怪物图鉴」title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -198,413 +198,493 @@
             white-space: nowrap;
             vertical-align: middle;
         }
-		        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            padding: var(--gap-xl);
-            max-width: min(var(--modal-width), 90vw);
-            width: 90%;
-            text-align: center;
-            max-height: 75vh;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            position: relative;
-        }
-        .modal h3 {
-            margin-bottom: var(--gap-md);
-            color: var(--text);
-            font-size: var(--font-xl);
-        }
-        .crop-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--gap-sm);
-            margin-bottom: var(--gap-md);
-        }
-        .crop-btn {
-            padding: 10px 4px;
-            border: 2px solid #e0d8cc;
-            border-radius: var(--radius-md);
-            background: #fdfcf9;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all var(--transition-fast);
-            text-align: center;
-            font-size: var(--font-md);
-        }
-        .crop-btn:hover {
-            border-color: var(--accent);
-            background: #fef9f3;
-        }
-        .crop-btn.locked {
-            opacity: 0.4;
-            filter: grayscale(1);
-            cursor: not-allowed;
-            background: #eee;
-        }
-        .btn-close {
-            position: absolute;
-            top: var(--gap-sm);
-            right: var(--gap-md);
-            padding: 6px 12px;
-            background: #e8e0d5;
-            border: none;
-            border-radius: var(--radius-xl);
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-md);
-            z-index: 10;
-            transition: transform var(--transition-fast);
-        }
-        .btn-close:active { transform: scale(0.95); }
-        .auth-form {
-            background: var(--card);
-            border-radius: var(--radius-lg);
-            padding: 24px var(--gap-xl);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        .auth-tabs {
-            display: flex;
-            margin-bottom: var(--gap-lg);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            border: 1.5px solid #e0d8cc;
-        }
-        .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: var(--gap-sm);
-            font-weight: 600;
-            cursor: pointer;
-            background: #fdfcf9;
-            transition: all var(--transition-fast);
-            font-family: inherit;
-            font-size: var(--font-md);
-            border: none;
-        }
-        .auth-tab.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        .form-group { margin-bottom: var(--gap-md); }
-        .form-group label {
-            display: block;
-            font-size: var(--font-sm);
-            color: #666;
-            margin-bottom: 2px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1.5px solid #e0d8cc;
-            border-radius: 10px;
-            font-size: var(--font-md);
-            font-family: inherit;
-            outline: none;
-        }
-        .btn-primary {
-            width: 100%;
-            padding: 10px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: var(--font-lg);
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity var(--transition-fast);
-        }
-        .btn-primary:active { opacity: 0.85; }
-        .msg-error {
-            color: var(--red);
-            font-size: var(--font-sm);
-            text-align: center;
-            margin-top: var(--gap-sm);
-        }
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #3d3929;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: var(--radius-xl);
-            font-size: var(--font-md);
-            z-index: 200;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .toast.show { opacity: 1; }
-        .list-container {
-            max-height: 60vh;
-            overflow-y: auto;
-            text-align: left;
-        }
-        .list-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px var(--gap-md);
-            border-bottom: 1px solid #f0ede6;
-        }
-        .order-card {
-            background: #fef9f3;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border: 1px solid var(--accent);
-            text-align: left;
-        }
-        .quality-common { color: #888; }
-        .quality-good { color: #27ae60; }
-        .quality-rare { color: #9b59b6; }
-        .quality-legend { color: #f0c040; font-weight: 700; }
-        .tag-friend {
-            font-size: var(--font-xs);
-            color: #888;
-            background: #f0ede6;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .tag-self { font-size: var(--font-xs); color: var(--accent); }
-        .btn-small {
-            padding: 4px 10px;
-            border: none;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: var(--font-xs);
-            font-family: inherit;
-        }
-        .btn-accept { background: #6b8f71; color: #fff; }
-        .btn-reject { background: #e0d8cc; color: #333; }
-        .btn-explore { background: #1976d2; color: #fff; }
-        .btn-adopt { background: var(--accent); color: #fff; }
-        .btn-view { background: #e67e22; color: #fff; }
-        .btn-fight { background: #c0392b; color: #fff; }
-        .btn-craft { background: #27ae60; color: #fff; }
-        .btn-nomat { background: #aaa; color: #fff; }
-        .btn-nogold { background: #e67e22; color: #fff; }
-        .btn-decompose { background: #e74c3c; color: #fff; }
-        .btn-sell { background: #f39c12; color: #fff; }
-        .item-row {
-            display: flex;
-            align-items: center;
-            gap: var(--gap-sm);
-            padding: 6px 0;
-        }
-        .log-item {
-            text-align: left;
-            padding: var(--gap-sm) var(--gap-md);
-            border-bottom: 1px solid #f0ede6;
-        }
-        .equipment-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border-left: 4px solid var(--accent);
-        }
-        .quality-white { border-left-color: #ccc; }
-        .quality-blue { border-left-color: #5b7fbc; }
-        .quality-purple { border-left-color: #9b59b6; }
-        .quality-gold { border-left-color: #f0c040; }
-        .btn-synthesis {
-            background: #8e44ad;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 8px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-        }
-        .btn-enhance {
-            background: #e67e22;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-            margin-right: var(--gap-xs);
-        }
-        .btn-enhance:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-equip {
-            background: #6ba3be;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-            margin-right: var(--gap-xs);
-        }
-        .btn-unequip {
-            background: #aaa;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-        }
-        .btn-refresh {
-            background: #6c757d;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 6px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-            margin-bottom: var(--gap-sm);
-        }
-        .battle-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            margin: var(--gap-lg) 0;
-        }
-        .battle-pet { text-align: center; }
-        .battle-hp {
-            width: 80px;
-            height: 10px;
-            background: #e9ecef;
-            border-radius: 5px;
-            margin: var(--gap-sm) auto;
-        }
-        .battle-hp-fill {
-            height: 100%;
-            background: var(--green);
-            border-radius: 5px;
-            transition: width 0.3s;
-        }
-        .battle-log {
-            background: #2d3436;
-            color: #dfe6e9;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            height: 120px;
-            overflow-y: auto;
-            font-size: var(--font-sm);
-            margin: var(--gap-md) 0;
-            text-align: left;
-            display: flex;
-            flex-direction: column-reverse;
-        }
-        .battle-actions {
-            display: flex;
-            gap: var(--gap-sm);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .battle-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: var(--radius-xl);
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-        }
-        .battle-btn.attack { background: #e74c3c; color: #fff; }
-        .battle-btn.defend { background: #3498db; color: #fff; }
-        .battle-btn.skill { background: #f39c12; color: #fff; }
-        .battle-btn:disabled { opacity: 0.5; }
-        .boss-card {
-            background: linear-gradient(135deg, #fef9f3, #fdf0e0);
-            border-radius: var(--radius-lg);
-            padding: var(--gap-lg);
-            margin: var(--gap-md) 0;
-            border: 2px solid #f0c040;
-        }
-        .elite-card {
-            background: linear-gradient(135deg, #f5f0ff, #ede0f5);
-            border-radius: var(--radius-lg);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border: 2px solid #9b59b6;
-        }
-        .route-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border-left: 4px solid #1976d2;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-        .route-card:hover {
-            background: #eef4ff;
-            border-left-color: #0d47a1;
-        }
-        .route-card.locked {
-            opacity: 0.5;
-            cursor: not-allowed;
-            border-left-color: #ccc;
-        }
-        .skill-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: 10px;
-            margin: var(--gap-xs) 0;
-            font-size: var(--font-sm);
-        }
-        .skill-attack { border-left: 3px solid #e74c3c; }
-        .skill-heal { border-left: 3px solid #27ae60; }
-        .skill-defense { border-left: 3px solid #3498db; }
-        .skill-support { border-left: 3px solid #f39c12; }
-        .skill-special { border-left: 3px solid #9b59b6; }
-        .pet-detail-card {
-            background: #fefdf9;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: 6px 0;
-        }
-        .buff-tag {
-            display: inline-block;
-            background: #f39c12;
-            color: #fff;
-            border-radius: 10px;
-            padding: 1px 6px;
-            font-size: var(--font-xs);
-            margin-left: var(--gap-xs);
-        }
-        .set-badge {
-            display: inline-block;
-            background: #6c5ce7;
-            color: #fff;
-            border-radius: var(--radius-sm);
-            padding: 1px 5px;
-            font-size: 0.6rem;
-            margin-left: var(--gap-xs);
-        }
-        .set-info-row {
-            font-size: var(--font-xs);
-            color: #6c5ce7;
-            margin: 2px 0;
-        }
-        .stat-row { font-size: var(--font-xs); color: #666; }
-        .stat-bonus { color: #27ae60; font-weight: 600; }
+		/* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: var(--gap-xl);
+    max-width: min(var(--modal-width), 90vw);
+    width: 90%;
+    text-align: center;
+    max-height: 75vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    position: relative;
+}
+.modal h3 {
+    margin-bottom: var(--gap-md);
+    color: var(--text);
+    font-size: var(--font-xl);
+}
+.crop-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-sm);
+    margin-bottom: var(--gap-md);
+}
+.crop-btn {
+    padding: 10px 4px;
+    border: 2px solid #e0d8cc;
+    border-radius: var(--radius-md);
+    background: #fdfcf9;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    text-align: center;
+    font-size: var(--font-md);
+}
+.crop-btn:hover {
+    border-color: var(--accent);
+    background: #fef9f3;
+}
+.crop-btn.locked {
+    opacity: 0.4;
+    filter: grayscale(1);
+    cursor: not-allowed;
+    background: #eee;
+}
+.btn-close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: #e8e0d5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    z-index: 10;
+    transition: transform var(--transition-fast);
+}
+.btn-close:active { transform: scale(0.95); }
+.auth-form {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 24px var(--gap-xl);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.auth-tabs {
+    display: flex;
+    margin-bottom: var(--gap-lg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1.5px solid #e0d8cc;
+}
+.auth-tab {
+    flex: 1;
+    text-align: center;
+    padding: var(--gap-sm);
+    font-weight: 600;
+    cursor: pointer;
+    background: #fdfcf9;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+    font-size: var(--font-md);
+    border: none;
+}
+.auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+.form-group { margin-bottom: var(--gap-md); }
+.form-group label {
+    display: block;
+    font-size: var(--font-sm);
+    color: #666;
+    margin-bottom: 2px;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid #e0d8cc;
+    border-radius: 10px;
+    font-size: var(--font-md);
+    font-family: inherit;
+    outline: none;
+}
+.btn-primary {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: var(--font-lg);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+}
+.btn-primary:active { opacity: 0.85; }
+.msg-error {
+    color: var(--red);
+    font-size: var(--font-sm);
+    text-align: center;
+    margin-top: var(--gap-sm);
+}
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #3d3929;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: var(--radius-xl);
+    font-size: var(--font-md);
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+.list-container {
+    max-height: 60vh;
+    overflow-y: auto;
+    text-align: left;
+}
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px var(--gap-md);
+    border-bottom: 1px solid #f0ede6;
+}
+.order-card {
+    background: #fef9f3;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border: 1px solid var(--accent);
+    text-align: left;
+}
+.quality-common { color: #888; }
+.quality-good { color: #27ae60; }
+.quality-rare { color: #9b59b6; }
+.quality-legend { color: #f0c040; font-weight: 700; }
+.tag-friend {
+    font-size: var(--font-xs);
+    color: #888;
+    background: #f0ede6;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+.tag-self { font-size: var(--font-xs); color: var(--accent); }
+.btn-small {
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-xs);
+    font-family: inherit;
+}
+.btn-accept { background: #6b8f71; color: #fff; }
+.btn-reject { background: #e0d8cc; color: #333; }
+.btn-explore { background: #1976d2; color: #fff; }
+.btn-adopt { background: var(--accent); color: #fff; }
+.btn-view { background: #e67e22; color: #fff; }
+.btn-fight { background: #c0392b; color: #fff; }
+.btn-craft { background: #27ae60; color: #fff; }
+.btn-nomat { background: #aaa; color: #fff; }
+.btn-nogold { background: #e67e22; color: #fff; }
+.btn-decompose { background: #e74c3c; color: #fff; }
+.btn-sell { background: #f39c12; color: #fff; }
+.item-row {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    padding: 6px 0;
+}
+.log-item {
+    text-align: left;
+    padding: var(--gap-sm) var(--gap-md);
+    border-bottom: 1px solid #f0ede6;
+}
+.equipment-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border-left: 4px solid var(--accent);
+}
+.quality-white { border-left-color: #ccc; }
+.quality-blue { border-left-color: #5b7fbc; }
+.quality-purple { border-left-color: #9b59b6; }
+.quality-gold { border-left-color: #f0c040; }
+.btn-synthesis {
+    background: #8e44ad;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+}
+.btn-enhance {
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+    margin-right: var(--gap-xs);
+}
+.btn-enhance:disabled { background: #ccc; cursor: not-allowed; }
+.btn-equip {
+    background: #6ba3be;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+    margin-right: var(--gap-xs);
+}
+.btn-unequip {
+    background: #aaa;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+}
+.btn-refresh {
+    background: #6c757d;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+    margin-bottom: var(--gap-sm);
+}
+.battle-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: var(--gap-lg) 0;
+}
+.battle-pet { text-align: center; }
+.battle-hp {
+    width: 80px;
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    margin: var(--gap-sm) auto;
+}
+.battle-hp-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 5px;
+    transition: width 0.3s;
+}
+.battle-log {
+    background: #2d3436;
+    color: #dfe6e9;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    height: 120px;
+    overflow-y: auto;
+    font-size: var(--font-sm);
+    margin: var(--gap-md) 0;
+    text-align: left;
+}
+.battle-actions {
+    display: flex;
+    gap: var(--gap-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.battle-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+}
+.battle-btn.attack { background: #e74c3c; color: #fff; }
+.battle-btn.defend { background: #3498db; color: #fff; }
+.battle-btn.skill { background: #f39c12; color: #fff; }
+.battle-btn:disabled { opacity: 0.5; }
+.boss-card {
+    background: linear-gradient(135deg, #fef9f3, #fdf0e0);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-lg);
+    margin: var(--gap-md) 0;
+    border: 2px solid #f0c040;
+}
+.elite-card {
+    background: linear-gradient(135deg, #f5f0ff, #ede0f5);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border: 2px solid #9b59b6;
+}
+.route-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border-left: 4px solid #1976d2;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.route-card:hover {
+    background: #eef4ff;
+    border-left-color: #0d47a1;
+}
+.route-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-left-color: #ccc;
+}
+.skill-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: 10px;
+    margin: var(--gap-xs) 0;
+    font-size: var(--font-sm);
+}
+.skill-attack { border-left: 3px solid #e74c3c; }
+.skill-heal { border-left: 3px solid #27ae60; }
+.skill-defense { border-left: 3px solid #3498db; }
+.skill-support { border-left: 3px solid #f39c12; }
+.skill-special { border-left: 3px solid #9b59b6; }
+.pet-detail-card {
+    background: #fefdf9;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: 6px 0;
+}
+.buff-tag {
+    display: inline-block;
+    background: #f39c12;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: var(--font-xs);
+    margin-left: var(--gap-xs);
+}
+.set-badge {
+    display: inline-block;
+    background: #6c5ce7;
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    font-size: 0.6rem;
+    margin-left: var(--gap-xs);
+}
+.set-info-row {
+    font-size: var(--font-xs);
+    color: #6c5ce7;
+    margin: 2px 0;
+}
+.stat-row { font-size: var(--font-xs); color: #666; }
+.stat-bonus { color: #27ae60; font-weight: 600; }
+
+/* 加工进度条 */
+.processing-bar {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    margin: 2px 0;
+    font-size: var(--font-xs);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.processing-bar .progress-fill-small {
+    flex: 1;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.processing-bar .progress-fill-inner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 10s linear;
+}
+
+/* 邮件红点 */
+.mail-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background: #c0392b;
+    border-radius: 50%;
+}
+
+/* 药剂选择样式 */
+.potion-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #fef9f3;
+    border-radius: 8px;
+    margin: 4px 0;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+}
+.potion-option:hover {
+    border-color: var(--accent);
+    background: #fff;
+}
+.potion-option.used {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #eee;
+}
+
+/* 怪物图鉴样式 */
+.monster-log-card {
+    background: #fefdf9;
+    border-radius: var(--radius-md);
+    padding: 10px;
+    margin: 6px 0;
+    border-left: 3px solid var(--accent);
+}
+.monster-log-card .affix-tag {
+    display: inline-block;
+    background: #2d3436;
+    color: #dfe6e9;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.6rem;
+    margin: 1px 2px;
+}
+.affix-tag.unlocked { background: #27ae60; }
     </style>
 </head>
 <body>
@@ -1982,7 +2062,7 @@ async function synthesizeProduct(recipe) {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-			// ==================== 第 15 块：地块解锁 + 战斗系统（速度决定行动顺序版） ====================
+			// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2022,7 +2102,9 @@ async function startBattle(myPetId, friendId) {
             log: [], friendId, friendName: friend.username, skillCooldowns: cooldowns, oppSkillCooldowns: oppCooldowns,
             oppSkillCd: 0, turn: 1, mySkills, opponentSkills: oppSkills.map(s => s.skill_name),
             myEnergy: INITIAL_ENERGY, oppEnergy: INITIAL_ENERGY,
-            myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
+            myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false,
+            activePotion: State._pendingPotion || null };
+        State._pendingPotion = null;
         render();
     } catch (e) { showToast(e.message || '战斗初始化失败', true); }
     finally { State.isSubmitting = false; }
@@ -2048,16 +2130,21 @@ async function startPvEBattle(monster) {
     const mySkills = State.petSkills.filter(s => s.pet_id === selectedPetId);
     const cooldowns = {}; mySkills.forEach(s => cooldowns[s.id] = 0);
     const oppSkills = monster.skills || [];
-    const oppCooldowns = {}; oppSkills.forEach(s => oppCooldowns[s] = 0);
+    const oppCooldowns = {}; oppSkills.forEach(s => oppCooldowns[s.id] = 0);
     State.battle = { type: 'pve', myPet, opponentPet: oppPet, myCurrentHp: myPet.hp, opponentCurrentHp: oppPet.hp,
         log: [], monster, skillCooldowns: cooldowns, oppSkillCooldowns: oppCooldowns,
         oppSkillCd: 0, turn: 1, mySkills, opponentSkills: oppSkills,
         myEnergy: INITIAL_ENERGY, oppEnergy: INITIAL_ENERGY,
         bossDamage: 0, affixes: affixes,
-        myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false };
+        myDefend: false, myReflect: false, oppDefend: false, myBuffs: [], oppBuffs: [], isEnding: false,
+        activePotion: State._pendingPotion || null };
+    State._pendingPotion = null;
     if (affixes.length > 0) {
         const affixNames = affixes.map(a => `[${a.name}]`).join(' ');
         logBattle(`怪物词缀：${affixNames}`);
+    }
+    if (State.battle.activePotion) {
+        logBattle(`🧪 已使用药剂：${State.battle.activePotion}`);
     }
     render();
 }
@@ -2065,11 +2152,9 @@ async function startPvEBattle(monster) {
 function executeBattleAction(action, skillId = null) {
     if (!State.battle) return; const b = State.battle;
 
-    // 获取实时速度（含 Buff）
     const getMySpd = () => getRealTimeSpeed(b.myPet, b.myBuffs);
     const getOppSpd = () => getRealTimeSpeed(b.opponentPet, b.oppBuffs);
 
-    // ---------- 控制状态判断 ----------
     const myParalyzed = (b.myBuffs || []).some(bf => bf.type === 'paralyze');
     const myBound = (b.myBuffs || []).some(bf => bf.type === 'bind');
     const mySkip = (b.myBuffs || []).some(bf => bf.type === 'skip_next');
@@ -2078,9 +2163,37 @@ function executeBattleAction(action, skillId = null) {
     const oppBound = (b.oppBuffs || []).some(bf => bf.type === 'bind');
     const oppSkip = (b.oppBuffs || []).some(bf => bf.type === 'skip_next');
 
-    // ---------- 定义玩家行动函数 ----------
+    // 药剂效果：攻击+20%
+    const getPotionAtkBonus = () => {
+        if (b.activePotion === 'potion_atk') return 0.2;
+        return 0;
+    };
+    // 药剂效果：防御+20%
+    const getPotionDefBonus = () => {
+        if (b.activePotion === 'potion_def') return 0.2;
+        return 0;
+    };
+    // 药剂效果：速度+20%
+    const getPotionSpdBonus = () => {
+        if (b.activePotion === 'potion_spd') return 0.2;
+        return 0;
+    };
+    // 药剂效果：HP+30%
+    const getPotionHpBonus = () => {
+        if (b.activePotion === 'potion_hp') return 0.3;
+        return 0;
+    };
+    // 药剂效果：暴击率+15%
+    const getPotionCritBonus = () => {
+        if (b.activePotion === 'potion_crit') return 0.15;
+        return 0;
+    };
+
     const playerAct = () => {
         let dmg = 0;
+        const potionAtk = getPotionAtkBonus();
+        const potionCrit = getPotionCritBonus();
+        
         if (action === 'skill' && skillId) {
             const skill = b.mySkills.find(s => s.id === skillId);
             if (!skill) return;
@@ -2099,8 +2212,11 @@ function executeBattleAction(action, skillId = null) {
                 let powerMult = (skillData.power || 100) / 100;
                 const element = skillData.element || null;
                 const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
-                dmg = calculateDamage(b.myPet, b.opponentPet, true, element, myPassiveId, oppPassiveId, skillData.type);
+                let effAtk = { ...b.myPet, atk: Math.floor(b.myPet.atk * (1 + potionAtk)) };
+                let effDef = b.opponentPet;
+                dmg = calculateDamage(effAtk, effDef, true, element, myPassiveId, oppPassiveId, skillData.type);
                 dmg = Math.floor(dmg * powerMult);
+                if (Math.random() < potionCrit) dmg = Math.floor(dmg * 1.5);
                 b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
                 logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
                 if (skillData.burn || skillData.burn_chance > 0) {
@@ -2198,7 +2314,9 @@ function executeBattleAction(action, skillId = null) {
         } else if (action === 'attack') {
             const myPassiveId = State.passiveSkills?.[b.myPet.id];
             const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
-            dmg = calculateDamage(b.myPet, b.opponentPet, false, null, myPassiveId, oppPassiveId, null);
+            let effAtk = { ...b.myPet, atk: Math.floor(b.myPet.atk * (1 + potionAtk)) };
+            dmg = calculateDamage(effAtk, b.opponentPet, false, null, myPassiveId, oppPassiveId, null);
+            if (Math.random() < potionCrit) dmg = Math.floor(dmg * 1.5);
             b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
             b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ATTACK_ENERGY_GAIN);
             logBattle(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害 ⚡+1`);
@@ -2217,7 +2335,6 @@ function executeBattleAction(action, skillId = null) {
         for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; }
     };
 
-    // ---------- 怪物行动函数 ----------
     const monsterAct = () => {
         if (oppSkip) {
             logBattle(`对手因恐惧跳过回合`);
@@ -2232,9 +2349,11 @@ function executeBattleAction(action, skillId = null) {
             const myPassiveId = State.passiveSkills?.[b.myPet.id];
             const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
             const isInvincible = (b.myBuffs || []).some(bf => bf.type === 'invincible');
+            const potionDef = getPotionDefBonus();
+            let effMyPet = { ...b.myPet, def: Math.floor(b.myPet.def * (1 + potionDef)) };
             
             if (aiResult === 'attack') {
-                let odmg = calculateDamage(b.opponentPet, b.myPet, false, null, oppPassiveId, myPassiveId, null);
+                let odmg = calculateDamage(b.opponentPet, effMyPet, false, null, oppPassiveId, myPassiveId, null);
                 if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                 if (isInvincible) odmg = 0;
                 if (b.affixes?.some(a => a.id === 'vampire')) {
@@ -2257,7 +2376,7 @@ function executeBattleAction(action, skillId = null) {
                     const oppSkillCd = skillData.cooldown || 2;
                     b.oppSkillCooldowns[skillName] = oppSkillCd;
                     if (skillData.type === 'attack' || skillData.type === 'special') {
-                        let odmg = calculateDamage(b.opponentPet, b.myPet, true, skillData.element, oppPassiveId, myPassiveId, skillData.type);
+                        let odmg = calculateDamage(b.opponentPet, effMyPet, true, skillData.element, oppPassiveId, myPassiveId, skillData.type);
                         odmg = Math.floor(odmg * (skillData.power || 100) / 100);
                         if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                         if (isInvincible) odmg = 0;
@@ -2291,7 +2410,6 @@ function executeBattleAction(action, skillId = null) {
         }
     };
 
-    // ---------- 玩家受控跳过处理 ----------
     if (myParalyzed) {
         showToast('你被麻痹了，本回合无法行动！');
         logBattle(`你被麻痹，跳过行动`);
@@ -2306,21 +2424,23 @@ function executeBattleAction(action, skillId = null) {
         b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'skip_next');
     }
 
-    // ---------- 根据速度决定行动顺序 ----------
-    const mySpd = getMySpd();
+    const mySpd = getMySpd() + Math.floor(getMySpd() * (b.activePotion === 'potion_spd' ? 0.2 : 0));
     const oppSpd = getOppSpd();
 
     if (mySpd >= oppSpd) {
-        // 玩家先手
         if (!myParalyzed && !myBound && !mySkip) playerAct();
         if (b.opponentCurrentHp > 0) monsterAct();
     } else {
-        // 怪物先手
         if (b.opponentCurrentHp > 0) monsterAct();
         if (!myParalyzed && !myBound && !mySkip && b.myCurrentHp > 0) playerAct();
     }
 
-    // ---------- 回合结算 ----------
+    if (b.activePotion === 'potion_hp') {
+        const hpBonus = Math.floor(b.myPet.hp * 0.3);
+        b.myCurrentHp = Math.min(b.myPet.hp, b.myCurrentHp + hpBonus);
+        b.activePotion = null;
+    }
+
     b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ENERGY_PER_TURN);
     b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ENERGY_PER_TURN);
     
@@ -2649,7 +2769,7 @@ async function refreshBoss() {
                     listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
                 }
             };
-			// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、回合日志） ====================
+			// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、药剂入口、回合日志） ====================
 const Battle = {
     render() {
         const b = State.battle; if (!b) return '';
@@ -2659,6 +2779,11 @@ const Battle = {
         const oppPassiveName = oppPassiveId ? PASSIVE_SKILLS[oppPassiveId]?.name : '';
         const myEnergy = b.myEnergy || 0;
         const oppEnergy = b.oppEnergy || 0;
+        // 能量条溢出保护
+        const myEnergyPct = Math.min(100, (myEnergy / MAX_ENERGY) * 100);
+        const oppEnergyPct = Math.min(100, (oppEnergy / MAX_ENERGY) * 100);
+        const myHpPct = Math.min(100, Math.max(0, (b.myCurrentHp / b.myPet.hp) * 100));
+        const oppHpPct = Math.min(100, Math.max(0, (b.opponentCurrentHp / (b.opponentPet.hp || b.opponentPet.maxHp || 1)) * 100));
         const skillBtns = (b.mySkills || []).map(s => {
             const cd = b.skillCooldowns[s.id] || 0;
             const skillData = ACTIVE_SKILLS[s.skill_name];
@@ -2670,26 +2795,24 @@ const Battle = {
         const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
         
-        // 日志渲染：支持新格式（含回合编号和先后手标记）
         const logHTML = b.log.slice().reverse().map(l => {
             if (typeof l === 'string') return `<div>${l}</div>`;
             const msg = l.msg || '';
-            // 如果消息已包含回合前缀（新格式），直接显示；否则显示时间+消息（旧格式兼容）
             if (msg.startsWith('[第')) {
                 return `<div><span style="color:#888;">${l.time}</span> ${msg}</div>`;
             }
             return `<div><span style="color:#888;">${l.time}</span> ${msg}</div>`;
         }).join('');
         
-        return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>⚔️ ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span></div>
+        return `<div class="header"><button class="btn-icon" id="btnFlee">逃跑</button><span>⚔️ ${b.type === 'pve' ? '怪物讨伐' : '对战 ' + b.friendName}</span>${b.activePotion ? `<span style="font-size:0.7rem;color:#f0c040;">🧪${ITEM_NAMES[b.activePotion]||b.activePotion}</span>` : ''}</div>
         <div class="battle-container">
             <div class="battle-pet">
                 <div style="font-size:2rem;">${PET_TYPES[b.myPet.pet_type]?.emoji || '🐾'}</div>
                 <div>${b.myPet.pet_name}</div>
                 ${myPassiveName ? `<div style="font-size:0.7rem;color:#f0c040;">📘${myPassiveName}</div>` : ''}
-                <div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.myCurrentHp / b.myPet.hp * 100)}%"></div></div>
+                <div class="battle-hp"><div class="battle-hp-fill" style="width:${myHpPct}%"></div></div>
                 <div>❤️${b.myCurrentHp}/${b.myPet.hp}</div>
-                <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${(myEnergy/MAX_ENERGY)*100}%;height:100%;background:#f0c040;border-radius:3px;transition:width 0.3s;"></div></div>
+                <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${myEnergyPct}%;height:100%;background:#f0c040;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${myEnergy}/${MAX_ENERGY}</div>
                 <div>${myBuffsStr}</div>
             </div>
@@ -2698,14 +2821,14 @@ const Battle = {
                 <div style="font-size:2rem;">${b.opponentPet.emoji || PET_TYPES[b.opponentPet.pet_type]?.emoji || '👾'}</div>
                 <div>${b.opponentPet.pet_name}</div>
                 ${oppPassiveName ? `<div style="font-size:0.7rem;color:#f0c040;">📘${oppPassiveName}</div>` : ''}
-                <div class="battle-hp"><div class="battle-hp-fill" style="width:${(b.opponentCurrentHp / (b.opponentPet.hp || b.opponentPet.maxHp || 1) * 100)}%"></div></div>
+                <div class="battle-hp"><div class="battle-hp-fill" style="width:${oppHpPct}%"></div></div>
                 <div>❤️${b.opponentCurrentHp}/${b.opponentPet.hp || b.opponentPet.maxHp}</div>
-                <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${(oppEnergy/MAX_ENERGY)*100}%;height:100%;background:#c0392b;border-radius:3px;transition:width 0.3s;"></div></div>
+                <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${oppEnergyPct}%;height:100%;background:#c0392b;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${oppEnergy}/${MAX_ENERGY}</div>
                 <div>${oppBuffsStr}</div>
             </div>
         </div>
-        <div class="battle-log">${logHTML}</div>
+        <div class="battle-log" id="battleLog">${logHTML}</div>
         <div class="battle-actions"><button class="battle-btn attack" id="btnAttack">⚔️攻击⚡+1</button><button class="battle-btn defend" id="btnDefend">🛡️防御⚡+1</button>${skillBtns}</div>`;
     },
     bindEvents() {
@@ -2721,410 +2844,458 @@ const Battle = {
                 State.battle = null; render();
             }
         };
+        // 战斗日志自动滚动到底部
+        const logEl = document.getElementById('battleLog');
+        if (logEl) {
+            logEl.scrollTop = logEl.scrollHeight;
+        }
     }
 };
-			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
-            const Farm = {
-                render() {
-                    const ul = State.profile?.unlocked_plots || 4;
-                    const plotsHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join('');
-                    const gc = State.profile?.gender || 'none';
-                    const slots = State.profile?.pet_slots || 1;
-                    const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
-                    return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
-                    <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
-                    ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
-                    <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物 (${State.pets.length}/${slots})</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">🔄 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-mtype="inbox">收件箱</button><button class="auth-tab" data-mtype="outbox">发件箱</button><button class="auth-tab" data-mtype="compose">写邮件</button></div><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
-                    <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
-                },
-                plotHTML(plot) {
-                    const s = getCropStatus(plot); let e, st, prog = '', cc = '';
-                    if (s.status === 'empty') { e = '🟫'; st = '空地'; cc = 'empty'; }
-                    else if (s.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '🌱'; st = '✨可收获'; cc = 'ready'; }
-                    else { e = CROPS[plot.crop_type]?.emoji || '🌱'; const wh = s.waterable ? '可浇水💧' : '加速中🔥', wc = s.waterable ? 'waterable' : 'watered'; st = `<span class="${wc}">${wh}</span> 剩${s.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${s.progress}%"></div></div>`; }
-                    return `<div class="plot-card ${cc}" data-plot="${plot.plot_index}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${st}</div>${prog}</div>`;
-                },
-                bindEvents() {
-                    document.getElementById('btnLogout').onclick = signOut;
-                    document.getElementById('btnLeaderboard').onclick = () => Leaderboard.open();
-                    document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
-                    document.getElementById('btnPets').onclick = () => Farm.openPets();
-                    document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
-                    document.getElementById('btnSynthesis').onclick = () => Farm.openSynthesis();
-                    document.getElementById('btnEquipment').onclick = () => Farm.openEquipment();
-                    document.getElementById('btnPvE').onclick = () => Farm.selectBattlePet();
-                    document.getElementById('btnExplore').onclick = () => Farm.openExplore();
-                    document.getElementById('btnOrders').onclick = () => Farm.openOrders();
-                    document.getElementById('btnSeedShop').onclick = () => Farm.openSeedShop();
-                    document.getElementById('btnMail').onclick = () => Farm.openMail();
-                    document.getElementById('btnHelp').onclick = () => Farm.openHelp();
-                    document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
-                    document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
-                    document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
-                    document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
-                    document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
-                    document.getElementById('closeSynthesisModal').onclick = () => document.getElementById('modalSynthesis').classList.remove('active');
-                    document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
-                    document.getElementById('closePvEModal').onclick = () => document.getElementById('modalPvE').classList.remove('active');
-                    document.getElementById('closeExploreModal').onclick = () => document.getElementById('modalExplore').classList.remove('active');
-                    document.getElementById('closeOrdersModal').onclick = () => document.getElementById('modalOrders').classList.remove('active');
-                    document.getElementById('closeSeedShopModal').onclick = () => document.getElementById('modalSeedShop').classList.remove('active');
-                    document.getElementById('closeMailModal').onclick = () => document.getElementById('modalMail').classList.remove('active');
-                    document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
-                    document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
-                    document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
+// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
+const Farm = {
+    render() {
+        const ul = State.profile?.unlocked_plots || 4;
+        const plotsHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join('');
+        const gc = State.profile?.gender || 'none';
+        const slots = State.profile?.pet_slots || 1;
+        const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
+        const hasNewMail = State.hasNewMail;
+        // 加工任务HTML
+        const processingHTML = (State.processingTasks || []).length > 0 
+            ? `<div style="margin:4px 0;">` + State.processingTasks.map(t => {
+                const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
+                return `<div class="processing-bar"><span>${t.icon}</span><span style="font-size:0.7rem;">${t.name}</span><span style="font-size:0.65rem;color:#888;">${remaining}分</span></div>`;
+            }).join('') + `</div>` : '';
+        return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon" id="btnPvE" title="怪物讨伐">🐉</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
+        ${processingHTML}
+        <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
+        ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
+        <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
+        <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">×</button></div></div>
+        <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物 (${State.pets.length}/${slots})</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
+        <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><button class="btn-refresh" id="btnRefreshBackpack">🔄 刷新</button><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">×</button></div></div>
+        <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><button class="btn-refresh" id="btnRefreshSynthesis">🔄 刷新</button><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">×</button></div></div>
+        <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">×</button></div></div>
+        <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">×</button></div></div>
+        <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
+        <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
+        <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
+        <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-mtype="inbox">收件箱</button><button class="auth-tab" data-mtype="outbox">发件箱</button><button class="auth-tab" data-mtype="compose">写邮件</button></div><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
+        <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><button class="btn-refresh" id="btnRefreshLog">🔄 刷新</button><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
+        <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
+        <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
+    },
+    plotHTML(plot) {
+        const s = getCropStatus(plot); let e, st, prog = '', cc = '';
+        if (s.status === 'empty') { e = '🟫'; st = '空地'; cc = 'empty'; }
+        else if (s.status === 'ready') { e = CROPS[plot.crop_type]?.emoji || '🌱'; st = '✨可收获'; cc = 'ready'; }
+        else { e = CROPS[plot.crop_type]?.emoji || '🌱'; const wh = s.waterable ? '可浇水💧' : '加速中🔥', wc = s.waterable ? 'waterable' : 'watered'; st = `<span class="${wc}">${wh}</span> 剩${s.remainingMin}分`; cc = 'planted'; prog = `<div class="progress-bar"><div class="progress-fill" style="width:${s.progress}%"></div></div>`; }
+        return `<div class="plot-card ${cc}" data-plot="${plot.plot_index}"><div class="plot-emoji">${e}</div><div style="font-size:0.8rem;">${CROPS[plot.crop_type]?.name || '空地'}</div><div class="plot-status">${st}</div>${prog}</div>`;
+    },
+    bindEvents() {
+        document.getElementById('btnLogout').onclick = signOut;
+        document.getElementById('btnLeaderboard').onclick = () => Leaderboard.open();
+        document.getElementById('btnFriends').onclick = () => Farm.openFriendsList();
+        document.getElementById('btnPets').onclick = () => Farm.openPets();
+        document.getElementById('btnBackpack').onclick = () => Farm.openBackpack();
+        document.getElementById('btnSynthesis').onclick = () => Farm.openSynthesis();
+        document.getElementById('btnEquipment').onclick = () => Farm.openEquipment();
+        document.getElementById('btnPvE').onclick = () => Farm.openPotionSelect();
+        document.getElementById('btnExplore').onclick = () => Farm.openExplore();
+        document.getElementById('btnOrders').onclick = () => Farm.openOrders();
+        document.getElementById('btnSeedShop').onclick = () => Farm.openSeedShop();
+        document.getElementById('btnMail').onclick = () => { State.hasNewMail = false; Farm.openMail(); };
+        document.getElementById('btnMonsterLog').onclick = () => Farm.openMonsterLog();
+        document.getElementById('btnHelp').onclick = () => Farm.openHelp();
+        document.getElementById('btnEventLog').onclick = () => Farm.openEventLog();
+        document.getElementById('closePlantModal').onclick = () => document.getElementById('modalPlant').classList.remove('active');
+        document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
+        document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
+        document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
+        document.getElementById('closeSynthesisModal').onclick = () => document.getElementById('modalSynthesis').classList.remove('active');
+        document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
+        document.getElementById('closePvEModal').onclick = () => document.getElementById('modalPvE').classList.remove('active');
+        document.getElementById('closeExploreModal').onclick = () => document.getElementById('modalExplore').classList.remove('active');
+        document.getElementById('closeOrdersModal').onclick = () => document.getElementById('modalOrders').classList.remove('active');
+        document.getElementById('closeSeedShopModal').onclick = () => document.getElementById('modalSeedShop').classList.remove('active');
+        document.getElementById('closeMailModal').onclick = () => document.getElementById('modalMail').classList.remove('active');
+        document.getElementById('closeEventLogModal').onclick = () => document.getElementById('modalEventLog').classList.remove('active');
+        document.getElementById('closeFriendsModal').onclick = () => document.getElementById('modalFriends').classList.remove('active');
+        document.getElementById('closeLeaderboardModal').onclick = () => document.getElementById('modalLeaderboard').classList.remove('active');
 
-                    document.getElementById('btnUnlock')?.addEventListener('click', async () => { if (State.isSubmitting) return; State.isSubmitting = true; try { await unlockPlot(); } catch (e) { showToast(e.message || '解锁失败', true); } finally { State.isSubmitting = false; } });
+        document.getElementById('btnUnlock')?.addEventListener('click', async () => { if (State.isSubmitting) return; State.isSubmitting = true; try { await unlockPlot(); } catch (e) { showToast(e.message || '解锁失败', true); } finally { State.isSubmitting = false; } });
 
-                    document.getElementById('confirmWater').onclick = async () => {
-                        if (State.isSubmitting) return; const pi = State.selectedPlotIndex, plot = State.farmPlots.find(p => p.plot_index === pi);
-                        const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < WATER_COOLDOWN_MS) { showToast('30分钟内已浇水'); return; }
-                        State.isSubmitting = true; try { const up = await waterPlot(State.currentUser.id, pi); const idx = State.farmPlots.findIndex(p => p.plot_index === pi); if (idx !== -1) State.farmPlots[idx] = up; addEventLog('water_self', { plot: pi, crop: plot.crop_type }); Farm.updateGrid(); showToast('浇水成功！'); } catch (err) { showToast('浇水失败', true); } finally { State.isSubmitting = false; document.getElementById('modalWater').classList.remove('active'); }
+        document.getElementById('confirmWater').onclick = async () => {
+            if (State.isSubmitting) return; const pi = State.selectedPlotIndex, plot = State.farmPlots.find(p => p.plot_index === pi);
+            const lw = plot.watered_at ? new Date(plot.watered_at) : null; if (lw && (new Date() - lw) < WATER_COOLDOWN_MS) { showToast('30分钟内已浇水'); return; }
+            State.isSubmitting = true; try { const up = await waterPlot(State.currentUser.id, pi); const idx = State.farmPlots.findIndex(p => p.plot_index === pi); if (idx !== -1) State.farmPlots[idx] = up; addEventLog('water_self', { plot: pi, crop: plot.crop_type }); Farm.updateGrid(); showToast('浇水成功！'); } catch (err) { showToast('浇水失败', true); } finally { State.isSubmitting = false; document.getElementById('modalWater').classList.remove('active'); }
+        };
+
+        document.getElementById('farmGrid').onclick = (e) => {
+            const card = e.target.closest('.plot-card'); if (!card || State.isSubmitting) return;
+            const pi = parseInt(card.dataset.plot), plot = State.farmPlots.find(p => p.plot_index === pi), status = getCropStatus(plot);
+            if (status.status === 'empty') {
+                State.selectedPlotIndex = pi;
+                document.getElementById('modalPlant').classList.add('active');
+                Farm.showPlantOptions('all');
+                document.querySelectorAll('#plantTypeTabs .auth-tab').forEach(tab => {
+                    tab.onclick = () => {
+                        document.querySelectorAll('#plantTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+                        Farm.showPlantOptions(tab.dataset.ptype);
                     };
-
-                    document.getElementById('farmGrid').onclick = (e) => {
-                        const card = e.target.closest('.plot-card'); if (!card || State.isSubmitting) return;
-                        const pi = parseInt(card.dataset.plot), plot = State.farmPlots.find(p => p.plot_index === pi), status = getCropStatus(plot);
-                        if (status.status === 'empty') {
-                            State.selectedPlotIndex = pi;
-                            document.getElementById('modalPlant').classList.add('active');
-                            Farm.showPlantOptions('all');
-                            document.querySelectorAll('#plantTypeTabs .auth-tab').forEach(tab => {
-                                tab.onclick = () => {
-                                    document.querySelectorAll('#plantTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
-                                    tab.classList.add('active');
-                                    Farm.showPlantOptions(tab.dataset.ptype);
-                                };
-                            });
-                        } else if (status.status === 'ready') {
-                            State.isSubmitting = true;
-                            harvestPlot(pi).then(result => {
-                                const idx = State.farmPlots.findIndex(p => p.plot_index === pi);
-                                if (idx !== -1) State.farmPlots[idx] = { ...State.farmPlots[idx], crop_type: null, planted_at: null, watered_at: null };
-                                Farm.updateGrid();
-                                const qName = result.quality ? QUALITIES[result.quality].name : '';
-                                showToast(`收获成功！${qName}品质 🪙${result.reward}`);
-                            }).catch(() => showToast('收获失败', true)).finally(() => { State.isSubmitting = false; });
-                        } else {
-                            State.selectedPlotIndex = pi;
-                            document.getElementById('waterPlotInfo').textContent = `${CROPS[plot.crop_type]?.name || '作物'} 正在生长，要浇水加速吗？`;
-                            document.getElementById('modalWater').classList.add('active');
-                        }
-                    };
-                },
-                showPlantOptions(type) {
-                    const container = document.getElementById('plantCropList');
-                    let crops = Object.entries(CROPS);
-                    if (type !== 'all') crops = crops.filter(([k, v]) => v.type === type);
-                    container.innerHTML = crops.map(([key, info]) => {
-                        const unlocked = info.unlock === '初始' || hasSeed(key);
-                        if (!unlocked) return `<div class="crop-btn locked"><div style="font-size:2rem;">❓</div><div>${info.name}</div><div style="font-size:0.7rem;">未解锁</div></div>`;
-                        const seedPrice = info.seed;
-                        const canAfford = (State.profile?.gold || 0) >= seedPrice;
-                        return `<button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${seedPrice}" ${!canAfford ? 'disabled' : ''}><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">🪙${seedPrice} ⏱${info.growth}分</div></button>`;
-                    }).join('');
-                    container.querySelectorAll('.crop-btn:not(.locked)').forEach(btn => {
-                        btn.onclick = async () => {
-                            const ct = btn.dataset.crop, gt = parseInt(btn.dataset.time), sp = parseInt(btn.dataset.price);
-                            if ((State.profile.gold || 0) < sp) { showToast('金币不足！', true); return; }
-                            State.isSubmitting = true;
-                            try {
-                                await supabase.from('profiles').update({ gold: State.profile.gold - sp }).eq('id', State.currentUser.id);
-                                const up = await plantCrop(State.selectedPlotIndex, ct, gt);
-                                const idx = State.farmPlots.findIndex(p => p.plot_index === State.selectedPlotIndex);
-                                if (idx !== -1) State.farmPlots[idx] = up;
-                                State.profile.gold -= sp;
-                                Farm.updateGrid();
-                                showToast(`种下了${CROPS[ct].name}！`);
-                            } catch (err) { showToast('种植失败', true); }
-                            finally { State.isSubmitting = false; document.getElementById('modalPlant').classList.remove('active'); }
-                        };
-                    });
-                },
-                updateGrid() { const ul = State.profile?.unlocked_plots || 4; document.getElementById('farmGrid').innerHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join(''); },
-                openFriendsList() {
-                    document.getElementById('modalFriends').classList.add('active');
-                    const c = document.getElementById('friendListContainer');
-                    if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
-                    c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span class="nickname" style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
-                    c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
-                    c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">×</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
-                },
-                openPets() {
-                    document.getElementById('modalPets').classList.add('active');
-                    const c = document.getElementById('petListContainer');
-                    const slots = State.profile?.pet_slots || 1;
-                    if (State.pets.length === 0) {
-                        c.innerHTML = '<p>还没有宠物，领养一只吧！</p>';
-                        if (slots > 0) {
-                            c.innerHTML += '<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养宠物</button>';
-                            document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
-                        } else {
-                            c.innerHTML += '<p style="color:#888;">槽位已满，请先解锁新槽位</p>';
-                        }
-                        return;
-                    }
-                    c.innerHTML = State.pets.map(p => {
-                        const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
-                        let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看收获</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
-                        const stats = getPetBattleStats(p);
-                        const skills = State.petSkills.filter(s => s.pet_id === p.id);
-                        const skillsHTML = skills.length > 0 ? skills.map(s => { const skillData = ACTIVE_SKILLS[s.skill_name]; const info = skillData || ACTIVE_SKILLS?.[s.skill_name]; const typeClass = `skill-${info?.type || 'attack'}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${info?.name||s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">⚡${skillData?.energy||'?'} 冷${skillData?.cooldown||s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无主动技能（使用技能书学习）</div>';
-                        const isStationed = State.stationedPet && State.stationedPet.id === p.id;
-                        const natureData = p.nature ? PET_NATURES.find(n => n.id === p.nature) : null;
-                        const natureName = natureData ? natureData.name : '未知';
-                        const passiveData = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]] : null;
-                        const passiveName = passiveData ? passiveData.name : '无被动';
-                        const equipped = State.equipment.filter(e => e.equipped_to === p.id);
-                        const sets = {};
-                        equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
-                        let setHTML = '';
-                        for (const [setName, slots] of Object.entries(sets)) {
-                            const count = slots.length;
-                            if (count >= 2) {
-                                const b2 = SET_BONUSES[setName]?.[2];
-                                const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
-                                let effectsDesc = [];
-                                if (b2) { for (const [k, v] of Object.entries(b2)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
-                                if (b3) { for (const [k, v] of Object.entries(b3)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
-                                setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
-                            }
-                        }
-                        return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button> <button class="btn-small" data-pet-detail="${p.id}" style="background:#6c5ce7;color:#fff;">📊属性</button></div></div>`;
-                    }).join('');
-                    if (State.pets.length < slots) {
-                        c.innerHTML += `<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养新宠物（${State.pets.length}/${slots}）</button>`;
-                        document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
-                    } else {
-                        c.innerHTML += `<p style="font-size:0.75rem;color:#888;margin-top:8px;">🔒 槽位已满（${State.pets.length}/${slots}），可解锁更多槽位</p>`;
-                        c.innerHTML += `<button class="btn-small btn-view" id="btnOpenSlots">🔓 解锁槽位</button>`;
-                        document.getElementById('btnOpenSlots').onclick = () => Farm.openPetSlots();
-                    }
-                    c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
-                    c.querySelectorAll('.btn-view[data-pet-id]').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
-                    c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
-                    // 属性详情按钮
-                    c.querySelectorAll('[data-pet-detail]').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petDetail); Farm.openPetDetail(pid); }; });
-                },
-                openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">×</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { const result = await adoptPet(pt); if (result) { showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } } catch (e) { showToast('领养失败', true); } }; }); },
-                openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
-                openPetSlots() {
-                    const overlay = document.createElement('div');
-                    overlay.className = 'modal-overlay active';
-                    const slots = State.profile?.pet_slots || 1;
-                    overlay.innerHTML = `
-                        <div class="modal" style="max-width:400px;text-align:left;">
-                            <h3>🔓 解锁宠物槽位</h3>
-                            <div style="max-height:60vh;overflow-y:auto;">
-                                ${PET_SLOT_UNLOCK.map(s => {
-                                    const unlocked = slots >= s.slot;
-                                    const canUnlock = !unlocked && (State.profile?.gold || 0) >= s.gold;
-                                    let condMet = true;
-                                    if (s.cond?.petLevel) condMet = State.pets.some(p => p.level >= s.cond.petLevel);
-                                    if (s.cond?.plots) condMet = (State.profile?.unlocked_plots || 4) >= s.cond.plots;
-                                    if (s.cond?.eliteKills) condMet = Object.values(State.monsterLog || {}).reduce((sum, m) => sum + (m.kills || 0), 0) >= s.cond.eliteKills;
-                                    if (s.cond?.explores) condMet = (State.profile?.explore_count || 0) >= s.cond.explores;
-                                    if (s.cond?.bossKills) condMet = ((State.monsterLog || {})['虫母女王']?.kills || 0) >= s.cond.bossKills;
-                                    const hasMaterials = !s.materials || Object.entries(s.materials).every(([item, need]) => (State.items[item] || 0) >= need);
-                                    const canClick = canUnlock && condMet && hasMaterials;
-                                    return `<div class="list-item" style="justify-content:space-between;"><div><div>🔒 槽位${s.slot}</div><div style="font-size:0.75rem;color:#888;">${s.desc}</div><div style="font-size:0.7rem;color:${condMet?'#27ae60':'#c0392b'};">${condMet?'✅条件满足':'❌条件不足'}</div></div><button class="btn-small btn-adopt" data-slot="${s.slot}" ${canClick?'':'disabled'}>${unlocked?'✅已解锁':canClick?'🔓解锁🪙'+s.gold:'金币不足'}</button></div>`;
-                                }).join('')}
-                            </div>
-                            <button class="btn-close" id="closePetSlots">×</button>
-                        </div>
-                    `;
-                    document.body.appendChild(overlay);
-                    overlay.querySelector('#closePetSlots').onclick = () => overlay.remove();
-                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-                    overlay.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
-                        btn.onclick = async () => {
-                            const slot = parseInt(btn.dataset.slot);
-                            const unlockData = PET_SLOT_UNLOCK.find(s => s.slot === slot);
-                            if (!unlockData) return;
-                            try {
-                                State.profile.gold -= unlockData.gold;
-                                await supabase.from('profiles').update({ gold: State.profile.gold, pet_slots: slot }).eq('id', State.currentUser.id);
-                                if (unlockData.materials) { for (const [item, need] of Object.entries(unlockData.materials)) await addItem(item, -need); }
-                                State.profile.pet_slots = slot;
-                                showToast(`解锁成功！宠物槽位+1（${slot}/${MAX_PET_SLOTS}）`);
-                                overlay.remove();
-                                Farm.openPets();
-                            } catch (e) { showToast('解锁失败', true); }
-                        };
-                    });
-                },
-                // 多宠物PVE选择入口 → 先选地图
-                selectBattlePet() {
-                    const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
-                    if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
-                    if (availablePets.length === 1) {
-                        State.selectedBattlePetId = availablePets[0].id;
-                        Farm.openPvEMap();  // 进入地图选择
-                        return;
-                    }
-                    const overlay = document.createElement('div');
-                    overlay.className = 'modal-overlay active';
-                    overlay.innerHTML = `
-                        <div class="modal" style="max-width:400px;">
-                            <h3>⚔️ 选择出战宠物</h3>
-                            <div id="battlePetList">
-                                ${State.pets.map(p => {
-                                    const stats = getPetBattleStats(p);
-                                    const isExploring = p.exploring_until && new Date(p.exploring_until) > new Date();
-                                    const passiveName = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]]?.name : '';
-                                    return `<div class="list-item ${isExploring ? '' : 'clickable'}" data-pet-id="${p.id}" style="${isExploring ? 'opacity:0.5;' : 'cursor:pointer;'}">
-                                        <span style="font-size:2rem;">${PET_TYPES[p.pet_type]?.emoji||'🐾'}</span>
-                                        <div style="flex:1;">
-                                            <div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level}</div>
-                                            <div style="font-size:0.7rem;">❤️${stats.hp} ⚔️${stats.atk} 🛡️${stats.def} ${passiveName ? '📘'+passiveName : ''}</div>
-                                        </div>
-                                        ${isExploring ? '<span style="color:#888;">探险中</span>' : ''}
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                            <button class="btn-close" id="closeBattlePet">×</button>
-                        </div>
-                    `;
-                    document.body.appendChild(overlay);
-                    overlay.querySelector('#closeBattlePet').onclick = () => overlay.remove();
-                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-                    overlay.querySelectorAll('.list-item.clickable').forEach(item => {
-                        item.onclick = () => {
-                            const pid = parseInt(item.dataset.petId);
-                            State.selectedBattlePetId = pid;
-                            overlay.remove();
-                            Farm.openPvEMap();  // 进入地图选择
-                        };
-                    });
-                },
-                // 宠物属性详情弹窗（含性格、被动数值，符号已修复）
-                openPetDetail(pid) {
-                    const pet = State.pets.find(p => p.id === pid);
-                    if (!pet) return;
-                    const stats = getPetBattleStats(pet);
-                    const natureData = pet.nature ? PET_NATURES.find(n => n.id === pet.nature) : null;
-                    const passiveId = State.passiveSkills?.[pet.id];
-                    const passiveData = passiveId ? PASSIVE_SKILLS[passiveId] : null;
-                    const equipped = State.equipment.filter(e => e.equipped_to === pet.id);
-                    const skills = State.petSkills.filter(s => s.pet_id === pet.id);
-                    const isStationed = State.stationedPet && State.stationedPet.id === pet.id;
-                    
-                    const sets = {};
-                    equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
-                    
-                    function getPassiveEffectText(passive) {
-                        if (!passive) return '无被动';
-                        const effects = [];
-                        if (passive.atk_type && passive.atk_bonus) {
-                            effects.push(`${passive.atk_type==='fire'?'🔥':passive.atk_type==='water'?'💧':passive.atk_type==='grass'?'🌿':passive.atk_type==='thunder'?'⚡':passive.atk_type==='dark'?'🌑':'✨'}系伤害+${Math.round(passive.atk_bonus*100)}%`);
-                        }
-                        if (passive.def_penalty && typeof passive.def_penalty === 'object') {
-                            for (const [elem, val] of Object.entries(passive.def_penalty)) {
-                                effects.push(`受到${elem==='water'?'💧水':elem==='thunder'?'⚡雷':elem==='fire'?'🔥火':elem==='grass'?'🌿草':elem}系伤害+${Math.round(val*100)}%`);
-                            }
-                        }
-                        if (passive.atk_bonus && !passive.atk_type) effects.push(`攻击力+${Math.round(passive.atk_bonus*100)}%`);
-                        if (passive.def_bonus && typeof passive.def_bonus === 'number') effects.push(`防御力+${Math.round(passive.def_bonus*100)}%`);
-                        if (passive.spd_bonus && typeof passive.spd_bonus === 'number') effects.push(`速度+${Math.round(passive.spd_bonus*100)}%`);
-                        if (passive.hp_penalty) effects.push(`HP-${Math.round(passive.hp_penalty*100)}%`);
-                        if (passive.def_penalty && typeof passive.def_penalty === 'number') effects.push(`防御力-${Math.round(passive.def_penalty*100)}%`);
-                        if (passive.spd_penalty && typeof passive.spd_penalty === 'number') effects.push(`速度-${Math.round(passive.spd_penalty*100)}%`);
-                        if (passive.atk_penalty) effects.push(`普通攻击伤害-${Math.round(passive.atk_penalty*100)}%`);
-                        if (passive.physical_reduce) effects.push(`受到物理伤害-${Math.round(passive.physical_reduce*100)}%`);
-                        if (passive.magical_increase) effects.push(`受到魔法伤害+${Math.round(passive.magical_increase*100)}%`);
-                        if (passive.energy_reduce) effects.push(`技能能量消耗-${passive.energy_reduce}`);
-                        if (passive.heal_per_turn) effects.push(`每回合回复${Math.round(passive.heal_per_turn*100)}%最大HP`);
-                        if (passive.low_hp_def_bonus) effects.push(`HP低于${Math.round(passive.threshold*100)}%时防御+${Math.round(passive.low_hp_def_bonus*100)}%`);
-                        if (passive.hit_bonus) effects.push(`命中率+${Math.round(passive.hit_bonus*100)}%`);
-                        if (passive.no_miss) effects.push('不会被闪避');
-                        if (passive.crit_bonus) effects.push(`暴击率+${Math.round(passive.crit_bonus*100)}%`);
-                        if (passive.drop_bonus) effects.push(`掉落奖励+${Math.round(passive.drop_bonus*100)}%`);
-                        if (passive.immune) effects.push(`免疫${passive.immune==='burn'?'🔥灼烧':'⚡麻痹'}`);
-                        return effects.join('，') || passive.desc || '特殊效果';
-                    }
-                    
-                    function getNatureEffectText(nature) {
-                        if (!nature || nature.id === 'balanced') return '无加成，无减益';
-                        const parts = [];
-                        if (nature.pos) parts.push(`✅ ${nature.pos}`);
-                        if (nature.neg) parts.push(`❌ ${nature.neg}`);
-                        return parts.join('，') || '无';
-                    }
-                    
-                    const overlay = document.createElement('div');
-                    overlay.className = 'modal-overlay active';
-                    overlay.innerHTML = `
-                        <div class="modal" style="max-width:420px;text-align:left;font-size:0.85rem;">
-                            <h3 style="text-align:center;">📊 宠物属性详情</h3>
-                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;">
-                                <span style="font-size:2.5rem;">${PET_TYPES[pet.pet_type]?.emoji||'🐾'}</span>
-                                <div>
-                                    <div><strong>#${pet.id} ${pet.pet_name}</strong> Lv.${pet.level}</div>
-                                    <div style="font-size:0.75rem;">EXP: ${pet.exp} | ${isStationed ? '✅ 已驻扎农田' : '🏠 未驻扎'}</div>
-                                </div>
-                            </div>
-                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🏷️ 性格</div>
-                            <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
-                                <strong>${natureData?.name||'未知'}</strong>
-                                <div style="font-size:0.8rem;color:#666;">${getNatureEffectText(natureData)}</div>
-                            </div>
-                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📘 被动技能</div>
-                            <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
-                                <strong>${passiveData?.name||'无'}</strong>
-                                <div style="font-size:0.8rem;color:#666;">${getPassiveEffectText(passiveData)}</div>
-                            </div>
-                            <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📊 属性详情</div>
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;">
-                                <div>❤️ HP：<strong>${stats.hp}</strong> ${stats.hp !== pet.hp ? `<span style="color:${stats.hp > pet.hp ? '#27ae60' : '#c0392b'};">(${stats.hp > pet.hp ? '+' : ''}${stats.hp - pet.hp})</span>` : ''}</div>
-                                <div>⚔️ 攻击：<strong>${stats.atk}</strong> ${stats.atk !== pet.atk ? `<span style="color:${stats.atk > pet.atk ? '#27ae60' : '#c0392b'};">(${stats.atk > pet.atk ? '+' : ''}${stats.atk - pet.atk})</span>` : ''}</div>
-                                <div>🛡️ 防御：<strong>${stats.def}</strong> ${stats.def !== pet.def ? `<span style="color:${stats.def > pet.def ? '#27ae60' : '#c0392b'};">(${stats.def > pet.def ? '+' : ''}${stats.def - pet.def})</span>` : ''}</div>
-                                <div>⚡ 速度：<strong>${stats.spd}</strong> ${stats.spd !== pet.spd ? `<span style="color:${stats.spd > pet.spd ? '#27ae60' : '#c0392b'};">(${stats.spd > pet.spd ? '+' : ''}${stats.spd - pet.spd})</span>` : ''}</div>
-                                <div>🍀 幸运：<strong>${stats.luk}</strong> ${stats.luk !== pet.luk ? `<span style="color:${stats.luk > pet.luk ? '#27ae60' : '#c0392b'};">(${stats.luk > pet.luk ? '+' : ''}${stats.luk - pet.luk})</span>` : ''}</div>
-                                <div>💪 体力：<strong>${stats.sta||pet.sta||50}</strong> ${(stats.sta||pet.sta)!== pet.sta ? `<span style="color:${(stats.sta||pet.sta) > pet.sta ? '#27ae60' : '#c0392b'};">(${(stats.sta||pet.sta) > pet.sta ? '+' : ''}${(stats.sta||pet.sta) - pet.sta})</span>` : ''}</div>
-                            </div>
-                            ${equipped.length > 0 ? `
-                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🛡️ 装备加成 (${equipped.length}件)</div>
-                            ${equipped.map(e => `<div style="font-size:0.8rem;padding:2px 0;">${e.name} +${e.enhance_level||0} (${QUALITY_NAMES[e.quality]||'?'}) → 攻+${e.atk_bonus} 防+${e.def_bonus} 幸+${e.luk_bonus}</div>`).join('')}
-                            ` : '<div style="color:#888;margin:4px 0;">🛡️ 未装备任何物品</div>'}
-                            ${Object.keys(sets).length > 0 ? `
-                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">⚔️ 套装效果</div>
-                            ${Object.entries(sets).map(([setName, slots]) => {
-                                const count = slots.length;
-                                if (count < 2) return '';
-                                const b2 = SET_BONUSES[setName]?.[2];
-                                const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
-                                let desc = [`${setName}·${count}件`];
-                                if (b2) { for (const [k,v] of Object.entries(b2)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='spd') desc.push(`速度+${v}`); else if (k==='luk') desc.push(`幸运+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k==='lifesteal') desc.push(`吸血${Math.round(v*100)}%`); } }
-                                if (b3) { for (const [k,v] of Object.entries(b3)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); } }
-                                return `<div style="font-size:0.8rem;color:#6c5ce7;">🛡️ ${desc.join('，')}</div>`;
-                            }).join('')}
-                            ` : ''}
-                            <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📜 主动技能 (${skills.length}/4)</div>
-                            ${skills.length > 0 ? skills.map(s => {
-                                const sd = ACTIVE_SKILLS[s.skill_name];
-                                return `<div style="font-size:0.8rem;padding:2px 0;">📜 ${sd?.name||s.skill_name} Lv.${s.level} ⚡${sd?.energy||'?'} 冷${sd?.cooldown||s.cooldown}回合 — ${sd?.desc||''}</div>`;
-                            }).join('') : '<div style="color:#888;font-size:0.8rem;">暂无技能（使用技能书学习）</div>'}
-                            ${isStationed ? `<div style="margin-top:8px;padding:6px;background:#fef9f3;border-radius:6px;font-size:0.8rem;">🏠 驻扎效果：${PET_STATION_EFFECTS[pet.pet_type]}</div>` : ''}
-                            <button class="btn-close" id="closePetDetail">×</button>
-                        </div>
-                    `;
-                    document.body.appendChild(overlay);
-                    overlay.querySelector('#closePetDetail').onclick = () => overlay.remove();
-                    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-                },
+                });
+            } else if (status.status === 'ready') {
+                State.isSubmitting = true;
+                harvestPlot(pi).then(result => {
+                    const idx = State.farmPlots.findIndex(p => p.plot_index === pi);
+                    if (idx !== -1) State.farmPlots[idx] = { ...State.farmPlots[idx], crop_type: null, planted_at: null, watered_at: null };
+                    Farm.updateGrid();
+                    const qName = result.quality ? QUALITIES[result.quality].name : '';
+                    showToast(`收获成功！${qName}品质 🪙${result.reward}`);
+                }).catch(() => showToast('收获失败', true)).finally(() => { State.isSubmitting = false; });
+            } else {
+                State.selectedPlotIndex = pi;
+                document.getElementById('waterPlotInfo').textContent = `${CROPS[plot.crop_type]?.name || '作物'} 正在生长，要浇水加速吗？`;
+                document.getElementById('modalWater').classList.add('active');
+            }
+        };
+    },
+    showPlantOptions(type) {
+        const container = document.getElementById('plantCropList');
+        let crops = Object.entries(CROPS);
+        if (type !== 'all') crops = crops.filter(([k, v]) => v.type === type);
+        container.innerHTML = crops.map(([key, info]) => {
+            const unlocked = info.unlock === '初始' || hasSeed(key);
+            if (!unlocked) return `<div class="crop-btn locked"><div style="font-size:2rem;">❓</div><div>${info.name}</div><div style="font-size:0.7rem;">未解锁</div></div>`;
+            const seedPrice = info.seed;
+            const canAfford = (State.profile?.gold || 0) >= seedPrice;
+            return `<button class="crop-btn" data-crop="${key}" data-time="${info.growth}" data-price="${seedPrice}" ${!canAfford ? 'disabled' : ''}><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">🪙${seedPrice} ⏱${info.growth}分</div></button>`;
+        }).join('');
+        container.querySelectorAll('.crop-btn:not(.locked)').forEach(btn => {
+            btn.onclick = async () => {
+                const ct = btn.dataset.crop, gt = parseInt(btn.dataset.time), sp = parseInt(btn.dataset.price);
+                if ((State.profile.gold || 0) < sp) { showToast('金币不足！', true); return; }
+                State.isSubmitting = true;
+                try {
+                    await supabase.from('profiles').update({ gold: State.profile.gold - sp }).eq('id', State.currentUser.id);
+                    const up = await plantCrop(State.selectedPlotIndex, ct, gt);
+                    const idx = State.farmPlots.findIndex(p => p.plot_index === State.selectedPlotIndex);
+                    if (idx !== -1) State.farmPlots[idx] = up;
+                    State.profile.gold -= sp;
+                    Farm.updateGrid();
+                    showToast(`种下了${CROPS[ct].name}！`);
+                } catch (err) { showToast('种植失败', true); }
+                finally { State.isSubmitting = false; document.getElementById('modalPlant').classList.remove('active'); }
             };
+        });
+    },
+    updateGrid() { const ul = State.profile?.unlocked_plots || 4; document.getElementById('farmGrid').innerHTML = State.farmPlots.filter(p => p.plot_index < ul).map(p => Farm.plotHTML(p)).join(''); },
+    openPotionSelect() {
+        if (State.pets.length === 0) { showToast('请先领养宠物'); return; }
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.innerHTML = `
+            <div class="modal" style="max-width:400px;">
+                <h3>🧪 选择药剂（可选）</h3>
+                <p style="font-size:0.8rem;color:#888;">选择一种药剂在本次战斗中生效</p>
+                <div id="potionList">
+                    <div class="potion-option" data-potion="none"><span>🚫</span><span>不使用药剂</span></div>
+                    <div class="potion-option" data-potion="potion_atk"><span>🧪</span><span>攻击药剂</span><span style="font-size:0.7rem;color:#888;">攻击+20%</span><span>×${State.items['potion_atk']||0}</span></div>
+                    <div class="potion-option" data-potion="potion_def"><span>💊</span><span>防御药剂</span><span style="font-size:0.7rem;color:#888;">防御+20%</span><span>×${State.items['potion_def']||0}</span></div>
+                    <div class="potion-option" data-potion="potion_spd"><span>⚗️</span><span>速度药剂</span><span style="font-size:0.7rem;color:#888;">速度+20%</span><span>×${State.items['potion_spd']||0}</span></div>
+                    <div class="potion-option" data-potion="potion_hp"><span>❤️</span><span>生命药剂</span><span style="font-size:0.7rem;color:#888;">HP+30%</span><span>×${State.items['potion_hp']||0}</span></div>
+                    <div class="potion-option" data-potion="potion_crit"><span>💥</span><span>暴击药剂</span><span style="font-size:0.7rem;color:#888;">暴击率+15%</span><span>×${State.items['potion_crit']||0}</span></div>
+                </div>
+                <button class="btn-close" id="closePotionSelect">×</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#closePotionSelect').onclick = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        overlay.querySelectorAll('.potion-option').forEach(opt => {
+            opt.onclick = async () => {
+                const potion = opt.dataset.potion;
+                if (potion === 'none') {
+                    State._pendingPotion = null;
+                } else {
+                    const qty = State.items[potion] || 0;
+                    if (qty <= 0) { showToast('药剂不足'); return; }
+                    State._pendingPotion = potion;
+                }
+                overlay.remove();
+                Farm.selectBattlePet();
+            };
+        });
+    },
+    openFriendsList() {
+        document.getElementById('modalFriends').classList.add('active');
+        const c = document.getElementById('friendListContainer');
+        if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
+        c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span class="nickname" style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
+        c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
+        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">×</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
+    },
+    openPets() {
+        document.getElementById('modalPets').classList.add('active');
+        const c = document.getElementById('petListContainer');
+        const slots = State.profile?.pet_slots || 1;
+        if (State.pets.length === 0) {
+            c.innerHTML = '<p>还没有宠物，领养一只吧！</p>';
+            if (slots > 0) {
+                c.innerHTML += '<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养宠物</button>';
+                document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
+            } else {
+                c.innerHTML += '<p style="color:#888;">槽位已满，请先解锁新槽位</p>';
+            }
+            return;
+        }
+        c.innerHTML = State.pets.map(p => {
+            const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
+            let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看收获</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
+            const stats = getPetBattleStats(p);
+            const skills = State.petSkills.filter(s => s.pet_id === p.id);
+            const skillsHTML = skills.length > 0 ? skills.map(s => { const skillData = ACTIVE_SKILLS[s.skill_name]; const info = skillData || ACTIVE_SKILLS?.[s.skill_name]; const typeClass = `skill-${info?.type || 'attack'}`; return `<div class="skill-card ${typeClass}"><strong>📜 ${info?.name||s.skill_name} Lv.${s.level}</strong> <span style="font-size:0.7rem;color:#888;">⚡${skillData?.energy||'?'} 冷${skillData?.cooldown||s.cooldown}回合</span><div style="font-size:0.75rem;">${info ? info.desc : '未知效果'}</div></div>`; }).join('') : '<div style="font-size:0.75rem;color:#aaa;">暂无主动技能（使用技能书学习）</div>';
+            const isStationed = State.stationedPet && State.stationedPet.id === p.id;
+            const natureData = p.nature ? PET_NATURES.find(n => n.id === p.nature) : null;
+            const natureName = natureData ? natureData.name : '未知';
+            const passiveData = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]] : null;
+            const passiveName = passiveData ? passiveData.name : '无被动';
+            const equipped = State.equipment.filter(e => e.equipped_to === p.id);
+            const sets = {};
+            equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
+            let setHTML = '';
+            for (const [setName, slots] of Object.entries(sets)) {
+                const count = slots.length;
+                if (count >= 2) {
+                    const b2 = SET_BONUSES[setName]?.[2];
+                    const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
+                    let effectsDesc = [];
+                    if (b2) { for (const [k, v] of Object.entries(b2)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
+                    if (b3) { for (const [k, v] of Object.entries(b3)) { if (k === 'atk') effectsDesc.push(`攻击+${v}`); else if (k === 'def') effectsDesc.push(`防御+${v}`); else if (k === 'spd') effectsDesc.push(`速度+${v}`); else if (k === 'luk') effectsDesc.push(`幸运+${v}`); else if (k === 'harvest_gold') effectsDesc.push(`收获金币+${Math.round(v*100)}%`); else if (k === 'exp_bonus') effectsDesc.push(`经验+${Math.round(v*100)}%`); else if (k === 'gold_bonus') effectsDesc.push(`金币+${Math.round(v*100)}%`); else if (k === 'explore_time') effectsDesc.push(`探险时间-${Math.round((1-v)*100)}%`); else if (k === 'growth_speed') effectsDesc.push(`生长加速${Math.round((1-v)*100)}%`); else if (k === 'ore_bonus') effectsDesc.push(`矿石+${Math.round(v*100)}%`); else if (k === 'rare_prob') effectsDesc.push(`稀有概率+${Math.round(v*100)}%`); else if (k === 'crit_chance') effectsDesc.push(`暴击率+${Math.round(v*100)}%`); else if (k === 'dmg_reduce') effectsDesc.push(`减伤${Math.round(v*100)}%`); else if (k === 'steal_extra') effectsDesc.push(`偷菜+${v}次`); else if (k === 'boss_dmg') effectsDesc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k === 'event_prob') effectsDesc.push(`事件概率+${Math.round(v*100)}%`); else if (k === 'all_stat') effectsDesc.push(`全属性+${Math.round(v*100)}%`); else if (k === 'lifesteal') effectsDesc.push(`吸血${Math.round(v*100)}%`); } }
+                    setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
+                }
+            }
+            return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button> <button class="btn-small" data-pet-detail="${p.id}" style="background:#6c5ce7;color:#fff;">📊属性</button></div></div>`;
+        }).join('');
+        if (State.pets.length < slots) {
+            c.innerHTML += `<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养新宠物（${State.pets.length}/${slots}）</button>`;
+            document.getElementById('btnAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); Farm.openAdopt(); };
+        } else {
+            c.innerHTML += `<p style="font-size:0.75rem;color:#888;margin-top:8px;">🔒 槽位已满（${State.pets.length}/${slots}），可解锁更多槽位</p>`;
+            c.innerHTML += `<button class="btn-small btn-view" id="btnOpenSlots">🔓 解锁槽位</button>`;
+            document.getElementById('btnOpenSlots').onclick = () => Farm.openPetSlots();
+        }
+        c.querySelectorAll('.btn-explore').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); document.getElementById('modalPets').classList.remove('active'); Farm.openExplore(pid); }; });
+        c.querySelectorAll('.btn-view[data-pet-id]').forEach(btn => { btn.onclick = async () => { const pid = parseInt(btn.dataset.petId); try { await completeExploration(pid, false); await loadPets(); Farm.openPets(); } catch (e) { showToast(e.message || '查看失败', true); } }; });
+        c.querySelectorAll('.btn-equip').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petId); const pet = State.pets.find(p => p.id === pid); if (pet) { if (State.stationedPet && State.stationedPet.id === pid) { State.stationedPet = null; showToast('已取消驻扎'); } else { State.stationedPet = pet; showToast(`${pet.pet_name} 已驻扎农田！${PET_STATION_EFFECTS[pet.pet_type]}`); } Farm.openPets(); } }; });
+        c.querySelectorAll('[data-pet-detail]').forEach(btn => { btn.onclick = () => { const pid = parseInt(btn.dataset.petDetail); Farm.openPetDetail(pid); }; });
+    },
+    openAdopt() { document.getElementById('modalPets').classList.add('active'); const c = document.getElementById('petListContainer'); c.innerHTML = '<h3>选择宠物</h3><div class="pet-options">' + Object.entries(PET_TYPES).map(([key, info]) => `<button class="pet-btn" data-pet="${key}"><div style="font-size:2rem;">${info.emoji}</div><div>${info.name}</div><div style="font-size:0.7rem;">探险费🪙${info.cost} | ${info.time}小时</div></button>`).join('') + '</div><button class="btn-close" id="cancelAdopt">×</button>'; document.getElementById('cancelAdopt').onclick = () => { document.getElementById('modalPets').classList.remove('active'); }; c.querySelectorAll('.pet-btn').forEach(btn => { btn.onclick = async () => { const pt = btn.dataset.pet; try { const result = await adoptPet(pt); if (result) { showToast('领养成功！'); document.getElementById('modalPets').classList.remove('active'); render(); } } catch (e) { showToast('领养失败', true); } }; }); },
+    openExplore(petId = null) { const modal = document.getElementById('modalExplore'); if (!modal) return; modal.classList.add('active'); const c = document.getElementById('exploreListContainer'); const pet = petId ? State.pets.find(p => p.id === petId) : State.pets[0]; if (!pet) { c.innerHTML = '<p>请先领养宠物</p>'; return; } const staFactor = Math.max(0.2, 1 - (pet.sta || 50) / 100); c.innerHTML = `<div style="margin-bottom:12px;">当前宠物：🐾 #${pet.id} ${pet.pet_name} Lv.${pet.level} 🍀幸运${pet.luk} 💪体力${pet.sta}</div>` + EXPLORE_ROUTES.map(r => { const locked = pet.level < r.minLevel; const actualTime = Math.max(0.1, r.time * staFactor); return `<div class="route-card ${locked ? 'locked' : ''}" data-route-id="${r.id}" ${locked ? '' : 'style="cursor:pointer"'}><strong>${r.emoji} ${r.name}</strong> ⏱${Math.round(actualTime * 60)}分钟 🪙${r.cost}<div style="font-size:0.75rem;">材料：${Object.entries(r.materials).map(([item, qty]) => `${ITEM_EMOJI[item]}×${qty}`).join(' ')}</div><div style="font-size:0.7rem;color:#888;">稀有：${ITEM_EMOJI[r.rareItem]} ${ITEM_NAMES[r.rareItem]} (${Math.round((r.rareProb + pet.luk * 0.01) * 100)}%) | 事件：${r.eventName}</div>${locked ? `<div style="color:var(--red);">需要宠物Lv.${r.minLevel}</div>` : ''}</div>`; }).join(''); c.querySelectorAll('.route-card:not(.locked)').forEach(card => { card.onclick = async () => { const routeId = card.dataset.routeId; await startExplore(pet.id, routeId); modal.classList.remove('active'); }; }); },
+    openPetSlots() {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        const slots = State.profile?.pet_slots || 1;
+        overlay.innerHTML = `
+            <div class="modal" style="max-width:400px;text-align:left;">
+                <h3>🔓 解锁宠物槽位</h3>
+                <div style="max-height:60vh;overflow-y:auto;">
+                    ${PET_SLOT_UNLOCK.map(s => {
+                        const unlocked = slots >= s.slot;
+                        const canUnlock = !unlocked && (State.profile?.gold || 0) >= s.gold;
+                        let condMet = true;
+                        if (s.cond?.petLevel) condMet = State.pets.some(p => p.level >= s.cond.petLevel);
+                        if (s.cond?.plots) condMet = (State.profile?.unlocked_plots || 4) >= s.cond.plots;
+                        if (s.cond?.eliteKills) condMet = Object.values(State.monsterLog || {}).reduce((sum, m) => sum + (m.kills || 0), 0) >= s.cond.eliteKills;
+                        if (s.cond?.explores) condMet = (State.profile?.explore_count || 0) >= s.cond.explores;
+                        if (s.cond?.bossKills) condMet = ((State.monsterLog || {})['虫母女王']?.kills || 0) >= s.cond.bossKills;
+                        const hasMaterials = !s.materials || Object.entries(s.materials).every(([item, need]) => (State.items[item] || 0) >= need);
+                        const canClick = canUnlock && condMet && hasMaterials;
+                        return `<div class="list-item" style="justify-content:space-between;"><div><div>🔒 槽位${s.slot}</div><div style="font-size:0.75rem;color:#888;">${s.desc}</div><div style="font-size:0.7rem;color:${condMet?'#27ae60':'#c0392b'};">${condMet?'✅条件满足':'❌条件不足'}</div></div><button class="btn-small btn-adopt" data-slot="${s.slot}" ${canClick?'':'disabled'}>${unlocked?'✅已解锁':canClick?'🔓解锁🪙'+s.gold:'金币不足'}</button></div>`;
+                    }).join('')}
+                </div>
+                <button class="btn-close" id="closePetSlots">×</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#closePetSlots').onclick = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        overlay.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => {
+            btn.onclick = async () => {
+                const slot = parseInt(btn.dataset.slot);
+                const unlockData = PET_SLOT_UNLOCK.find(s => s.slot === slot);
+                if (!unlockData) return;
+                try {
+                    State.profile.gold -= unlockData.gold;
+                    await supabase.from('profiles').update({ gold: State.profile.gold, pet_slots: slot }).eq('id', State.currentUser.id);
+                    if (unlockData.materials) { for (const [item, need] of Object.entries(unlockData.materials)) await addItem(item, -need); }
+                    State.profile.pet_slots = slot;
+                    showToast(`解锁成功！宠物槽位+1（${slot}/${MAX_PET_SLOTS}）`);
+                    overlay.remove();
+                    Farm.openPets();
+                } catch (e) { showToast('解锁失败', true); }
+            };
+        });
+    },
+    selectBattlePet() {
+        const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
+        if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
+        if (availablePets.length === 1) {
+            State.selectedBattlePetId = availablePets[0].id;
+            Farm.openPvEMap();
+            return;
+        }
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.innerHTML = `
+            <div class="modal" style="max-width:400px;">
+                <h3>⚔️ 选择出战宠物</h3>
+                <div id="battlePetList">
+                    ${State.pets.map(p => {
+                        const stats = getPetBattleStats(p);
+                        const isExploring = p.exploring_until && new Date(p.exploring_until) > new Date();
+                        const passiveName = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]]?.name : '';
+                        return `<div class="list-item ${isExploring ? '' : 'clickable'}" data-pet-id="${p.id}" style="${isExploring ? 'opacity:0.5;' : 'cursor:pointer;'}">
+                            <span style="font-size:2rem;">${PET_TYPES[p.pet_type]?.emoji||'🐾'}</span>
+                            <div style="flex:1;">
+                                <div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level}</div>
+                                <div style="font-size:0.7rem;">❤️${stats.hp} ⚔️${stats.atk} 🛡️${stats.def} ${passiveName ? '📘'+passiveName : ''}</div>
+                            </div>
+                            ${isExploring ? '<span style="color:#888;">探险中</span>' : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+                <button class="btn-close" id="closeBattlePet">×</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#closeBattlePet').onclick = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        overlay.querySelectorAll('.list-item.clickable').forEach(item => {
+            item.onclick = () => {
+                const pid = parseInt(item.dataset.petId);
+                State.selectedBattlePetId = pid;
+                overlay.remove();
+                Farm.openPvEMap();
+            };
+        });
+    },
+    openPetDetail(pid) {
+        const pet = State.pets.find(p => p.id === pid);
+        if (!pet) return;
+        const stats = getPetBattleStats(pet);
+        const natureData = pet.nature ? PET_NATURES.find(n => n.id === pet.nature) : null;
+        const passiveId = State.passiveSkills?.[pet.id];
+        const passiveData = passiveId ? PASSIVE_SKILLS[passiveId] : null;
+        const equipped = State.equipment.filter(e => e.equipped_to === pet.id);
+        const skills = State.petSkills.filter(s => s.pet_id === pet.id);
+        const isStationed = State.stationedPet && State.stationedPet.id === pet.id;
+        
+        const sets = {};
+        equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
+        
+        function getPassiveEffectText(passive) {
+            if (!passive) return '无被动';
+            const effects = [];
+            if (passive.atk_type && passive.atk_bonus) {
+                effects.push(`${passive.atk_type==='fire'?'🔥':passive.atk_type==='water'?'💧':passive.atk_type==='grass'?'🌿':passive.atk_type==='thunder'?'⚡':passive.atk_type==='dark'?'🌑':'✨'}系伤害+${Math.round(passive.atk_bonus*100)}%`);
+            }
+            if (passive.def_penalty && typeof passive.def_penalty === 'object') {
+                for (const [elem, val] of Object.entries(passive.def_penalty)) {
+                    effects.push(`受到${elem==='water'?'💧水':elem==='thunder'?'⚡雷':elem==='fire'?'🔥火':elem==='grass'?'🌿草':elem}系伤害+${Math.round(val*100)}%`);
+                }
+            }
+            if (passive.atk_bonus && !passive.atk_type) effects.push(`攻击力+${Math.round(passive.atk_bonus*100)}%`);
+            if (passive.def_bonus && typeof passive.def_bonus === 'number') effects.push(`防御力+${Math.round(passive.def_bonus*100)}%`);
+            if (passive.spd_bonus && typeof passive.spd_bonus === 'number') effects.push(`速度+${Math.round(passive.spd_bonus*100)}%`);
+            if (passive.hp_penalty) effects.push(`HP-${Math.round(passive.hp_penalty*100)}%`);
+            if (passive.def_penalty && typeof passive.def_penalty === 'number') effects.push(`防御力-${Math.round(passive.def_penalty*100)}%`);
+            if (passive.spd_penalty && typeof passive.spd_penalty === 'number') effects.push(`速度-${Math.round(passive.spd_penalty*100)}%`);
+            if (passive.atk_penalty) effects.push(`普通攻击伤害-${Math.round(passive.atk_penalty*100)}%`);
+            if (passive.physical_reduce) effects.push(`受到物理伤害-${Math.round(passive.physical_reduce*100)}%`);
+            if (passive.magical_increase) effects.push(`受到魔法伤害+${Math.round(passive.magical_increase*100)}%`);
+            if (passive.energy_reduce) effects.push(`技能能量消耗-${passive.energy_reduce}`);
+            if (passive.heal_per_turn) effects.push(`每回合回复${Math.round(passive.heal_per_turn*100)}%最大HP`);
+            if (passive.low_hp_def_bonus) effects.push(`HP低于${Math.round(passive.threshold*100)}%时防御+${Math.round(passive.low_hp_def_bonus*100)}%`);
+            if (passive.hit_bonus) effects.push(`命中率+${Math.round(passive.hit_bonus*100)}%`);
+            if (passive.no_miss) effects.push('不会被闪避');
+            if (passive.crit_bonus) effects.push(`暴击率+${Math.round(passive.crit_bonus*100)}%`);
+            if (passive.drop_bonus) effects.push(`掉落奖励+${Math.round(passive.drop_bonus*100)}%`);
+            if (passive.immune) effects.push(`免疫${passive.immune==='burn'?'🔥灼烧':'⚡麻痹'}`);
+            return effects.join('，') || passive.desc || '特殊效果';
+        }
+        
+        function getNatureEffectText(nature) {
+            if (!nature || nature.id === 'balanced') return '无加成，无减益';
+            const parts = [];
+            if (nature.pos) parts.push(`✅ ${nature.pos}`);
+            if (nature.neg) parts.push(`❌ ${nature.neg}`);
+            return parts.join('，') || '无';
+        }
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.innerHTML = `
+            <div class="modal" style="max-width:420px;text-align:left;font-size:0.85rem;">
+                <h3 style="text-align:center;">📊 宠物属性详情</h3>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;">
+                    <span style="font-size:2.5rem;">${PET_TYPES[pet.pet_type]?.emoji||'🐾'}</span>
+                    <div>
+                        <div><strong>#${pet.id} ${pet.pet_name}</strong> Lv.${pet.level}</div>
+                        <div style="font-size:0.75rem;">EXP: ${pet.exp} | ${isStationed ? '✅ 已驻扎农田' : '🏠 未驻扎'}</div>
+                    </div>
+                </div>
+                <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🏷️ 性格</div>
+                <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
+                    <strong>${natureData?.name||'未知'}</strong>
+                    <div style="font-size:0.8rem;color:#666;">${getNatureEffectText(natureData)}</div>
+                </div>
+                <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📘 被动技能</div>
+                <div style="margin-bottom:8px;padding:6px;background:#f9f6f0;border-radius:6px;">
+                    <strong>${passiveData?.name||'无'}</strong>
+                    <div style="font-size:0.8rem;color:#666;">${getPassiveEffectText(passiveData)}</div>
+                </div>
+                <div style="font-weight:600;margin:8px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📊 属性详情</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;">
+                    <div>❤️ HP：<strong>${stats.hp}</strong> ${stats.hp !== pet.hp ? `<span style="color:${stats.hp > pet.hp ? '#27ae60' : '#c0392b'};">(${stats.hp > pet.hp ? '+' : ''}${stats.hp - pet.hp})</span>` : ''}</div>
+                    <div>⚔️ 攻击：<strong>${stats.atk}</strong> ${stats.atk !== pet.atk ? `<span style="color:${stats.atk > pet.atk ? '#27ae60' : '#c0392b'};">(${stats.atk > pet.atk ? '+' : ''}${stats.atk - pet.atk})</span>` : ''}</div>
+                    <div>🛡️ 防御：<strong>${stats.def}</strong> ${stats.def !== pet.def ? `<span style="color:${stats.def > pet.def ? '#27ae60' : '#c0392b'};">(${stats.def > pet.def ? '+' : ''}${stats.def - pet.def})</span>` : ''}</div>
+                    <div>⚡ 速度：<strong>${stats.spd}</strong> ${stats.spd !== pet.spd ? `<span style="color:${stats.spd > pet.spd ? '#27ae60' : '#c0392b'};">(${stats.spd > pet.spd ? '+' : ''}${stats.spd - pet.spd})</span>` : ''}</div>
+                    <div>🍀 幸运：<strong>${stats.luk}</strong> ${stats.luk !== pet.luk ? `<span style="color:${stats.luk > pet.luk ? '#27ae60' : '#c0392b'};">(${stats.luk > pet.luk ? '+' : ''}${stats.luk - pet.luk})</span>` : ''}</div>
+                    <div>💪 体力：<strong>${stats.sta||pet.sta||50}</strong> ${(stats.sta||pet.sta)!== pet.sta ? `<span style="color:${(stats.sta||pet.sta) > pet.sta ? '#27ae60' : '#c0392b'};">(${(stats.sta||pet.sta) > pet.sta ? '+' : ''}${(stats.sta||pet.sta) - pet.sta})</span>` : ''}</div>
+                </div>
+                ${equipped.length > 0 ? `
+                <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">🛡️ 装备加成 (${equipped.length}件)</div>
+                ${equipped.map(e => `<div style="font-size:0.8rem;padding:2px 0;">${e.name} +${e.enhance_level||0} (${QUALITY_NAMES[e.quality]||'?'}) → 攻+${e.atk_bonus} 防+${e.def_bonus} 幸+${e.luk_bonus}</div>`).join('')}
+                ` : '<div style="color:#888;margin:4px 0;">🛡️ 未装备任何物品</div>'}
+                ${Object.keys(sets).length > 0 ? `
+                <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">⚔️ 套装效果</div>
+                ${Object.entries(sets).map(([setName, slots]) => {
+                    const count = slots.length;
+                    if (count < 2) return '';
+                    const b2 = SET_BONUSES[setName]?.[2];
+                    const b3 = count >= 3 ? SET_BONUSES[setName]?.[3] : null;
+                    let desc = [`${setName}·${count}件`];
+                    if (b2) { for (const [k,v] of Object.entries(b2)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='spd') desc.push(`速度+${v}`); else if (k==='luk') desc.push(`幸运+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); else if (k==='lifesteal') desc.push(`吸血${Math.round(v*100)}%`); } }
+                    if (b3) { for (const [k,v] of Object.entries(b3)) { if (k==='atk') desc.push(`攻击+${v}`); else if (k==='def') desc.push(`防御+${v}`); else if (k==='boss_dmg') desc.push(`BOSS伤害+${Math.round(v*100)}%`); } }
+                    return `<div style="font-size:0.8rem;color:#6c5ce7;">🛡️ ${desc.join('，')}</div>`;
+                }).join('')}
+                ` : ''}
+                <div style="font-weight:600;margin:12px 0 4px 0;border-bottom:1px solid #eee;padding-bottom:4px;">📜 主动技能 (${skills.length}/4)</div>
+                ${skills.length > 0 ? skills.map(s => {
+                    const sd = ACTIVE_SKILLS[s.skill_name];
+                    return `<div style="font-size:0.8rem;padding:2px 0;">📜 ${sd?.name||s.skill_name} Lv.${s.level} ⚡${sd?.energy||'?'} 冷${sd?.cooldown||s.cooldown}回合 — ${sd?.desc||''}</div>`;
+                }).join('') : '<div style="color:#888;font-size:0.8rem;">暂无技能（使用技能书学习）</div>'}
+                ${isStationed ? `<div style="margin-top:8px;padding:6px;background:#fef9f3;border-radius:6px;font-size:0.8rem;">🏠 驻扎效果：${PET_STATION_EFFECTS[pet.pet_type]}</div>` : ''}
+                <button class="btn-close" id="closePetDetail">×</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('#closePetDetail').onclick = () => overlay.remove();
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    },
+};
 			// ==================== 第 22 块：背包界面（含技能书使用） ====================
             Farm.openBackpack = async function() {
                 document.getElementById('modalBackpack').classList.add('active');
@@ -3163,214 +3334,246 @@ const Battle = {
                 document.getElementById('btnRefreshBackpack').onclick = async () => { await loadItems(); showBp(document.querySelector('#bpTypeTabs .auth-tab.active')?.dataset?.bptype || 'all'); };
             };
 			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
-            Farm.openSynthesis = async function() {
-                document.getElementById('modalSynthesis').classList.add('active');
-                await loadItems();
-                const showSynth = (type) => {
-                    const c = document.getElementById('synthesisList');
-                    let recipes = [];
-                    if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
-                    else if (type === 'food') recipes = SYNTHESIS_FOOD;
-                    else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
-                    if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
-                    c.innerHTML = recipes.map((r, idx) => {
-                        const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
-                        const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
-                        const canCraft = hasMaterials && hasGold;
-                        let btnClass = 'btn-synthesis', btnText = '可合成';
-                        if (!hasMaterials) { btnClass = 'btn-nomat'; btnText = '材料不足'; }
-                        else if (!hasGold) { btnClass = 'btn-nogold'; btnText = '金币不足'; }
-                        const setBadge = r.set_name ? `<span class="set-badge">${r.set_name}</span>` : '';
-                        const slotName = r.slot ? `(${SLOT_NAMES[r.slot]})` : '';
-                        const qualityName = r.quality ? ` - ${QUALITY_NAMES[r.quality]}` : '';
-                        const timeText = r.time ? ` ⏳${r.time}分钟` : '';
-                        return `<div class="equipment-card"><strong>${r.icon||''} ${r.name}</strong> ${setBadge} ${slotName}${qualityName}${timeText}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]||'📦'}×${need}`).join(' ')}</div>${r.cost ? `<div style="font-size:0.8rem;">费用：🪙${r.cost}</div>` : ''}<button class="${btnClass}" data-recipe-idx="${idx}" data-type="${type}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
-                    }).join('');
-                    c.querySelectorAll('.btn-synthesis').forEach(btn => {
-                        btn.onclick = async () => {
-                            const idx = parseInt(btn.dataset.recipeIdx);
-                            const stype = btn.dataset.type;
-                            let recipe;
-                            if (stype === 'equipment') recipe = SYNTHESIS_RECIPES[idx];
-                            else if (stype === 'food') recipe = SYNTHESIS_FOOD[idx];
-                            else if (stype === 'potion') recipe = SYNTHESIS_POTIONS[idx];
-                            if (!recipe) return;
-                            if (stype === 'equipment') await synthesizeEquipment(recipe);
-                            else await synthesizeProduct(recipe);
-                            Farm.openSynthesis();
-                        };
-                    });
-                };
-                showSynth('equipment');
-                document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showSynth(tab.dataset.stype); }; });
-                document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); const activeTab = document.querySelector('#synthTypeTabs .auth-tab.active'); const currentType = activeTab?.dataset?.stype || 'equipment'; showSynth(currentType); };
+Farm.openSynthesis = async function() {
+    document.getElementById('modalSynthesis').classList.add('active');
+    await loadItems();
+    const showSynth = (type) => {
+        const c = document.getElementById('synthesisList');
+        let recipes = [];
+        if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
+        else if (type === 'food') recipes = SYNTHESIS_FOOD;
+        else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
+        if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
+        c.innerHTML = recipes.map((r, idx) => {
+            const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
+            const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
+            const canCraft = hasMaterials && hasGold;
+            let btnClass = 'btn-synthesis', btnText = '可合成';
+            if (!hasMaterials) { btnClass = 'btn-nomat'; btnText = '材料不足'; }
+            else if (!hasGold) { btnClass = 'btn-nogold'; btnText = '金币不足'; }
+            const setBadge = r.set_name ? `<span class="set-badge">${r.set_name}</span>` : '';
+            const slotName = r.slot ? `(${SLOT_NAMES[r.slot]})` : '';
+            const qualityName = r.quality ? ` - ${QUALITY_NAMES[r.quality]}` : '';
+            const timeText = r.time ? ` ⏳${r.time}分钟` : '';
+            return `<div class="equipment-card"><strong>${r.icon||''} ${r.name}</strong> ${setBadge} ${slotName}${qualityName}${timeText}<div style="font-size:0.8rem;">材料：${Object.entries(r.materials).map(([item, need]) => `${ITEM_EMOJI[item]||'📦'}×${need}`).join(' ')}</div>${r.cost ? `<div style="font-size:0.8rem;">费用：🪙${r.cost}</div>` : ''}<button class="${btnClass}" data-recipe-idx="${idx}" data-type="${type}" ${canCraft?'':'disabled'}>${btnText}</button></div>`;
+        }).join('');
+        c.querySelectorAll('.btn-synthesis').forEach(btn => {
+            btn.onclick = async () => {
+                const idx = parseInt(btn.dataset.recipeIdx);
+                const stype = btn.dataset.type;
+                let recipe;
+                if (stype === 'equipment') recipe = SYNTHESIS_RECIPES[idx];
+                else if (stype === 'food') recipe = SYNTHESIS_FOOD[idx];
+                else if (stype === 'potion') recipe = SYNTHESIS_POTIONS[idx];
+                if (!recipe) return;
+                if (stype === 'equipment') await synthesizeEquipment(recipe);
+                else await synthesizeProduct(recipe);
+                Farm.openSynthesis();
             };
+        });
+    };
+    showSynth('equipment');
+    document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showSynth(tab.dataset.stype); }; });
+    document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); const activeTab = document.querySelector('#synthTypeTabs .auth-tab.active'); const currentType = activeTab?.dataset?.stype || 'equipment'; showSynth(currentType); };
+};
 
-            Farm.openEquipment = function() {
-                document.getElementById('modalEquipment').classList.add('active');
-                const c = document.getElementById('equipmentList');
-                if (State.equipment.length === 0) { c.innerHTML = '<p>还没有装备，去合成台打造吧！</p>'; return; }
-                c.innerHTML = State.equipment.map(e => {
-                    const pn = e.equipped_to ? State.pets.find(p => p.id === e.equipped_to)?.pet_name : '未装备';
-                    const qc = `quality-${e.quality}`;
-                    const canEnhance = !e.equipped_to && e.enhance_level < ENHANCE_MAX_LEVEL;
-                    const canDecompose = !e.equipped_to;
-                    const canSell = !e.equipped_to;
-                    const nextLevel = e.enhance_level + 1;
-                    const config = ENHANCE_CONFIG.find(c => c.level === nextLevel);
-                    const probText = config ? ` (成功率${Math.round(config.prob*100)}%)` : '';
-                    return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'} title="强化到+${nextLevel}${probText}">${canEnhance?'强化'+probText:(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
-                }).join('');
-                c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); Farm.openEquipment(); }; });
-                c.querySelectorAll('.btn-equip').forEach(btn => {
-                    btn.onclick = async () => {
-                        const eid = parseInt(btn.dataset.equipId);
-                        const petList = State.pets.map(p => `<button class="btn-small" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('');
-                        const overlay = document.createElement('div'); overlay.className = 'modal-overlay active';
-                        overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">×</button></div>`;
-                        document.body.appendChild(overlay);
-                        overlay.querySelector('#cancelEquip').onclick = () => overlay.remove();
-                        overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); Farm.openEquipment(); }; });
-                    };
-                });
-                c.querySelectorAll('.btn-unequip').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await unequipFromPet(eid); Farm.openEquipment(); }; });
-                c.querySelectorAll('.btn-decompose:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要分解这件装备吗？材料将按比例返还。')) { const eid = parseInt(btn.dataset.equipId); await decomposeEquipment(eid); Farm.openEquipment(); } }; });
-                c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); Farm.openEquipment(); } }; });
-            };
+Farm.openEquipment = function() {
+    document.getElementById('modalEquipment').classList.add('active');
+    const c = document.getElementById('equipmentList');
+    if (State.equipment.length === 0) { c.innerHTML = '<p>还没有装备，去合成台打造吧！</p>'; return; }
+    c.innerHTML = State.equipment.map(e => {
+        const pn = e.equipped_to ? State.pets.find(p => p.id === e.equipped_to)?.pet_name : '未装备';
+        const qc = `quality-${e.quality}`;
+        const canEnhance = !e.equipped_to && e.enhance_level < ENHANCE_MAX_LEVEL;
+        const canDecompose = !e.equipped_to;
+        const canSell = !e.equipped_to;
+        const nextLevel = e.enhance_level + 1;
+        const config = ENHANCE_CONFIG.find(c => c.level === nextLevel);
+        const probText = config ? ` (成功率${Math.round(config.prob*100)}%)` : '';
+        return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'} title="强化到+${nextLevel}${probText}">${canEnhance?'强化'+probText:(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
+    }).join('');
+    c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); Farm.openEquipment(); }; });
+    c.querySelectorAll('.btn-equip').forEach(btn => {
+        btn.onclick = async () => {
+            const eid = parseInt(btn.dataset.equipId);
+            const petList = State.pets.map(p => `<button class="btn-small" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('');
+            const overlay = document.createElement('div'); overlay.className = 'modal-overlay active';
+            overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">×</button></div>`;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#cancelEquip').onclick = () => overlay.remove();
+            overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); Farm.openEquipment(); }; });
+        };
+    });
+    c.querySelectorAll('.btn-unequip').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await unequipFromPet(eid); Farm.openEquipment(); }; });
+    c.querySelectorAll('.btn-decompose:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要分解这件装备吗？材料将按比例返还。')) { const eid = parseInt(btn.dataset.equipId); await decomposeEquipment(eid); Farm.openEquipment(); } }; });
+    c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); Farm.openEquipment(); } }; });
+};
 
-            // 地图选择弹窗
-            Farm.openPvEMap = function() {
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay active';
-                const mapsHTML = PVE_MAPS.map(m => {
-                    const unlocked = isMapUnlocked(m);
-                    const monsterNames = [...m.monsterIds, ...m.eliteIds].join('·');
-                    return `
-                        <div class="route-card ${unlocked ? '' : 'locked'}" data-map-id="${m.id}" 
-                             style="background:${m.bg};${unlocked ? 'cursor:pointer;' : ''}">
-                            <strong>${m.emoji} ${m.name}</strong>
-                            <span style="font-size:0.75rem;color:#888;">Lv.${m.minLevel}~${m.maxLevel}</span>
-                            <div style="font-size:0.75rem;color:#666;">${monsterNames || (m.isBoss ? '虫母女王' : '精英汇集')}</div>
-                            ${!unlocked ? `<div style="color:#c0392b;font-size:0.7rem;">🔒 ${m.unlockDesc}</div>` : ''}
+Farm.openPvEMap = function() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    const mapsHTML = PVE_MAPS.map(m => {
+        const unlocked = isMapUnlocked(m);
+        const monsterNames = [...m.monsterIds, ...m.eliteIds].join('·');
+        return `
+            <div class="route-card ${unlocked ? '' : 'locked'}" data-map-id="${m.id}" 
+                 style="background:${m.bg};${unlocked ? 'cursor:pointer;' : ''}">
+                <strong>${m.emoji} ${m.name}</strong>
+                <span style="font-size:0.75rem;color:#888;">Lv.${m.minLevel}~${m.maxLevel}</span>
+                <div style="font-size:0.75rem;color:#666;">${monsterNames || (m.isBoss ? '虫母女王' : '精英汇集')}</div>
+                ${!unlocked ? `<div style="color:#c0392b;font-size:0.7rem;">🔒 ${m.unlockDesc}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+    overlay.innerHTML = `
+        <div class="modal" style="max-width:420px;">
+            <h3>🗺️ 选择讨伐地图</h3>
+            <div class="list-container">${mapsHTML}</div>
+            <button class="btn-close" id="closeMapSelect">×</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#closeMapSelect').onclick = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelectorAll('.route-card:not(.locked)').forEach(card => {
+        card.onclick = () => {
+            const mapId = card.dataset.mapId;
+            State.selectedMapId = mapId;
+            overlay.remove();
+            Farm.openPvE();
+        };
+    });
+};
+
+Farm.openPvE = async function() {
+    const mapId = State.selectedMapId || 'grassland';
+    const mapData = PVE_MAPS.find(m => m.id === mapId);
+    if (!mapData) return;
+    
+    const modal = document.getElementById('modalPvE');
+    if (!modal) { render(); setTimeout(() => Farm.openPvE(), 100); return; }
+    modal.classList.add('active');
+    const c = document.getElementById('pveListContainer');
+    const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
+    const myPet = State.pets.find(p => p.id === selectedPetId);
+    const myLevel = myPet ? myPet.level : 1;
+    
+    let html = '';
+    
+    if (mapData.isBoss) {
+        if (State.bossStatus) {
+            const now = new Date();
+            const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
+            if (State.bossStatus.current_hp > 0) {
+                if (new Date(State.bossStatus.expires_at) <= now) {
+                    const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
+                    await supabase.from('boss_status').update({ expires_at: newExpires }).eq('id', 1);
+                    State.bossStatus.expires_at = newExpires;
+                }
+                const remaining = Math.ceil((new Date(State.bossStatus.expires_at) - now) / 3600000 * 10) / 10;
+                html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
+            } else if (State.bossStatus.current_hp <= 0 && refreshesAt && refreshesAt > now) {
+                const remaining = Math.ceil((refreshesAt - now) / 60000);
+                html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
+            } else {
+                await refreshBoss();
+                const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
+                html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
+            }
+        }
+        html += `<button class="btn-icon" id="btnBackToMaps" style="margin-top:8px;">← 返回地图</button>`;
+        c.innerHTML = html;
+        if (document.getElementById('btnBackToMaps')) {
+            document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
+        }
+        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); modal.classList.remove('active'); }; });
+        return;
+    }
+    
+    const availableMonsters = mapData.monsterIds.map(getMonsterByName).filter(Boolean);
+    const availableElites = mapData.eliteIds.map(getMonsterByName).filter(Boolean);
+    
+    const shuffled = [...availableMonsters].sort(() => Math.random() - 0.5).slice(0, Math.min(4, availableMonsters.length));
+    
+    State.monsterAffixes = [];
+    shuffled.forEach(m => {
+        const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
+        const affixes = [];
+        if (affixCount > 0) {
+            const shuffledAffixes = [...MONSTER_AFFIXES].sort(() => Math.random() - 0.5);
+            for (let i = 0; i < affixCount; i++) affixes.push(shuffledAffixes[i]);
+        }
+        if (affixes.length > 0) {
+            const affixNames = affixes.map(a => `<span style="font-size:0.7rem;background:${a.color};color:#fff;border-radius:4px;padding:1px 4px;margin:0 2px;">${a.name}</span>`).join('');
+            html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}<br>${affixNames}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='${JSON.stringify(affixes.map(a=>a.id))}'>挑战</button></div>`;
+        } else {
+            html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='[]'>挑战</button></div>`;
+        }
+    });
+    
+    availableElites.forEach(elite => {
+        html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
+    });
+    
+    const myTickets = State.items['auto_battle_ticket'] || 0;
+    html += `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-icon" id="btnBackToMaps">← 返回地图</button>
+        <button class="btn-small btn-fight" id="btnAutoBattle" style="background:#8e44ad;color:#fff;">⚔️ 自动战斗 (🎫${myTickets})</button>
+    </div>`;
+    
+    c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
+    
+    if (html) {
+        if (document.getElementById('btnBackToMaps')) {
+            document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
+        }
+        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
+        const autoBtn = document.getElementById('btnAutoBattle');
+        if (autoBtn) {
+            autoBtn.onclick = () => { modal.classList.remove('active'); Farm.openAutoBattle(); };
+        }
+    }
+};
+
+// 怪物图鉴
+Farm.openMonsterLog = function() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    const logEntries = Object.entries(State.monsterLog || {});
+    const allMonsters = [...MONSTERS, ...ELITE_MONSTERS];
+    overlay.innerHTML = `
+        <div class="modal" style="max-width:420px;">
+            <h3>📖 怪物图鉴</h3>
+            <div class="list-container">
+                ${allMonsters.map(m => {
+                    const log = State.monsterLog?.[m.name];
+                    const kills = log?.kills || 0;
+                    const unlockedAffixes = log?.affixes || [];
+                    const allAffixesForMonster = MONSTER_AFFIXES.map(a => ({
+                        ...a,
+                        unlocked: unlockedAffixes.includes(a.id)
+                    }));
+                    return `<div class="monster-log-card">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:1.5rem;">${m.emoji||'👾'}</span>
+                            <div style="flex:1;">
+                                <strong>${m.name}</strong>
+                                <span style="font-size:0.7rem;color:#888;"> Lv.${m.minLevel}~${m.maxLevel}</span>
+                            </div>
+                            <span style="font-weight:600;">击杀:${kills}</span>
                         </div>
-                    `;
-                }).join('');
-                overlay.innerHTML = `
-                    <div class="modal" style="max-width:420px;">
-                        <h3>🗺️ 选择讨伐地图</h3>
-                        <div class="list-container">${mapsHTML}</div>
-                        <button class="btn-close" id="closeMapSelect">×</button>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                overlay.querySelector('#closeMapSelect').onclick = () => overlay.remove();
-                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-                overlay.querySelectorAll('.route-card:not(.locked)').forEach(card => {
-                    card.onclick = () => {
-                        const mapId = card.dataset.mapId;
-                        State.selectedMapId = mapId;
-                        overlay.remove();
-                        Farm.openPvE();
-                    };
-                });
-            };
-
-            // 地图内怪物列表 + 自动战斗入口
-            Farm.openPvE = async function() {
-                const mapId = State.selectedMapId || 'grassland';
-                const mapData = PVE_MAPS.find(m => m.id === mapId);
-                if (!mapData) return;
-                
-                const modal = document.getElementById('modalPvE');
-                if (!modal) { render(); setTimeout(() => Farm.openPvE(), 100); return; }
-                modal.classList.add('active');
-                const c = document.getElementById('pveListContainer');
-                const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
-                const myPet = State.pets.find(p => p.id === selectedPetId);
-                const myLevel = myPet ? myPet.level : 1;
-                
-                let html = '';
-                
-                // BOSS地图特殊处理
-                if (mapData.isBoss) {
-                    if (State.bossStatus) {
-                        const now = new Date();
-                        const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
-                        if (State.bossStatus.current_hp > 0) {
-                            if (new Date(State.bossStatus.expires_at) <= now) {
-                                const newExpires = new Date(Date.now() + BOSS_EXPIRE_HOURS * 3600000).toISOString();
-                                await supabase.from('boss_status').update({ expires_at: newExpires }).eq('id', 1);
-                                State.bossStatus.expires_at = newExpires;
-                            }
-                            const remaining = Math.ceil((new Date(State.bossStatus.expires_at) - now) / 3600000 * 10) / 10;
-                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${remaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
-                        } else if (State.bossStatus.current_hp <= 0 && refreshesAt && refreshesAt > now) {
-                            const remaining = Math.ceil((refreshesAt - now) / 60000);
-                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
-                        } else {
-                            await refreshBoss();
-                            const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
-                            html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
-                        }
-                    }
-                    html += `<button class="btn-icon" id="btnBackToMaps" style="margin-top:8px;">← 返回地图</button>`;
-                    c.innerHTML = html;
-                    if (document.getElementById('btnBackToMaps')) {
-                        document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
-                    }
-                    c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); modal.classList.remove('active'); }; });
-                    return;
-                }
-                
-                // 普通地图
-                const availableMonsters = mapData.monsterIds.map(getMonsterByName).filter(Boolean);
-                const availableElites = mapData.eliteIds.map(getMonsterByName).filter(Boolean);
-                
-                // 随机刷新3~4个普通怪
-                const shuffled = [...availableMonsters].sort(() => Math.random() - 0.5).slice(0, Math.min(4, availableMonsters.length));
-                
-                State.monsterAffixes = [];
-                shuffled.forEach(m => {
-                    const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
-                    const affixes = [];
-                    if (affixCount > 0) {
-                        const shuffledAffixes = [...MONSTER_AFFIXES].sort(() => Math.random() - 0.5);
-                        for (let i = 0; i < affixCount; i++) affixes.push(shuffledAffixes[i]);
-                    }
-                    if (affixes.length > 0) {
-                        const affixNames = affixes.map(a => `<span style="font-size:0.7rem;background:${a.color};color:#fff;border-radius:4px;padding:1px 4px;margin:0 2px;">${a.name}</span>`).join('');
-                        html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}<br>${affixNames}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='${JSON.stringify(affixes.map(a=>a.id))}'>挑战</button></div>`;
-                    } else {
-                        html += `<div class="list-item"><span>${m.emoji}</span><span style="flex:1;">${m.name} Lv.${m.minLevel}~${m.maxLevel}</span><button class="btn-small btn-fight" data-monster='${JSON.stringify(m)}' data-affixes='[]'>挑战</button></div>`;
-                    }
-                });
-                
-                // 精英怪常驻显示
-                availableElites.forEach(elite => {
-                    html += `<div class="elite-card"><strong>✨ ${elite.name} (精英)</strong> ${elite.emoji}<div>Lv.${elite.minLevel}~${elite.maxLevel}</div><button class="btn-small btn-fight" data-elite='${JSON.stringify(elite)}'>挑战精英</button></div>`;
-                });
-                
-                // 自动战斗按钮
-                const myTickets = State.items['auto_battle_ticket'] || 0;
-                html += `<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-                    <button class="btn-icon" id="btnBackToMaps">← 返回地图</button>
-                    <button class="btn-small btn-fight" id="btnAutoBattle" style="background:#8e44ad;color:#fff;">⚔️ 自动战斗 (🎫${myTickets})</button>
-                </div>`;
-                
-                c.innerHTML = html || '<p>暂无可挑战的怪物</p>';
-                
-                if (html) {
-                    if (document.getElementById('btnBackToMaps')) {
-                        document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
-                    }
-                    c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { if (btn.dataset.elite) { const elite = JSON.parse(btn.dataset.elite); elite.isElite = true; State.monsterAffixes = []; startPvEBattle(elite); } else { const mon = JSON.parse(btn.dataset.monster); const affixes = JSON.parse(btn.dataset.affixes || '[]'); State.monsterAffixes = affixes.map(id => MONSTER_AFFIXES.find(a => a.id === id)).filter(Boolean); startPvEBattle(mon); } modal.classList.remove('active'); }; });
-                    // 自动战斗按钮事件
-                    const autoBtn = document.getElementById('btnAutoBattle');
-                    if (autoBtn) {
-                        autoBtn.onclick = () => { modal.classList.remove('active'); Farm.openAutoBattle(); };
-                    }
-                }
-            };
+                        ${kills > 0 ? `<div style="margin-top:4px;font-size:0.7rem;">词缀：${allAffixesForMonster.map(a => `<span class="affix-tag ${a.unlocked ? 'unlocked' : ''}">${a.unlocked ? a.name : '???'}</span>`).join(' ')}</div>` : '<div style="font-size:0.7rem;color:#aaa;">尚未讨伐，词缀未知</div>'}
+                    </div>`;
+                }).join('')}
+                ${logEntries.length === 0 ? '<p style="text-align:center;color:#888;">尚未讨伐任何怪物</p>' : ''}
+            </div>
+            <button class="btn-close" id="closeMonsterLog">×</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+};
 			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含自动战斗券原子保护） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
