@@ -2793,7 +2793,8 @@ const Battle = {
             const energyCost = skillData ? (skillData.energy || 0) : 0;
             let actualCost = energyCost;
             if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
-            return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${skillData?.name||s.skill_name}⚡${actualCost}${cd > 0 ? '(' + cd + ')' : ''}</button>`;
+            // 冷却回合数始终显示，可用时显示(0)，排版永不跳动
+            return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${skillData?.name||s.skill_name}⚡${actualCost}(${cd})</button>`;
         }).join('');
         const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
@@ -3581,7 +3582,7 @@ Farm.openMonsterLog = function() {
     overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
-			// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含自动战斗券原子保护） ====================
+	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含自动战斗券原子保护） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
     const c = document.getElementById('ordersContainer');
@@ -3936,8 +3937,10 @@ Farm.startAutoBattle = async function(petId) {
     overlay.querySelector('#btnAutoResultConfirm').onclick = () => { overlay.remove(); loadPets().then(() => render()); };
 };
 
-// ==================== 技能书使用（修复被动key映射 + 替换原子性 + 防重复学习） ====================
-Farm.openSkillBook = function(bookKey) {
+// ==================== 技能书使用（修复被动key映射 + 替换原子性 + 防重复学习 + 库存实时刷新） ====================
+Farm.openSkillBook = async function(bookKey) {
+    // 实时刷新库存，防止连续学习时出现“幽灵库存”
+    await loadItems();
     const qty = State.items[bookKey] || 0;
     if (qty <= 0) { showToast('没有该技能书'); return; }
     const isPassive = bookKey.startsWith('book_passive_');
