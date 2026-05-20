@@ -1242,6 +1242,9 @@ const ENERGY_PER_TURN = 1;
 const ATTACK_ENERGY_GAIN = 1;
 const DEFEND_ENERGY_GAIN = 1;
 
+// 全局日志序号（用于战斗日志排序）
+let logIndex = 0;
+
 function showToast(msg, isError = false) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1443,7 +1446,7 @@ function getRealTimeSpeed(pet, buffs) {
     return spd;
 }
 
-// 改造后的 logBattle：自动加回合编号和先后手标记
+// 改造后的 logBattle：全局序号 + 回合编号 + 先后手标记
 function logBattle(msg) {
     const b = State.battle;
     if (!b) return;
@@ -1461,7 +1464,8 @@ function logBattle(msg) {
         order = oppSpd > mySpd ? '(先手) ' : '(后手) ';
     }
 
-    b.log.push({ time, msg: `[第${turn}回合]${order}${msg}` });
+    logIndex++;
+    b.log.push({ time, msg: `[#${logIndex}] [第${turn}回合]${order}${msg}`, idx: logIndex });
 }
 
 function tickBuffs(buffs) {
@@ -2787,12 +2791,10 @@ const Battle = {
         const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
         
-        const logHTML = b.log.slice().reverse().map(l => {
+        // 日志渲染：按 idx 序号倒序排列，确保同一秒内的日志顺序正确
+        const logHTML = b.log.slice().sort((a, b) => (b.idx || 0) - (a.idx || 0)).map(l => {
             if (typeof l === 'string') return `<div>${l}</div>`;
             const msg = l.msg || '';
-            if (msg.startsWith('[第')) {
-                return `<div><span style="color:#888;">${l.time}</span> ${msg}</div>`;
-            }
             return `<div><span style="color:#888;">${l.time}</span> ${msg}</div>`;
         }).join('');
         
