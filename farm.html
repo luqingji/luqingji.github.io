@@ -2453,8 +2453,9 @@ function executeBattleAction(action, skillId = null) {
     applyPassiveEffects(b);
     applyDOTs(b.myBuffs, b.oppBuffs, b);
     b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
-    b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next' && bf.type !== 'bind');
-    b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next' && bf.type !== 'bind');
+    // 修复：不再强制清理 bind 状态，让 tickBuffs 自然消耗（duration:1 在挂上的当回合不会被减，下回合才被 tickBuffs 移除，确保控制效果正常生效）
+    b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
+    b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
     
     if (b.opponentCurrentHp <= 0 && b.affixes?.some(a => a.id === 'bomb')) {
         const bombDmg = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * 0.3);
