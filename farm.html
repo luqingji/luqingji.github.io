@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>🌱 开心农场 v5.4「药剂工坊与怪物图鉴」</title>
+    <title>🌱 开心农场 v5.4.1「药剂工坊与怪物图鉴」</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
@@ -722,7 +722,7 @@
                 monsterLog: {},       // 新增：怪物讨伐日志 { monsterName: { kills: n, affixes: [] } }
                 monsterAffixes: []    // 新增：当前刷新的怪物词缀列表
             };
-			// ==================== 第 5A 块：60种作物数据（前半） ====================
+			// ==================== 第 5 块：60种作物数据 ====================
             const CROPS = {
                 // ===== 水果类 16种 =====
                 strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
@@ -2852,7 +2852,6 @@ const Farm = {
         const slots = State.profile?.pet_slots || 1;
         const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
         const hasNewMail = State.hasNewMail;
-        // 加工任务HTML
         const processingHTML = (State.processingTasks || []).length > 0 
             ? `<div style="margin:4px 0;">` + State.processingTasks.map(t => {
                 const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
@@ -3042,6 +3041,8 @@ const Farm = {
             }
             return;
         }
+        // 辅助函数：正数显示(+X)，负数显示(-X)
+        const formatDiff = (d) => { if (d === 0) return ''; return d > 0 ? `(+${d})` : `(${d})`; };
         c.innerHTML = State.pets.map(p => {
             const now = new Date(), exp = p.exploring_until && new Date(p.exploring_until) > now, fin = p.exploring_until && new Date(p.exploring_until) <= now;
             let btn = ''; if (fin) btn = `<button class="btn-small btn-view" data-pet-id="${p.id}">查看收获</button>`; else if (exp) { const rem = Math.ceil((new Date(p.exploring_until) - now) / 60000); btn = `<button class="btn-small" disabled>探险中(${rem}分)</button>`; } else btn = `<button class="btn-small btn-explore" data-pet-id="${p.id}">探险</button>`;
@@ -3053,6 +3054,7 @@ const Farm = {
             const natureName = natureData ? natureData.name : '未知';
             const passiveData = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]] : null;
             const passiveName = passiveData ? passiveData.name : '无被动';
+            const diffHp = stats.hp - p.hp, diffAtk = stats.atk - p.atk, diffDef = stats.def - p.def, diffSpd = stats.spd - p.spd, diffLuk = stats.luk - p.luk, diffSta = (stats.sta || 50) - (p.sta || 50);
             const equipped = State.equipment.filter(e => e.equipped_to === p.id);
             const sets = {};
             equipped.forEach(e => { if (!e.set_name) return; if (!sets[e.set_name]) sets[e.set_name] = []; sets[e.set_name].push(e.slot); });
@@ -3068,7 +3070,7 @@ const Farm = {
                     setHTML += `<div class="set-info-row">🛡️ ${setName}·${count}件：${effectsDesc.join('，')}</div>`;
                 }
             }
-            return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${p.hp} <span class="stat-bonus">(+${stats.hp - p.hp})</span> ⚔️${p.atk} <span class="stat-bonus">(+${stats.atk - p.atk})</span> 🛡️${p.def} <span class="stat-bonus">(+${stats.def - p.def})</span> ⚡${p.spd} <span class="stat-bonus">(+${stats.spd - p.spd})</span> 🍀${p.luk} <span class="stat-bonus">(+${stats.luk - p.luk})</span> 💪${p.sta}</div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button> <button class="btn-small" data-pet-detail="${p.id}" style="background:#6c5ce7;color:#fff;">📊属性</button></div></div>`;
+            return `<div class="pet-detail-card"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:2rem;">${PET_TYPES[p.pet_type].emoji}</span><div style="flex:1;"><div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level} 📜${skills.length}技能</div><div style="font-size:0.7rem;">🏷️性格：${natureName} | 📘被动：${passiveName}</div><div class="stat-row">EXP:${p.exp} | ❤️${stats.hp} <span class="stat-bonus">${formatDiff(diffHp)}</span> ⚔️${stats.atk} <span class="stat-bonus">${formatDiff(diffAtk)}</span> 🛡️${stats.def} <span class="stat-bonus">${formatDiff(diffDef)}</span> ⚡${stats.spd} <span class="stat-bonus">${formatDiff(diffSpd)}</span> 🍀${stats.luk} <span class="stat-bonus">${formatDiff(diffLuk)}</span> 💪${stats.sta||50} <span class="stat-bonus">${formatDiff(diffSta)}</span></div></div></div>${setHTML}${skillsHTML}<div style="margin-top:6px;">${btn} <button class="btn-small btn-equip" data-pet-id="${p.id}">${isStationed ? '✅已驻扎' : '🏠驻扎'}</button> <button class="btn-small" data-pet-detail="${p.id}" style="background:#6c5ce7;color:#fff;">📊属性</button></div></div>`;
         }).join('');
         if (State.pets.length < slots) {
             c.innerHTML += `<button class="btn-primary" id="btnAdopt" style="margin-top:10px;">🐾 领养新宠物（${State.pets.length}/${slots}）</button>`;
