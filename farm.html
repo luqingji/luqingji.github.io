@@ -963,7 +963,7 @@
                 listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
             }
         };
-</script>
+		    </script>
 		    <script>
         /* ================================================================
          *  第 4 块：通用工具函数 (Utility Functions)
