@@ -2063,7 +2063,7 @@ async function synthesizeProduct(recipe) {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
+			// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
