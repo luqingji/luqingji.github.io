@@ -2063,7 +2063,7 @@ async function synthesizeProduct(recipe) {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-			// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果） ====================
+			// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果，束缚持续回合修复） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2236,7 +2236,7 @@ function executeBattleAction(action, skillId = null) {
                 }
                 if (skillData.bind_chance && Math.random() < skillData.bind_chance) {
                     b.oppBuffs = b.oppBuffs || [];
-                    b.oppBuffs.push({ type: 'bind', duration: 1 });
+                    b.oppBuffs.push({ type: 'bind', duration: 2 });  // 修复：改为2回合，确保能持续到下一回合
                     logBattle(`🌿 对手被束缚`);
                 }
                 if (skillData.poison) {
@@ -2394,7 +2394,11 @@ function executeBattleAction(action, skillId = null) {
                         if (skillData.burn) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 你被灼烧了`); }
                         if (skillData.paralyze_chance && Math.random() < skillData.paralyze_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 你被麻痹了`); }
                         if (skillData.poison) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'poison', duration: skillData.poison_duration || 3 }); logBattle(`☠️ 你中毒了`); }
-                        if (skillData.bind_chance && Math.random() < skillData.bind_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'bind', duration: 1 }); logBattle(`🌿 你被束缚了`); }
+                        if (skillData.bind_chance && Math.random() < skillData.bind_chance) { 
+                            b.myBuffs = b.myBuffs || []; 
+                            b.myBuffs.push({ type: 'bind', duration: 2 });  // 修复：改为2回合
+                            logBattle(`🌿 你被束缚了`); 
+                        }
                     } else if (skillData.type === 'heal' && skillData.heal_percent) {
                         const heal = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * skillData.heal_percent);
                         b.opponentCurrentHp = Math.min((b.opponentPet.hp || b.opponentPet.maxHp), b.opponentCurrentHp + heal);
@@ -2453,7 +2457,7 @@ function executeBattleAction(action, skillId = null) {
     applyPassiveEffects(b);
     applyDOTs(b.myBuffs, b.oppBuffs, b);
     b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
-    // 修复：不再强制清理 bind 状态，让 tickBuffs 自然消耗（duration:1 在挂上的当回合不会被减，下回合才被 tickBuffs 移除，确保控制效果正常生效）
+    // 不再强制清理 bind 状态，让 tickBuffs 自然消耗
     b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
     b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
     
