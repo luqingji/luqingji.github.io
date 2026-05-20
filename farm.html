@@ -4084,8 +4084,8 @@ Farm.openSkillBook = async function(bookKey) {
 };
 
 Farm.openEventLog = async function() {
-    document.getElementById('modalEventLog').classList.add('active');
     await loadEventLog();
+    document.getElementById('modalEventLog').classList.add('active');
     document.getElementById('btnRefreshLog').onclick = async () => { await loadEventLog(); };
 };
 
