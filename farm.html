@@ -1568,146 +1568,167 @@ async function synthesizeProduct(recipe) {
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-			// ==================== 第 10 块：数据加载层扩展 ====================
-            async function loadProfile() {
-                let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
-                if (error) throw error;
-                if (!data) {
-                    const un = State.currentUser.user_metadata?.username || '农夫', ge = State.currentUser.user_metadata?.gender || 'none';
-                    await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1 });
-                    for (let i = 0; i < 4; i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
-                    const { data: np } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single();
-                    State.profile = np;
-                } else {
-                    if (!data.pet_slots) data.pet_slots = 1;
-                    State.profile = data;
-                }
+	// ==================== 第 10 块：数据加载层扩展 ====================
+async function loadProfile() {
+    let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
+    if (error) throw error;
+    if (!data) {
+        const un = State.currentUser.user_metadata?.username || '农夫', ge = State.currentUser.user_metadata?.gender || 'none';
+        await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1 });
+        for (let i = 0; i < 4; i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
+        const { data: np } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single();
+        State.profile = np;
+    } else {
+        if (!data.pet_slots) data.pet_slots = 1;
+        State.profile = data;
+    }
+}
+async function loadFarmPlots() {
+    const { data, error } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
+    if (error) throw error;
+    State.farmPlots = data || [];
+    if (State.farmPlots.length === 0) {
+        for (let i = 0; i < (State.profile?.unlocked_plots || 4); i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
+        const { data: np } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
+        State.farmPlots = np || [];
+    }
+}
+async function loadFriendData() {
+    const { data: accepted } = await supabase.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`).eq('status', 'accepted');
+    State.friendIds.clear();
+    const fs = new Set();
+    (accepted || []).forEach(f => { const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user; fs.add(fid); });
+    State.friendIds = fs;
+    if (fs.size > 0) {
+        const ids = Array.from(fs);
+        const { data: profiles } = await supabase.from('profiles').select('id,username,gender,gold').in('id', ids);
+        State.friendProfiles = profiles || [];
+    } else State.friendProfiles = [];
+}
+async function loadPets() {
+    const { data, error } = await supabase.from('pets').select('*').eq('owner_id', State.currentUser.id);
+    if (error) throw error;
+    State.pets = data || [];
+    const now = new Date();
+    for (let p of State.pets) {
+        if (p.exploring_until && new Date(p.exploring_until) <= now) {
+            await completeExploration(p.id, true);
+        }
+    }
+}
+async function loadItems() {
+    const { data, error } = await supabase.from('player_items').select('*').eq('user_id', State.currentUser.id);
+    if (error) throw error;
+    State.items = {};
+    (data || []).forEach(d => { State.items[d.item_type] = d.quantity; });
+}
+async function loadEquipment() {
+    const { data, error } = await supabase.from('equipment').select('*').eq('owner_id', State.currentUser.id);
+    if (error) throw error;
+    State.equipment = data || [];
+}
+async function loadBossStatus() {
+    const { data, error } = await supabase.from('boss_status').select('*').eq('id', 1).maybeSingle();
+    if (!error && data) {
+        const now = new Date();
+        if (data.current_hp <= 0 && data.refreshes_at && new Date(data.refreshes_at) <= now) {
+            await refreshBoss();
+        } else { State.bossStatus = data; }
+    }
+}
+async function loadPetSkills() {
+    const { data, error } = await supabase.from('pet_skills').select('*').in('pet_id', State.pets.map(p => p.id));
+    if (!error) State.petSkills = data || [];
+    else State.petSkills = [];
+}
+async function loadPassiveSkills() {
+    State.passiveSkills = {};
+    for (const pet of State.pets) {
+        if (pet.passive_skill) {
+            State.passiveSkills[pet.id] = pet.passive_skill;
+        }
+    }
+}
+async function loadMails() {
+    try {
+        const { data, error } = await supabase.from('mail').select('*').eq('receiver_id', State.currentUser.id).order('created_at', { ascending: false }).limit(20);
+        if (!error) State.mails = data || [];
+        else State.mails = [];
+    } catch (e) { State.mails = []; }
+}
+
+// ==================== 邮件红点检测 ====================
+async function checkNewMails() {
+    if (!State.currentUser) return;
+    try {
+        const { count, error } = await supabase
+            .from('mail')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', State.currentUser.id)
+            .eq('is_read', false);
+        State.hasNewMail = (!error && count > 0);
+    } catch (e) {
+        State.hasNewMail = false;
+    }
+}
+
+async function loadProcessingTasks() {
+    const now = new Date();
+    const activeTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) > now);
+    const finishedTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) <= now);
+    for (const task of finishedTasks) {
+        await addItem(task.name, 1);
+        showToast(`加工完成！获得 ${task.icon} ${task.name}`);
+    }
+    State.processingTasks = activeTasks;
+}
+
+// ==================== 订单系统（每日自动刷新） ====================
+function generateOrders() {
+    const today = new Date().toDateString();
+    // 如果今天还没刷新过，或者订单为空，则重新生成
+    if (State.lastOrderDate !== today || !State.orders || State.orders.length === 0) {
+        State.lastOrderDate = today;
+        State.orders = [];
+        const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
+        if (possible.length === 0) {
+            const initCrops = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始');
+            for (let i = 0; i < 3; i++) {
+                const cropKey = initCrops[Math.floor(Math.random() * initCrops.length)];
+                State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
             }
-            async function loadFarmPlots() {
-                const { data, error } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
-                if (error) throw error;
-                State.farmPlots = data || [];
-                if (State.farmPlots.length === 0) {
-                    for (let i = 0; i < (State.profile?.unlocked_plots || 4); i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
-                    const { data: np } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
-                    State.farmPlots = np || [];
-                }
+        } else {
+            for (let i = 0; i < 3; i++) {
+                const cropKey = possible[Math.floor(Math.random() * possible.length)];
+                State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
             }
-            async function loadFriendData() {
-                const { data: accepted } = await supabase.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`).eq('status', 'accepted');
-                State.friendIds.clear();
-                const fs = new Set();
-                (accepted || []).forEach(f => { const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user; fs.add(fid); });
-                State.friendIds = fs;
-                if (fs.size > 0) {
-                    const ids = Array.from(fs);
-                    const { data: profiles } = await supabase.from('profiles').select('id,username,gender,gold').in('id', ids);
-                    State.friendProfiles = profiles || [];
-                } else State.friendProfiles = [];
+        }
+    }
+}
+
+async function loadAll() {
+    try {
+        await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+        await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+        await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+        generateOrders();
+    } catch (e) {
+        console.error('数据加载失败:', e);
+        showToast('网络不稳定，正在重试...', true);
+        setTimeout(async () => {
+            try {
+                await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+                await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+                generateOrders();
+                render();
+            } catch (e2) {
+                console.error('重试失败:', e2);
+                showToast('加载失败，请刷新页面重试', true);
             }
-            async function loadPets() {
-                const { data, error } = await supabase.from('pets').select('*').eq('owner_id', State.currentUser.id);
-                if (error) throw error;
-                State.pets = data || [];
-                const now = new Date();
-                for (let p of State.pets) {
-                    if (p.exploring_until && new Date(p.exploring_until) <= now) {
-                        await completeExploration(p.id, true);
-                    }
-                }
-            }
-            async function loadItems() {
-                const { data, error } = await supabase.from('player_items').select('*').eq('user_id', State.currentUser.id);
-                if (error) throw error;
-                State.items = {};
-                (data || []).forEach(d => { State.items[d.item_type] = d.quantity; });
-            }
-            async function loadEquipment() {
-                const { data, error } = await supabase.from('equipment').select('*').eq('owner_id', State.currentUser.id);
-                if (error) throw error;
-                State.equipment = data || [];
-            }
-            async function loadBossStatus() {
-                const { data, error } = await supabase.from('boss_status').select('*').eq('id', 1).maybeSingle();
-                if (!error && data) {
-                    const now = new Date();
-                    if (data.current_hp <= 0 && data.refreshes_at && new Date(data.refreshes_at) <= now) {
-                        await refreshBoss();
-                    } else { State.bossStatus = data; }
-                }
-            }
-            async function loadPetSkills() {
-                const { data, error } = await supabase.from('pet_skills').select('*').in('pet_id', State.pets.map(p => p.id));
-                if (!error) State.petSkills = data || [];
-                else State.petSkills = [];
-            }
-            async function loadPassiveSkills() {
-                // 被动技能从pets表的passive_skill字段加载，映射到State.passiveSkills
-                State.passiveSkills = {};
-                for (const pet of State.pets) {
-                    if (pet.passive_skill) {
-                        State.passiveSkills[pet.id] = pet.passive_skill;
-                    }
-                }
-            }
-            async function loadMails() {
-                try {
-                    const { data, error } = await supabase.from('mail').select('*').eq('receiver_id', State.currentUser.id).order('created_at', { ascending: false }).limit(20);
-                    if (!error) State.mails = data || [];
-                    else State.mails = [];
-                } catch (e) { State.mails = []; }
-            }
-            async function loadProcessingTasks() {
-                // 从内存State中过滤掉已完成的加工任务
-                const now = new Date();
-                const activeTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) > now);
-                // 已完成的任务自动发放奖励
-                const finishedTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) <= now);
-                for (const task of finishedTasks) {
-                    await addItem(task.name, 1);
-                    showToast(`加工完成！获得 ${task.icon} ${task.name}`);
-                }
-                State.processingTasks = activeTasks;
-            }
-            function generateOrders() {
-                State.orders = [];
-                const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
-                if (possible.length === 0) {
-                    const initCrops = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始');
-                    for (let i = 0; i < 3; i++) {
-                        const cropKey = initCrops[Math.floor(Math.random() * initCrops.length)];
-                        State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
-                    }
-                } else {
-                    for (let i = 0; i < 3; i++) {
-                        const cropKey = possible[Math.floor(Math.random() * possible.length)];
-                        State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
-                    }
-                }
-            }
-            async function loadAll() {
-                try {
-                    await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
-                    await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-                    await loadPassiveSkills(); await loadMails(); await loadProcessingTasks();
-                    generateOrders();
-                } catch (e) {
-                    console.error('数据加载失败:', e);
-                    showToast('网络不稳定，正在重试...', true);
-                    setTimeout(async () => {
-                        try {
-                            await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
-                            await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-                            await loadPassiveSkills(); await loadMails(); await loadProcessingTasks();
-                            generateOrders();
-                            render();
-                        } catch (e2) {
-                            console.error('重试失败:', e2);
-                            showToast('加载失败，请刷新页面重试', true);
-                        }
-                    }, 3000);
-                }
-            }
+        }, 3000);
+    }
+}
 			// ==================== 第 11 块：认证函数 ====================
             async function signUp(e, p, u, g) {
                 const { data, error } = await supabase.auth.signUp({ email: e, password: p, options: { data: { username: u, gender: g } } });
