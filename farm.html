@@ -2915,7 +2915,7 @@ const Battle = {
         }
     }
 };
-			// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
+	// ==================== 第 21 块：主农场界面（Farm 渲染 + 事件绑定 + 基础弹窗） ====================
 const Farm = {
     render() {
         const ul = State.profile?.unlocked_plots || 4;
@@ -3084,6 +3084,7 @@ const Farm = {
                 } else {
                     const qty = State.items[potion] || 0;
                     if (qty <= 0) { showToast('药剂不足'); return; }
+                    await addItem(potion, -1);  // 修复：立即扣除库存，防止选完药剂后关闭页面导致药剂不消耗
                     State._pendingPotion = potion;
                 }
                 overlay.remove();
