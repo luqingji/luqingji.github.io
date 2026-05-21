@@ -2983,7 +2983,6 @@ const Battle = {
         const oppPassiveName = oppPassiveId ? PASSIVE_SKILLS[oppPassiveId]?.name : '';
         const myEnergy = b.myEnergy || 0;
         const oppEnergy = b.oppEnergy || 0;
-        // 能量条溢出保护
         const myEnergyPct = Math.min(100, (myEnergy / MAX_ENERGY) * 100);
         const oppEnergyPct = Math.min(100, (oppEnergy / MAX_ENERGY) * 100);
         const myHpPct = Math.min(100, Math.max(0, (b.myCurrentHp / b.myPet.hp) * 100));
@@ -2994,13 +2993,11 @@ const Battle = {
             const energyCost = skillData ? (skillData.energy || 0) : 0;
             let actualCost = energyCost;
             if (myPassiveId === 'wise' && energyCost > 1) actualCost = energyCost - 1;
-            // 冷却回合数始终显示，可用时显示(0)，排版永不跳动
             return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${skillData?.name||s.skill_name}⚡${actualCost}(${cd})</button>`;
         }).join('');
         const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : bf.type === 'def_down' ? '🛡️降防' : bf.type === 'atk_down' ? '⚔️降攻' : bf.type === 'spd_down' ? '💨降速' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
         
-        // 日志渲染：按 idx 升序排列（最新日志在底部），自动滚动到底部
         const logHTML = b.log.slice().sort((a, b) => (a.idx || 0) - (b.idx || 0)).map(l => {
             if (typeof l === 'string') return `<div>${l}</div>`;
             const msg = l.msg || '';
@@ -3017,7 +3014,7 @@ const Battle = {
                 <div>❤️${b.myCurrentHp}/${b.myPet.hp}</div>
                 <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${myEnergyPct}%;height:100%;background:#f0c040;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${myEnergy}/${MAX_ENERGY}</div>
-                <div style="min-height:18px;">${myBuffsStr}</div>
+                <div style="height:20px;line-height:20px;overflow:hidden;">${myBuffsStr}</div>
             </div>
             <div>VS</div>
             <div class="battle-pet">
@@ -3028,7 +3025,7 @@ const Battle = {
                 <div>❤️${b.opponentCurrentHp}/${b.opponentPet.hp || b.opponentPet.maxHp}</div>
                 <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${oppEnergyPct}%;height:100%;background:#c0392b;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${oppEnergy}/${MAX_ENERGY}</div>
-                <div style="min-height:18px;">${oppBuffsStr}</div>
+                <div style="height:20px;line-height:20px;overflow:hidden;">${oppBuffsStr}</div>
             </div>
         </div>
         <div class="battle-log" id="battleLog">${logHTML}</div>
@@ -3047,7 +3044,6 @@ const Battle = {
                 State.battle = null; render();
             }
         };
-        // 战斗日志自动滚动到底部
         const logEl = document.getElementById('battleLog');
         if (logEl) {
             logEl.scrollTop = logEl.scrollHeight;
