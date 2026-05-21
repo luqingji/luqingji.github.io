@@ -4215,73 +4215,129 @@ function formatEventMessage(log) {
         default: return '未知事件';
     }
 }
-			// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
-            let growthTimer;
-            let processingTimer;
-            function startGrowthTimer() {
-                if (growthTimer) clearInterval(growthTimer);
-                growthTimer = setInterval(() => {
-                    if (!State.visitingFriend && !State.battle && document.getElementById('farmGrid')) {
-                        Farm.updateGrid();
-                    }
-                }, 30000);
-            }
-            function startProcessingTimer() {
-                if (processingTimer) clearInterval(processingTimer);
-                processingTimer = setInterval(async () => {
-                    if (State.currentUser && !State.battle) {
-                        await loadProcessingTasks();
-                    }
-                }, 10000); // 每10秒检查一次加工任务是否完成
-            }
+	// ==================== 第 25 块：全局定时器 + 初始化 + 启动 + 闭合标签 ====================
+let growthTimer;
+let processingTimer;
+let mailCheckTimer;  // 新增：邮件红点定时检测
 
-            async function init() {
-                const { data } = await supabase.auth.getSession();
-                if (data.session) {
-                    State.currentUser = data.session.user;
-                    try {
-                        State.profile = (await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single()).data;
-                        const localToken = localStorage.getItem('session_token');
-                        if (State.profile.session_token && State.profile.session_token !== localToken) {
-                            showToast('账号在其他设备登录，请重新登录', true);
-                            await signOut();
-                            return;
-                        }
-                        // 启动 Realtime 订阅，监听 session_token 变化
-                        State.profileChannel = supabase
-                            .channel('profile-changes')
-                            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${State.currentUser.id}` },
-                                (payload) => {
-                                    const newToken = payload.new.session_token;
-                                    const localT = localStorage.getItem('session_token');
-                                    if (newToken && newToken !== localT) {
-                                        showToast('账号在其他设备登录，请重新登录', true);
-                                        signOut();
-                                    }
-                                }
-                            )
-                            .subscribe();
+function startGrowthTimer() {
+    if (growthTimer) clearInterval(growthTimer);
+    growthTimer = setInterval(() => {
+        if (!State.visitingFriend && !State.battle && document.getElementById('farmGrid')) {
+            Farm.updateGrid();
+        }
+    }, 30000);
+}
 
-                        await loadFarmPlots();
-                        await loadFriendData();
-                        await loadPets();
-                        await loadItems();
-                        await loadEquipment();
-                        await loadBossStatus();
-                        await loadPetSkills();
-                        await loadPassiveSkills();
-                        await loadMails();
-                        await loadProcessingTasks();
-                        generateOrders();
-                        startProcessingTimer();
-                    } catch (e) { console.error(e); }
+function startProcessingTimer() {
+    if (processingTimer) clearInterval(processingTimer);
+    processingTimer = setInterval(async () => {
+        if (State.currentUser && !State.battle) {
+            await loadProcessingTasks();
+        }
+    }, 10000);
+}
+
+// 新增：邮件红点定时检测（每30秒检查一次）
+function startMailCheckTimer() {
+    if (mailCheckTimer) clearInterval(mailCheckTimer);
+    mailCheckTimer = setInterval(async () => {
+        if (State.currentUser && !State.battle) {
+            await checkNewMails();
+            // 如果检测到新邮件且当前在主界面，刷新邮箱按钮显示
+            if (State.hasNewMail && !State.visitingFriend && !State.battle && document.getElementById('btnMail')) {
+                // 邮箱按钮已在Farm.render中绑定hasNewMail，这里只需更新按钮
+                const btnMail = document.getElementById('btnMail');
+                if (btnMail && !btnMail.querySelector('.mail-dot')) {
+                    const dot = document.createElement('span');
+                    dot.className = 'mail-dot';
+                    btnMail.appendChild(dot);
                 }
-                render();
             }
+        }
+    }, 30000);
+}
 
-            init();
+function render() {
+    const app = document.getElementById('app');
+    if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
+    else if (State.battle) { app.innerHTML = Battle.render(); Battle.bindEvents(); }
+    else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
+    else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
+}
 
-        })();
-    </script>
+async function loadAll() {
+    try {
+        await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+        await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+        await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+        generateOrders();
+    } catch (e) {
+        console.error('数据加载失败:', e);
+        showToast('网络不稳定，正在重试...', true);
+        setTimeout(async () => {
+            try {
+                await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
+                await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
+                await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+                generateOrders();
+                render();
+            } catch (e2) {
+                console.error('重试失败:', e2);
+                showToast('加载失败，请刷新页面重试', true);
+            }
+        }, 3000);
+    }
+}
+
+async function init() {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+        State.currentUser = data.session.user;
+        try {
+            State.profile = (await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single()).data;
+            const localToken = localStorage.getItem('session_token');
+            if (State.profile.session_token && State.profile.session_token !== localToken) {
+                showToast('账号在其他设备登录，请重新登录', true);
+                await signOut();
+                return;
+            }
+            State.profileChannel = supabase
+                .channel('profile-changes')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${State.currentUser.id}` },
+                    (payload) => {
+                        const newToken = payload.new.session_token;
+                        const localT = localStorage.getItem('session_token');
+                        if (newToken && newToken !== localT) {
+                            showToast('账号在其他设备登录，请重新登录', true);
+                            signOut();
+                        }
+                    }
+                )
+                .subscribe();
+
+            await loadFarmPlots();
+            await loadFriendData();
+            await loadPets();
+            await loadItems();
+            await loadEquipment();
+            await loadBossStatus();
+            await loadPetSkills();
+            await loadPassiveSkills();
+            await loadMails();
+            await loadProcessingTasks();
+            await checkNewMails();
+            generateOrders();
+            startProcessingTimer();
+            startMailCheckTimer();  // 新增：启动邮件红点定时检测
+        } catch (e) { console.error(e); }
+    }
+    render();
+}
+
+init();
+
+})();
+</script>
 </body>
 </html>
