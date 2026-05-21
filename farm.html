@@ -2223,7 +2223,7 @@ async function loadAll() {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + 石化文案修复） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2532,7 +2532,11 @@ function executeBattleAction(action, skillId = null) {
                         if (sd.recoil) { const recoilDmg = Math.floor(odmg * sd.recoil); b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - recoilDmg); }
                         if (sd.ignore_def) { let rawDmg = Math.max(1, Math.floor(b.opponentPet.atk * powerMult * (sd.ignore_def >= 1 ? 0.8 : 0.9))); if (b.myDefend) rawDmg = Math.floor(rawDmg * 0.5); b.myCurrentHp = Math.max(0, b.myCurrentHp - rawDmg); logBattle(`对手 使用【${sd.name}】，无视防御造成 ${rawDmg} 点伤害`); }
                     } else if (sd.skip_chance) {
-                        if (Math.random() < sd.skip_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'skip_next', duration: 2 }); logBattle(sd.log); }
+                        if (Math.random() < sd.skip_chance) { 
+                            b.myBuffs = b.myBuffs || []; 
+                            b.myBuffs.push({ type: 'skip_next', duration: 2, source: 'petrify' }); 
+                            logBattle(sd.log); 
+                        }
                         else { logBattle(`对手 使用【${sd.name}】，但没有效果`); }
                     } else if (sd.reflect) {
                         b.oppBuffs = b.oppBuffs || [];
@@ -2613,8 +2617,10 @@ function executeBattleAction(action, skillId = null) {
         logBattle(`你被束缚，跳过行动`);
         b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'bind');
     } else if (mySkip) {
-        showToast('你陷入恐惧，跳过本回合！');
-        logBattle(`你因恐惧跳过回合`);
+        const skipBuff = (b.myBuffs || []).find(bf => bf.type === 'skip_next');
+        const isPetrify = skipBuff && skipBuff.source === 'petrify';
+        showToast(isPetrify ? '你被石化了，跳过本回合！' : '你陷入恐惧，跳过本回合！');
+        logBattle(isPetrify ? '你被石化跳过回合' : '你因恐惧跳过回合');
         b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'skip_next');
     }
 
@@ -2644,7 +2650,7 @@ function executeBattleAction(action, skillId = null) {
     applyPassiveEffects(b);
     applyDOTs(b.myBuffs, b.oppBuffs, b);
     b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
-	b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible');
+    b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible');
     b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible');
     
     if (b.opponentCurrentHp <= 0 && b.affixes?.some(a => a.id === 'bomb')) {
@@ -2967,7 +2973,7 @@ const Leaderboard = {
         listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
     }
 };
-	// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、药剂入口、回合日志） ====================
+	// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、药剂入口、回合日志、Buff占位） ====================
 const Battle = {
     render() {
         const b = State.battle; if (!b) return '';
@@ -3011,7 +3017,7 @@ const Battle = {
                 <div>❤️${b.myCurrentHp}/${b.myPet.hp}</div>
                 <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${myEnergyPct}%;height:100%;background:#f0c040;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${myEnergy}/${MAX_ENERGY}</div>
-                <div>${myBuffsStr}</div>
+                <div style="min-height:18px;">${myBuffsStr}</div>
             </div>
             <div>VS</div>
             <div class="battle-pet">
@@ -3022,7 +3028,7 @@ const Battle = {
                 <div>❤️${b.opponentCurrentHp}/${b.opponentPet.hp || b.opponentPet.maxHp}</div>
                 <div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div style="width:${oppEnergyPct}%;height:100%;background:#c0392b;border-radius:3px;transition:width 0.3s;"></div></div>
                 <div style="font-size:0.65rem;">⚡${oppEnergy}/${MAX_ENERGY}</div>
-                <div>${oppBuffsStr}</div>
+                <div style="min-height:18px;">${oppBuffsStr}</div>
             </div>
         </div>
         <div class="battle-log" id="battleLog">${logHTML}</div>
