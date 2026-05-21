@@ -1303,7 +1303,7 @@ function isMapUnlocked(mapData) {
 function getMonsterByName(name) {
     return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
 }
-			// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 ====================
+	// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 ====================
 const WATER_COOLDOWN_MS = 30 * 60 * 1000;
 const BOSS_COOLDOWN_MINUTES = 60;
 const BOSS_EXPIRE_HOURS = 6;
@@ -1464,7 +1464,7 @@ function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive
     return dmg;
 }
 
-// 怪物AI修复版：减少防御倾向，增加攻击兜底
+// 怪物AI修复版：支持怪物专属技能
 function monsterAI(battle) {
     const skills = battle.opponentSkills || [];
     const energy = battle.opponentEnergy || 0;
@@ -1472,46 +1472,77 @@ function monsterAI(battle) {
     const hpRatio = battle.opponentCurrentHp / (battle.opponentPet.hp || battle.opponentPet.maxHp || 1);
     const playerHpRatio = battle.myCurrentHp / (battle.myPet.hp || battle.myPet.maxHp || 1);
 
+    // 辅助函数：获取技能数据（优先宠物技能，其次怪物专属技能）
+    const getSkillData = (s) => ACTIVE_SKILLS[s] || MONSTER_SKILLS[s];
+
+    // 优先级1：血量低于25%且有治疗技能 → 回血
     if (hpRatio < 0.25 && skills.some(s => {
-        const sd = ACTIVE_SKILLS[s];
+        const sd = getSkillData(s);
         return sd?.type === 'heal' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
     })) {
         const healSkill = skills.find(s => {
-            const sd = ACTIVE_SKILLS[s];
+            const sd = getSkillData(s);
             return sd?.type === 'heal' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
         });
         if (healSkill) return 'skill:' + healSkill;
     }
 
+    // 优先级2：能量>=5且有控制技能 → 控制
     if (energy >= 5 && skills.some(s => {
-        const sd = ACTIVE_SKILLS[s];
-        return (sd?.paralyze_chance || sd?.bind_chance || sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
+        const sd = getSkillData(s);
+        return (sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
     })) {
         const controlSkill = skills.find(s => {
-            const sd = ACTIVE_SKILLS[s];
-            return (sd?.paralyze_chance || sd?.bind_chance || sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
+            const sd = getSkillData(s);
+            return (sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
         });
         if (controlSkill) return 'skill:' + controlSkill;
     }
 
+    // 优先级3：能量>=8且有召唤技能 → 召唤（Boss专属）
+    if (energy >= 8 && skills.some(s => {
+        const sd = getSkillData(s);
+        return sd?.type === 'special' && sd?.summon && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
+    })) {
+        const summonSkill = skills.find(s => {
+            const sd = getSkillData(s);
+            return sd?.type === 'special' && sd?.summon && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
+        });
+        if (summonSkill) return 'skill:' + summonSkill;
+    }
+
+    // 优先级4：有防御/反击技能且血量较高 → 使用
+    if (hpRatio > 0.5 && skills.some(s => {
+        const sd = getSkillData(s);
+        return sd?.type === 'defense' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
+    })) {
+        const defSkill = skills.find(s => {
+            const sd = getSkillData(s);
+            return sd?.type === 'defense' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
+        });
+        if (defSkill) return 'skill:' + defSkill;
+    }
+
+    // 优先级5：有攻击技能 → 使用（按威力排序）
     if (skills.some(s => {
-        const sd = ACTIVE_SKILLS[s];
+        const sd = getSkillData(s);
         return sd?.type === 'attack' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
     })) {
         const bestSkill = skills.filter(s => {
-            const sd = ACTIVE_SKILLS[s];
+            const sd = getSkillData(s);
             return sd?.type === 'attack' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
-        }).sort((a, b) => (ACTIVE_SKILLS[b]?.power || 100) - (ACTIVE_SKILLS[a]?.power || 100))[0];
+        }).sort((a, b) => (getSkillData(b)?.power || 100) - (getSkillData(a)?.power || 100))[0];
         if (bestSkill) return 'skill:' + bestSkill;
     }
 
+    // 优先级6：有特殊技能（非召唤）→ 使用
     if (energy >= 4 && skills.some(s => {
-        const sd = ACTIVE_SKILLS[s];
-        return (sd?.type === 'special' || sd?.type === 'defense') && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
+        const sd = getSkillData(s);
+        return sd?.type === 'special' && !sd?.summon && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
     })) {
         const specSkill = skills.find(s => {
-            const sd = ACTIVE_SKILLS[s];
-            return (sd?.type === 'special' || sd?.type === 'defense') && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
+            const sd = getSkillData(s);
+            return sd?.type === 'special' && !sd?.summon && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
         });
         if (specSkill) return 'skill:' + specSkill;
     }
@@ -1524,6 +1555,7 @@ function getRealTimeSpeed(pet, buffs) {
     let spd = pet.spd || 0;
     (buffs || []).forEach(bf => {
         if (bf.type === 'paralyze') spd = Math.floor(spd * 0.5);
+        if (bf.type === 'spd_down') spd = Math.floor(spd * (1 - (bf.value || 0)));
     });
     return spd;
 }
