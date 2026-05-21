@@ -2930,6 +2930,7 @@ const Farm = {
         const slots = State.profile?.pet_slots || 1;
         const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
         const hasNewMail = State.hasNewMail;
+        // 加工任务HTML
         const processingHTML = (State.processingTasks || []).length > 0 
             ? `<div style="margin:4px 0;">` + State.processingTasks.map(t => {
                 const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
