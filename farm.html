@@ -3309,43 +3309,49 @@ const Farm = {
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     },
 };
-			// ==================== 第 22 块：背包界面（含技能书使用） ====================
-            Farm.openBackpack = async function() {
-                document.getElementById('modalBackpack').classList.add('active');
-                await loadItems();
-                const showBp = (type) => {
-                    const c = document.getElementById('itemListContainer');
-                    const allItems = Object.entries(State.items);
-                    let filtered = allItems;
-                    if (type === 'material') filtered = allItems.filter(([k]) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura','stardust','charm','dragon_soul','firefly'].includes(k));
-                    else if (type === 'seed') filtered = allItems.filter(([k]) => k.startsWith('seed_'));
-                    else if (type === 'crop') filtered = allItems.filter(([k]) => CROPS[k] !== undefined);
-                    else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k) || k.startsWith('book_') || k.startsWith('potion_'));
-                    let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
-                    if (filtered.length === 0) { html += '<p>空空如也</p>'; }
-                    else { html += filtered.map(([type, qty]) => {
-                        const isBook = type.startsWith('book_');
-                        const isPotion = type.startsWith('potion_');
-                        return `<div class="item-row ${isBook || isPotion ? 'clickable-item' : ''}" data-item="${type}" style="${isBook || isPotion ? 'cursor:pointer;background:#fef9f3;border-radius:8px;padding:4px;' : ''}"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`;
-                    }).join(''); }
-                    c.innerHTML = html;
-                    // 技能书点击事件
-                    c.querySelectorAll('.clickable-item').forEach(item => {
-                        item.onclick = () => {
-                            const itemType = item.dataset.item;
-                            if (itemType.startsWith('book_')) {
-                                document.getElementById('modalBackpack').classList.remove('active');
-                                Farm.openSkillBook(itemType);
-                            } else if (itemType.startsWith('potion_')) {
-                                showToast('战斗药剂请在战斗前使用');
-                            }
-                        };
-                    });
-                };
-                showBp('all');
-                document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showBp(tab.dataset.bptype); }; });
-                document.getElementById('btnRefreshBackpack').onclick = async () => { await loadItems(); showBp(document.querySelector('#bpTypeTabs .auth-tab.active')?.dataset?.bptype || 'all'); };
+			// ==================== 第 22 块：背包界面（含技能书使用，标签切换时自动刷新） ====================
+Farm.openBackpack = async function() {
+    document.getElementById('modalBackpack').classList.add('active');
+    await loadItems();
+    const showBp = (type) => {
+        const c = document.getElementById('itemListContainer');
+        const allItems = Object.entries(State.items);
+        let filtered = allItems;
+        if (type === 'material') filtered = allItems.filter(([k]) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura','stardust','charm','dragon_soul','firefly'].includes(k));
+        else if (type === 'seed') filtered = allItems.filter(([k]) => k.startsWith('seed_'));
+        else if (type === 'crop') filtered = allItems.filter(([k]) => CROPS[k] !== undefined);
+        else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k) || k.startsWith('book_') || k.startsWith('potion_'));
+        let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
+        if (filtered.length === 0) { html += '<p>空空如也</p>'; }
+        else { html += filtered.map(([type, qty]) => {
+            const isBook = type.startsWith('book_');
+            const isPotion = type.startsWith('potion_');
+            return `<div class="item-row ${isBook || isPotion ? 'clickable-item' : ''}" data-item="${type}" style="${isBook || isPotion ? 'cursor:pointer;background:#fef9f3;border-radius:8px;padding:4px;' : ''}"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`;
+        }).join(''); }
+        c.innerHTML = html;
+        // 技能书点击事件
+        c.querySelectorAll('.clickable-item').forEach(item => {
+            item.onclick = () => {
+                const itemType = item.dataset.item;
+                if (itemType.startsWith('book_')) {
+                    document.getElementById('modalBackpack').classList.remove('active');
+                    Farm.openSkillBook(itemType);
+                } else if (itemType.startsWith('potion_')) {
+                    showToast('战斗药剂请在战斗前使用');
+                }
             };
+        });
+    };
+    showBp('all');
+    document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(tab => {
+        tab.onclick = async () => {
+            document.querySelectorAll('#bpTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            await loadItems();  // 切换标签时实时刷新库存
+            showBp(tab.dataset.bptype);
+        };
+    });
+};
 			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
 Farm.openSynthesis = async function() {
     document.getElementById('modalSynthesis').classList.add('active');
