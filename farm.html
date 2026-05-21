@@ -3084,7 +3084,7 @@ const Farm = {
                 } else {
                     const qty = State.items[potion] || 0;
                     if (qty <= 0) { showToast('药剂不足'); return; }
-                    await addItem(potion, -1);  // 修复：立即扣除库存，防止选完药剂后关闭页面导致药剂不消耗
+                    await addItem(potion, -1);
                     State._pendingPotion = potion;
                 }
                 overlay.remove();
@@ -3098,7 +3098,8 @@ const Farm = {
         if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
         c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span class="nickname" style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
         c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
-        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } const overlay = document.createElement('div'); overlay.className = 'modal-overlay active'; overlay.innerHTML = `<div class="modal"><h3>选择宠物切磋</h3>${State.pets.map(p => `<button class="btn-small btn-adopt" style="margin:2px;" data-pet-id="${p.id}">#${p.id} ${p.pet_name} Lv.${p.level}</button>`).join('')}<button class="btn-close" id="cancelFight">×</button></div>`; document.body.appendChild(overlay); overlay.querySelector('#cancelFight').onclick = () => overlay.remove(); overlay.querySelectorAll('.btn-adopt').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); overlay.remove(); await startBattle(pid, fid); }; }); }; });
+        // 切磋按钮：先选药剂，再选宠物
+        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } State._pvPFriendId = fid; Farm.openPotionSelect(); }; });
     },
     openPets() {
         document.getElementById('modalPets').classList.add('active');
@@ -3212,6 +3213,53 @@ const Farm = {
     selectBattlePet() {
         const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
         if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
+        // PvP 场景：存在待切磋的好友ID，直接选宠物开始战斗
+        if (State._pvPFriendId) {
+            if (availablePets.length === 1) {
+                const pid = availablePets[0].id;
+                const fid = State._pvPFriendId;
+                State._pvPFriendId = null;
+                startBattle(pid, fid);
+                return;
+            }
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay active';
+            overlay.innerHTML = `
+                <div class="modal" style="max-width:400px;">
+                    <h3>⚔️ 选择切磋宠物</h3>
+                    <div id="battlePetList">
+                        ${State.pets.map(p => {
+                            const stats = getPetBattleStats(p);
+                            const isExploring = p.exploring_until && new Date(p.exploring_until) > new Date();
+                            const passiveName = State.passiveSkills?.[p.id] ? PASSIVE_SKILLS[State.passiveSkills[p.id]]?.name : '';
+                            return `<div class="list-item ${isExploring ? '' : 'clickable'}" data-pet-id="${p.id}" style="${isExploring ? 'opacity:0.5;' : 'cursor:pointer;'}">
+                                <span style="font-size:2rem;">${PET_TYPES[p.pet_type]?.emoji||'🐾'}</span>
+                                <div style="flex:1;">
+                                    <div><strong>#${p.id} ${p.pet_name}</strong> Lv.${p.level}</div>
+                                    <div style="font-size:0.7rem;">❤️${stats.hp} ⚔️${stats.atk} 🛡️${stats.def} ${passiveName ? '📘'+passiveName : ''}</div>
+                                </div>
+                                ${isExploring ? '<span style="color:#888;">探险中</span>' : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <button class="btn-close" id="closeBattlePet">×</button>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            overlay.querySelector('#closeBattlePet').onclick = () => { overlay.remove(); State._pvPFriendId = null; };
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.remove(); State._pvPFriendId = null; } });
+            overlay.querySelectorAll('.list-item.clickable').forEach(item => {
+                item.onclick = () => {
+                    const pid = parseInt(item.dataset.petId);
+                    const fid = State._pvPFriendId;
+                    State._pvPFriendId = null;
+                    overlay.remove();
+                    startBattle(pid, fid);
+                };
+            });
+            return;
+        }
+        // PvE 原有逻辑
         if (availablePets.length === 1) {
             State.selectedBattlePetId = availablePets[0].id;
             Farm.openPvEMap();
