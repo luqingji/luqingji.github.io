@@ -2498,25 +2498,82 @@ function executeBattleAction(action, skillId = null) {
             let effMyPet = { ...b.myPet, def: Math.floor(b.myPet.def * (1 + potionDef)) };
             
             if (aiResult === 'attack') {
-                let odmg = calculateDamage(b.opponentPet, effMyPet, false, null, oppPassiveId, myPassiveId, null);
-                if (b.myDefend) odmg = Math.floor(odmg * 0.5);
-                if (isInvincible) odmg = 0;
-                // 小虫额外攻击
-                if (b.oppMinions && b.oppMinions.length > 0) {
-                    for (const minion of b.oppMinions) {
-                        const minionDmg = Math.max(1, Math.floor(calculateDamage(minion, effMyPet, false, null, null, myPassiveId, null) * 0.6));
-                        if (!isInvincible) { b.myCurrentHp = Math.max(0, b.myCurrentHp - minionDmg); odmg += minionDmg; }
-                        logBattle(`🐛 小虫攻击，造成 ${minionDmg} 点伤害`);
+                // ========== 强制兜底：检查怪物是否有可用技能 ==========
+                const monsterSkillMap = {
+                    swarm: { name:'蝗灾', power:80, def_debuff:0.1, debuff_duration:2, log:'🦗 你的防御降低了！' },
+                    dragon_breath: { name:'龙息', power:200 },
+                    web_trap: { name:'蛛网陷阱', power:60, spd_debuff:0.3, debuff_duration:2, log:'🕸️ 你的速度降低了！' },
+                    charge: { name:'野猪冲撞', power:200, recoil:0.2, log:'💥 野猪受到了 {dmg} 点反伤' },
+                    echo_locate: { name:'超声波', power:100, ignore_def:1.0 },
+                    fox_fire: { name:'狐火', power:100, burn:true, atk_debuff:0.1, debuff_duration:2, log:'🦊 你的攻击力降低了！' },
+                    quake: { name:'地动', power:120, ignore_def:0.2 },
+                    petrify: { name:'石化凝视', skip_chance:0.4, log:'🐍 你被石化了，下回合跳过！' },
+                    spike_armor: { name:'尖刺护甲', reflect:0.3, log:'🦔 尖刺护甲：反弹30%伤害' },
+                    summon_minion: { name:'召唤小虫', summon:0.3, log:'👑 虫母女王召唤了 1 只小虫！' }
+                };
+                
+                // 寻找一个能量够、冷却好的技能
+                const availableSkill = (b.opponentSkills || []).find(s => {
+                    const sd = monsterSkillMap[s];
+                    if (!sd) return false;
+                    const energyCost = (sd.power > 120 ? 6 : sd.power > 80 ? 5 : 4); // 简单按威力估算能耗
+                    return (b.oppEnergy || 0) >= energyCost && !(b.oppSkillCooldowns[s] > 0);
+                });
+                
+                if (availableSkill) {
+                    // 强制使用技能！
+                    const sd = monsterSkillMap[availableSkill];
+                    const energyCost = (sd.power > 120 ? 6 : sd.power > 80 ? 5 : 4);
+                    b.oppEnergy = Math.max(0, (b.oppEnergy || 0) - energyCost);
+                    b.oppSkillCooldowns[availableSkill] = (sd.power >= 200 ? 5 : sd.power >= 100 ? 4 : 3);
+                    
+                    if (sd.power > 0) {
+                        // 攻击类技能
+                        let powerMult = (sd.power || 100) / 100;
+                        let odmg = Math.max(1, Math.floor((b.opponentPet.atk * powerMult - effMyPet.def * 0.5) * (0.9 + Math.random() * 0.2)));
+                        if (b.myDefend) odmg = Math.floor(odmg * 0.5);
+                        if (isInvincible) odmg = 0;
+                        b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
+                        logBattle(`对手 使用【${sd.name}】，造成 ${odmg} 点伤害`);
+                        
+                        // 处理技能特效
+                        if (sd.def_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'def_down', duration: sd.debuff_duration || 2, value: sd.def_debuff }); if (sd.log) logBattle(sd.log); }
+                        if (sd.spd_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'spd_down', duration: sd.debuff_duration || 2, value: sd.spd_debuff }); if (sd.log) logBattle(sd.log); }
+                        if (sd.burn) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 你被灼烧了`); }
+                        if (sd.atk_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'atk_down', duration: sd.debuff_duration || 2, value: sd.atk_debuff }); if (sd.log) logBattle(sd.log); }
+                        if (sd.recoil) { const recoilDmg = Math.floor(odmg * sd.recoil); b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - recoilDmg); if (sd.log) logBattle(sd.log.replace('{dmg}', recoilDmg)); }
+                        if (sd.ignore_def) { let rawDmg = Math.max(1, Math.floor(b.opponentPet.atk * powerMult * (sd.ignore_def >= 1 ? 0.8 : 0.9))); if (b.myDefend) rawDmg = Math.floor(rawDmg * 0.5); b.myCurrentHp = Math.max(0, b.myCurrentHp - rawDmg); logBattle(`对手 使用【${sd.name}】，无视防御造成 ${rawDmg} 点伤害`); }
+                    } else if (sd.skip_chance) {
+                        // 石化凝视
+                        if (Math.random() < sd.skip_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'skip_next', duration: 1 }); if (sd.log) logBattle(sd.log); }
+                        else { logBattle(`对手 使用【${sd.name}】，但没有效果`); }
+                    } else if (sd.reflect) {
+                        // 尖刺护甲
+                        b.oppBuffs = b.oppBuffs || [];
+                        b.oppBuffs.push({ type: 'reflect_physical', duration: 1, value: sd.reflect });
+                        if (sd.log) logBattle(sd.log);
+                    } else if (sd.summon) {
+                        // 召唤小虫
+                        const minionHp = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * sd.summon);
+                        const minion = { hp: minionHp, atk: Math.floor(b.opponentPet.atk * sd.summon), def: Math.floor(b.opponentPet.def * sd.summon), spd: Math.floor(b.opponentPet.spd * sd.summon) };
+                        b.oppMinions = b.oppMinions || [];
+                        b.oppMinions.push(minion);
+                        if (sd.log) logBattle(sd.log);
                     }
+                } else {
+                    // 没有可用技能，普通攻击
+                    let odmg = calculateDamage(b.opponentPet, effMyPet, false, null, oppPassiveId, myPassiveId, null);
+                    if (b.myDefend) odmg = Math.floor(odmg * 0.5);
+                    if (isInvincible) odmg = 0;
+                    if (b.affixes?.some(a => a.id === 'vampire')) {
+                        const lifesteal = Math.max(1, Math.floor(odmg * 0.15));
+                        b.opponentCurrentHp = Math.min(b.opponentPet.hp || b.opponentPet.maxHp, b.opponentCurrentHp + lifesteal);
+                        logBattle(`🧛 吸血鬼吸取了 ${lifesteal} 点HP`);
+                    }
+                    b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
+                    b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ATTACK_ENERGY_GAIN);
+                    logBattle(`对手 ${b.opponentPet.pet_name} 攻击，造成 ${odmg} 点伤害`);
                 }
-                if (b.affixes?.some(a => a.id === 'vampire')) {
-                    const lifesteal = Math.max(1, Math.floor(odmg * 0.15));
-                    b.opponentCurrentHp = Math.min(b.opponentPet.hp || b.opponentPet.maxHp, b.opponentCurrentHp + lifesteal);
-                    logBattle(`🧛 吸血鬼吸取了 ${lifesteal} 点HP`);
-                }
-                b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
-                b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + ATTACK_ENERGY_GAIN);
-                logBattle(`对手 ${b.opponentPet.pet_name} 攻击，造成 ${odmg} 点伤害`);
             } else if (aiResult === 'defend') {
                 b.oppEnergy = Math.min(MAX_ENERGY, (b.oppEnergy || 0) + DEFEND_ENERGY_GAIN);
                 logBattle(`对手 ${b.opponentPet.pet_name} 防御 ⚡+1`);
