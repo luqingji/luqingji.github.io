@@ -1683,27 +1683,57 @@ async function loadProcessingTasks() {
     State.processingTasks = activeTasks;
 }
 
-// ==================== 订单系统（每日自动刷新） ====================
-function generateOrders() {
+// ==================== 订单系统（每日自动刷新 + 数据库存储） ====================
+async function loadOrders() {
     const today = new Date().toDateString();
-    // 如果今天还没刷新过，或者订单为空，则重新生成
-    if (State.lastOrderDate !== today || !State.orders || State.orders.length === 0) {
-        State.lastOrderDate = today;
-        State.orders = [];
-        const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
-        if (possible.length === 0) {
-            const initCrops = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始');
-            for (let i = 0; i < 3; i++) {
-                const cropKey = initCrops[Math.floor(Math.random() * initCrops.length)];
-                State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
-            }
-        } else {
-            for (let i = 0; i < 3; i++) {
-                const cropKey = possible[Math.floor(Math.random() * possible.length)];
-                State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
-            }
+    const { data, error } = await supabase
+        .from('player_orders')
+        .select('orders')
+        .eq('user_id', State.currentUser.id)
+        .eq('order_date', today)
+        .maybeSingle();
+    if (!error && data && data.orders) {
+        State.orders = data.orders;
+        return true;
+    }
+    return false;
+}
+
+async function saveOrders() {
+    const today = new Date().toDateString();
+    const { error } = await supabase
+        .from('player_orders')
+        .upsert({
+            user_id: State.currentUser.id,
+            order_date: today,
+            orders: State.orders
+        }, { onConflict: 'user_id,order_date' });
+    if (error) console.error('保存订单失败:', error);
+}
+
+async function generateOrders() {
+    const today = new Date().toDateString();
+    // 尝试从数据库加载今日订单
+    const hasOrders = await loadOrders();
+    if (hasOrders && State.orders.length > 0) return; // 已有订单，直接使用
+    
+    // 否则生成新的随机订单
+    State.orders = [];
+    const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
+    if (possible.length === 0) {
+        const initCrops = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始');
+        for (let i = 0; i < 3; i++) {
+            const cropKey = initCrops[Math.floor(Math.random() * initCrops.length)];
+            State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
+        }
+    } else {
+        for (let i = 0; i < 3; i++) {
+            const cropKey = possible[Math.floor(Math.random() * possible.length)];
+            State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
         }
     }
+    // 保存到数据库
+    await saveOrders();
 }
 
 async function loadAll() {
@@ -1711,7 +1741,7 @@ async function loadAll() {
         await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
         await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
         await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
-        generateOrders();
+        await generateOrders();
     } catch (e) {
         console.error('数据加载失败:', e);
         showToast('网络不稳定，正在重试...', true);
@@ -1720,7 +1750,7 @@ async function loadAll() {
                 await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                 await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
                 await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
-                generateOrders();
+                await generateOrders();
                 render();
             } catch (e2) {
                 console.error('重试失败:', e2);
@@ -3625,7 +3655,7 @@ Farm.openMonsterLog = function() {
     overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
-	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含自动战斗券原子保护） ====================
+	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含订单数据库同步） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
     const c = document.getElementById('ordersContainer');
@@ -3635,7 +3665,7 @@ Farm.openOrders = function() {
         const hasAmount = (State.items[order.crop] || 0) >= order.amount;
         return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
     }).join('');
-    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
+    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); await saveOrders(); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
 };
 
 Farm.openSeedShop = function() {
