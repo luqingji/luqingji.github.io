@@ -2539,130 +2539,135 @@ async function refreshBoss() {
     await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
     State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
 }
-			// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
-            function showBattleResult(data) {
-                const overlay = document.createElement('div');
-                overlay.className = 'modal-overlay active';
-                const rewardsHTML = data.won ? `
-                    <div style="margin:8px 0;font-weight:600;">🎁 获得奖励：</div>
-                    ${data.rewards?.gold ? `<div>🪙 金币 +${data.rewards.gold}</div>` : ''}
-                    ${data.rewards?.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
-                    ${data.rewards?.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
-                    ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
-                    ${data.rewards?.book ? `<div>📕 获得技能书：${ITEM_NAMES[data.rewards.book]||data.rewards.book}</div>` : ''}
-                ` : '<div style="margin:8px 0;color:#888;">没有获得奖励</div>';
-                overlay.innerHTML = `
-                    <div class="modal" style="max-width:320px;">
-                        <h3>${data.won ? '⚔️ 战斗胜利！' : '💀 战斗失败'}</h3>
-                        <div style="text-align:left;padding:10px;">
-                            <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'🐾'} ${data.myPet?.pet_name}</div>
-                            <div>对手：${data.opponentPet?.emoji||'👾'} ${data.opponentPet?.pet_name}</div>
-                            ${data.damage ? `<div>造成伤害：${data.damage} 点</div>` : ''}
-                            ${rewardsHTML}
-                        </div>
-                        <button class="btn-primary" id="btnBattleConfirm">确认</button>
-                    </div>
-                `;
-                document.body.appendChild(overlay);
-                overlay.querySelector('#btnBattleConfirm').onclick = () => {
-                    overlay.remove();
-                    State.battle = null;
-                    loadPets().then(() => render());
-                };
-            }
+	// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
+function showBattleResult(data) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    const rewardsHTML = data.won ? `
+        <div style="margin:8px 0;font-weight:600;">🎁 获得奖励：</div>
+        ${data.rewards?.gold ? `<div>🪙 金币 +${data.rewards.gold}</div>` : ''}
+        ${data.rewards?.exp ? `<div>📜 经验 +${data.rewards.exp}</div>` : ''}
+        ${data.rewards?.levelUp ? '<div style="color:#f0c040;">⬆️ 宠物升级！</div>' : ''}
+        ${data.rewards?.items ? Object.entries(data.rewards.items).map(([item, qty]) => `<div>${ITEM_EMOJI[item]||'📦'} ${ITEM_NAMES[item]||item} ×${qty}</div>`).join('') : ''}
+        ${data.rewards?.book ? `<div>📕 获得技能书：${ITEM_NAMES[data.rewards.book]||data.rewards.book}</div>` : ''}
+    ` : '<div style="margin:8px 0;color:#888;">没有获得奖励</div>';
+    overlay.innerHTML = `
+        <div class="modal" style="max-width:320px;">
+            <h3>${data.won ? '⚔️ 战斗胜利！' : '💀 战斗失败'}</h3>
+            <div style="text-align:left;padding:10px;">
+                <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'🐾'} ${data.myPet?.pet_name}</div>
+                <div>对手：${data.opponentPet?.emoji||'👾'} ${data.opponentPet?.pet_name}</div>
+                ${data.damage ? `<div>造成伤害：${data.damage} 点</div>` : ''}
+                ${rewardsHTML}
+            </div>
+            <button class="btn-primary" id="btnBattleConfirm">确认</button>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#btnBattleConfirm').onclick = () => {
+        overlay.remove();
+        State.battle = null;
+        loadPets().then(() => render());
+    };
+}
 
-            async function endBattle(won) {
-                const b = State.battle;
-                if (!b || b.isEnding) return;
-                b.isEnding = true;
-                if (b.type === 'pvp') {
-                    await supabase.from('battle_logs').insert({ attacker_id: State.currentUser.id, defender_id: b.friendId, attacker_pet_id: b.myPet.id, defender_pet_id: b.opponentPet.id, winner_id: won ? State.currentUser.id : b.friendId, battle_data: { log: b.log } });
-                    if (won) {
-                        const gr = 50 + Math.floor(Math.random() * 50);
-                        await supabase.from('profiles').update({ gold: State.profile.gold + gr }).eq('id', State.currentUser.id);
-                        State.profile.gold += gr;
-                        addEventLog('battle_win', { opponent: b.friendName, gold: gr });
-                        showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr } });
-                    } else {
-                        addEventLog('battle_lose', { opponent: b.friendName });
-                        showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
-                    }
-                    return;
-                }
-                if (b.type === 'pve') {
-                    if (won) {
-                        const mon = b.monster; const gr = mon.rewards.gold;
-                        let goldMult = 1;
-                        if (b.affixes) { for (const a of b.affixes) { if (a.reward?.gold) goldMult *= a.reward.gold; } }
-                        const finalGold = Math.floor(gr * goldMult);
-                        await supabase.from('profiles').update({ gold: State.profile.gold + finalGold }).eq('id', State.currentUser.id); State.profile.gold += finalGold;
-                        const droppedItems = {};
-                        let itemMult = 1;
-                        if (b.affixes) { for (const a of b.affixes) { if (a.reward?.items) itemMult *= a.reward.items; } }
-                        if (mon.rewards.items) { for (const [item, prob] of Object.entries(mon.rewards.items)) { if (Math.random() < prob * itemMult) { await addItem(item, 1); droppedItems[item] = (droppedItems[item] || 0) + 1; } } }
-                        let droppedBook = null;
-                        if (Math.random() < 0.05) {
-                            const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
-                            droppedBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
-                            await addItem(droppedBook, 1);
-                        }
-                        // 宠物经验与升级
-                        const pet = State.pets.find(p => p.id === (b.myPet.id || State.pets[0]?.id));
-                        let levelUp = false;
-                        if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
-                            const ne = (pet.exp || 0) + 50;
-                            pet.exp = ne;
-                            let nl = pet.level || 1;
-                            while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
-                                nl++;
-                                levelUp = true;
-                                const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
-                                pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
-                                pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
-                                pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
-                            }
-                            if (nl !== pet.level) {
-                                pet.level = nl;
-                                await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pet.id);
-                            }
-                        }
-                        // 更新讨伐日志
-                        if (!State.monsterLog[mon.name]) State.monsterLog[mon.name] = { kills: 0, affixes: [] };
-                        State.monsterLog[mon.name].kills++;
-                        if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
-                        addEventLog('pve_win', { monster: mon.name, gold: finalGold });
-                        showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
-                        if (mon.isBoss) {
-                            await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
-                            const { data: participants } = await supabase.from('boss_participants').select('user_id,damage_dealt').order('damage_dealt', { ascending: false });
-                            if (participants && participants.length > 0) {
-                                for (const p of participants) { try { const { data: profile } = await supabase.from('profiles').select('gold').eq('id', p.user_id).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 500 }).eq('id', p.user_id); await addItem('ore', 3, p.user_id); await addItem('relic', 3, p.user_id); } catch (e) { } }
-                                for (let i = 0; i < Math.min(3, participants.length); i++) { try { const { data: profile } = await supabase.from('profiles').select('gold').eq('id', participants[i].user_id).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 1000 }).eq('id', participants[i].user_id); } catch (e) { } }
-                                try { const lastHitUserId = State.currentUser.id; const { data: profile } = await supabase.from('profiles').select('gold').eq('id', lastHitUserId).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 2000 }).eq('id', lastHitUserId); const possibleItems = ['hair', 'seed', 'ore', 'relic', 'feather', 'scale', 'moonstone', 'clover']; for (let i = 0; i < 5; i++) { const randItem = possibleItems[Math.floor(Math.random() * possibleItems.length)]; await addItem(randItem, 1, lastHitUserId); } showToast('最后一击！额外获得 2000 金币 + 随机物品×5'); } catch (e) { }
-                            }
-                            await supabase.from('boss_participants').delete().neq('id', 0);
-                            const refreshesAt = new Date(Date.now() + BOSS_COOLDOWN_MINUTES * 60000).toISOString();
-                            await supabase.from('boss_status').update({ current_hp: 0, refreshes_at: refreshesAt }).eq('id', 1);
-                            State.bossStatus.current_hp = 0; State.bossStatus.refreshes_at = refreshesAt;
-                            showToast(`BOSS 已被击败！将在 ${BOSS_COOLDOWN_MINUTES} 分钟后重生`);
-                        }
-                    } else {
-                        addEventLog('pve_lose', { monster: b.monster.name });
-                        showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
-                    }
-                }
-                State.battle = null;
-                await loadPets();
-                render();
+async function endBattle(won) {
+    const b = State.battle;
+    if (!b || b.isEnding) return;
+    b.isEnding = true;
+    if (b.type === 'pvp') {
+        await supabase.from('battle_logs').insert({ attacker_id: State.currentUser.id, defender_id: b.friendId, attacker_pet_id: b.myPet.id, defender_pet_id: b.opponentPet.id, winner_id: won ? State.currentUser.id : b.friendId, battle_data: { log: b.log } });
+        if (won) {
+            const gr = 50 + Math.floor(Math.random() * 50);
+            await supabase.from('profiles').update({ gold: State.profile.gold + gr }).eq('id', State.currentUser.id);
+            State.profile.gold += gr;
+            addEventLog('battle_win', { opponent: b.friendName, gold: gr });
+            showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr } });
+        } else {
+            addEventLog('battle_lose', { opponent: b.friendName });
+            showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
+        }
+        return;
+    }
+    if (b.type === 'pve') {
+        if (won) {
+            const mon = b.monster; const gr = mon.rewards.gold;
+            let goldMult = 1;
+            if (b.affixes) { for (const a of b.affixes) { if (a.reward?.gold) goldMult *= a.reward.gold; } }
+            const finalGold = Math.floor(gr * goldMult);
+            await supabase.from('profiles').update({ gold: State.profile.gold + finalGold }).eq('id', State.currentUser.id); State.profile.gold += finalGold;
+            const droppedItems = {};
+            let itemMult = 1;
+            if (b.affixes) { for (const a of b.affixes) { if (a.reward?.items) itemMult *= a.reward.items; } }
+            if (mon.rewards.items) { for (const [item, prob] of Object.entries(mon.rewards.items)) { if (Math.random() < prob * itemMult) { await addItem(item, 1); droppedItems[item] = (droppedItems[item] || 0) + 1; } } }
+            let droppedBook = null;
+            if (Math.random() < 0.05) {
+                const allBookKeys = Object.keys(ACTIVE_SKILLS).map(k => 'book_' + k);
+                droppedBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
+                await addItem(droppedBook, 1);
             }
+            // 新增：PvE 战斗胜利 30% 概率掉落 1 张自动战斗券
+            if (Math.random() < 0.3) {
+                await addItem('auto_battle_ticket', 1);
+                droppedItems['auto_battle_ticket'] = (droppedItems['auto_battle_ticket'] || 0) + 1;
+            }
+            // 宠物经验与升级
+            const pet = State.pets.find(p => p.id === (b.myPet.id || State.pets[0]?.id));
+            let levelUp = false;
+            if (pet && (pet.level || 0) < PET_MAX_LEVEL) {
+                const ne = (pet.exp || 0) + 50;
+                pet.exp = ne;
+                let nl = pet.level || 1;
+                while (ne >= nl * 100 + nl * nl * 15 && nl < PET_MAX_LEVEL) {
+                    nl++;
+                    levelUp = true;
+                    const base = PET_TYPES[pet.pet_type].baseAttr; const lf = nl - 1;
+                    pet.hp = Math.floor(base.hp * (1 + 0.02 * lf)); pet.atk = Math.floor(base.atk * (1 + 0.02 * lf));
+                    pet.def = Math.floor(base.def * (1 + 0.015 * lf)); pet.spd = Math.floor(base.spd * (1 + 0.01 * lf));
+                    pet.luk = Math.floor(base.luk * (1 + 0.01 * lf)); pet.sta = Math.floor(base.sta * (1 + 0.02 * lf));
+                }
+                if (nl !== pet.level) {
+                    pet.level = nl;
+                    await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pet.id);
+                }
+            }
+            // 更新讨伐日志
+            if (!State.monsterLog[mon.name]) State.monsterLog[mon.name] = { kills: 0, affixes: [] };
+            State.monsterLog[mon.name].kills++;
+            if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
+            addEventLog('pve_win', { monster: mon.name, gold: finalGold });
+            showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
+            if (mon.isBoss) {
+                await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
+                const { data: participants } = await supabase.from('boss_participants').select('user_id,damage_dealt').order('damage_dealt', { ascending: false });
+                if (participants && participants.length > 0) {
+                    for (const p of participants) { try { const { data: profile } = await supabase.from('profiles').select('gold').eq('id', p.user_id).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 500 }).eq('id', p.user_id); await addItem('ore', 3, p.user_id); await addItem('relic', 3, p.user_id); } catch (e) { } }
+                    for (let i = 0; i < Math.min(3, participants.length); i++) { try { const { data: profile } = await supabase.from('profiles').select('gold').eq('id', participants[i].user_id).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 1000 }).eq('id', participants[i].user_id); } catch (e) { } }
+                    try { const lastHitUserId = State.currentUser.id; const { data: profile } = await supabase.from('profiles').select('gold').eq('id', lastHitUserId).single(); await supabase.from('profiles').update({ gold: (profile?.gold || 0) + 2000 }).eq('id', lastHitUserId); const possibleItems = ['hair', 'seed', 'ore', 'relic', 'feather', 'scale', 'moonstone', 'clover']; for (let i = 0; i < 5; i++) { const randItem = possibleItems[Math.floor(Math.random() * possibleItems.length)]; await addItem(randItem, 1, lastHitUserId); } showToast('最后一击！额外获得 2000 金币 + 随机物品×5'); } catch (e) { }
+                }
+                await supabase.from('boss_participants').delete().neq('id', 0);
+                const refreshesAt = new Date(Date.now() + BOSS_COOLDOWN_MINUTES * 60000).toISOString();
+                await supabase.from('boss_status').update({ current_hp: 0, refreshes_at: refreshesAt }).eq('id', 1);
+                State.bossStatus.current_hp = 0; State.bossStatus.refreshes_at = refreshesAt;
+                showToast(`BOSS 已被击败！将在 ${BOSS_COOLDOWN_MINUTES} 分钟后重生`);
+            }
+        } else {
+            addEventLog('pve_lose', { monster: b.monster.name });
+            showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
+        }
+    }
+    State.battle = null;
+    await loadPets();
+    render();
+}
 
-            function render() {
-                const app = document.getElementById('app');
-                if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
-                else if (State.battle) { app.innerHTML = Battle.render(); Battle.bindEvents(); }
-                else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
-                else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
-            }
+function render() {
+    const app = document.getElementById('app');
+    if (!State.currentUser) { app.innerHTML = Auth.render(); Auth.bindEvents(); }
+    else if (State.battle) { app.innerHTML = Battle.render(); Battle.bindEvents(); }
+    else if (State.visitingFriend) { app.innerHTML = FriendFarm.render(); FriendFarm.bindEvents(); }
+    else { app.innerHTML = Farm.render(); Farm.bindEvents(); startGrowthTimer(); }
+}
 			// ==================== 第 17 块：认证界面（Auth） ====================
             const Auth = {
                 render() {
