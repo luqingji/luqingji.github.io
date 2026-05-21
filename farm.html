@@ -2612,8 +2612,7 @@ function showBattleResult(data) {
             <h3>${data.won ? '⚔️ 战斗胜利！' : '💀 战斗失败'}</h3>
             <div style="text-align:left;padding:10px;">
                 <div>你的宠物：${PET_TYPES[data.myPet?.pet_type]?.emoji||'🐾'} ${data.myPet?.pet_name}</div>
-                <div>对手：${data.opponentPet?.emoji||'👾'} ${data.opponentPet?.pet_name}</div>
-                ${data.damage ? `<div>造成伤害：${data.damage} 点</div>` : ''}
+                ${data.damage ? `<div>💥 总伤害：${data.damage} 点</div>` : ''}
                 ${rewardsHTML}
             </div>
             <button class="btn-primary" id="btnBattleConfirm">确认</button>
@@ -2638,10 +2637,10 @@ async function endBattle(won) {
             await supabase.from('profiles').update({ gold: State.profile.gold + gr }).eq('id', State.currentUser.id);
             State.profile.gold += gr;
             addEventLog('battle_win', { opponent: b.friendName, gold: gr });
-            showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr } });
+            showBattleResult({ won: true, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: gr } });
         } else {
             addEventLog('battle_lose', { opponent: b.friendName });
-            showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
+            showBattleResult({ won: false, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
         }
         return;
     }
@@ -2692,7 +2691,7 @@ async function endBattle(won) {
             State.monsterLog[mon.name].kills++;
             if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
             addEventLog('pve_win', { monster: mon.name, gold: finalGold });
-            showBattleResult({ won: true, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
+            showBattleResult({ won: true, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
             if (mon.isBoss) {
                 await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
                 const { data: participants } = await supabase.from('boss_participants').select('user_id,damage_dealt').order('damage_dealt', { ascending: false });
@@ -2709,7 +2708,7 @@ async function endBattle(won) {
             }
         } else {
             addEventLog('pve_lose', { monster: b.monster.name });
-            showBattleResult({ won: false, myPet: b.myPet, opponent: b.opponentPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
+            showBattleResult({ won: false, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp });
         }
     }
     State.battle = null;
