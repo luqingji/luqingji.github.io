@@ -3432,7 +3432,7 @@ Farm.openBackpack = async function() {
         if (type === 'material') filtered = allItems.filter(([k]) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura','stardust','charm','dragon_soul','firefly'].includes(k));
         else if (type === 'seed') filtered = allItems.filter(([k]) => k.startsWith('seed_'));
         else if (type === 'crop') filtered = allItems.filter(([k]) => CROPS[k] !== undefined);
-        else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket'].includes(k) || k.startsWith('book_') || k.startsWith('potion_'));
+        else if (type === 'tool') filtered = allItems.filter(([k]) => ['scroll_basic','scroll_advanced','scroll_rare','scroll_legend','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(k) || k.startsWith('book_') || k.startsWith('potion_'));
         let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
         if (filtered.length === 0) { html += '<p>空空如也</p>'; }
         else { html += filtered.map(([type, qty]) => {
