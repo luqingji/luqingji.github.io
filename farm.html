@@ -3710,7 +3710,7 @@ Farm.openMonsterLog = function() {
     overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
-	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含订单数据库同步） ====================
+	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含订单数据库同步 + 自动战斗券奖励） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
     const c = document.getElementById('ordersContainer');
@@ -3720,7 +3720,7 @@ Farm.openOrders = function() {
         const hasAmount = (State.items[order.crop] || 0) >= order.amount;
         return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
     }).join('');
-    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}`); State.orders.splice(idx, 1); await saveOrders(); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
+    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); // 新增：提交订单额外奖励 1~2 张自动战斗券 const tickets = Math.floor(Math.random() * 2) + 1; await addItem('auto_battle_ticket', tickets); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket} + 🎫自动战斗券×${tickets}`); State.orders.splice(idx, 1); await saveOrders(); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
 };
 
 Farm.openSeedShop = function() {
@@ -4231,7 +4231,7 @@ Farm.openHelp = function() {
         const content = overlay.querySelector('#helpContent');
         if (tab === 'newbie') {
             content.innerHTML = `
-                <h4>🌱 欢迎来到开心农场！</h4><p>这是一款融合种植经营、宠物养成、装备收集、回合制战斗和好友社交的游戏。</p>
+                <h4>🌱 欢迎来到麦田守护者！</h4><p>这是一款融合种植经营、宠物养成、装备收集、回合制战斗和好友社交的游戏。</p>
                 <h4>🌾 第一步：种植</h4><p>点击空地→选择作物→播种。成熟后收获获金币和作物，存入背包提交订单。</p>
                 <h4>🐾 第二步：领养宠物</h4><p>宠物→领养。每只宠物出生自带天生个体值、性格和被动技能。</p>
                 <h4>📕 第三步：学习技能</h4><p>探险和战斗掉落技能书，在背包中使用，自由选择给哪只宠物学习。</p>
