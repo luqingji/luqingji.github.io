@@ -718,7 +718,7 @@
         seedShop: null,
         stationedPet: null,
         mails: [],
-        hasNewMail: false,        // 新增：邮件红点标记
+        hasNewMail: false,
         processingTasks: [],
         monsterLog: {},
         monsterAffixes: [],
@@ -726,7 +726,8 @@
         selectedMapId: 'grassland',
         selectedPlotIndex: null,
         _pendingPotion: null,
-        lastOrderDate: null       // 新增：上次刷新订单的日期，用于每日自动刷新
+        _pvPFriendId: null,       // PvP 切磋时的目标好友ID
+        lastOrderDate: null
     };
 			// ==================== 第 5 块：60种作物数据 ====================
             const CROPS = {
