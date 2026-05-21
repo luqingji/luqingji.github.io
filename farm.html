@@ -691,37 +691,43 @@
     <div id="app" class="app-container"></div>
     <div class="toast" id="toast"></div>
 	    <script>
-        /* ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ==================== */
-        (function() {
-            const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+			// ==================== 第 4 块：Script开头 + Supabase初始化 + State状态 ====================
+(function() {
+    const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            const State = {
-                currentUser: null,
-                profile: null,
-                farmPlots: [],
-                friendIds: new Set(),
-                friendProfiles: [],
-                visitingFriend: null,
-                visitingPlots: [],
-                isSubmitting: false,
-                pets: [],
-                items: {},
-                equipment: [],
-                battle: null,
-                bossStatus: null,
-                petSkills: [],        // 保留旧字段，兼容已学技能（后续迁移到主动技能书系统）
-                passiveSkills: {},    // 新增：宠物被动技能映射 { petId: skillId }
-                profileChannel: null,
-                orders: [],
-                seedShop: null,
-                stationedPet: null,
-                mails: [],            // 新增：邮箱列表
-                processingTasks: [],  // 新增：加工任务列表 [{ id, recipeName, icon, finishAt }]
-                monsterLog: {},       // 新增：怪物讨伐日志 { monsterName: { kills: n, affixes: [] } }
-                monsterAffixes: []    // 新增：当前刷新的怪物词缀列表
-            };
+    const State = {
+        currentUser: null,
+        profile: null,
+        farmPlots: [],
+        friendIds: new Set(),
+        friendProfiles: [],
+        visitingFriend: null,
+        visitingPlots: [],
+        isSubmitting: false,
+        pets: [],
+        items: {},
+        equipment: [],
+        battle: null,
+        bossStatus: null,
+        petSkills: [],
+        passiveSkills: {},
+        profileChannel: null,
+        orders: [],
+        seedShop: null,
+        stationedPet: null,
+        mails: [],
+        hasNewMail: false,        // 新增：邮件红点标记
+        processingTasks: [],
+        monsterLog: {},
+        monsterAffixes: [],
+        selectedBattlePetId: null,
+        selectedMapId: 'grassland',
+        selectedPlotIndex: null,
+        _pendingPotion: null,
+        lastOrderDate: null       // 新增：上次刷新订单的日期，用于每日自动刷新
+    };
 			// ==================== 第 5 块：60种作物数据 ====================
             const CROPS = {
                 // ===== 水果类 16种 =====
