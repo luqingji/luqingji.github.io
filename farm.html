@@ -3720,7 +3720,12 @@ Farm.openOrders = function() {
         const hasAmount = (State.items[order.crop] || 0) >= order.amount;
         return `<div class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">${crop.emoji}</span><div style="flex:1;"><div><strong>${crop.name} ×${order.amount}</strong></div><div style="font-size:0.8rem;">奖励：🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket}</div></div><button class="btn-small btn-accept" data-order-idx="${idx}" ${hasAmount?'':'disabled'}>${hasAmount?'提交':'不足'}</button></div></div>`;
     }).join('');
-    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket); // 新增：提交订单额外奖励 1~2 张自动战斗券 const tickets = Math.floor(Math.random() * 2) + 1; await addItem('auto_battle_ticket', tickets); showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket} + 🎫自动战斗券×${tickets}`); State.orders.splice(idx, 1); await saveOrders(); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
+    c.querySelectorAll('.btn-accept:not([disabled])').forEach(btn => { btn.onclick = async () => { const idx = parseInt(btn.dataset.orderIdx); const order = State.orders[idx]; if (!order) return; try { await addItem(order.crop, -order.amount); State.profile.gold += order.rewardGold; await supabase.from('profiles').update({ gold: State.profile.gold }).eq('id', State.currentUser.id); await addItem('seed_ticket', order.rewardTicket);
+        // 新增：提交订单额外奖励 1~2 张自动战斗券
+        const tickets = Math.floor(Math.random() * 2) + 1;
+        await addItem('auto_battle_ticket', tickets);
+        showToast(`订单完成！获得 🪙${order.rewardGold} + 🎫种子券×${order.rewardTicket} + 🎫自动战斗券×${tickets}`);
+        State.orders.splice(idx, 1); await saveOrders(); Farm.openOrders(); } catch (e) { showToast('提交失败', true); } }; });
 };
 
 Farm.openSeedShop = function() {
