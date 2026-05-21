@@ -2523,76 +2523,43 @@ function executeBattleAction(action, skillId = null) {
                 b.oppDefend = true;
             } else if (aiResult && aiResult.startsWith('skill:')) {
                 const skillName = aiResult.split(':')[1];
+                // 修复：同时从宠物技能和怪物专属技能中查找
                 const skillData = ACTIVE_SKILLS[skillName] || MONSTER_SKILLS[skillName];
                 if (skillData && (b.oppEnergy || 0) >= (skillData.energy || 0)) {
                     b.oppEnergy = Math.max(0, (b.oppEnergy || 0) - (skillData.energy || 0));
-                    const skillCd = skillData.cooldown || 2;
-                    b.oppSkillCooldowns[skillName] = skillCd;
-                    if (skillData.type === 'attack') {
-                        let odmg = calculateDamage(b.opponentPet, effMyPet, true, null, oppPassiveId, myPassiveId, 'attack');
-                        odmg = Math.floor(odmg * (skillData.power || 100) / 100);
+                    const oppSkillCd = skillData.cooldown || 2;
+                    b.oppSkillCooldowns[skillName] = oppSkillCd;
+                    if (skillData.type === 'attack' || skillData.type === 'special') {
+                        let powerMult = (skillData.power || 100) / 100;
+                        const oppPassiveId = b.type === 'pve' ? null : State.passiveSkills?.[b.opponentPet.id];
+                        let odmg = calculateDamage(b.opponentPet, effMyPet, true, null, oppPassiveId, myPassiveId, skillData.type);
+                        odmg = Math.floor(odmg * powerMult);
                         if (b.myDefend) odmg = Math.floor(odmg * 0.5);
                         if (isInvincible) odmg = 0;
                         b.myCurrentHp = Math.max(0, b.myCurrentHp - odmg);
                         logBattle(`对手 使用【${skillData.name}】，造成 ${odmg} 点伤害`);
-                        // 蝗灾：降低防御
-                        if (skillData.def_debuff) {
-                            b.myBuffs = b.myBuffs || [];
-                            b.myBuffs.push({ type: 'def_down', duration: skillData.debuff_duration || 2, value: skillData.def_debuff });
-                            logBattle(`🦗 你的防御降低了！`);
-                        }
-                        // 蛛网陷阱：降低速度
-                        if (skillData.spd_debuff) {
-                            b.myBuffs = b.myBuffs || [];
-                            b.myBuffs.push({ type: 'spd_down', duration: skillData.debuff_duration || 2, value: skillData.spd_debuff });
-                            logBattle(`🕸️ 你的速度降低了！`);
-                        }
-                        // 野猪冲撞：自反伤
-                        if (skillData.recoil) {
-                            const recoilDmg = Math.floor(odmg * skillData.recoil);
-                            b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - recoilDmg);
-                            logBattle(`💥 野猪受到了 ${recoilDmg} 点反伤`);
-                        }
-                        // 超声波/地动：无视防御
-                        if (skillData.ignore_def) {
-                            let rawDmg = Math.max(1, Math.floor(b.opponentPet.atk * (skillData.power || 100) / 100 * 0.8));
-                            if (b.myDefend) rawDmg = Math.floor(rawDmg * 0.5);
-                            b.myCurrentHp = Math.max(0, b.myCurrentHp - rawDmg);
-                            logBattle(`对手 使用【${skillData.name}】，无视防御造成 ${rawDmg} 点伤害`);
-                        }
-                        // 狐火：灼烧 + 降攻
-                        if (skillData.burn) {
-                            b.myBuffs = b.myBuffs || [];
-                            b.myBuffs.push({ type: 'burn', duration: 3 });
-                            logBattle(`🔥 你被灼烧了`);
-                        }
-                        if (skillData.atk_debuff) {
-                            b.myBuffs = b.myBuffs || [];
-                            b.myBuffs.push({ type: 'atk_down', duration: skillData.debuff_duration || 2, value: skillData.atk_debuff });
-                            logBattle(`🦊 你的攻击力降低了！`);
-                        }
-                    } else if (skillData.type === 'special') {
-                        // 石化凝视：跳过回合
-                        if (skillData.skip_chance && Math.random() < skillData.skip_chance) {
-                            b.myBuffs = b.myBuffs || [];
-                            b.myBuffs.push({ type: 'skip_next', duration: 1 });
-                            logBattle(`🐍 你被石化了，下回合跳过！`);
-                        }
-                        // 召唤小虫
-                        if (skillData.summon) {
-                            const minionHp = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * skillData.summon);
-                            const minion = { hp: minionHp, atk: Math.floor(b.opponentPet.atk * skillData.summon), def: Math.floor(b.opponentPet.def * skillData.summon), spd: Math.floor(b.opponentPet.spd * skillData.summon) };
-                            b.oppMinions = b.oppMinions || [];
-                            b.oppMinions.push(minion);
-                            logBattle(`👑 虫母女王召唤了 1 只小虫！`);
-                        }
-                    } else if (skillData.type === 'defense') {
-                        // 尖刺护甲：反弹
-                        if (skillData.reflect) {
-                            b.oppBuffs = b.oppBuffs || [];
-                            b.oppBuffs.push({ type: 'reflect_physical', duration: 1, value: skillData.reflect });
-                            logBattle(`🦔 尖刺护甲：反弹${Math.round(skillData.reflect*100)}%伤害`);
-                        }
+                        if (skillData.burn) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'burn', duration: 3 }); logBattle(`🔥 你被灼烧了`); }
+                        if (skillData.paralyze_chance && Math.random() < skillData.paralyze_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'paralyze', duration: 2 }); logBattle(`⚡ 你被麻痹了`); }
+                        if (skillData.poison) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'poison', duration: skillData.poison_duration || 3 }); logBattle(`☠️ 你中毒了`); }
+                        if (skillData.bind_chance && Math.random() < skillData.bind_chance) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'bind', duration: 1 }); logBattle(`🌿 你被束缚了`); }
+                        // 怪物专属技能特效
+                        if (skillData.def_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'def_down', duration: skillData.debuff_duration || 2, value: skillData.def_debuff }); logBattle(`🦗 你的防御降低了！`); }
+                        if (skillData.spd_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'spd_down', duration: skillData.debuff_duration || 2, value: skillData.spd_debuff }); logBattle(`🕸️ 你的速度降低了！`); }
+                        if (skillData.recoil) { const recoilDmg = Math.floor(odmg * skillData.recoil); b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - recoilDmg); logBattle(`💥 野猪受到了 ${recoilDmg} 点反伤`); }
+                        if (skillData.ignore_def) { let rawDmg = Math.max(1, Math.floor(b.opponentPet.atk * powerMult * 0.8)); if (b.myDefend) rawDmg = Math.floor(rawDmg * 0.5); b.myCurrentHp = Math.max(0, b.myCurrentHp - rawDmg); logBattle(`对手 使用【${skillData.name}】，无视防御造成 ${rawDmg} 点伤害`); }
+                        if (skillData.atk_debuff) { b.myBuffs = b.myBuffs || []; b.myBuffs.push({ type: 'atk_down', duration: skillData.debuff_duration || 2, value: skillData.atk_debuff }); logBattle(`🦊 你的攻击力降低了！`); }
+                    } else if (skillData.type === 'heal' && skillData.heal_percent) {
+                        const heal = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * skillData.heal_percent);
+                        b.opponentCurrentHp = Math.min((b.opponentPet.hp || b.opponentPet.maxHp), b.opponentCurrentHp + heal);
+                        logBattle(`对手 使用【${skillData.name}】，回复 ${heal} 点HP`);
+                    } else if (skillData.invincible) {
+                        b.oppBuffs = b.oppBuffs || [];
+                        b.oppBuffs.push({ type: 'invincible', duration: 1 });
+                        logBattle(`对手 使用【${skillData.name}】，本回合无敌`);
+                    } else if (skillData.curse_duration) {
+                        b.myBuffs = b.myBuffs || [];
+                        b.myBuffs.push({ type: 'curse', duration: skillData.curse_duration, value: skillData.curse_dmg || 0.05 });
+                        logBattle(`对手 使用【${skillData.name}】，你被诅咒了`);
                     }
                 }
             }
