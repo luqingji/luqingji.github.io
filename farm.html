@@ -2644,8 +2644,8 @@ function executeBattleAction(action, skillId = null) {
     applyPassiveEffects(b);
     applyDOTs(b.myBuffs, b.oppBuffs, b);
     b.myBuffs = tickBuffs(b.myBuffs); b.oppBuffs = tickBuffs(b.oppBuffs);
-    b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
-    b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible' && bf.type !== 'skip_next');
+	b.myBuffs = (b.myBuffs || []).filter(bf => bf.type !== 'invincible');
+    b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'invincible');
     
     if (b.opponentCurrentHp <= 0 && b.affixes?.some(a => a.id === 'bomb')) {
         const bombDmg = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * 0.3);
