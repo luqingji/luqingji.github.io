@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>麦田守护者 v5.4</title>
+    <title>麦田守护者 v5.4.1</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* ==================== 第 1 块：HTML头部 + CSS变量与基础样式 ==================== */
+        /* ==================== 第 1 块：CSS变量与基础样式 ==================== */
         :root {
             --bg: #f5f0eb;
             --card: #ffffff;
@@ -68,52 +68,6 @@
             50% { box-shadow: 0 0 12px rgba(192,57,43,0.8); }
         }
 
-        /* 手机端响应式 */
-        @media (max-width: 600px) {
-            .app-container {
-                padding: var(--gap-sm);
-                gap: var(--gap-md);
-            }
-            .header {
-                flex-direction: column;
-                gap: var(--gap-sm);
-                padding: var(--gap-sm) var(--gap-md);
-            }
-            .header > div:last-child {
-                justify-content: center;
-                gap: 3px;
-            }
-            .btn-icon {
-                padding: 5px 8px;
-                font-size: 0.7rem;
-                border-radius: var(--radius-md);
-            }
-            .btn-fight-call {
-                padding: 6px 10px;
-                font-size: 0.75rem;
-            }
-            .farm-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                gap: var(--gap-sm);
-            }
-            .plot-card {
-                min-height: 100px;
-                padding: 8px 4px;
-            }
-            .plot-emoji { font-size: 1.6rem; }
-            .modal {
-                max-width: 95vw;
-                padding: var(--gap-md);
-            }
-            .user-info .username { font-size: var(--font-sm); }
-            .level { font-size: 0.6rem; }
-        }
-    </style>
-</head>
-<body>
-    <div id="app" class="app-container"></div>
-    <div class="toast" id="toast"></div>
-	<style>
         /* ==================== 第 2 块：CSS样式（布局、卡片、按钮等） ==================== */
         .header {
             background: var(--card);
@@ -186,7 +140,7 @@
         }
         .farm-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
             gap: var(--gap-md);
         }
         .plot-card {
@@ -258,6 +212,7 @@
             white-space: nowrap;
             vertical-align: middle;
         }
+
         /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
         .modal-overlay {
             display: none;
@@ -745,6 +700,47 @@
             margin: 1px 2px;
         }
         .affix-tag.unlocked { background: #27ae60; }
+
+        /* 手机端响应式 */
+        @media (max-width: 600px) {
+            .app-container {
+                padding: var(--gap-sm);
+                gap: var(--gap-md);
+            }
+            .header {
+                flex-direction: column;
+                gap: var(--gap-sm);
+                padding: var(--gap-sm) var(--gap-md);
+            }
+            .header > div:last-child {
+                justify-content: center;
+                gap: 3px;
+            }
+            .btn-icon {
+                padding: 5px 8px;
+                font-size: 0.7rem;
+                border-radius: var(--radius-md);
+            }
+            .btn-fight-call {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+            .farm-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: var(--gap-sm);
+            }
+            .plot-card {
+                min-height: 100px;
+                padding: 8px 4px;
+            }
+            .plot-emoji { font-size: 1.6rem; }
+            .modal {
+                max-width: 95vw;
+                padding: var(--gap-md);
+            }
+            .user-info .username { font-size: var(--font-sm); }
+            .level { font-size: 0.6rem; }
+        }
     </style>
 </head>
 <body>
