@@ -2496,7 +2496,7 @@ function executeBattleAction(action, skillId = null) {
             const isInvincible = (b.myBuffs || []).some(bf => bf.type === 'invincible');
             const potionDef = getPotionDefBonus();
             let effMyPet = { ...b.myPet, def: Math.floor(b.myPet.def * (1 + potionDef)) };
-
+            
             if (aiResult === 'attack') {
                 let odmg = calculateDamage(b.opponentPet, effMyPet, false, null, oppPassiveId, myPassiveId, null);
                 if (b.myDefend) odmg = Math.floor(odmg * 0.5);
@@ -2555,7 +2555,7 @@ function executeBattleAction(action, skillId = null) {
                         }
                         // 超声波/地动：无视防御
                         if (skillData.ignore_def) {
-                            let rawDmg = Math.floor(b.opponentPet.atk * (skillData.power || 100) / 100 * 0.8);
+                            let rawDmg = Math.max(1, Math.floor(b.opponentPet.atk * (skillData.power || 100) / 100 * 0.8));
                             if (b.myDefend) rawDmg = Math.floor(rawDmg * 0.5);
                             b.myCurrentHp = Math.max(0, b.myCurrentHp - rawDmg);
                             logBattle(`对手 使用【${skillData.name}】，无视防御造成 ${rawDmg} 点伤害`);
