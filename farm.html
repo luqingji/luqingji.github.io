@@ -2967,7 +2967,7 @@ const Leaderboard = {
         listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
     }
 };
-			// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、药剂入口、回合日志） ====================
+	// ==================== 第 20 块：战斗界面（Battle，含能量条、被动显示、药剂入口、回合日志） ====================
 const Battle = {
     render() {
         const b = State.battle; if (!b) return '';
@@ -2991,7 +2991,7 @@ const Battle = {
             // 冷却回合数始终显示，可用时显示(0)，排版永不跳动
             return `<button class="battle-btn skill" data-skill-id="${s.id}" ${cd > 0 || myEnergy < actualCost ? 'disabled' : ''}>${skillData?.name||s.skill_name}⚡${actualCost}(${cd})</button>`;
         }).join('');
-        const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
+        const myBuffsStr = (b.myBuffs || []).map(bf => `<span class="buff-tag">${bf.type === 'attack_up' ? '⚔️+' : bf.type === 'reflect' ? '🛡️反' : bf.type === 'dodge' ? '💨闪' : bf.type === 'invincible' ? '🛡️无敌' : bf.type === 'unyielding' ? '💪不屈' : bf.type === 'reflect_magic' ? '🔮反' : bf.type === 'self_atk_down' ? '⚠️降攻' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'burn' ? '🔥灼' : bf.type === 'poison' ? '☠️毒' : bf.type === 'curse' ? '👁️咒' : bf.type === 'def_down' ? '🛡️降防' : bf.type === 'atk_down' ? '⚔️降攻' : bf.type === 'spd_down' ? '💨降速' : '⚡' + bf.type}(${bf.duration})</span>`).join('');
         const oppBuffsStr = (b.oppBuffs || []).map(bf => `<span class="buff-tag" style="background:#c0392b;">${bf.type === 'burn' ? '🔥' : bf.type === 'paralyze' ? '⚡麻' : bf.type === 'bind' ? '🌿缚' : bf.type === 'curse' ? '👁️咒' : bf.type === 'poison' ? '☠️毒' : bf.type === 'skip_next' ? '😱恐' : bf.type === 'invincible' ? '🛡️无敌' : bf.type}(${bf.duration})</span>`).join('');
         
         // 日志渲染：按 idx 升序排列（最新日志在底部），自动滚动到底部
