@@ -3392,11 +3392,18 @@ Farm.openSynthesis = async function() {
         });
     };
     showSynth('equipment');
-    document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => { tab.onclick = () => { document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); showSynth(tab.dataset.stype); }; });
-    document.getElementById('btnRefreshSynthesis').onclick = async () => { await loadItems(); const activeTab = document.querySelector('#synthTypeTabs .auth-tab.active'); const currentType = activeTab?.dataset?.stype || 'equipment'; showSynth(currentType); };
+    document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(tab => {
+        tab.onclick = async () => {
+            document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            await loadItems();  // 切换标签时实时刷新库存
+            showSynth(tab.dataset.stype);
+        };
+    });
 };
 
-Farm.openEquipment = function() {
+Farm.openEquipment = async function() {
+    await loadEquipment();
     document.getElementById('modalEquipment').classList.add('active');
     const c = document.getElementById('equipmentList');
     if (State.equipment.length === 0) { c.innerHTML = '<p>还没有装备，去合成台打造吧！</p>'; return; }
@@ -3428,7 +3435,8 @@ Farm.openEquipment = function() {
     c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); Farm.openEquipment(); } }; });
 };
 
-Farm.openPvEMap = function() {
+Farm.openPvEMap = async function() {
+    await loadPets();  // 刷新宠物数据，确保地图解锁条件判定准确
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     const mapsHTML = PVE_MAPS.map(m => {
@@ -3465,6 +3473,8 @@ Farm.openPvEMap = function() {
 };
 
 Farm.openPvE = async function() {
+    await loadItems();       // 刷新自动战斗券库存
+    await loadBossStatus();  // 刷新Boss状态
     const mapId = State.selectedMapId || 'grassland';
     const mapData = PVE_MAPS.find(m => m.id === mapId);
     if (!mapData) return;
@@ -3473,9 +3483,6 @@ Farm.openPvE = async function() {
     if (!modal) { render(); setTimeout(() => Farm.openPvE(), 100); return; }
     modal.classList.add('active');
     const c = document.getElementById('pveListContainer');
-    const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
-    const myPet = State.pets.find(p => p.id === selectedPetId);
-    const myLevel = myPet ? myPet.level : 1;
     
     let html = '';
     
@@ -3558,7 +3565,6 @@ Farm.openPvE = async function() {
 Farm.openMonsterLog = function() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
-    const logEntries = Object.entries(State.monsterLog || {});
     const allMonsters = [...MONSTERS, ...ELITE_MONSTERS];
     overlay.innerHTML = `
         <div class="modal" style="max-width:420px;">
@@ -3584,7 +3590,6 @@ Farm.openMonsterLog = function() {
                         ${kills > 0 ? `<div style="margin-top:4px;font-size:0.7rem;">词缀：${allAffixesForMonster.map(a => `<span class="affix-tag ${a.unlocked ? 'unlocked' : ''}">${a.unlocked ? a.name : '???'}</span>`).join(' ')}</div>` : '<div style="font-size:0.7rem;color:#aaa;">尚未讨伐，词缀未知</div>'}
                     </div>`;
                 }).join('')}
-                ${logEntries.length === 0 ? '<p style="text-align:center;color:#888;">尚未讨伐任何怪物</p>' : ''}
             </div>
             <button class="btn-close" id="closeMonsterLog">×</button>
         </div>
