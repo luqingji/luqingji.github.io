@@ -2338,7 +2338,7 @@ async function startPvEBattle(monster) {
     render();
 }
 
-function executeBattleAction(action, skillId = null) {
+async function executeBattleAction(action, skillId = null) {
     if (!State.battle) return; const b = State.battle;
 
     const getMySpd = () => getRealTimeSpeed(b.myPet, b.myBuffs);
@@ -2356,7 +2356,7 @@ function executeBattleAction(action, skillId = null) {
     const getPotionDefBonus = () => { if (b.activePotion === 'potion_def') return 0.2; return 0; };
     const getPotionCritBonus = () => { if (b.activePotion === 'potion_crit') return 0.15; return 0; };
 
-    const playerAct = () => {
+    const playerAct = async () => {
         let dmg = 0;
         const potionAtk = getPotionAtkBonus();
         const potionCrit = getPotionCritBonus();
@@ -2517,7 +2517,7 @@ function executeBattleAction(action, skillId = null) {
         for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; }
     };
 
-    const monsterAct = () => {
+    const monsterAct = async () => {
         if (oppSkip) {
             logBattle(`对手因恐惧跳过回合`);
             b.oppBuffs = (b.oppBuffs || []).filter(bf => bf.type !== 'skip_next');
@@ -2672,11 +2672,11 @@ function executeBattleAction(action, skillId = null) {
     const oppSpd = getOppSpd();
 
     if (mySpd >= oppSpd) {
-        if (!myParalyzed && !myBound && !mySkip) playerAct();
-        if (b.opponentCurrentHp > 0) monsterAct();
+        if (!myParalyzed && !myBound && !mySkip) await playerAct();
+        if (b.opponentCurrentHp > 0) await monsterAct();
     } else {
-        if (b.opponentCurrentHp > 0) monsterAct();
-        if (!myParalyzed && !myBound && !mySkip && b.myCurrentHp > 0) playerAct();
+        if (b.opponentCurrentHp > 0) await monsterAct();
+        if (!myParalyzed && !myBound && !mySkip && b.myCurrentHp > 0) await playerAct();
     }
 
     if (b.activePotion === 'potion_hp') {
