@@ -3761,7 +3761,7 @@ Farm.openPvEMap = async function() {
 };
 
 Farm.openPvE = async function() {
-    // 【修复1/2】优先强制从数据库刷新BOSS状态，确保地图界面血条准确
+    // 强制从数据库刷新BOSS状态
     await loadBossStatus();
 
     const mapId = State.selectedMapId || 'grassland';
@@ -3776,6 +3776,9 @@ Farm.openPvE = async function() {
     let html = '';
     
     if (mapData.isBoss) {
+        // 再次确保State.bossStatus是最新的
+        await loadBossStatus();
+        
         if (State.bossStatus) {
             const now = new Date();
             const refreshesAt = State.bossStatus.refreshes_at ? new Date(State.bossStatus.refreshes_at) : null;
@@ -3792,6 +3795,7 @@ Farm.openPvE = async function() {
                 html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> <div>状态：重生冷却中</div><div>预计重生：${remaining} 分钟后</div></div>`;
             } else {
                 await refreshBoss();
+                // refreshBoss 已更新 State.bossStatus，无需额外赋值
                 const newRemaining = Math.ceil((new Date(State.bossStatus.expires_at) - new Date()) / 3600000 * 10) / 10;
                 html += `<div class="boss-card"><strong>👹 ${State.bossStatus.monster_name}</strong> ${State.bossStatus.emoji||''}<div>HP: ${State.bossStatus.current_hp}/${State.bossStatus.max_hp}</div><div>剩余时间：${newRemaining}小时</div><button class="btn-small btn-fight" data-boss="true">挑战BOSS</button></div>`;
             }
@@ -3801,7 +3805,13 @@ Farm.openPvE = async function() {
         if (document.getElementById('btnBackToMaps')) {
             document.getElementById('btnBackToMaps').onclick = () => { modal.classList.remove('active'); Farm.openPvEMap(); };
         }
-        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; State.monsterAffixes = []; startPvEBattle(boss); modal.classList.remove('active'); }; });
+        c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = () => { 
+            // 挑战前最后一次刷新血量
+            const boss = { name: State.bossStatus.monster_name, emoji: State.bossStatus.emoji, hp: State.bossStatus.current_hp, maxHp: State.bossStatus.max_hp, atk: State.bossStatus.atk, def: State.bossStatus.def, spd: State.bossStatus.spd, rewards: State.bossStatus.rewards, isBoss: true, skills: ['fire_storm','fire_burn'] }; 
+            State.monsterAffixes = []; 
+            startPvEBattle(boss); 
+            modal.classList.remove('active'); 
+        }; });
         return;
     }
     
