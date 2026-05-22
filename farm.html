@@ -1701,7 +1701,7 @@ async function loadProcessingTasksFromDB() {
         State.processingTasks = active;
     } catch (e) { console.error('加载加工任务失败:', e); }
 }
-	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化） ====================
+	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化 + 驻扎宠物恢复 + 种子商店持久化） ====================
 async function loadProfile() {
     let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
     if (error) throw error;
@@ -1880,6 +1880,37 @@ async function saveMonsterLog() {
     }
 }
 
+// ==================== 种子商店持久化 ====================
+async function loadSeedShop() {
+    if (!State.currentUser) return;
+    const today = new Date().toDateString();
+    try {
+        const { data, error } = await supabase
+            .from('player_seed_shop')
+            .select('shop_data')
+            .eq('user_id', State.currentUser.id)
+            .eq('shop_date', today)
+            .maybeSingle();
+        if (!error && data && data.shop_data) {
+            State.seedShop = { date: today, items: data.shop_data };
+        } else {
+            // 今日无记录，生成新的
+            const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
+            State.seedShop = { date: today, items: shuffled };
+            await supabase.from('player_seed_shop').upsert({
+                user_id: State.currentUser.id,
+                shop_date: today,
+                shop_data: shuffled
+            }, { onConflict: 'user_id,shop_date' });
+        }
+    } catch (e) {
+        // 表可能不存在，回退到内存模式
+        const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
+        State.seedShop = { date: today, items: shuffled };
+    }
+}
+
+// ==================== 总加载函数 ====================
 async function loadAll() {
     try {
         await loadProfile();
@@ -1895,7 +1926,13 @@ async function loadAll() {
         await loadProcessingTasksFromDB();  // 从数据库恢复加工任务
         await checkNewMails();
         await generateOrders();
-        startProcessingTimer();  // 启动加工定时器
+        await loadSeedShop();  // 从数据库恢复每日种子商店
+        
+        // 恢复驻扎宠物
+        const stationed = State.pets.find(p => p.is_stationed);
+        if (stationed) State.stationedPet = stationed;
+        
+        startProcessingTimer();
     } catch (e) {
         console.error('数据加载失败:', e);
         showToast('网络不稳定，正在重试...', true);
@@ -1914,6 +1951,11 @@ async function loadAll() {
                 await loadProcessingTasksFromDB();
                 await checkNewMails();
                 await generateOrders();
+                await loadSeedShop();
+                
+                const stationed = State.pets.find(p => p.is_stationed);
+                if (stationed) State.stationedPet = stationed;
+                
                 startProcessingTimer();
                 render();
             } catch (e2) {
@@ -3153,15 +3195,13 @@ const Farm = {
         const slots = State.profile?.pet_slots || 1;
         const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
         const hasNewMail = State.hasNewMail;
-        // 加工任务HTML
+        // 加工任务HTML（保留在主界面，用于倒计时显示）
         const processingHTML = (State.processingTasks || []).length > 0 
             ? `<div style="margin:4px 0;">` + State.processingTasks.map(t => {
                 const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
                 return `<div class="processing-bar"><span>${t.icon}</span><span style="font-size:0.7rem;">${t.name}</span><span style="font-size:0.65rem;color:#888;">${remaining}分</span></div>`;
             }).join('') + `</div>` : '';
-        return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-    ${(State.processingTasks || []).length > 0 ? `<button class="btn-icon" id="btnProcessingStatus" title="加工中" style="background:#fef9f3;color:var(--accent);font-weight:600;">🔧 ${State.processingTasks.length}</button>` : ''}
-    <button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
+        return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧 (${(State.processingTasks || []).length})</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
         ${processingHTML}
         <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
         ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
@@ -3208,9 +3248,9 @@ const Farm = {
         document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
         document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
         document.getElementById('closeSynthesisModal').onclick = () => {
-    document.getElementById('modalSynthesis').classList.remove('active');
-    render();
-};
+            document.getElementById('modalSynthesis').classList.remove('active');
+            render();  // 关闭合成台时刷新主界面，更新加工图标
+        };
         document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
         document.getElementById('closePvEModal').onclick = () => document.getElementById('modalPvE').classList.remove('active');
         document.getElementById('closeExploreModal').onclick = () => document.getElementById('modalExplore').classList.remove('active');
@@ -3333,7 +3373,6 @@ const Farm = {
         if (State.friendProfiles.length === 0) { c.innerHTML = '<p>还没有好友，去排行榜添加吧！</p>'; return; }
         c.innerHTML = State.friendProfiles.map(f => `<div class="list-item" data-friend-id="${f.id}"><div class="avatar ${f.gender || 'none'}" style="width:30px;height:30px;">${(f.username || '?')[0]}</div><span class="nickname" style="flex:1;">${escapeHTML(f.username || '匿名')}</span><span style="color:var(--accent);">🪙${f.gold || 0}</span><button class="btn-small btn-fight" data-friend-id="${f.id}">切磋</button></div>`).join('');
         c.querySelectorAll('.list-item').forEach(item => { item.onclick = () => { const fid = item.dataset.friendId, friend = State.friendProfiles.find(p => p.id === fid); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', fid).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalFriends').classList.remove('active'); render(); }); } }; });
-        // 切磋按钮：先选药剂，再选宠物
         c.querySelectorAll('.btn-fight').forEach(btn => { btn.onclick = (e) => { e.stopPropagation(); const fid = btn.dataset.friendId; if (State.pets.length === 0) { showToast('你没有可用的宠物'); return; } State._pvPFriendId = fid; Farm.openPotionSelect(); }; });
     },
     openPets() {
@@ -3350,7 +3389,6 @@ const Farm = {
             }
             return;
         }
-        // 辅助函数：正数绿色(+X)，负数红色(-X)，零值不显示
         const formatDiff = (d) => {
             if (d === 0) return '';
             if (d > 0) return `<span style="color:#27ae60;font-weight:600;">(+${d})</span>`;
@@ -3448,7 +3486,6 @@ const Farm = {
     selectBattlePet() {
         const availablePets = State.pets.filter(p => !p.exploring_until || new Date(p.exploring_until) <= new Date());
         if (availablePets.length === 0) { showToast('没有可用的宠物！'); return; }
-        // PvP 场景：存在待切磋的好友ID，直接选宠物开始战斗
         if (State._pvPFriendId) {
             if (availablePets.length === 1) {
                 const pid = availablePets[0].id;
@@ -3494,7 +3531,6 @@ const Farm = {
             });
             return;
         }
-        // PvE 原有逻辑
         if (availablePets.length === 1) {
             State.selectedBattlePetId = availablePets[0].id;
             Farm.openPvEMap();
