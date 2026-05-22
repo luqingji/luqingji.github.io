@@ -1323,10 +1323,8 @@ const ENERGY_PER_TURN = 1;
 const ATTACK_ENERGY_GAIN = 1;
 const DEFEND_ENERGY_GAIN = 1;
 
-// 全局日志序号（每场战斗从 #1 开始）
 let logIndex = 0;
 
-// 重置日志序号（每场新战斗开始时调用）
 function resetLogIndex() {
     logIndex = 0;
 }
@@ -1364,7 +1362,12 @@ async function addItem(it, qty, userId) {
             .select('quantity').eq('user_id', uid).eq('item_type', it).maybeSingle();
         if (re) throw re;
         const cur = row ? row.quantity : 0;
-        const nq = Math.max(0, cur + qty);
+        // 保护：数量不足以扣除时直接返回
+        if (cur < Math.abs(qty)) {
+            console.error(`物品 ${it} 不足：需要 ${Math.abs(qty)}，当前 ${cur}`);
+            return;
+        }
+        const nq = cur + qty;
         if (nq === 0) {
             await supabase.from('player_items').delete().eq('user_id', uid).eq('item_type', it);
             if (!userId) delete State.items[it];
@@ -1404,7 +1407,6 @@ function getActiveSetEffects() {
     return effects;
 }
 
-// 修复版：浅拷贝保护原始 pet 对象，避免多次调用时数值累积
 function getPetBattleStats(pet) {
     pet = { ...pet };
     const equip = State.equipment.filter(e => e.equipped_to === pet.id);
@@ -1468,18 +1470,14 @@ function calculateDamage(at, df, isSkill = false, skillElement = null, atPassive
     return dmg;
 }
 
-// 怪物AI修复版：支持怪物专属技能
 function monsterAI(battle) {
     const skills = battle.opponentSkills || [];
     const energy = battle.opponentEnergy || 0;
     const skillCd = battle.oppSkillCooldowns || {};
     const hpRatio = battle.opponentCurrentHp / (battle.opponentPet.hp || battle.opponentPet.maxHp || 1);
-    const playerHpRatio = battle.myCurrentHp / (battle.myPet.hp || battle.myPet.maxHp || 1);
 
-    // 辅助函数：获取技能数据（优先宠物技能，其次怪物专属技能）
     const getSkillData = (s) => ACTIVE_SKILLS[s] || MONSTER_SKILLS[s];
 
-    // 优先级1：血量低于25%且有治疗技能 → 回血
     if (hpRatio < 0.25 && skills.some(s => {
         const sd = getSkillData(s);
         return sd?.type === 'heal' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
@@ -1491,7 +1489,6 @@ function monsterAI(battle) {
         if (healSkill) return 'skill:' + healSkill;
     }
 
-    // 优先级2：能量>=5且有控制技能 → 控制
     if (energy >= 5 && skills.some(s => {
         const sd = getSkillData(s);
         return (sd?.skip_chance) && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
@@ -1503,7 +1500,6 @@ function monsterAI(battle) {
         if (controlSkill) return 'skill:' + controlSkill;
     }
 
-    // 优先级3：能量>=8且有召唤技能 → 召唤（Boss专属）
     if (energy >= 8 && skills.some(s => {
         const sd = getSkillData(s);
         return sd?.type === 'special' && sd?.summon && !(skillCd[s] > 0) && energy >= (sd.energy || 0);
@@ -1515,7 +1511,6 @@ function monsterAI(battle) {
         if (summonSkill) return 'skill:' + summonSkill;
     }
 
-    // 优先级4：有防御/反击技能且血量较高 → 使用
     if (hpRatio > 0.5 && skills.some(s => {
         const sd = getSkillData(s);
         return sd?.type === 'defense' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
@@ -1527,7 +1522,6 @@ function monsterAI(battle) {
         if (defSkill) return 'skill:' + defSkill;
     }
 
-    // 优先级5：有攻击技能 → 使用（按威力排序）
     if (skills.some(s => {
         const sd = getSkillData(s);
         return sd?.type === 'attack' && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
@@ -1539,7 +1533,6 @@ function monsterAI(battle) {
         if (bestSkill) return 'skill:' + bestSkill;
     }
 
-    // 优先级6：有特殊技能（非召唤）→ 使用
     if (energy >= 4 && skills.some(s => {
         const sd = getSkillData(s);
         return sd?.type === 'special' && !sd?.summon && energy >= (sd.energy || 0) && !(skillCd[s] > 0);
@@ -1554,7 +1547,6 @@ function monsterAI(battle) {
     return 'attack';
 }
 
-// 辅助函数：实时获取含Buff的速度
 function getRealTimeSpeed(pet, buffs) {
     let spd = pet.spd || 0;
     (buffs || []).forEach(bf => {
@@ -1564,7 +1556,6 @@ function getRealTimeSpeed(pet, buffs) {
     return spd;
 }
 
-// 改造后的 logBattle：全局序号 + 回合编号 + 先后手标记
 function logBattle(msg) {
     const b = State.battle;
     if (!b) return;
@@ -1668,14 +1659,49 @@ async function synthesizeProduct(recipe) {
     }
     if (recipe.time) {
         const finishAt = new Date(Date.now() + recipe.time * 60000).toISOString();
-        State.processingTasks.push({ id: Date.now(), name: recipe.name, icon: recipe.icon, finishAt });
+        const taskId = Date.now();
+        State.processingTasks.push({ id: taskId, name: recipe.name, icon: recipe.icon, finishAt });
+        // 持久化到数据库
+        await saveProcessingTask(taskId, recipe.name, recipe.icon, finishAt);
         showToast(`开始加工 ${recipe.icon} ${recipe.name}，预计${recipe.time}分钟后完成`);
     } else {
         await addItem(recipe.name, 1);
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 - 数据库版） ====================
+// 加工任务持久化
+async function saveProcessingTask(id, name, icon, finishAt) {
+    try {
+        await supabase.from('processing_tasks').insert({
+            id, user_id: State.currentUser.id, name, icon, finish_at: finishAt
+        });
+    } catch (e) { console.error('保存加工任务失败:', e); }
+}
+async function loadProcessingTasksFromDB() {
+    try {
+        const { data, error } = await supabase.from('processing_tasks')
+            .select('*').eq('user_id', State.currentUser.id);
+        if (error) return;
+        const now = new Date();
+        const finished = [];
+        const active = [];
+        for (const t of (data || [])) {
+            if (new Date(t.finish_at) <= now) {
+                finished.push(t);
+            } else {
+                active.push({ id: t.id, name: t.name, icon: t.icon, finishAt: t.finish_at });
+            }
+        }
+        // 自动领取已完成的
+        for (const t of finished) {
+            await addItem(t.name, 1);
+            await supabase.from('processing_tasks').delete().eq('id', t.id);
+            showToast(`加工完成！获得 ${t.icon} ${t.name}`);
+        }
+        State.processingTasks = active;
+    } catch (e) { console.error('加载加工任务失败:', e); }
+}
+	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化） ====================
 async function loadProfile() {
     let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
     if (error) throw error;
@@ -1689,7 +1715,6 @@ async function loadProfile() {
         if (!data.pet_slots) data.pet_slots = 1;
         State.profile = data;
     }
-    // 直接从数据库恢复怪物讨伐记录
     State.monsterLog = State.profile?.monster_log || {};
 }
 async function loadFarmPlots() {
@@ -1766,7 +1791,6 @@ async function loadMails() {
     } catch (e) { State.mails = []; }
 }
 
-// ==================== 邮件红点检测 ====================
 async function checkNewMails() {
     if (!State.currentUser) return;
     try {
@@ -1787,15 +1811,16 @@ async function loadProcessingTasks() {
     const finishedTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) <= now);
     for (const task of finishedTasks) {
         await addItem(task.name, 1);
+        await supabase.from('processing_tasks').delete().eq('id', task.id);
         showToast(`加工完成！获得 ${task.icon} ${task.name}`);
     }
-	    State.processingTasks = activeTasks;
+    State.processingTasks = activeTasks;
+    // 有任务完成时刷新主界面
     if (finishedTasks.length > 0 && !State.battle && !State.visitingFriend) {
         render();
     }
 }
 
-// ==================== 订单系统（每日自动刷新 + 数据库存储） ====================
 async function loadOrders() {
     const today = new Date().toDateString();
     const { data, error } = await supabase
@@ -1845,7 +1870,6 @@ async function generateOrders() {
     await saveOrders();
 }
 
-// 辅助函数：持久化怪物讨伐记录到数据库
 async function saveMonsterLog() {
     if (!State.currentUser) return;
     try {
@@ -1861,7 +1885,7 @@ async function loadAll() {
     try {
         await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
         await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-        await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+        await loadPassiveSkills(); await loadMails(); await loadProcessingTasksFromDB(); await checkNewMails();
         await generateOrders();
     } catch (e) {
         console.error('数据加载失败:', e);
@@ -1870,7 +1894,7 @@ async function loadAll() {
             try {
                 await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                 await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-                await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+                await loadPassiveSkills(); await loadMails(); await loadProcessingTasksFromDB(); await checkNewMails();
                 await generateOrders();
                 render();
             } catch (e2) {
