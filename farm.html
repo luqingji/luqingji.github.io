@@ -2223,7 +2223,7 @@ async function loadAll() {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS战血量同步修复） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS血量同步 + 尖刺护甲反弹） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2278,7 +2278,7 @@ async function startPvEBattle(monster) {
     const myPet = getPetBattleStats(State.pets.find(p => p.id === selectedPetId));
     if (!myPet) { showToast('请先领养宠物'); return; }
     
-    // 修复：BOSS战强制从数据库刷新最新血量，确保多轮攻击血量同步
+    // 修复：BOSS战强制从数据库刷新最新血量
     if (monster.isBoss && State.bossStatus) {
         try {
             const { data: freshBoss, error: bossErr } = await supabase
@@ -2371,6 +2371,13 @@ function executeBattleAction(action, skillId = null) {
                 if (Math.random() < potionCrit) dmg = Math.floor(dmg * 1.5);
                 b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
                 logBattle(`你的 ${b.myPet.pet_name} 使用【${skillData.name}】，造成 ${dmg} 点伤害`);
+                // 尖刺护甲反弹
+                const reflectSkill = (b.oppBuffs || []).find(bf => bf.type === 'reflect_physical');
+                if (reflectSkill && dmg > 0) {
+                    const reflectDmg = Math.floor(dmg * reflectSkill.value);
+                    b.myCurrentHp = Math.max(0, b.myCurrentHp - reflectDmg);
+                    logBattle(`🦔 尖刺护甲反弹了 ${reflectDmg} 点伤害`);
+                }
                 if (skillData.burn || skillData.burn_chance > 0) {
                     if (skillData.burn || Math.random() < (skillData.burn_chance || 0)) {
                         b.oppBuffs = b.oppBuffs || [];
@@ -2472,6 +2479,13 @@ function executeBattleAction(action, skillId = null) {
             b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
             b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + ATTACK_ENERGY_GAIN);
             logBattle(`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害 ⚡+1`);
+            // 尖刺护甲反弹
+            const reflectAtk = (b.oppBuffs || []).find(bf => bf.type === 'reflect_physical');
+            if (reflectAtk && dmg > 0) {
+                const reflectDmg = Math.floor(dmg * reflectAtk.value);
+                b.myCurrentHp = Math.max(0, b.myCurrentHp - reflectDmg);
+                logBattle(`🦔 尖刺护甲反弹了 ${reflectDmg} 点伤害`);
+            }
         } else if (action === 'defend') {
             b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + DEFEND_ENERGY_GAIN);
             logBattle(`你选择防御 ⚡+1`);
@@ -2505,7 +2519,6 @@ function executeBattleAction(action, skillId = null) {
             let effMyPet = { ...b.myPet, def: Math.floor(b.myPet.def * (1 + potionDef)) };
             
             if (aiResult === 'attack') {
-                // ========== 强制兜底：检查怪物是否有可用技能 ==========
                 const monsterSkillMap = {
                     swarm: { name:'蝗灾', power:80, def_debuff:0.1, debuff_duration:2, log:'🦗 你的防御降低了！' },
                     dragon_breath: { name:'龙息', power:200 },
