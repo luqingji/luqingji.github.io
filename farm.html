@@ -1288,7 +1288,11 @@ function isMapUnlocked(mapData) {
     if (!mapData.unlockCond) return true;
     const cond = mapData.unlockCond;
     if (cond.type === 'elite_kills') {
-        return Object.values(State.monsterLog || {}).reduce((sum, m) => sum + (m.kills || 0), 0) >= cond.count;
+        // 只统计精英怪（名字在ELITE_MONSTERS列表中）的击杀数
+        const eliteNames = ELITE_MONSTERS.map(m => m.name);
+        return Object.entries(State.monsterLog || {})
+            .filter(([name]) => eliteNames.includes(name))
+            .reduce((sum, [, m]) => sum + (m.kills || 0), 0) >= cond.count;
     }
     if (cond.type === 'plots') {
         return (State.profile?.unlocked_plots || 4) >= cond.count;
@@ -1845,11 +1849,12 @@ async function rebuildMonsterLogFromLogs() {
     if (!State.currentUser) return;
     State.monsterLog = {};
     try {
+        // 同时获取普通讨伐和精英击杀事件，确保重建完整
         const { data: logs, error } = await supabase
             .from('event_logs')
-            .select('event_data')
+            .select('event_type, event_data')
             .eq('user_id', State.currentUser.id)
-            .eq('event_type', 'pve_win');
+            .in('event_type', ['pve_win', 'elite_kill']);
         if (error) return;
         for (const log of (logs || [])) {
             const d = log.event_data;
@@ -2826,6 +2831,10 @@ async function endBattle(won) {
             State.monsterLog[mon.name].kills++;
             if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
             addEventLog('pve_win', { monster: mon.name, gold: finalGold });
+            // 新增：精英击杀单独记录，用于地图解锁持久化
+            if (mon.isElite) {
+                addEventLog('elite_kill', { monster: mon.name });
+            }
             showBattleResult({ won: true, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
             if (mon.isBoss) {
                 await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
