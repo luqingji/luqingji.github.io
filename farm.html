@@ -2223,7 +2223,7 @@ async function loadAll() {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + 石化文案修复） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS战血量同步修复） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2277,8 +2277,23 @@ async function startPvEBattle(monster) {
     const selectedPetId = State.selectedBattlePetId || (State.pets[0]?.id);
     const myPet = getPetBattleStats(State.pets.find(p => p.id === selectedPetId));
     if (!myPet) { showToast('请先领养宠物'); return; }
+    
+    // 修复：BOSS战强制从数据库刷新最新血量，确保多轮攻击血量同步
+    if (monster.isBoss && State.bossStatus) {
+        try {
+            const { data: freshBoss, error: bossErr } = await supabase
+                .from('boss_status').select('*').eq('id', 1).maybeSingle();
+            if (!bossErr && freshBoss) {
+                State.bossStatus = freshBoss;
+            }
+        } catch (e) {}
+    }
+    
     let bossHp = monster.hp || monster.maxHp;
-    if (monster.isBoss && State.bossStatus) { bossHp = State.bossStatus.current_hp; if (bossHp <= 0) { showToast('BOSS已被击败！'); return; } }
+    if (monster.isBoss && State.bossStatus) { 
+        bossHp = State.bossStatus.current_hp; 
+        if (bossHp <= 0) { showToast('BOSS已被击败！'); return; } 
+    }
     let monHp = monster.hp, monAtk = monster.atk, monDef = monster.def, monSpd = monster.spd;
     const affixes = State.monsterAffixes || [];
     if (affixes.length > 0) {
