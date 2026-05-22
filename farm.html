@@ -1307,7 +1307,7 @@ function isMapUnlocked(mapData) {
 function getMonsterByName(name) {
     return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
 }
-	// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 ====================
+	// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 + 加工任务持久化 ====================
 const WATER_COOLDOWN_MS = 30 * 60 * 1000;
 const BOSS_COOLDOWN_MINUTES = 60;
 const BOSS_EXPIRE_HOURS = 6;
@@ -1669,37 +1669,61 @@ async function synthesizeProduct(recipe) {
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-// 加工任务持久化
+// ==================== 加工任务持久化函数 ====================
 async function saveProcessingTask(id, name, icon, finishAt) {
     try {
         await supabase.from('processing_tasks').insert({
-            id, user_id: State.currentUser.id, name, icon, finish_at: finishAt
+            id: id,
+            user_id: State.currentUser.id,
+            name: name,
+            icon: icon,
+            finish_at: finishAt
         });
-    } catch (e) { console.error('保存加工任务失败:', e); }
+    } catch (e) {
+        console.error('保存加工任务失败:', e);
+    }
 }
 async function loadProcessingTasksFromDB() {
+    if (!State.currentUser) return;
     try {
-        const { data, error } = await supabase.from('processing_tasks')
-            .select('*').eq('user_id', State.currentUser.id);
-        if (error) return;
+        const { data, error } = await supabase
+            .from('processing_tasks')
+            .select('*')
+            .eq('user_id', State.currentUser.id);
+        
+        if (error) {
+            console.error('加载加工任务失败:', error);
+            return;
+        }
+        
         const now = new Date();
-        const finished = [];
         const active = [];
+        const finished = [];
+        
         for (const t of (data || [])) {
             if (new Date(t.finish_at) <= now) {
                 finished.push(t);
             } else {
-                active.push({ id: t.id, name: t.name, icon: t.icon, finishAt: t.finish_at });
+                active.push({
+                    id: t.id,
+                    name: t.name,
+                    icon: t.icon,
+                    finishAt: t.finish_at
+                });
             }
         }
+        
         // 自动领取已完成的
         for (const t of finished) {
             await addItem(t.name, 1);
             await supabase.from('processing_tasks').delete().eq('id', t.id);
             showToast(`加工完成！获得 ${t.icon} ${t.name}`);
         }
+        
         State.processingTasks = active;
-    } catch (e) { console.error('加载加工任务失败:', e); }
+    } catch (e) {
+        console.error('加载加工任务异常:', e);
+    }
 }
 	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化 + 驻扎宠物恢复 + 种子商店持久化） ====================
 async function loadProfile() {
