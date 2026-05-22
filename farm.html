@@ -1815,7 +1815,6 @@ async function loadProcessingTasks() {
         showToast(`加工完成！获得 ${task.icon} ${task.name}`);
     }
     State.processingTasks = activeTasks;
-    // 有任务完成时刷新主界面
     if (finishedTasks.length > 0 && !State.battle && !State.visitingFriend) {
         render();
     }
@@ -1883,19 +1882,39 @@ async function saveMonsterLog() {
 
 async function loadAll() {
     try {
-        await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
-        await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-        await loadPassiveSkills(); await loadMails(); await loadProcessingTasksFromDB(); await checkNewMails();
+        await loadProfile();
+        await loadFarmPlots();
+        await loadFriendData();
+        await loadPets();
+        await loadItems();
+        await loadEquipment();
+        await loadBossStatus();
+        await loadPetSkills();
+        await loadPassiveSkills();
+        await loadMails();
+        await loadProcessingTasksFromDB();  // 从数据库恢复加工任务
+        await checkNewMails();
         await generateOrders();
+        startProcessingTimer();  // 启动加工定时器
     } catch (e) {
         console.error('数据加载失败:', e);
         showToast('网络不稳定，正在重试...', true);
         setTimeout(async () => {
             try {
-                await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
-                await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
-                await loadPassiveSkills(); await loadMails(); await loadProcessingTasksFromDB(); await checkNewMails();
+                await loadProfile();
+                await loadFarmPlots();
+                await loadFriendData();
+                await loadPets();
+                await loadItems();
+                await loadEquipment();
+                await loadBossStatus();
+                await loadPetSkills();
+                await loadPassiveSkills();
+                await loadMails();
+                await loadProcessingTasksFromDB();
+                await checkNewMails();
                 await generateOrders();
+                startProcessingTimer();
                 render();
             } catch (e2) {
                 console.error('重试失败:', e2);
