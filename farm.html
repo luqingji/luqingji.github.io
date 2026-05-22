@@ -1789,7 +1789,10 @@ async function loadProcessingTasks() {
         await addItem(task.name, 1);
         showToast(`加工完成！获得 ${task.icon} ${task.name}`);
     }
-    State.processingTasks = activeTasks;
+	    State.processingTasks = activeTasks;
+    if (finishedTasks.length > 0 && !State.battle && !State.visitingFriend) {
+        render();
+    }
 }
 
 // ==================== 订单系统（每日自动刷新 + 数据库存储） ====================
@@ -3113,7 +3116,9 @@ const Farm = {
                 const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
                 return `<div class="processing-bar"><span>${t.icon}</span><span style="font-size:0.7rem;">${t.name}</span><span style="font-size:0.65rem;color:#888;">${remaining}分</span></div>`;
             }).join('') + `</div>` : '';
-        return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
+        return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    ${(State.processingTasks || []).length > 0 ? `<button class="btn-icon" id="btnProcessingStatus" title="加工中" style="background:#fef9f3;color:var(--accent);font-weight:600;">🔧 ${State.processingTasks.length}</button>` : ''}
+    <button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
         ${processingHTML}
         <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
         ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
