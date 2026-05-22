@@ -1671,7 +1671,7 @@ async function synthesizeProduct(recipe) {
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-	// ==================== 第 10 块：数据加载层扩展 ====================
+	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化） ====================
 async function loadProfile() {
     let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
     if (error) throw error;
@@ -1797,9 +1797,9 @@ async function loadOrders() {
         .maybeSingle();
     if (!error && data && data.orders) {
         State.orders = data.orders;
-        return true;
+        return true; // 今日已有订单记录（包括空数组的情况）
     }
-    return false;
+    return false; // 没有今日记录
 }
 
 async function saveOrders() {
@@ -1818,9 +1818,10 @@ async function generateOrders() {
     const today = new Date().toDateString();
     // 尝试从数据库加载今日订单
     const hasOrders = await loadOrders();
-    if (hasOrders && State.orders.length > 0) return; // 已有订单，直接使用
+    // 如果数据库已有今日记录（无论是否为空），直接使用，不再重新生成
+    if (hasOrders) return;
     
-    // 否则生成新的随机订单
+    // 无今日记录时，生成新的随机订单
     State.orders = [];
     const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
     if (possible.length === 0) {
@@ -1839,11 +1840,38 @@ async function generateOrders() {
     await saveOrders();
 }
 
+// ==================== 从 event_logs 重建怪物讨伐记录（用于地图解锁持久化） ====================
+async function rebuildMonsterLogFromLogs() {
+    if (!State.currentUser) return;
+    State.monsterLog = {};
+    try {
+        const { data: logs, error } = await supabase
+            .from('event_logs')
+            .select('event_data')
+            .eq('user_id', State.currentUser.id)
+            .eq('event_type', 'pve_win');
+        if (error) return;
+        for (const log of (logs || [])) {
+            const d = log.event_data;
+            if (d && d.monster) {
+                const name = d.monster;
+                if (!State.monsterLog[name]) {
+                    State.monsterLog[name] = { kills: 0, affixes: [] };
+                }
+                State.monsterLog[name].kills++;
+            }
+        }
+    } catch (e) {
+        State.monsterLog = {};
+    }
+}
+
 async function loadAll() {
     try {
         await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
         await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
         await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+        await rebuildMonsterLogFromLogs(); // 从日志重建怪物讨伐记录，保证地图解锁状态持久化
         await generateOrders();
     } catch (e) {
         console.error('数据加载失败:', e);
@@ -1853,6 +1881,7 @@ async function loadAll() {
                 await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                 await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
                 await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
+                await rebuildMonsterLogFromLogs();
                 await generateOrders();
                 render();
             } catch (e2) {
@@ -3622,7 +3651,7 @@ Farm.openBackpack = async function() {
         };
     });
 };
-			// ==================== 第 23 块：合成/装备/怪物讨伐弹窗 ====================
+	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含BOSS血量同步修复） ====================
 Farm.openSynthesis = async function() {
     document.getElementById('modalSynthesis').classList.add('active');
     await loadItems();
@@ -3666,7 +3695,7 @@ Farm.openSynthesis = async function() {
         tab.onclick = async () => {
             document.querySelectorAll('#synthTypeTabs .auth-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            await loadItems();  // 切换标签时实时刷新库存
+            await loadItems();
             showSynth(tab.dataset.stype);
         };
     });
@@ -3706,7 +3735,7 @@ Farm.openEquipment = async function() {
 };
 
 Farm.openPvEMap = async function() {
-    await loadPets();  // 刷新宠物数据，确保地图解锁条件判定准确
+    await loadPets();
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     const mapsHTML = PVE_MAPS.map(m => {
@@ -3743,8 +3772,9 @@ Farm.openPvEMap = async function() {
 };
 
 Farm.openPvE = async function() {
-    await loadItems();       // 刷新自动战斗券库存
-    await loadBossStatus();  // 刷新Boss状态
+    // 【修复1/2】优先强制从数据库刷新BOSS状态，确保地图界面血条准确
+    await loadBossStatus();
+
     const mapId = State.selectedMapId || 'grassland';
     const mapData = PVE_MAPS.find(m => m.id === mapId);
     if (!mapData) return;
@@ -3831,7 +3861,6 @@ Farm.openPvE = async function() {
     }
 };
 
-// 怪物图鉴
 Farm.openMonsterLog = function() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
