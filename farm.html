@@ -3188,7 +3188,10 @@ const Farm = {
         document.getElementById('closeWaterModal').onclick = () => document.getElementById('modalWater').classList.remove('active');
         document.getElementById('closePetsModal').onclick = () => document.getElementById('modalPets').classList.remove('active');
         document.getElementById('closeBackpackModal').onclick = () => document.getElementById('modalBackpack').classList.remove('active');
-        document.getElementById('closeSynthesisModal').onclick = () => document.getElementById('modalSynthesis').classList.remove('active');
+        document.getElementById('closeSynthesisModal').onclick = () => {
+    document.getElementById('modalSynthesis').classList.remove('active');
+    render();
+};
         document.getElementById('closeEquipmentModal').onclick = () => document.getElementById('modalEquipment').classList.remove('active');
         document.getElementById('closePvEModal').onclick = () => document.getElementById('modalPvE').classList.remove('active');
         document.getElementById('closeExploreModal').onclick = () => document.getElementById('modalExplore').classList.remove('active');
