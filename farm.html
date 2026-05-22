@@ -2238,7 +2238,7 @@ async function loadAll() {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS血量同步 + 尖刺护甲反弹 + 寒冰屏障修复） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS血量同步修复 + 尖刺护甲反弹 + 寒冰屏障修复） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2293,7 +2293,7 @@ async function startPvEBattle(monster) {
     const myPet = getPetBattleStats(State.pets.find(p => p.id === selectedPetId));
     if (!myPet) { showToast('请先领养宠物'); return; }
     
-    // 修复：BOSS战强制从数据库刷新最新血量
+    // BOSS战强制从数据库刷新最新血量
     if (monster.isBoss && State.bossStatus) {
         try {
             const { data: freshBoss, error: bossErr } = await supabase
@@ -2465,7 +2465,6 @@ function executeBattleAction(action, skillId = null) {
                 if (skillData.invincible) {
                     b.myBuffs = b.myBuffs || [];
                     b.myBuffs.push({ type: 'invincible', duration: 1 });
-                    // 修复：skip_next 持续回合从1改为2，确保跳过下回合
                     if (skillData.skip_next) b.myBuffs.push({ type: 'skip_next', duration: 2 });
                     logBattle(`❄️ 寒冰屏障：本回合无敌！`);
                 }
@@ -2508,11 +2507,12 @@ function executeBattleAction(action, skillId = null) {
             b.myDefend = true;
         }
 
+        // BOSS血量同步写入（await确保写入完成）
         if (b.type === 'pve' && b.monster && b.monster.isBoss && dmg > 0) {
             b.bossDamage = (b.bossDamage || 0) + dmg;
             const newBossHp = Math.max(0, (State.bossStatus?.current_hp || b.opponentPet.maxHp) - dmg);
             if (State.bossStatus) State.bossStatus.current_hp = newBossHp;
-            supabase.from('boss_status').update({ current_hp: newBossHp }).eq('id', 1).then(() => { });
+            await supabase.from('boss_status').update({ current_hp: newBossHp }).eq('id', 1);
         }
         for (const key in b.skillCooldowns) { if (b.skillCooldowns[key] > 0) b.skillCooldowns[key]--; }
     };
@@ -2584,7 +2584,6 @@ function executeBattleAction(action, skillId = null) {
                         else { logBattle(`对手 使用【${sd.name}】，但没有效果`); }
                     } else if (sd.reflect) {
                         b.oppBuffs = b.oppBuffs || [];
-                        // 修复：反弹 Buff 持续 2 回合，避免玩家下回合攻击时 Buff 已消失
                         b.oppBuffs.push({ type: 'reflect_physical', duration: 2, value: sd.reflect });
                         logBattle(sd.log);
                     } else if (sd.summon) {
