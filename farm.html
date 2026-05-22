@@ -2835,6 +2835,9 @@ async function endBattle(won) {
         }
     }
     State.battle = null;
+if (b.monster?.isBoss) {
+    await loadBossStatus();
+}
     await loadPets();
     render();
 }
