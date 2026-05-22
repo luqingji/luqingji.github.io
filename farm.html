@@ -1675,13 +1675,13 @@ async function synthesizeProduct(recipe) {
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化） ====================
+	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 - 数据库版） ====================
 async function loadProfile() {
     let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
     if (error) throw error;
     if (!data) {
         const un = State.currentUser.user_metadata?.username || '农夫', ge = State.currentUser.user_metadata?.gender || 'none';
-        await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1 });
+        await supabase.from('profiles').insert({ id: State.currentUser.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1, monster_log: {} });
         for (let i = 0; i < 4; i++) await supabase.from('farm_plots').insert({ owner_id: State.currentUser.id, plot_index: i });
         const { data: np } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).single();
         State.profile = np;
@@ -1689,6 +1689,8 @@ async function loadProfile() {
         if (!data.pet_slots) data.pet_slots = 1;
         State.profile = data;
     }
+    // 直接从数据库恢复怪物讨伐记录
+    State.monsterLog = State.profile?.monster_log || {};
 }
 async function loadFarmPlots() {
     const { data, error } = await supabase.from('farm_plots').select('*').eq('owner_id', State.currentUser.id).order('plot_index');
@@ -1801,9 +1803,9 @@ async function loadOrders() {
         .maybeSingle();
     if (!error && data && data.orders) {
         State.orders = data.orders;
-        return true; // 今日已有订单记录（包括空数组的情况）
+        return true;
     }
-    return false; // 没有今日记录
+    return false;
 }
 
 async function saveOrders() {
@@ -1820,12 +1822,9 @@ async function saveOrders() {
 
 async function generateOrders() {
     const today = new Date().toDateString();
-    // 尝试从数据库加载今日订单
     const hasOrders = await loadOrders();
-    // 如果数据库已有今日记录（无论是否为空），直接使用，不再重新生成
     if (hasOrders) return;
     
-    // 无今日记录时，生成新的随机订单
     State.orders = [];
     const possible = Object.keys(CROPS).filter(k => hasSeed(k) || CROPS[k].unlock === '初始');
     if (possible.length === 0) {
@@ -1840,34 +1839,18 @@ async function generateOrders() {
             State.orders.push({ crop: cropKey, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
         }
     }
-    // 保存到数据库
     await saveOrders();
 }
 
-// ==================== 从 event_logs 重建怪物讨伐记录（用于地图解锁持久化） ====================
-async function rebuildMonsterLogFromLogs() {
+// 辅助函数：持久化怪物讨伐记录到数据库
+async function saveMonsterLog() {
     if (!State.currentUser) return;
-    State.monsterLog = {};
     try {
-        // 同时获取普通讨伐和精英击杀事件，确保重建完整
-        const { data: logs, error } = await supabase
-            .from('event_logs')
-            .select('event_type, event_data')
-            .eq('user_id', State.currentUser.id)
-            .in('event_type', ['pve_win', 'elite_kill']);
-        if (error) return;
-        for (const log of (logs || [])) {
-            const d = log.event_data;
-            if (d && d.monster) {
-                const name = d.monster;
-                if (!State.monsterLog[name]) {
-                    State.monsterLog[name] = { kills: 0, affixes: [] };
-                }
-                State.monsterLog[name].kills++;
-            }
-        }
+        await supabase.from('profiles')
+            .update({ monster_log: State.monsterLog })
+            .eq('id', State.currentUser.id);
     } catch (e) {
-        State.monsterLog = {};
+        console.error('保存怪物讨伐记录失败:', e);
     }
 }
 
@@ -1876,7 +1859,6 @@ async function loadAll() {
         await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
         await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
         await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
-        await rebuildMonsterLogFromLogs(); // 从日志重建怪物讨伐记录，保证地图解锁状态持久化
         await generateOrders();
     } catch (e) {
         console.error('数据加载失败:', e);
@@ -1886,7 +1868,6 @@ async function loadAll() {
                 await loadProfile(); await loadFarmPlots(); await loadFriendData(); await loadPets();
                 await loadItems(); await loadEquipment(); await loadBossStatus(); await loadPetSkills();
                 await loadPassiveSkills(); await loadMails(); await loadProcessingTasks(); await checkNewMails();
-                await rebuildMonsterLogFromLogs();
                 await generateOrders();
                 render();
             } catch (e2) {
@@ -2257,7 +2238,7 @@ async function loadAll() {
                 if (equip) equip.equipped_to = null;
                 showToast('已卸下装备');
             }
-	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS血量同步 + 尖刺护甲反弹） ====================
+	// ==================== 第 15 块：地块解锁 + 战斗系统（含药剂效果 + 怪物专属技能兜底 + BOSS血量同步 + 尖刺护甲反弹 + 寒冰屏障修复） ====================
 async function unlockPlot() {
     const ul = State.profile.unlocked_plots || 4;
     if (ul >= PLOT_MAX_COUNT) return;
@@ -2484,7 +2465,8 @@ function executeBattleAction(action, skillId = null) {
                 if (skillData.invincible) {
                     b.myBuffs = b.myBuffs || [];
                     b.myBuffs.push({ type: 'invincible', duration: 1 });
-                    if (skillData.skip_next) b.myBuffs.push({ type: 'skip_next', duration: 1 });
+                    // 修复：skip_next 持续回合从1改为2，确保跳过下回合
+                    if (skillData.skip_next) b.myBuffs.push({ type: 'skip_next', duration: 2 });
                     logBattle(`❄️ 寒冰屏障：本回合无敌！`);
                 }
                 if (skillData.reflect_magic) {
@@ -2602,7 +2584,8 @@ function executeBattleAction(action, skillId = null) {
                         else { logBattle(`对手 使用【${sd.name}】，但没有效果`); }
                     } else if (sd.reflect) {
                         b.oppBuffs = b.oppBuffs || [];
-                        b.oppBuffs.push({ type: 'reflect_physical', duration: 1, value: sd.reflect });
+                        // 修复：反弹 Buff 持续 2 回合，避免玩家下回合攻击时 Buff 已消失
+                        b.oppBuffs.push({ type: 'reflect_physical', duration: 2, value: sd.reflect });
                         logBattle(sd.log);
                     } else if (sd.summon) {
                         const minionHp = Math.floor((b.opponentPet.hp || b.opponentPet.maxHp) * sd.summon);
@@ -2735,7 +2718,7 @@ async function refreshBoss() {
     await supabase.from('boss_status').update({ current_hp: newHp, max_hp: newHp, expires_at: newExpires, rewards: newRewards, refreshes_at: null }).eq('id', 1);
     State.bossStatus = { id: 1, monster_name: '虫母女王', emoji: '🐛👸', max_hp: newHp, current_hp: newHp, atk: 50, def: 30, spd: 12, rewards: newRewards, expires_at: newExpires, refreshes_at: null };
 }
-	// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器 ====================
+	// ==================== 第 16 块：战斗结算 + 战斗结束处理 + 渲染器（含怪物讨伐记录持久化） ====================
 function showBattleResult(data) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
@@ -2801,7 +2784,6 @@ async function endBattle(won) {
                 droppedBook = allBookKeys[Math.floor(Math.random() * allBookKeys.length)];
                 await addItem(droppedBook, 1);
             }
-            // 新增：PvE 战斗胜利 30% 概率掉落 1 张自动战斗券
             if (Math.random() < 0.3) {
                 await addItem('auto_battle_ticket', 1);
                 droppedItems['auto_battle_ticket'] = (droppedItems['auto_battle_ticket'] || 0) + 1;
@@ -2826,15 +2808,13 @@ async function endBattle(won) {
                     await supabase.from('pets').update({ hp: pet.hp, atk: pet.atk, def: pet.def, spd: pet.spd, luk: pet.luk, sta: pet.sta, level: nl, exp: pet.exp }).eq('id', pet.id);
                 }
             }
-            // 更新讨伐日志
+            // 更新内存中的讨伐日志
             if (!State.monsterLog[mon.name]) State.monsterLog[mon.name] = { kills: 0, affixes: [] };
             State.monsterLog[mon.name].kills++;
             if (b.affixes) { for (const a of b.affixes) { if (!State.monsterLog[mon.name].affixes.includes(a.id)) State.monsterLog[mon.name].affixes.push(a.id); } }
+            // 持久化到数据库
+            await saveMonsterLog();
             addEventLog('pve_win', { monster: mon.name, gold: finalGold });
-            // 新增：精英击杀单独记录，用于地图解锁持久化
-            if (mon.isElite) {
-                addEventLog('elite_kill', { monster: mon.name });
-            }
             showBattleResult({ won: true, myPet: b.myPet, damage: b.opponentPet.hp - b.opponentCurrentHp, rewards: { gold: finalGold, items: droppedItems, exp: 50, levelUp, book: droppedBook } });
             if (mon.isBoss) {
                 await supabase.from('boss_participants').upsert({ user_id: State.currentUser.id, damage_dealt: (b.bossDamage || 0) }, { onConflict: 'user_id' });
