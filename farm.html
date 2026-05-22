@@ -3219,14 +3219,7 @@ const Farm = {
         const slots = State.profile?.pet_slots || 1;
         const unreadMails = (State.mails || []).filter(m => !m.is_read).length;
         const hasNewMail = State.hasNewMail;
-        // 加工任务HTML（保留在主界面，用于倒计时显示）
-        const processingHTML = (State.processingTasks || []).length > 0 
-            ? `<div style="margin:4px 0;">` + State.processingTasks.map(t => {
-                const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
-                return `<div class="processing-bar"><span>${t.icon}</span><span style="font-size:0.7rem;">${t.name}</span><span style="font-size:0.65rem;color:#888;">${remaining}分</span></div>`;
-            }).join('') + `</div>` : '';
         return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧 (${(State.processingTasks || []).length})</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
-        ${processingHTML}
         <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
         ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
         <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
@@ -3753,18 +3746,30 @@ Farm.openBackpack = async function() {
         };
     });
 };
-	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗 ====================
+	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含加工列表） ====================
 Farm.openSynthesis = async function() {
     document.getElementById('modalSynthesis').classList.add('active');
     await loadItems();
     const showSynth = (type) => {
         const c = document.getElementById('synthesisList');
+        
+        // 构建加工任务列表（实时计算剩余时间）
+        const processingListHTML = (State.processingTasks || []).length > 0
+            ? `<div style="margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;text-align:left;">
+                <div style="font-weight:600;margin-bottom:4px;">⏳ 加工中</div>
+                ${State.processingTasks.map(t => {
+                    const remaining = Math.max(0, Math.ceil((new Date(t.finishAt) - new Date()) / 60000));
+                    return `<div style="font-size:0.8rem;display:flex;align-items:center;gap:6px;"><span>${t.icon}</span><span>${t.name}</span><span style="color:#888;">${remaining}分钟后完成</span></div>`;
+                }).join('')}
+            </div>`
+            : '';
+        
         let recipes = [];
         if (type === 'equipment') recipes = SYNTHESIS_RECIPES;
         else if (type === 'food') recipes = SYNTHESIS_FOOD;
         else if (type === 'potion') recipes = SYNTHESIS_POTIONS;
-        if (recipes.length === 0) { c.innerHTML = '<p>暂无配方</p>'; return; }
-        c.innerHTML = recipes.map((r, idx) => {
+        if (recipes.length === 0) { c.innerHTML = processingListHTML + '<p>暂无配方</p>'; return; }
+        c.innerHTML = processingListHTML + recipes.map((r, idx) => {
             const hasMaterials = Object.entries(r.materials).every(([item, need]) => (State.items[item] || 0) >= need);
             const hasGold = (State.profile.gold || 0) >= (r.cost || 0);
             const canCraft = hasMaterials && hasGold;
@@ -3874,9 +3879,7 @@ Farm.openPvEMap = async function() {
 };
 
 Farm.openPvE = async function() {
-    // 更新内存中的BOSS状态，以防万一
     await loadBossStatus();
-
     const mapId = State.selectedMapId || 'grassland';
     const mapData = PVE_MAPS.find(m => m.id === mapId);
     if (!mapData) return;
@@ -3889,14 +3892,10 @@ Farm.openPvE = async function() {
     let html = '';
     
     if (mapData.isBoss) {
-        // [核心修复]：直接从数据库查询BOSS最新血量，用于UI渲染，确保绝对准确。
         const { data: dbBoss, error: dbErr } = await supabase
             .from('boss_status').select('*').eq('id', 1).maybeSingle();
-            
         if (!dbErr && dbBoss) {
-            // 用数据库的最新数据覆盖内存
             State.bossStatus = dbBoss;
-            
             const now = new Date();
             const refreshesAt = dbBoss.refreshes_at ? new Date(dbBoss.refreshes_at) : null;
             if (dbBoss.current_hp > 0) {
@@ -3934,7 +3933,6 @@ Farm.openPvE = async function() {
     
     const availableMonsters = mapData.monsterIds.map(getMonsterByName).filter(Boolean);
     const availableElites = mapData.eliteIds.map(getMonsterByName).filter(Boolean);
-    
     const shuffled = [...availableMonsters].sort(() => Math.random() - 0.5).slice(0, Math.min(4, availableMonsters.length));
     
     State.monsterAffixes = [];
