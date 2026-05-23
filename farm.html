@@ -1362,7 +1362,6 @@ async function addItem(it, qty, userId) {
             .select('quantity').eq('user_id', uid).eq('item_type', it).maybeSingle();
         if (re) throw re;
         const cur = row ? row.quantity : 0;
-        // 保护：数量不足以扣除时直接返回
         if (cur < Math.abs(qty)) {
             console.error(`物品 ${it} 不足：需要 ${Math.abs(qty)}，当前 ${cur}`);
             return;
@@ -1661,7 +1660,6 @@ async function synthesizeProduct(recipe) {
         const finishAt = new Date(Date.now() + recipe.time * 60000).toISOString();
         const taskId = Date.now();
         State.processingTasks.push({ id: taskId, name: recipe.name, icon: recipe.icon, finishAt });
-        // 持久化到数据库
         await saveProcessingTask(taskId, recipe.name, recipe.icon, finishAt);
         showToast(`开始加工 ${recipe.icon} ${recipe.name}，预计${recipe.time}分钟后完成`);
     } else {
@@ -1669,58 +1667,61 @@ async function synthesizeProduct(recipe) {
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
-// ==================== 加工任务持久化函数 ====================
+
+// ==================== 加工任务持久化（存 profiles 表，和金币一样可靠） ====================
 async function saveProcessingTask(id, name, icon, finishAt) {
     try {
-        await supabase.from('processing_tasks').insert({
-            id: id,
-            user_id: State.currentUser.id,
-            name: name,
-            icon: icon,
-            finish_at: finishAt
-        });
+        const task = { id, name, icon, finishAt };
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                processing_data: [...(State.profile?.processing_data || []), task]
+            })
+            .eq('id', State.currentUser.id);
+        if (error) throw error;
+        if (!State.profile) State.profile = {};
+        State.profile.processing_data = [...(State.profile.processing_data || []), task];
     } catch (e) {
         console.error('保存加工任务失败:', e);
     }
 }
+
 async function loadProcessingTasksFromDB() {
     if (!State.currentUser) return;
     try {
         const { data, error } = await supabase
-            .from('processing_tasks')
-            .select('*')
-            .eq('user_id', State.currentUser.id);
-        
-        if (error) {
-            console.error('加载加工任务失败:', error);
-            return;
-        }
-        
+            .from('profiles')
+            .select('processing_data')
+            .eq('id', State.currentUser.id)
+            .single();
+        if (error) throw error;
+
+        const tasks = data?.processing_data || [];
         const now = new Date();
         const active = [];
         const finished = [];
-        
-        for (const t of (data || [])) {
-            if (new Date(t.finish_at) <= now) {
+
+        for (const t of tasks) {
+            if (new Date(t.finishAt) <= now) {
                 finished.push(t);
             } else {
-                active.push({
-                    id: t.id,
-                    name: t.name,
-                    icon: t.icon,
-                    finishAt: t.finish_at
-                });
+                active.push(t);
             }
         }
-        
-        // 自动领取已完成的
+
         for (const t of finished) {
             await addItem(t.name, 1);
-            await supabase.from('processing_tasks').delete().eq('id', t.id);
             showToast(`加工完成！获得 ${t.icon} ${t.name}`);
         }
-        
+
+        const { error: updateErr } = await supabase
+            .from('profiles')
+            .update({ processing_data: active })
+            .eq('id', State.currentUser.id);
+        if (updateErr) console.error('清理已完成任务失败:', updateErr);
+
         State.processingTasks = active;
+        if (State.profile) State.profile.processing_data = active;
     } catch (e) {
         console.error('加载加工任务异常:', e);
     }
