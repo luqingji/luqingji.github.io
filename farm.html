@@ -1350,12 +1350,10 @@ async function addEventLog(et, ed) {
 
 // ==================== 安全数据操作（统一入口） ====================
 async function safeDataUpdate(type, params) {
-    // 条件1：必须已登录
     if (!State.currentUser || !State.currentUser.id) {
         console.error('safeDataUpdate 失败：未登录');
         return false;
     }
-    // 条件2：战斗中不允许修改金币/物品
     if (State.battle && (type === 'gold' || type === 'item')) {
         console.error('safeDataUpdate 失败：战斗中不允许此操作');
         return false;
@@ -1384,7 +1382,6 @@ async function safeDataUpdate(type, params) {
                     p_qty: qty
                 });
                 if (error) throw error;
-                // 同步本地状态
                 if (qty < 0) {
                     State.items[itemType] = Math.max(0, (State.items[itemType] || 0) + qty);
                     if (State.items[itemType] === 0) delete State.items[itemType];
@@ -1416,7 +1413,6 @@ async function safeDataUpdate(type, params) {
     }
 }
 
-// 旧的 addItem 保留（兼容其他已有调用），内部改用安全操作
 async function addItem(it, qty, userId) {
     const uid = userId || State.currentUser.id;
     if (qty < 0) {
@@ -1438,11 +1434,9 @@ async function addItem(it, qty, userId) {
         }
         return;
     }
-    // 正数分支改用原子RPC
     if (!userId) {
         await safeDataUpdate('item', { itemType: it, qty });
     } else {
-        // 给其他用户加物品，不用 safeDataUpdate
         const { error } = await supabase.rpc('add_item_quantity', { p_user_id: uid, p_item_type: it, p_qty: qty });
         if (error) throw error;
     }
@@ -1783,7 +1777,7 @@ async function loadProcessingTasksFromDB() {
         console.error('加载加工任务异常:', e);
     }
 }
-	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化 + 驻扎宠物恢复 + 种子商店持久化） ====================
+	// ==================== 第 10 块：数据加载层扩展（含订单逻辑修复 + 地图解锁持久化 + 加工任务持久化） ====================
 async function loadProfile() {
     let { data, error } = await supabase.from('profiles').select('*').eq('id', State.currentUser.id).maybeSingle();
     if (error) throw error;
@@ -1795,6 +1789,7 @@ async function loadProfile() {
         State.profile = np;
     } else {
         if (!data.pet_slots) data.pet_slots = 1;
+        if (!data.processing_data) data.processing_data = [];
         State.profile = data;
     }
     State.monsterLog = State.profile?.monster_log || {};
@@ -1893,7 +1888,6 @@ async function loadProcessingTasks() {
     const finishedTasks = (State.processingTasks || []).filter(t => new Date(t.finishAt) <= now);
     for (const task of finishedTasks) {
         await addItem(task.name, 1);
-        await supabase.from('processing_tasks').delete().eq('id', task.id);
         showToast(`加工完成！获得 ${task.icon} ${task.name}`);
     }
     State.processingTasks = activeTasks;
@@ -1962,7 +1956,6 @@ async function saveMonsterLog() {
     }
 }
 
-// ==================== 种子商店持久化 ====================
 async function loadSeedShop() {
     if (!State.currentUser) return;
     const today = new Date().toDateString();
@@ -1976,7 +1969,6 @@ async function loadSeedShop() {
         if (!error && data && data.shop_data) {
             State.seedShop = { date: today, items: data.shop_data };
         } else {
-            // 今日无记录，生成新的
             const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
             State.seedShop = { date: today, items: shuffled };
             await supabase.from('player_seed_shop').upsert({
@@ -1986,13 +1978,20 @@ async function loadSeedShop() {
             }, { onConflict: 'user_id,shop_date' });
         }
     } catch (e) {
-        // 表可能不存在，回退到内存模式
         const shuffled = [...SEED_SHOP].sort(() => Math.random() - 0.5).slice(0, 3);
         State.seedShop = { date: today, items: shuffled };
     }
 }
 
-// ==================== 总加载函数 ====================
+function startProcessingTimer() {
+    if (typeof processingTimer !== 'undefined' && processingTimer) clearInterval(processingTimer);
+    processingTimer = setInterval(async () => {
+        if (State.currentUser && !State.battle) {
+            await loadProcessingTasks();
+        }
+    }, 10000);
+}
+
 async function loadAll() {
     try {
         await loadProfile();
@@ -2005,12 +2004,11 @@ async function loadAll() {
         await loadPetSkills();
         await loadPassiveSkills();
         await loadMails();
-        await loadProcessingTasksFromDB();  // 从数据库恢复加工任务
+        await loadProcessingTasksFromDB();
         await checkNewMails();
         await generateOrders();
-        await loadSeedShop();  // 从数据库恢复每日种子商店
+        await loadSeedShop();
         
-        // 恢复驻扎宠物
         const stationed = State.pets.find(p => p.is_stationed);
         if (stationed) State.stationedPet = stationed;
         
