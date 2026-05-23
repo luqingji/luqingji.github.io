@@ -1307,7 +1307,7 @@ function isMapUnlocked(mapData) {
 function getMonsterByName(name) {
     return MONSTERS.find(m => m.name === name) || ELITE_MONSTERS.find(m => m.name === name);
 }
-	// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 + 加工任务持久化 ====================
+	// ==================== 第 9 块：工具函数 + 怪物AI修复版 + 日志增强 + 加工任务持久化 + 安全数据操作 ====================
 const WATER_COOLDOWN_MS = 30 * 60 * 1000;
 const BOSS_COOLDOWN_MINUTES = 60;
 const BOSS_EXPIRE_HOURS = 6;
@@ -1355,6 +1355,81 @@ async function addEventLog(et, ed) {
     try { await supabase.from('event_logs').insert({ user_id: State.currentUser.id, event_type: et, event_data: ed }); }
     catch (e) { console.error('日志写入失败:', e); }
 }
+
+// ==================== 安全数据操作（统一入口） ====================
+async function safeDataUpdate(type, params) {
+    // 条件1：必须已登录
+    if (!State.currentUser || !State.currentUser.id) {
+        console.error('safeDataUpdate 失败：未登录');
+        return false;
+    }
+    // 条件2：不能正在提交
+    if (State.isSubmitting) {
+        console.error('safeDataUpdate 失败：正在提交中');
+        return false;
+    }
+    // 条件3：战斗中不允许修改金币/物品
+    if (State.battle && (type === 'gold' || type === 'item')) {
+        console.error('safeDataUpdate 失败：战斗中不允许此操作');
+        return false;
+    }
+
+    const uid = State.currentUser.id;
+
+    try {
+        switch (type) {
+            case 'gold': {
+                const { amount } = params;
+                const { error } = await supabase.rpc('add_gold', {
+                    p_user_id: uid,
+                    p_amount: amount
+                });
+                if (error) throw error;
+                State.profile.gold = (State.profile.gold || 0) + amount;
+                return true;
+            }
+
+            case 'item': {
+                const { itemType, qty } = params;
+                const { error } = await supabase.rpc('add_item_quantity', {
+                    p_user_id: uid,
+                    p_item_type: itemType,
+                    p_qty: qty
+                });
+                if (error) throw error;
+                // 同步本地状态
+                if (qty < 0) {
+                    State.items[itemType] = Math.max(0, (State.items[itemType] || 0) + qty);
+                    if (State.items[itemType] === 0) delete State.items[itemType];
+                } else {
+                    State.items[itemType] = (State.items[itemType] || 0) + qty;
+                }
+                return true;
+            }
+
+            case 'profile': {
+                const { field, value } = params;
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ [field]: value })
+                    .eq('id', uid);
+                if (error) throw error;
+                State.profile[field] = value;
+                return true;
+            }
+
+            default:
+                console.error('safeDataUpdate 失败：未知类型', type);
+                return false;
+        }
+    } catch (e) {
+        console.error('safeDataUpdate 数据库操作失败:', e);
+        showToast('数据保存失败，请重试', true);
+        return false;
+    }
+}
+
+// 旧的 addItem 保留（兼容其他已有调用），内部改用安全操作
 async function addItem(it, qty, userId) {
     const uid = userId || State.currentUser.id;
     if (qty < 0) {
@@ -1376,17 +1451,13 @@ async function addItem(it, qty, userId) {
         }
         return;
     }
-    const { error } = await supabase.rpc('add_item_quantity', { p_user_id: uid, p_item_type: it, p_qty: qty });
-    if (error) {
-        console.warn('RPC失败，使用备用方案:', error.message);
-        const { data: row } = await supabase.from('player_items')
-            .select('quantity').eq('user_id', uid).eq('item_type', it).maybeSingle();
-        const cur = row ? row.quantity : 0;
-        const nq = cur + qty;
-        await supabase.from('player_items').upsert({ user_id: uid, item_type: it, quantity: nq }, { onConflict: 'user_id,item_type' });
-        if (!userId) State.items[it] = nq;
+    // 正数分支改用原子RPC
+    if (!userId) {
+        await safeDataUpdate('item', { itemType: it, qty });
     } else {
-        if (!userId) State.items[it] = (State.items[it] || 0) + qty;
+        // 给其他用户加物品，不用 safeDataUpdate
+        const { error } = await supabase.rpc('add_item_quantity', { p_user_id: uid, p_item_type: it, p_qty: qty });
+        if (error) throw error;
     }
 }
 function getActiveSetEffects() {
@@ -1651,10 +1722,9 @@ async function synthesizeProduct(recipe) {
         if ((State.items[item] || 0) < need) { showToast(`材料不足：${ITEM_NAMES[item]||item}×${need}`, true); return; }
     }
     if ((State.profile.gold || 0) < (recipe.cost || 0)) { showToast('金币不足', true); return; }
-    for (const [item, need] of Object.entries(recipe.materials)) { await addItem(item, -need); }
+    for (const [item, need] of Object.entries(recipe.materials)) { await safeDataUpdate('item', { itemType: item, qty: -need }); }
     if (recipe.cost) {
-        await supabase.from('profiles').update({ gold: State.profile.gold - recipe.cost }).eq('id', State.currentUser.id);
-        State.profile.gold -= recipe.cost;
+        await safeDataUpdate('gold', { amount: -recipe.cost });
     }
     if (recipe.time) {
         const finishAt = new Date(Date.now() + recipe.time * 60000).toISOString();
@@ -1663,12 +1733,12 @@ async function synthesizeProduct(recipe) {
         await saveProcessingTask(taskId, recipe.name, recipe.icon, finishAt);
         showToast(`开始加工 ${recipe.icon} ${recipe.name}，预计${recipe.time}分钟后完成`);
     } else {
-        await addItem(recipe.name, 1);
+        await safeDataUpdate('item', { itemType: recipe.name, qty: 1 });
         showToast(`合成成功！获得 ${recipe.icon} ${recipe.name}`);
     }
 }
 
-// ==================== 加工任务持久化（存 profiles 表，和金币一样可靠） ====================
+// ==================== 加工任务持久化（存 profiles 表） ====================
 async function saveProcessingTask(id, name, icon, finishAt) {
     try {
         const task = { id, name, icon, finishAt };
@@ -2011,82 +2081,82 @@ async function loadAll() {
                 Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], passiveSkills: {}, profileChannel: null, orders: [], seedShop: null, stationedPet: null, mails: [], processingTasks: [], monsterLog: {}, monsterAffixes: [] });
                 render();
             }
-			// ==================== 第 12 块：种植相关 ====================
-            async function plantCrop(pi, ct, gm) {
-                const now = new Date().toISOString();
-                const { data, error } = await supabase.from('farm_plots').update({ crop_type: ct, planted_at: now, growth_minutes: gm, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi).select().single();
-                if (error) throw error;
-                addEventLog('plant', { crop: ct });
-                return data;
-            }
-            async function waterPlot(oi, pi) {
-                const now = new Date().toISOString();
-                const { data, error } = await supabase.from('farm_plots').update({ watered_at: now }).eq('owner_id', oi).eq('plot_index', pi).select().single();
-                if (error) throw error;
-                return data;
-            }
-            async function harvestPlot(pi) {
-                const plot = State.farmPlots.find(p => p.plot_index === pi);
-                if (!plot || !plot.crop_type) return null;
-                const ci = CROPS[plot.crop_type];
-                const baseReward = ci ? Math.floor(Math.random() * (ci.max - ci.min + 1)) + ci.min : 50;
-                let reward = baseReward;
-                const sets = getActiveSetEffects();
-                for (const eff of sets) { if (eff.bonus.harvest_gold) reward = Math.floor(reward * (1 + eff.bonus.harvest_gold)); }
-                const quality = calculateQuality();
-                const qData = QUALITIES[quality];
-                reward = Math.floor(reward * qData.mult);
-                const ng = (State.profile.gold || 0) + reward;
-                await supabase.from('profiles').update({ gold: ng }).eq('id', State.currentUser.id);
-                await supabase.from('farm_plots').update({ crop_type: null, planted_at: null, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi);
-                State.profile.gold = ng;
-                // 作物存入背包
-                await addItem(plot.crop_type, 1);
-                if (qData.extra) {
-                    const extraItems = ['hair','seed','ore','relic','feather','scale','moonstone','clover'];
-                    const randItem = extraItems[Math.floor(Math.random() * extraItems.length)];
-                    await addItem(randItem, 1);
-                    showToast(`🎉 ${qData.name}品质！额外获得 ${ITEM_EMOJI[randItem]}×1`);
-                }
-                addEventLog('harvest', { crop: plot.crop_type, gold: reward, quality: quality });
-                return { reward, quality };
-            }
-            async function stealCrop(oi, pi) {
-                const { data: plot, error } = await supabase.from('farm_plots').select('*').eq('owner_id', oi).eq('plot_index', pi).single();
-                if (error || !plot || !plot.crop_type) throw new Error('无作物可偷');
-                if (plot.stolen_count >= 2) throw new Error('已被偷光');
-                let blocked = false;
-                if (State.stationedPet && State.stationedPet.pet_type === 'cat' && Math.random() < 0.2) {
-                    blocked = true;
-                    showToast('对方橘猫守护了农田，偷菜失败！', true);
-                }
-                if (blocked) return 0;
-                const ci = CROPS[plot.crop_type], br = Math.floor(Math.random() * (ci.max - ci.min + 1)) + ci.min, sr = Math.floor(br * 0.4), ng = (State.profile.gold || 0) + sr;
-                const sets = getActiveSetEffects();
-                let extraSteal = 0;
-                for (const eff of sets) { if (eff.bonus.steal_extra) extraSteal += eff.bonus.steal_extra; }
-                await supabase.from('profiles').update({ gold: ng }).eq('id', State.currentUser.id);
-                const { data: owner } = await supabase.from('profiles').select('gold,username').eq('id', oi).single();
-                const ong = (owner.gold || 0) - br + (br - sr);
-                await supabase.from('profiles').update({ gold: ong }).eq('id', oi);
-                await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 + extraSteal }).eq('owner_id', oi).eq('plot_index', pi);
-                State.profile.gold = ng;
-                addEventLog('steal_sent', { victim: owner.username, crop: plot.crop_type, gold: sr });
-                return sr;
-            }
-            function getCropStatus(plot) {
-                if (!plot?.crop_type || !plot?.planted_at) return { status: 'empty' };
-                const now = new Date(), planted = new Date(plot.planted_at);
-                let gm = plot.growth_minutes * 60 * 1000;
-                if (plot.watered_at) gm = Math.floor(gm * 0.7);
-                if (State.stationedPet && State.stationedPet.pet_type === 'rabbit') gm = Math.floor(gm * 0.95);
-                const mt = new Date(planted.getTime() + gm);
-                if (now >= mt) return { status: 'ready', progress: 100 };
-                const el = now - planted, prog = Math.floor((el / gm) * 100), rem = mt - now, remMin = Math.ceil(rem / 60000);
-                let wa = true;
-                if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= WATER_COOLDOWN_MS; }
-                return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
-            }
+	// ==================== 第 12 块：种植相关 ====================
+async function plantCrop(pi, ct, gm) {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('farm_plots').update({ crop_type: ct, planted_at: now, growth_minutes: gm, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi).select().single();
+    if (error) throw error;
+    addEventLog('plant', { crop: ct });
+    return data;
+}
+async function waterPlot(oi, pi) {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase.from('farm_plots').update({ watered_at: now }).eq('owner_id', oi).eq('plot_index', pi).select().single();
+    if (error) throw error;
+    return data;
+}
+async function harvestPlot(pi) {
+    const plot = State.farmPlots.find(p => p.plot_index === pi);
+    if (!plot || !plot.crop_type) return null;
+    const ci = CROPS[plot.crop_type];
+    const baseReward = ci ? Math.floor(Math.random() * (ci.max - ci.min + 1)) + ci.min : 50;
+    let reward = baseReward;
+    const sets = getActiveSetEffects();
+    for (const eff of sets) { if (eff.bonus.harvest_gold) reward = Math.floor(reward * (1 + eff.bonus.harvest_gold)); }
+    const quality = calculateQuality();
+    const qData = QUALITIES[quality];
+    reward = Math.floor(reward * qData.mult);
+    // 使用安全操作加金币
+    await safeDataUpdate('gold', { amount: reward });
+    await supabase.from('farm_plots').update({ crop_type: null, planted_at: null, watered_at: null, stolen_count: 0 }).eq('owner_id', State.currentUser.id).eq('plot_index', pi);
+    // 作物存入背包
+    await safeDataUpdate('item', { itemType: plot.crop_type, qty: 1 });
+    if (qData.extra) {
+        const extraItems = ['hair','seed','ore','relic','feather','scale','moonstone','clover'];
+        const randItem = extraItems[Math.floor(Math.random() * extraItems.length)];
+        await safeDataUpdate('item', { itemType: randItem, qty: 1 });
+        showToast(`🎉 ${qData.name}品质！额外获得 ${ITEM_EMOJI[randItem]}×1`);
+    }
+    addEventLog('harvest', { crop: plot.crop_type, gold: reward, quality: quality });
+    return { reward, quality };
+}
+async function stealCrop(oi, pi) {
+    const { data: plot, error } = await supabase.from('farm_plots').select('*').eq('owner_id', oi).eq('plot_index', pi).single();
+    if (error || !plot || !plot.crop_type) throw new Error('无作物可偷');
+    if (plot.stolen_count >= 2) throw new Error('已被偷光');
+    let blocked = false;
+    if (State.stationedPet && State.stationedPet.pet_type === 'cat' && Math.random() < 0.2) {
+        blocked = true;
+        showToast('对方橘猫守护了农田，偷菜失败！', true);
+    }
+    if (blocked) return 0;
+    const ci = CROPS[plot.crop_type], br = Math.floor(Math.random() * (ci.max - ci.min + 1)) + ci.min, sr = Math.floor(br * 0.4);
+    const sets = getActiveSetEffects();
+    let extraSteal = 0;
+    for (const eff of sets) { if (eff.bonus.steal_extra) extraSteal += eff.bonus.steal_extra; }
+    // 偷取者加金币
+    await safeDataUpdate('gold', { amount: sr });
+    // 被偷者扣金币
+    const { data: owner } = await supabase.from('profiles').select('gold,username').eq('id', oi).single();
+    const ong = (owner.gold || 0) - br + (br - sr);
+    await supabase.from('profiles').update({ gold: ong }).eq('id', oi);
+    await supabase.from('farm_plots').update({ stolen_count: plot.stolen_count + 1 + extraSteal }).eq('owner_id', oi).eq('plot_index', pi);
+    addEventLog('steal_sent', { victim: owner.username, crop: plot.crop_type, gold: sr });
+    return sr;
+}
+function getCropStatus(plot) {
+    if (!plot?.crop_type || !plot?.planted_at) return { status: 'empty' };
+    const now = new Date(), planted = new Date(plot.planted_at);
+    let gm = plot.growth_minutes * 60 * 1000;
+    if (plot.watered_at) gm = Math.floor(gm * 0.7);
+    if (State.stationedPet && State.stationedPet.pet_type === 'rabbit') gm = Math.floor(gm * 0.95);
+    const mt = new Date(planted.getTime() + gm);
+    if (now >= mt) return { status: 'ready', progress: 100 };
+    const el = now - planted, prog = Math.floor((el / gm) * 100), rem = mt - now, remMin = Math.ceil(rem / 60000);
+    let wa = true;
+    if (plot.watered_at) { const lw = new Date(plot.watered_at); wa = (now - lw) >= WATER_COOLDOWN_MS; }
+    return { status: 'growing', progress: prog, remainingMin: remMin, waterable: wa };
+}
 			// ==================== 第 13 块：宠物与探险 ====================
             async function adoptPet(pt) {
                 const slots = State.profile?.pet_slots || 1;
