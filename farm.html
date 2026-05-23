@@ -3818,14 +3818,13 @@ Farm.openBackpack = async function() {
         };
     });
 };
-	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含加工列表） ====================
+	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含加工列表 + 强化即时刷新） ====================
 Farm.openSynthesis = async function() {
     document.getElementById('modalSynthesis').classList.add('active');
     await loadItems();
     const showSynth = (type) => {
         const c = document.getElementById('synthesisList');
         
-        // 构建加工任务列表（实时计算剩余时间）
         const processingListHTML = (State.processingTasks || []).length > 0
             ? `<div style="margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;text-align:left;">
                 <div style="font-weight:600;margin-bottom:4px;">⏳ 加工中</div>
@@ -3896,7 +3895,7 @@ Farm.openEquipment = async function() {
         const probText = config ? ` (成功率${Math.round(config.prob*100)}%)` : '';
         return `<div class="equipment-card ${qc}"><strong>${e.name}</strong> <span class="set-badge">${e.set_name||'无'}</span> +${e.enhance_level} (${QUALITY_NAMES[e.quality]})<div>攻击+${e.atk_bonus} 防御+${e.def_bonus} 幸运+${e.luk_bonus}</div><div>装备于：#${e.equipped_to||'?'} ${pn}</div><div style="margin-top:6px;"><button class="btn-enhance" data-equip-id="${e.id}" ${canEnhance?'':'disabled'} title="强化到+${nextLevel}${probText}">${canEnhance?'强化'+probText:(e.equipped_to?'卸下后强化':'已满级')}</button><button class="btn-equip" data-equip-id="${e.id}">装备</button><button class="btn-unequip" data-equip-id="${e.id}" ${!e.equipped_to?'disabled':''}>卸下</button><button class="btn-decompose" data-equip-id="${e.id}" ${canDecompose?'':'disabled'}>分解</button><button class="btn-sell" data-equip-id="${e.id}" ${canSell?'':'disabled'}>出售</button></div></div>`;
     }).join('');
-    c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); Farm.openEquipment(); }; });
+    c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); await loadEquipment(); Farm.openEquipment(); }; });
     c.querySelectorAll('.btn-equip').forEach(btn => {
         btn.onclick = async () => {
             const eid = parseInt(btn.dataset.equipId);
@@ -3905,12 +3904,12 @@ Farm.openEquipment = async function() {
             overlay.innerHTML = `<div class="modal"><h3>选择宠物</h3>${petList}<button class="btn-close" id="cancelEquip">×</button></div>`;
             document.body.appendChild(overlay);
             overlay.querySelector('#cancelEquip').onclick = () => overlay.remove();
-            overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); Farm.openEquipment(); }; });
+            overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); await loadEquipment(); Farm.openEquipment(); }; });
         };
     });
-    c.querySelectorAll('.btn-unequip').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await unequipFromPet(eid); Farm.openEquipment(); }; });
-    c.querySelectorAll('.btn-decompose:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要分解这件装备吗？材料将按比例返还。')) { const eid = parseInt(btn.dataset.equipId); await decomposeEquipment(eid); Farm.openEquipment(); } }; });
-    c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); Farm.openEquipment(); } }; });
+    c.querySelectorAll('.btn-unequip').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await unequipFromPet(eid); await loadEquipment(); Farm.openEquipment(); }; });
+    c.querySelectorAll('.btn-decompose:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要分解这件装备吗？材料将按比例返还。')) { const eid = parseInt(btn.dataset.equipId); await decomposeEquipment(eid); await loadEquipment(); Farm.openEquipment(); } }; });
+    c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); await loadEquipment(); Farm.openEquipment(); } }; });
 };
 
 Farm.openPvEMap = async function() {
@@ -3931,7 +3930,7 @@ Farm.openPvEMap = async function() {
         `;
     }).join('');
     overlay.innerHTML = `
-        <div class="modal" style="max-width:420px;">
+        <div class="modal">
             <h3>🗺️ 选择讨伐地图</h3>
             <div class="list-container">${mapsHTML}</div>
             <button class="btn-close" id="closeMapSelect">×</button>
@@ -4052,7 +4051,7 @@ Farm.openMonsterLog = function() {
     overlay.className = 'modal-overlay active';
     const allMonsters = [...MONSTERS, ...ELITE_MONSTERS];
     overlay.innerHTML = `
-        <div class="modal" style="max-width:420px;">
+        <div class="modal">
             <h3>📖 怪物图鉴</h3>
             <div class="list-container">
                 ${allMonsters.map(m => {
