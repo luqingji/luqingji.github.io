@@ -1363,12 +1363,7 @@ async function safeDataUpdate(type, params) {
         console.error('safeDataUpdate 失败：未登录');
         return false;
     }
-    // 条件2：不能正在提交
-    if (State.isSubmitting) {
-        console.error('safeDataUpdate 失败：正在提交中');
-        return false;
-    }
-    // 条件3：战斗中不允许修改金币/物品
+    // 条件2：战斗中不允许修改金币/物品
     if (State.battle && (type === 'gold' || type === 'item')) {
         console.error('safeDataUpdate 失败：战斗中不允许此操作');
         return false;
