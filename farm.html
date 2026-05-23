@@ -212,535 +212,527 @@
             white-space: nowrap;
             vertical-align: middle;
         }
+/* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding-top: 60px;
+    padding-bottom: 30px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: var(--gap-xl);
+    width: 420px;
+    max-width: 90vw;
+    text-align: center;
+    max-height: none;
+    overflow-y: visible;
+    scrollbar-width: thin;
+    position: relative;
+}
+.modal h3 {
+    margin-bottom: var(--gap-md);
+    color: var(--text);
+    font-size: var(--font-xl);
+}
+.crop-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gap-sm);
+    margin-bottom: var(--gap-md);
+}
+.crop-btn {
+    padding: 10px 4px;
+    border: 2px solid #e0d8cc;
+    border-radius: var(--radius-md);
+    background: #fdfcf9;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    text-align: center;
+    font-size: var(--font-md);
+}
+.crop-btn:hover {
+    border-color: var(--accent);
+    background: #fef9f3;
+}
+.crop-btn.locked {
+    opacity: 0.4;
+    filter: grayscale(1);
+    cursor: not-allowed;
+    background: #eee;
+}
+.btn-close {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: #e8e0d5;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 24px;
+    text-align: center;
+    z-index: 10;
+    transition: transform var(--transition-fast);
+}
+.btn-close:active { transform: scale(0.95); }
+.auth-form {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    padding: 24px var(--gap-xl);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.auth-tabs {
+    display: flex;
+    margin-bottom: var(--gap-lg);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1.5px solid #e0d8cc;
+}
+.auth-tab {
+    flex: 1;
+    text-align: center;
+    padding: var(--gap-sm);
+    font-weight: 600;
+    cursor: pointer;
+    background: #fdfcf9;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+    font-size: var(--font-md);
+    border: none;
+}
+.auth-tab.active {
+    background: var(--accent);
+    color: #fff;
+}
+.form-group { margin-bottom: var(--gap-md); }
+.form-group label {
+    display: block;
+    font-size: var(--font-sm);
+    color: #666;
+    margin-bottom: 2px;
+}
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1.5px solid #e0d8cc;
+    border-radius: 10px;
+    font-size: var(--font-md);
+    font-family: inherit;
+    outline: none;
+}
+.btn-primary {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: var(--font-lg);
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition-fast);
+}
+.btn-primary:active { opacity: 0.85; }
+.msg-error {
+    color: var(--red);
+    font-size: var(--font-sm);
+    text-align: center;
+    margin-top: var(--gap-sm);
+}
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #3d3929;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: var(--radius-xl);
+    font-size: var(--font-md);
+    z-index: 200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.toast.show { opacity: 1; }
+.list-container {
+    overflow-y: visible;
+    text-align: left;
+}
+.list-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px var(--gap-md);
+    border-bottom: 1px solid #f0ede6;
+}
+.order-card {
+    background: #fef9f3;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border: 1px solid var(--accent);
+    text-align: left;
+}
+.quality-common { color: #888; }
+.quality-good { color: #27ae60; }
+.quality-rare { color: #9b59b6; }
+.quality-legend { color: #f0c040; font-weight: 700; }
+.tag-friend {
+    font-size: var(--font-xs);
+    color: #888;
+    background: #f0ede6;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+.tag-self { font-size: var(--font-xs); color: var(--accent); }
+.btn-small {
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-xs);
+    font-family: inherit;
+}
+.btn-accept { background: #6b8f71; color: #fff; }
+.btn-reject { background: #e0d8cc; color: #333; }
+.btn-explore { background: #1976d2; color: #fff; }
+.btn-adopt { background: var(--accent); color: #fff; }
+.btn-view { background: #e67e22; color: #fff; }
+.btn-fight { background: #c0392b; color: #fff; }
+.btn-craft { background: #27ae60; color: #fff; }
+.btn-nomat { background: #aaa; color: #fff; }
+.btn-nogold { background: #e67e22; color: #fff; }
+.btn-decompose { background: #e74c3c; color: #fff; }
+.btn-sell { background: #f39c12; color: #fff; }
+.item-row {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    padding: 6px 0;
+}
+.log-item {
+    text-align: left;
+    padding: var(--gap-sm) var(--gap-md);
+    border-bottom: 1px solid #f0ede6;
+}
+.equipment-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border-left: 4px solid var(--accent);
+}
+.quality-white { border-left-color: #ccc; }
+.quality-blue { border-left-color: #5b7fbc; }
+.quality-purple { border-left-color: #9b59b6; }
+.quality-gold { border-left-color: #f0c040; }
+.btn-synthesis {
+    background: #8e44ad;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+}
+.btn-enhance {
+    background: #e67e22;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+    margin-right: var(--gap-xs);
+}
+.btn-enhance:disabled { background: #ccc; cursor: not-allowed; }
+.btn-equip {
+    background: #6ba3be;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+    margin-right: var(--gap-xs);
+}
+.btn-unequip {
+    background: #aaa;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-xs);
+}
+.btn-refresh {
+    background: #6c757d;
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-xl);
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+    margin-bottom: var(--gap-sm);
+}
+.battle-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: var(--gap-lg) 0;
+}
+.battle-pet { text-align: center; }
+.battle-hp {
+    width: 80px;
+    height: 10px;
+    background: #e9ecef;
+    border-radius: 5px;
+    margin: var(--gap-sm) auto;
+}
+.battle-hp-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 5px;
+    transition: width 0.3s;
+}
+.battle-log {
+    background: #2d3436;
+    color: #dfe6e9;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    height: 120px;
+    overflow-y: auto;
+    font-size: var(--font-sm);
+    margin: var(--gap-md) 0;
+    text-align: left;
+}
+.battle-actions {
+    display: flex;
+    gap: var(--gap-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.battle-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: var(--font-sm);
+}
+.battle-btn.attack { background: #e74c3c; color: #fff; }
+.battle-btn.defend { background: #3498db; color: #fff; }
+.battle-btn.skill { background: #f39c12; color: #fff; }
+.battle-btn:disabled { opacity: 0.5; }
+.boss-card {
+    background: linear-gradient(135deg, #fef9f3, #fdf0e0);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-lg);
+    margin: var(--gap-md) 0;
+    border: 2px solid #f0c040;
+}
+.elite-card {
+    background: linear-gradient(135deg, #f5f0ff, #ede0f5);
+    border-radius: var(--radius-lg);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border: 2px solid #9b59b6;
+}
+.route-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: var(--gap-sm) 0;
+    border-left: 4px solid #1976d2;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.route-card:hover {
+    background: #eef4ff;
+    border-left-color: #0d47a1;
+}
+.route-card.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-left-color: #ccc;
+}
+.skill-card {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: 10px;
+    margin: var(--gap-xs) 0;
+    font-size: var(--font-sm);
+}
+.skill-attack { border-left: 3px solid #e74c3c; }
+.skill-heal { border-left: 3px solid #27ae60; }
+.skill-defense { border-left: 3px solid #3498db; }
+.skill-support { border-left: 3px solid #f39c12; }
+.skill-special { border-left: 3px solid #9b59b6; }
+.pet-detail-card {
+    background: #fefdf9;
+    border-radius: var(--radius-md);
+    padding: var(--gap-md);
+    margin: 6px 0;
+}
+.buff-tag {
+    display: inline-block;
+    background: #f39c12;
+    color: #fff;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: var(--font-xs);
+    margin-left: var(--gap-xs);
+}
+.set-badge {
+    display: inline-block;
+    background: #6c5ce7;
+    color: #fff;
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    font-size: 0.6rem;
+    margin-left: var(--gap-xs);
+}
+.set-info-row {
+    font-size: var(--font-xs);
+    color: #6c5ce7;
+    margin: 2px 0;
+}
+.stat-row { font-size: var(--font-xs); color: #666; }
+.stat-bonus { color: #27ae60; font-weight: 600; }
+.processing-bar {
+    background: #f9f6f0;
+    border-radius: var(--radius-md);
+    padding: 6px 10px;
+    margin: 2px 0;
+    font-size: var(--font-xs);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.processing-bar .progress-fill-small {
+    flex: 1;
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.processing-bar .progress-fill-inner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 10s linear;
+}
+.mail-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 8px;
+    height: 8px;
+    background: #c0392b;
+    border-radius: 50%;
+}
+.potion-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #fef9f3;
+    border-radius: 8px;
+    margin: 4px 0;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+}
+.potion-option:hover {
+    border-color: var(--accent);
+    background: #fff;
+}
+.potion-option.used {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: #eee;
+}
+.monster-log-card {
+    background: #fefdf9;
+    border-radius: var(--radius-md);
+    padding: 10px;
+    margin: 6px 0;
+    border-left: 3px solid var(--accent);
+}
+.monster-log-card .affix-tag {
+    display: inline-block;
+    background: #2d3436;
+    color: #dfe6e9;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.6rem;
+    margin: 1px 2px;
+}
+.affix-tag.unlocked { background: #27ae60; }
 
-        /* ==================== 第 3 块：CSS样式（弹窗、表单、按钮、战斗、装备等） ==================== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            padding: var(--gap-xl);
-            max-width: min(var(--modal-width), 90vw);
-            width: 90%;
-            text-align: center;
-            max-height: 75vh;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            position: relative;
-        }
-        .modal h3 {
-            margin-bottom: var(--gap-md);
-            color: var(--text);
-            font-size: var(--font-xl);
-        }
-        .crop-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--gap-sm);
-            margin-bottom: var(--gap-md);
-        }
-        .crop-btn {
-            padding: 10px 4px;
-            border: 2px solid #e0d8cc;
-            border-radius: var(--radius-md);
-            background: #fdfcf9;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all var(--transition-fast);
-            text-align: center;
-            font-size: var(--font-md);
-        }
-        .crop-btn:hover {
-            border-color: var(--accent);
-            background: #fef9f3;
-        }
-        .crop-btn.locked {
-            opacity: 0.4;
-            filter: grayscale(1);
-            cursor: not-allowed;
-            background: #eee;
-        }
-        .btn-close {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 24px;
-            height: 24px;
-            padding: 0;
-            background: #e8e0d5;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 16px;
-            line-height: 24px;
-            text-align: center;
-            z-index: 10;
-            transition: transform var(--transition-fast);
-        }
-        .btn-close:active { transform: scale(0.95); }
-        .auth-form {
-            background: var(--card);
-            border-radius: var(--radius-lg);
-            padding: 24px var(--gap-xl);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-        .auth-tabs {
-            display: flex;
-            margin-bottom: var(--gap-lg);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            border: 1.5px solid #e0d8cc;
-        }
-        .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: var(--gap-sm);
-            font-weight: 600;
-            cursor: pointer;
-            background: #fdfcf9;
-            transition: all var(--transition-fast);
-            font-family: inherit;
-            font-size: var(--font-md);
-            border: none;
-        }
-        .auth-tab.active {
-            background: var(--accent);
-            color: #fff;
-        }
-        .form-group { margin-bottom: var(--gap-md); }
-        .form-group label {
-            display: block;
-            font-size: var(--font-sm);
-            color: #666;
-            margin-bottom: 2px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 1.5px solid #e0d8cc;
-            border-radius: 10px;
-            font-size: var(--font-md);
-            font-family: inherit;
-            outline: none;
-        }
-        .btn-primary {
-            width: 100%;
-            padding: 10px;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: var(--font-lg);
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity var(--transition-fast);
-        }
-        .btn-primary:active { opacity: 0.85; }
-        .msg-error {
-            color: var(--red);
-            font-size: var(--font-sm);
-            text-align: center;
-            margin-top: var(--gap-sm);
-        }
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #3d3929;
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: var(--radius-xl);
-            font-size: var(--font-md);
-            z-index: 200;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .toast.show { opacity: 1; }
-        .list-container {
-            max-height: 60vh;
-            overflow-y: auto;
-            text-align: left;
-        }
-        .list-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px var(--gap-md);
-            border-bottom: 1px solid #f0ede6;
-        }
-        .order-card {
-            background: #fef9f3;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border: 1px solid var(--accent);
-            text-align: left;
-        }
-        .quality-common { color: #888; }
-        .quality-good { color: #27ae60; }
-        .quality-rare { color: #9b59b6; }
-        .quality-legend { color: #f0c040; font-weight: 700; }
-        .tag-friend {
-            font-size: var(--font-xs);
-            color: #888;
-            background: #f0ede6;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .tag-self { font-size: var(--font-xs); color: var(--accent); }
-        .btn-small {
-            padding: 4px 10px;
-            border: none;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            font-size: var(--font-xs);
-            font-family: inherit;
-        }
-        .btn-accept { background: #6b8f71; color: #fff; }
-        .btn-reject { background: #e0d8cc; color: #333; }
-        .btn-explore { background: #1976d2; color: #fff; }
-        .btn-adopt { background: var(--accent); color: #fff; }
-        .btn-view { background: #e67e22; color: #fff; }
-        .btn-fight { background: #c0392b; color: #fff; }
-        .btn-craft { background: #27ae60; color: #fff; }
-        .btn-nomat { background: #aaa; color: #fff; }
-        .btn-nogold { background: #e67e22; color: #fff; }
-        .btn-decompose { background: #e74c3c; color: #fff; }
-        .btn-sell { background: #f39c12; color: #fff; }
-        .item-row {
-            display: flex;
-            align-items: center;
-            gap: var(--gap-sm);
-            padding: 6px 0;
-        }
-        .log-item {
-            text-align: left;
-            padding: var(--gap-sm) var(--gap-md);
-            border-bottom: 1px solid #f0ede6;
-        }
-        .equipment-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border-left: 4px solid var(--accent);
-        }
-        .quality-white { border-left-color: #ccc; }
-        .quality-blue { border-left-color: #5b7fbc; }
-        .quality-purple { border-left-color: #9b59b6; }
-        .quality-gold { border-left-color: #f0c040; }
-        .btn-synthesis {
-            background: #8e44ad;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 8px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-        }
-        .btn-enhance {
-            background: #e67e22;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-            margin-right: var(--gap-xs);
-        }
-        .btn-enhance:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-equip {
-            background: #6ba3be;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-            margin-right: var(--gap-xs);
-        }
-        .btn-unequip {
-            background: #aaa;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 4px 10px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-xs);
-        }
-        .btn-refresh {
-            background: #6c757d;
-            color: #fff;
-            border: none;
-            border-radius: var(--radius-xl);
-            padding: 6px 16px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-            margin-bottom: var(--gap-sm);
-        }
-        .battle-container {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            margin: var(--gap-lg) 0;
-        }
-        .battle-pet { text-align: center; }
-        .battle-hp {
-            width: 80px;
-            height: 10px;
-            background: #e9ecef;
-            border-radius: 5px;
-            margin: var(--gap-sm) auto;
-        }
-        .battle-hp-fill {
-            height: 100%;
-            background: var(--green);
-            border-radius: 5px;
-            transition: width 0.3s;
-        }
-        .battle-log {
-            background: #2d3436;
-            color: #dfe6e9;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            height: 120px;
-            overflow-y: auto;
-            font-size: var(--font-sm);
-            margin: var(--gap-md) 0;
-            text-align: left;
-        }
-        .battle-actions {
-            display: flex;
-            gap: var(--gap-sm);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .battle-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: var(--radius-xl);
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: var(--font-sm);
-        }
-        .battle-btn.attack { background: #e74c3c; color: #fff; }
-        .battle-btn.defend { background: #3498db; color: #fff; }
-        .battle-btn.skill { background: #f39c12; color: #fff; }
-        .battle-btn:disabled { opacity: 0.5; }
-        .boss-card {
-            background: linear-gradient(135deg, #fef9f3, #fdf0e0);
-            border-radius: var(--radius-lg);
-            padding: var(--gap-lg);
-            margin: var(--gap-md) 0;
-            border: 2px solid #f0c040;
-        }
-        .elite-card {
-            background: linear-gradient(135deg, #f5f0ff, #ede0f5);
-            border-radius: var(--radius-lg);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border: 2px solid #9b59b6;
-        }
-        .route-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: var(--gap-sm) 0;
-            border-left: 4px solid #1976d2;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-        }
-        .route-card:hover {
-            background: #eef4ff;
-            border-left-color: #0d47a1;
-        }
-        .route-card.locked {
-            opacity: 0.5;
-            cursor: not-allowed;
-            border-left-color: #ccc;
-        }
-        .skill-card {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: 10px;
-            margin: var(--gap-xs) 0;
-            font-size: var(--font-sm);
-        }
-        .skill-attack { border-left: 3px solid #e74c3c; }
-        .skill-heal { border-left: 3px solid #27ae60; }
-        .skill-defense { border-left: 3px solid #3498db; }
-        .skill-support { border-left: 3px solid #f39c12; }
-        .skill-special { border-left: 3px solid #9b59b6; }
-        .pet-detail-card {
-            background: #fefdf9;
-            border-radius: var(--radius-md);
-            padding: var(--gap-md);
-            margin: 6px 0;
-        }
-        .buff-tag {
-            display: inline-block;
-            background: #f39c12;
-            color: #fff;
-            border-radius: 10px;
-            padding: 1px 6px;
-            font-size: var(--font-xs);
-            margin-left: var(--gap-xs);
-        }
-        .set-badge {
-            display: inline-block;
-            background: #6c5ce7;
-            color: #fff;
-            border-radius: var(--radius-sm);
-            padding: 1px 5px;
-            font-size: 0.6rem;
-            margin-left: var(--gap-xs);
-        }
-        .set-info-row {
-            font-size: var(--font-xs);
-            color: #6c5ce7;
-            margin: 2px 0;
-        }
-        .stat-row { font-size: var(--font-xs); color: #666; }
-        .stat-bonus { color: #27ae60; font-weight: 600; }
-
-        /* 加工进度条 */
-        .processing-bar {
-            background: #f9f6f0;
-            border-radius: var(--radius-md);
-            padding: 6px 10px;
-            margin: 2px 0;
-            font-size: var(--font-xs);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .processing-bar .progress-fill-small {
-            flex: 1;
-            height: 4px;
-            background: #e9ecef;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .processing-bar .progress-fill-inner {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 2px;
-            transition: width 10s linear;
-        }
-
-        /* 邮件红点 */
-        .mail-dot {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 8px;
-            height: 8px;
-            background: #c0392b;
-            border-radius: 50%;
-        }
-
-        /* 药剂选择样式 */
-        .potion-option {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            background: #fef9f3;
-            border-radius: 8px;
-            margin: 4px 0;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all var(--transition-fast);
-        }
-        .potion-option:hover {
-            border-color: var(--accent);
-            background: #fff;
-        }
-        .potion-option.used {
-            opacity: 0.4;
-            cursor: not-allowed;
-            background: #eee;
-        }
-
-        /* 怪物图鉴样式 */
-        .monster-log-card {
-            background: #fefdf9;
-            border-radius: var(--radius-md);
-            padding: 10px;
-            margin: 6px 0;
-            border-left: 3px solid var(--accent);
-        }
-        .monster-log-card .affix-tag {
-            display: inline-block;
-            background: #2d3436;
-            color: #dfe6e9;
-            border-radius: 4px;
-            padding: 1px 5px;
-            font-size: 0.6rem;
-            margin: 1px 2px;
-        }
-        .affix-tag.unlocked { background: #27ae60; }
-
-        /* 手机端响应式 */
-        @media (max-width: 600px) {
-            .app-container {
-                padding: var(--gap-sm);
-                gap: var(--gap-md);
-            }
-            .header {
-                flex-direction: column;
-                gap: var(--gap-sm);
-                padding: var(--gap-sm) var(--gap-md);
-            }
-            .header > div:last-child {
-                justify-content: center;
-                gap: 3px;
-            }
-            .btn-icon {
-                padding: 5px 8px;
-                font-size: 0.7rem;
-                border-radius: var(--radius-md);
-            }
-            .btn-fight-call {
-                padding: 6px 10px;
-                font-size: 0.75rem;
-            }
-            .farm-grid {
-                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-                gap: var(--gap-sm);
-            }
-            .plot-card {
-                min-height: 100px;
-                padding: 8px 4px;
-            }
-            .plot-emoji { font-size: 1.6rem; }
-            .modal {
-                max-width: 95vw;
-                padding: var(--gap-md);
-            }
-            .user-info .username { font-size: var(--font-sm); }
-            .level { font-size: 0.6rem; }
-        }
+@media (max-width: 600px) {
+    .app-container {
+        padding: var(--gap-sm);
+        gap: var(--gap-md);
+    }
+    .header {
+        flex-direction: column;
+        gap: var(--gap-sm);
+        padding: var(--gap-sm) var(--gap-md);
+    }
+    .header > div:last-child {
+        justify-content: center;
+        gap: 3px;
+    }
+    .btn-icon {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+        border-radius: var(--radius-md);
+    }
+    .btn-fight-call {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+    .farm-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--gap-sm);
+    }
+    .plot-card {
+        min-height: 100px;
+        padding: 8px 4px;
+    }
+    .plot-emoji { font-size: 1.6rem; }
+    .modal {
+        max-width: 95vw;
+        padding: var(--gap-md);
+    }
+    .user-info .username { font-size: var(--font-sm); }
+    .level { font-size: 0.6rem; }
+}
     </style>
 </head>
 <body>
@@ -3301,20 +3293,20 @@ const Farm = {
         return `<div class="header"><div class="user-info"><div class="avatar ${gc}">${(State.profile?.username || '农')[0]}</div><div><div class="username">${escapeHTML(State.profile?.username || '农夫')}</div><div class="level">地块${ul}/12 · 宠物${State.pets.length}/${slots}</div></div></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"><button class="btn-icon" id="btnLeaderboard" title="排行榜">🏆</button><button class="btn-icon" id="btnFriends" title="好友">👥</button><button class="btn-icon" id="btnPets" title="宠物">🐾</button><button class="btn-icon" id="btnBackpack" title="背包">🎒</button><button class="btn-icon" id="btnSynthesis" title="合成台">🔧 (${(State.processingTasks || []).length})</button><button class="btn-icon" id="btnEquipment" title="装备">⚔️</button><button class="btn-icon btn-fight-call" id="btnPvE" title="怪物讨伐">🐉 讨伐</button><button class="btn-icon" id="btnExplore" title="宠物探险">🗺️</button><button class="btn-icon" id="btnOrders" title="订单">📦</button><button class="btn-icon" id="btnSeedShop" title="商店">🛒</button><button class="btn-icon" id="btnMail" title="邮箱" style="position:relative;">📬${unreadMails > 0 ? `<span style="color:#c0392b;">(${unreadMails})</span>` : ''}${hasNewMail ? '<span class="mail-dot"></span>' : ''}</button><button class="btn-icon" id="btnMonsterLog" title="怪物图鉴">📖</button><button class="btn-icon" id="btnHelp" title="帮助">❓</button><button class="btn-icon" id="btnEventLog" title="事件日志">📋</button><button class="btn-icon" id="btnLogout" title="退出登录">🚪</button></div></div>
         <div class="farm-grid" id="farmGrid">${plotsHTML}</div>
         ${ul < PLOT_MAX_COUNT ? `<div class="unlock-section"><button class="btn-unlock" id="btnUnlock">🔓 解锁地块 (${ul}/${PLOT_MAX_COUNT})</button></div>` : '<p style="text-align:center;color:var(--accent);">🎉 所有地块已解锁！</p>'}
-        <div class="modal-overlay" id="modalPlant"><div class="modal" style="max-width:400px;"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
+        <div class="modal-overlay" id="modalPlant"><div class="modal"><h3>🌱 选择作物</h3><div id="plantTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-ptype="all">全部</button><button class="auth-tab" data-ptype="fruit">水果</button><button class="auth-tab" data-ptype="flower">花卉</button><button class="auth-tab" data-ptype="vegetable">蔬菜</button><button class="auth-tab" data-ptype="special">特色</button></div><div class="crop-options" id="plantCropList"></div><button class="btn-close" id="closePlantModal">×</button></div></div>
         <div class="modal-overlay" id="modalWater"><div class="modal"><h3>💧 浇水</h3><p id="waterPlotInfo">要浇水吗？</p><button class="btn-water" id="confirmWater" style="background:#6ba3be;color:#fff;border:none;border-radius:20px;padding:8px 24px;">浇水（加速30%）</button><button class="btn-close" id="closeWaterModal">×</button></div></div>
-        <div class="modal-overlay" id="modalPets"><div class="modal" style="max-width:400px;"><h3>🐾 宠物 (${State.pets.length}/${slots})</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
-        <div class="modal-overlay" id="modalBackpack"><div class="modal" style="max-width:400px;"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">×</button></div></div>
-        <div class="modal-overlay" id="modalSynthesis"><div class="modal" style="max-width:400px;"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">×</button></div></div>
-        <div class="modal-overlay" id="modalEquipment"><div class="modal" style="max-width:400px;"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">×</button></div></div>
-        <div class="modal-overlay" id="modalPvE"><div class="modal" style="max-width:400px;"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">×</button></div></div>
-        <div class="modal-overlay" id="modalExplore"><div class="modal" style="max-width:400px;"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
-        <div class="modal-overlay" id="modalOrders"><div class="modal" style="max-width:400px;"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
-        <div class="modal-overlay" id="modalSeedShop"><div class="modal" style="max-width:400px;"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
-        <div class="modal-overlay" id="modalMail"><div class="modal" style="max-width:400px;"><h3>📬 邮箱</h3><div id="mailTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-mtype="inbox">收件箱</button><button class="auth-tab" data-mtype="outbox">发件箱</button><button class="auth-tab" data-mtype="compose">写邮件</button></div><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
-        <div class="modal-overlay" id="modalEventLog"><div class="modal" style="max-width:400px;"><h3>📋 事件日志</h3><div id="eventLogContainer" class="list-container" style="max-height:60vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
-        <div class="modal-overlay" id="modalFriends"><div class="modal" style="max-width:400px;"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
-        <div class="modal-overlay" id="modalLeaderboard"><div class="modal" style="max-width:400px;"><h3>🏆 排行榜</h3><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
+        <div class="modal-overlay" id="modalPets"><div class="modal"><h3>🐾 宠物 (${State.pets.length}/${slots})</h3><div id="petListContainer" class="list-container"></div><button class="btn-close" id="closePetsModal">×</button></div></div>
+        <div class="modal-overlay" id="modalBackpack"><div class="modal"><h3>🎒 背包</h3><div id="bpTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-bptype="all">全部</button><button class="auth-tab" data-bptype="material">材料</button><button class="auth-tab" data-bptype="seed">种子</button><button class="auth-tab" data-bptype="crop">作物</button><button class="auth-tab" data-bptype="tool">道具</button></div><div id="itemListContainer" class="list-container"></div><button class="btn-close" id="closeBackpackModal">×</button></div></div>
+        <div class="modal-overlay" id="modalSynthesis"><div class="modal"><h3>🔧 合成台</h3><div id="synthTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-stype="equipment">装备</button><button class="auth-tab" data-stype="food">食品</button><button class="auth-tab" data-stype="potion">药剂</button></div><div id="synthesisList" class="list-container"></div><button class="btn-close" id="closeSynthesisModal">×</button></div></div>
+        <div class="modal-overlay" id="modalEquipment"><div class="modal"><h3>⚔️ 装备</h3><div id="equipmentList" class="list-container"></div><button class="btn-close" id="closeEquipmentModal">×</button></div></div>
+        <div class="modal-overlay" id="modalPvE"><div class="modal"><h3>🐉 怪物讨伐</h3><div id="pveListContainer" class="list-container"></div><button class="btn-close" id="closePvEModal">×</button></div></div>
+        <div class="modal-overlay" id="modalExplore"><div class="modal"><h3>🗺️ 探险路线</h3><div id="exploreListContainer" class="list-container"></div><button class="btn-close" id="closeExploreModal">×</button></div></div>
+        <div class="modal-overlay" id="modalOrders"><div class="modal"><h3>📦 每日订单</h3><div id="ordersContainer" class="list-container"></div><button class="btn-close" id="closeOrdersModal">×</button></div></div>
+        <div class="modal-overlay" id="modalSeedShop"><div class="modal"><h3>🛒 商店</h3><div id="seedShopContainer" class="list-container"></div><button class="btn-close" id="closeSeedShopModal">×</button></div></div>
+        <div class="modal-overlay" id="modalMail"><div class="modal"><h3>📬 邮箱</h3><div id="mailTypeTabs" style="display:flex;gap:4px;margin-bottom:10px;"><button class="auth-tab active" data-mtype="inbox">收件箱</button><button class="auth-tab" data-mtype="outbox">发件箱</button><button class="auth-tab" data-mtype="compose">写邮件</button></div><div id="mailListContainer" class="list-container"></div><button class="btn-close" id="closeMailModal">×</button></div></div>
+        <div class="modal-overlay" id="modalEventLog"><div class="modal"><h3>📋 事件日志</h3><div id="eventLogContainer" class="list-container" style="max-height:55vh;overflow-y:auto;"></div><button class="btn-close" id="closeEventLogModal">×</button></div></div>
+        <div class="modal-overlay" id="modalFriends"><div class="modal"><h3>👥 好友</h3><div id="friendListContainer" class="list-container"></div><button class="btn-close" id="closeFriendsModal">×</button></div></div>
+        <div class="modal-overlay" id="modalLeaderboard"><div class="modal"><h3>🏆 排行榜</h3><div style="display:flex;gap:6px;margin-bottom:12px;"><button class="auth-tab active" data-lb-tab="global">全服</button><button class="auth-tab" data-lb-tab="friends">好友</button><button class="auth-tab" data-lb-tab="pet">宠物</button></div><div class="friend-requests" id="friendRequestsArea" style="display:none;"></div><div class="list-container" id="leaderboardList"></div><button class="btn-close" id="closeLeaderboardModal">×</button></div></div>`;
     },
     plotHTML(plot) {
         const s = getCropStatus(plot); let e, st, prog = '', cc = '';
@@ -3429,7 +3421,7 @@ const Farm = {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
         overlay.innerHTML = `
-            <div class="modal" style="max-width:400px;">
+            <div class="modal">
                 <h3>🧪 选择药剂（可选）</h3>
                 <p style="font-size:0.8rem;color:#888;">选择一种药剂在本次战斗中生效</p>
                 <div id="potionList">
@@ -3538,7 +3530,7 @@ const Farm = {
         overlay.className = 'modal-overlay active';
         const slots = State.profile?.pet_slots || 1;
         overlay.innerHTML = `
-            <div class="modal" style="max-width:400px;text-align:left;">
+            <div class="modal">
                 <h3>🔓 解锁宠物槽位</h3>
                 <div style="max-height:60vh;overflow-y:auto;">
                     ${PET_SLOT_UNLOCK.map(s => {
@@ -3592,7 +3584,7 @@ const Farm = {
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay active';
             overlay.innerHTML = `
-                <div class="modal" style="max-width:400px;">
+                <div class="modal">
                     <h3>⚔️ 选择切磋宠物</h3>
                     <div id="battlePetList">
                         ${State.pets.map(p => {
@@ -3634,7 +3626,7 @@ const Farm = {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
         overlay.innerHTML = `
-            <div class="modal" style="max-width:400px;">
+            <div class="modal">
                 <h3>⚔️ 选择出战宠物</h3>
                 <div id="battlePetList">
                     ${State.pets.map(p => {
@@ -3722,7 +3714,7 @@ const Farm = {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay active';
         overlay.innerHTML = `
-            <div class="modal" style="max-width:420px;text-align:left;font-size:0.85rem;">
+            <div class="modal">
                 <h3 style="text-align:center;">📊 宠物属性详情</h3>
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:8px;background:#fef9f3;border-radius:8px;">
                     <span style="font-size:2.5rem;">${PET_TYPES[pet.pet_type]?.emoji||'🐾'}</span>
