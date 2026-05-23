@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>麦田守护者 v5.4.1</title>
+    <title>麦田守护者 v5.4.2</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ==================== 第 1 块：CSS变量与基础样式 ==================== */
@@ -4094,7 +4094,7 @@ Farm.openMonsterLog = function() {
     overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
-	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含安全数据操作） ====================
+	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含事件日志自动清理） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
     const c = document.getElementById('ordersContainer');
@@ -4581,10 +4581,46 @@ Farm.openSkillBook = async function(bookKey) {
     });
 };
 
+// ==================== 事件日志（打开即加载，自动清理旧记录） ====================
 Farm.openEventLog = async function() {
-    await loadEventLog();
     document.getElementById('modalEventLog').classList.add('active');
-    document.getElementById('btnRefreshLog').onclick = async () => { await loadEventLog(); };
+    const c = document.getElementById('eventLogContainer');
+    c.innerHTML = '<p>加载中...</p>';
+    
+    try {
+        // 查询最新100条日志
+        const { data: logs, error } = await supabase.from('event_logs')
+            .select('*')
+            .eq('user_id', State.currentUser.id)
+            .order('created_at', { ascending: false })
+            .limit(100);
+        if (error) { c.innerHTML = '<p>加载失败</p>'; return; }
+        if (!logs || logs.length === 0) { c.innerHTML = '<p>暂无事件记录。</p>'; return; }
+        
+        c.innerHTML = logs.map(log => {
+            const time = formatTime(log.created_at), content = formatEventMessage(log);
+            return `<div class="log-item"><div style="font-size:0.7rem;color:#888;">${time}</div><div>${content}</div></div>`;
+        }).join('');
+        
+        // 自动清理：保留最新的200条，删除更早的记录
+        const { count } = await supabase.from('event_logs')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', State.currentUser.id);
+        if (count > MAX_LOG_COUNT) {
+            const { data: oldLogs } = await supabase.from('event_logs')
+                .select('id')
+                .eq('user_id', State.currentUser.id)
+                .order('created_at', { ascending: true })
+                .limit(count - MAX_LOG_COUNT);
+            if (oldLogs && oldLogs.length > 0) {
+                const oldIds = oldLogs.map(l => l.id);
+                await supabase.from('event_logs').delete().in('id', oldIds);
+            }
+        }
+    } catch (e) {
+        c.innerHTML = '<p>加载失败</p>';
+        console.error('事件日志加载失败:', e);
+    }
 };
 
 Farm.openHelp = function() {
@@ -4636,20 +4672,7 @@ Farm.openHelp = function() {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
 
-async function loadEventLog() {
-    const c = document.getElementById('eventLogContainer');
-    c.innerHTML = '<p>加载中...</p>';
-    const { data: logs, error } = await supabase.from('event_logs').select('*').eq('user_id', State.currentUser.id).order('created_at', { ascending: false }).limit(50);
-    if (error) { c.innerHTML = '<p>加载失败</p>'; return; }
-    if (logs.length === 0) { c.innerHTML = '<p>暂无事件记录。</p>'; return; }
-    c.innerHTML = logs.map(log => { const time = formatTime(log.created_at), content = formatEventMessage(log); return `<div class="log-item"><div style="font-size:0.7rem;color:#888;">${time}</div><div>${content}</div></div>`; }).join('');
-    const { count } = await supabase.from('event_logs').select('*', { count: 'exact', head: true }).eq('user_id', State.currentUser.id);
-    if (count > MAX_LOG_COUNT) {
-        const { data: oldLogs } = await supabase.from('event_logs').select('id').eq('user_id', State.currentUser.id).order('created_at', { ascending: true }).limit(count - MAX_LOG_COUNT);
-        const oldIds = oldLogs.map(l => l.id);
-        await supabase.from('event_logs').delete().in('id', oldIds).eq('user_id', State.currentUser.id);
-    }
-}
+// ==================== 日志格式化 ====================
 function formatEventMessage(log) {
     const d = log.event_data || {};
     switch (log.event_type) {
