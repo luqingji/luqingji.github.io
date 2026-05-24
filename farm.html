@@ -4765,6 +4765,13 @@ async function loadAll() {
 
 async function init() {
     const { data } = await supabase.auth.getSession();
+	    // 如果 sessionStorage 中没有标记，说明是关闭浏览器后重新打开的 → 强制登出
+    if (data.session && !sessionStorage.getItem('session_active')) {
+        await supabase.auth.signOut();
+        localStorage.removeItem('session_token');
+        render();
+        return;
+    }
     if (data.session) {
         State.currentUser = data.session.user;
         try {
