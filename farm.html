@@ -2252,7 +2252,8 @@ async function synthesizeEquipment(recipe) {
     const { data: newEq, error: err2 } = await supabase.from('equipment').insert({ owner_id: State.currentUser.id, name: recipe.name, slot: recipe.slot, quality: q, set_name: recipe.set_name, atk_bonus: ab, def_bonus: db, luk_bonus: lb }).select().single();
     if (err2) throw err2;
     State.equipment.push(newEq);
-    addEventLog('synthesis', { name: newEq.name, quality: q });
+    // 修复：等待日志写入完成
+    await addEventLog('synthesis', { name: newEq.name, quality: q });
     showToast(`合成成功！获得 ${newEq.name} (${QUALITY_NAMES[q]})`);
 }
 async function enhanceEquipment(eid, useProtectCharm = false, useLuckyStone = false) {
@@ -2309,7 +2310,8 @@ async function enhanceEquipment(eid, useProtectCharm = false, useLuckyStone = fa
             showToast('强化失败，但被保护符守护未降级', true);
         }
     }
-    addEventLog('enhance', { name: equip.name, level: equip.enhance_level, success });
+    // 修复：等待日志写入完成
+    await addEventLog('enhance', { name: equip.name, level: equip.enhance_level, success });
 }
 async function decomposeEquipment(eid) {
     const equip = State.equipment.find(e => e.id === eid);
@@ -2329,7 +2331,8 @@ async function decomposeEquipment(eid) {
     }
     await supabase.from('equipment').delete().eq('id', eid);
     State.equipment = State.equipment.filter(e => e.id !== eid);
-    addEventLog('decompose', { name: equip.name });
+    // 修复：等待日志写入完成
+    await addEventLog('decompose', { name: equip.name });
     showToast(`分解成功！材料已返还`);
 }
 async function sellEquipment(eid) {
@@ -2341,7 +2344,8 @@ async function sellEquipment(eid) {
     await safeDataUpdate('gold', { amount: price });
     await supabase.from('equipment').delete().eq('id', eid);
     State.equipment = State.equipment.filter(e => e.id !== eid);
-    addEventLog('sell_equipment', { name: equip.name, price });
+    // 修复：等待日志写入完成
+    await addEventLog('sell_equipment', { name: equip.name, price });
     showToast(`出售成功！获得 🪙${price}`);
 }
 async function equipToPet(eid, pid) {
@@ -2349,13 +2353,20 @@ async function equipToPet(eid, pid) {
     if (!equip || !pet) return;
     const alreadyEquipped = State.equipment.find(e => e.equipped_to === pid && e.name === equip.name && e.id !== eid);
     if (alreadyEquipped) { showToast(`宠物已装备了 ${equip.name}，不能重复穿戴！`, true); return; }
+    // 先卸下该宠物身上同部位的旧装备
     await supabase.from('equipment').update({ equipped_to: null }).eq('equipped_to', pid).eq('slot', equip.slot);
+    // 把新装备穿到宠物身上
     await supabase.from('equipment').update({ equipped_to: pid }).eq('id', eid);
-    equip.equipped_to = pid;
+    // 立即同步本地数据
+    State.equipment.forEach(e => {
+        if (e.equipped_to === pid && e.slot === equip.slot) e.equipped_to = null;
+        if (e.id === eid) e.equipped_to = pid;
+    });
     showToast(`已装备 ${equip.name}`);
 }
 async function unequipFromPet(eid) {
     await supabase.from('equipment').update({ equipped_to: null }).eq('id', eid);
+    // 立即同步本地数据
     const equip = State.equipment.find(e => e.id === eid);
     if (equip) equip.equipped_to = null;
     showToast('已卸下装备');
