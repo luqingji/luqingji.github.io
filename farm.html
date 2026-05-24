@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -3097,6 +3098,8 @@ const Leaderboard = {
 
         const itemsPerPage = 10;
         let allRanked = [];
+        let friendIdSet = new Set();
+        let sentSet = new Set();
         
         if (mode === 'pet') {
             const { data: petsData } = await supabase.from('pets').select('*, profiles(username,gender)').order('id');
@@ -3133,7 +3136,7 @@ const Leaderboard = {
         } else {
             const { data: allProfiles } = await supabase.from('profiles').select('id,username,gold,gender').order('gold', { ascending: false });
             const { data: friendships } = await supabase.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${State.currentUser.id},to_user.eq.${State.currentUser.id}`);
-            const friendIdSet = new Set(), sentSet = new Set(), received = [];
+            const received = [];
             (friendships || []).forEach(f => { if (f.status === 'accepted') { const fid = f.from_user === State.currentUser.id ? f.to_user : f.from_user; friendIdSet.add(fid); } else if (f.status === 'pending') { if (f.from_user === State.currentUser.id) sentSet.add(f.to_user); else received.push(f); } });
             State.friendIds = friendIdSet;
             
@@ -3174,7 +3177,9 @@ const Leaderboard = {
                 }
             }).join('') + renderPagination(page, totalPages);
 
-            listEl.querySelectorAll('.list-item[data-owner]').forEach(item => { item.onclick = () => { const ownerId = item.dataset.owner; if (ownerId === State.currentUser.id) return; const friend = State.friendProfiles.find(p => p.id === ownerId); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', ownerId).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalLeaderboard').classList.remove('active'); render(); }); } else { showToast('非好友无法访问农场', true); } }; });
+            if (mode === 'pet') {
+                listEl.querySelectorAll('.list-item[data-owner]').forEach(item => { item.onclick = () => { const ownerId = item.dataset.owner; if (ownerId === State.currentUser.id) return; const friend = State.friendProfiles.find(p => p.id === ownerId); if (friend) { State.visitingFriend = friend; supabase.from('farm_plots').select('*').eq('owner_id', ownerId).order('plot_index').then(({ data }) => { State.visitingPlots = data || []; document.getElementById('modalLeaderboard').classList.remove('active'); render(); }); } else { showToast('非好友无法访问农场', true); } }; });
+            }
             listEl.querySelectorAll('.btn-adopt:not([disabled])').forEach(btn => { btn.onclick = async () => { const uid = btn.dataset.uid; try { await supabase.from('friendships').insert({ from_user: State.currentUser.id, to_user: uid }); showToast('好友申请已发送！'); await Leaderboard.refresh('global'); } catch (err) { showToast('发送失败', true); } }; });
             listEl.querySelectorAll('.page-btn:not([disabled])').forEach(btn => {
                 btn.onclick = () => { const targetPage = parseInt(btn.dataset.page); showPage(targetPage); };
