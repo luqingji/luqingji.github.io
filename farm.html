@@ -3758,7 +3758,7 @@ const Farm = {
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     },
 };
-	// ==================== 第 22 块：背包界面（含分页） ====================
+	// ==================== 第 22 块：背包界面（含分页 + 固定高度 + 占位符） ====================
 Farm.openBackpack = async function() {
     document.getElementById('modalBackpack').classList.add('active');
     await loadItems();
@@ -3792,16 +3792,20 @@ Farm.openBackpack = async function() {
         const start = (page - 1) * itemsPerPage;
         const pageItems = filtered.slice(start, start + itemsPerPage);
 
+        // 金币始终显示在第一行
         let html = `<div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;margin-bottom:8px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">${State.profile?.gold||0}</span></div>`;
         
-        if (pageItems.length === 0) {
-            html += '<p>空空如也</p>';
-        } else {
-            html += pageItems.map(([type, qty]) => {
-                const isBook = type.startsWith('book_');
-                const isPotion = type.startsWith('potion_');
-                return `<div class="item-row ${isBook || isPotion ? 'clickable-item' : ''}" data-item="${type}" style="${isBook || isPotion ? 'cursor:pointer;background:#fef9f3;border-radius:8px;padding:4px;' : ''}"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`;
-            }).join('');
+        // 物品行
+        pageItems.forEach(([type, qty]) => {
+            const isBook = type.startsWith('book_');
+            const isPotion = type.startsWith('potion_');
+            html += `<div class="item-row ${isBook || isPotion ? 'clickable-item' : ''}" data-item="${type}" style="${isBook || isPotion ? 'cursor:pointer;background:#fef9f3;border-radius:8px;padding:4px;' : ''}"><span>${ITEM_EMOJI[type]||'📦'}</span><span style="flex:1;">${ITEM_NAMES[type]||type}</span><span>×${qty}</span></div>`;
+        });
+
+        // 占位符：填充到每页固定8行
+        const placeholdersNeeded = itemsPerPage - pageItems.length;
+        for (let i = 0; i < placeholdersNeeded; i++) {
+            html += `<div class="item-row" style="opacity:0.3;border:1px dashed #d5cec0;border-radius:8px;padding:4px;"><span>─</span><span style="flex:1;">空位</span><span>─</span></div>`;
         }
 
         html += renderPagination(page, totalPages);
@@ -3835,7 +3839,7 @@ Farm.openBackpack = async function() {
         };
     });
 };
-	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含装备分页） ====================
+	// ==================== 第 23 块：合成/装备/怪物讨伐/图鉴弹窗（含装备分页 + 即时刷新） ====================
 Farm.openSynthesis = async function() {
     document.getElementById('modalSynthesis').classList.add('active');
     await loadItems();
@@ -3921,7 +3925,9 @@ Farm.openEquipment = async function() {
         html += renderPagination(page, totalPages);
         c.innerHTML = html;
 
+        // 强化：操作后重新加载数据再刷新界面
         c.querySelectorAll('.btn-enhance:not([disabled])').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await enhanceEquipment(eid); await loadEquipment(); Farm.openEquipment(); }; });
+        // 装备：选择宠物后重新加载数据再刷新界面
         c.querySelectorAll('.btn-equip').forEach(btn => {
             btn.onclick = async () => {
                 const eid = parseInt(btn.dataset.equipId);
@@ -3933,10 +3939,14 @@ Farm.openEquipment = async function() {
                 overlay.querySelectorAll('.btn-small').forEach(pb => { pb.onclick = async () => { const pid = parseInt(pb.dataset.petId); await equipToPet(eid, pid); overlay.remove(); await loadEquipment(); Farm.openEquipment(); }; });
             };
         });
+        // 卸下：操作后重新加载数据再刷新界面
         c.querySelectorAll('.btn-unequip').forEach(btn => { btn.onclick = async () => { const eid = parseInt(btn.dataset.equipId); await unequipFromPet(eid); await loadEquipment(); Farm.openEquipment(); }; });
+        // 分解：操作后重新加载数据再刷新界面
         c.querySelectorAll('.btn-decompose:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要分解这件装备吗？材料将按比例返还。')) { const eid = parseInt(btn.dataset.equipId); await decomposeEquipment(eid); await loadEquipment(); Farm.openEquipment(); } }; });
+        // 出售：操作后重新加载数据再刷新界面
         c.querySelectorAll('.btn-sell:not([disabled])').forEach(btn => { btn.onclick = async () => { if (confirm('确定要出售这件装备吗？')) { const eid = parseInt(btn.dataset.equipId); await sellEquipment(eid); await loadEquipment(); Farm.openEquipment(); } }; });
 
+        // 分页按钮
         c.querySelectorAll('.page-btn:not([disabled])').forEach(btn => {
             btn.onclick = () => { const targetPage = parseInt(btn.dataset.page); showPage(targetPage); };
         });
@@ -4115,7 +4125,7 @@ Farm.openMonsterLog = function() {
     overlay.querySelector('#closeMonsterLog').onclick = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 };
-	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含事件日志自动清理） ====================
+	// ==================== 第 24 块：订单/商店/日志/邮箱/技能书/帮助/自动战斗（含事件日志刷新修复） ====================
 Farm.openOrders = function() {
     document.getElementById('modalOrders').classList.add('active');
     const c = document.getElementById('ordersContainer');
@@ -4297,7 +4307,7 @@ Farm.openAutoBattle = function() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     overlay.innerHTML = `
-        <div class="modal" style="max-width:400px;">
+        <div class="modal">
             <h3>⚔️ 自动战斗</h3>
             <p style="font-size:0.85rem;">将自动挑战当前地图的普通怪物，消耗 🎫×1/场，最多30场。</p>
             <div id="autoBattlePetList"></div>
@@ -4449,7 +4459,7 @@ Farm.startAutoBattle = async function(petId) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     overlay.innerHTML = `
-        <div class="modal" style="max-width:380px;">
+        <div class="modal">
             <h3>⚔️ 自动战斗结束</h3>
             <div style="text-align:left;padding:10px;">
                 <div>🗺️ 地图：${mapData.name}</div>
@@ -4493,7 +4503,7 @@ Farm.openSkillBook = async function(bookKey) {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     overlay.innerHTML = `
-        <div class="modal" style="max-width:400px;text-align:left;">
+        <div class="modal">
             <h3>📕 使用技能书</h3>
             <div style="margin-bottom:8px;"><strong>${skillData.name}</strong>：${skillData.desc}</div>
             <div style="font-weight:600;margin:8px 0;">选择宠物学习：</div>
@@ -4559,7 +4569,7 @@ Farm.openSkillBook = async function(bookKey) {
                     }
                 } else {
                     overlay.innerHTML = `
-                        <div class="modal" style="max-width:400px;text-align:left;">
+                        <div class="modal">
                             <h3>🔄 替换技能</h3>
                             <div style="margin-bottom:8px;">学习 <strong>${skillData.name}</strong>，请选择要替换的技能：</div>
                             <div id="replaceSkillList">${currentSkills.map(s => {
@@ -4602,11 +4612,14 @@ Farm.openSkillBook = async function(bookKey) {
     });
 };
 
-// ==================== 事件日志（打开即加载，自动清理旧记录） ====================
+// ==================== 事件日志（含分页，含延迟刷新） ====================
 Farm.openEventLog = async function() {
     document.getElementById('modalEventLog').classList.add('active');
     const c = document.getElementById('eventLogContainer');
     c.innerHTML = '<p>加载中...</p>';
+
+    // 等待200ms，确保之前触发的日志写入操作完成
+    await new Promise(r => setTimeout(r, 200));
 
     const itemsPerPage = 15;
     let allLogs = [];
@@ -4645,6 +4658,7 @@ Farm.openEventLog = async function() {
 
     showPage(1);
 
+    // 后台静默清理旧日志
     try {
         const { count } = await supabase.from('event_logs')
             .select('*', { count: 'exact', head: true })
@@ -4664,7 +4678,7 @@ Farm.openHelp = function() {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay active';
     overlay.innerHTML = `
-        <div class="modal" style="max-width:600px;text-align:left;">
+        <div class="modal">
             <h3>❓ 游戏帮助</h3>
             <div id="helpTabs" style="display:flex;gap:4px;margin-bottom:10px;">
                 <button class="auth-tab active" data-htab="newbie">新手入门</button>
