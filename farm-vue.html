@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>麦田守护者 - Vue 3</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg: #f5f0eb;
+            --card: #ffffff;
+            --text: #3d3929;
+            --accent: #c0844e;
+            --green: #6b8f71;
+            --red: #c0392b;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 16px;
+        }
+        #app {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .auth-form {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            max-width: 380px;
+            margin: 40px auto;
+            text-align: center;
+        }
+        .auth-form h1 { color: var(--text); margin-bottom: 20px; }
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1.5px solid #e0d8cc;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            cursor: pointer;
+            background: #fdfcf9;
+            font-weight: 600;
+            border: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .auth-tab.active { background: var(--accent); color: #fff; }
+        .form-group { margin-bottom: 14px; text-align: left; }
+        .form-group label { font-size: 0.8rem; color: #666; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1.5px solid #e0d8cc;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            margin-top: 4px;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 12px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .msg-error { color: var(--red); font-size: 0.8rem; margin-top: 8px; }
+
+        /* 主界面 */
+        .header {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem;
+        }
+        .avatar.male { background: #5b7fbc; }
+        .avatar.female { background: #d4869c; }
+        .username { font-weight: 600; color: var(--text); }
+        .gold-display { color: var(--accent); font-weight: 600; }
+        .btn-icon {
+            padding: 6px 12px;
+            background: #f0ede6;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .btn-icon:hover { opacity: 0.8; }
+        .btn-logout { background: #c0392b; color: #fff; }
+
+        /* 农田 */
+        .farm-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .plot-card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 14px;
+            text-align: center;
+            min-height: 110px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .plot-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        .plot-card.empty { border-color: #d5cec0; }
+        .plot-card.planted { border-color: #c5d5b0; }
+        .plot-card.ready { border-color: #f0c040; animation: pulse 1.5s infinite; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); }
+            50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); }
+        }
+        .plot-emoji { font-size: 2rem; }
+        .plot-name { font-size: 0.8rem; }
+        .plot-status { font-size: 0.7rem; color: #888; }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--green);
+            border-radius: 2px;
+        }
+
+        /* 弹窗 */
+        .modal-overlay {
+            display: flex;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 60px;
+        }
+        .modal {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            width: 380px;
+            max-width: 90vw;
+            text-align: center;
+            position: relative;
+        }
+        .modal h3 { color: var(--text); margin-bottom: 12px; }
+        .btn-close {
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 24px; height: 24px;
+            background: #e8e0d5;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 24px;
+        }
+        .crop-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .crop-btn {
+            padding: 10px 4px;
+            border: 2px solid #e0d8cc;
+            border-radius: var(--radius-md);
+            background: #fdfcf9;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .crop-btn:hover { border-color: var(--accent); }
+        .crop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-water {
+            background: #6ba3be;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 24px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #3d3929;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 600px) {
+            .farm-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+            .plot-card { min-height: 90px; padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 登录界面 -->
+        <div v-if="!isLoggedIn" class="auth-form">
+            <h1>🌱 麦田守护者</h1>
+            <p style="color:#888;margin-bottom:16px;">种菜 · 养宠 · 偷菜 · 丰收</p>
+            <div class="auth-tabs">
+                <button class="auth-tab" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">登录</button>
+                <button class="auth-tab" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">注册</button>
+            </div>
+            <div v-if="authMode === 'login'">
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" v-model="loginEmail" placeholder="请输入邮箱">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" v-model="loginPassword" placeholder="请输入密码">
+                </div>
+                <button class="btn-primary" @click="handleLogin" :disabled="loading">登录农场</button>
+            </div>
+            <div v-else>
+                <div class="form-group">
+                    <label>昵称</label>
+                    <input type="text" v-model="regUsername" placeholder="请输入昵称" maxlength="12">
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" v-model="regEmail" placeholder="请输入邮箱">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" v-model="regPassword" placeholder="密码至少6位">
+                </div>
+                <div class="form-group">
+                    <label>性别</label>
+                    <select v-model="regGender">
+                        <option value="none">不透露</option>
+                        <option value="male">男士</option>
+                        <option value="female">女士</option>
+                    </select>
+                </div>
+                <button class="btn-primary" @click="handleRegister" :disabled="loading">注册并进入农场</button>
+            </div>
+            <p class="msg-error" v-if="errorMsg">{{ errorMsg }}</p>
+        </div>
+
+        <!-- 主界面 -->
+        <div v-else>
+            <div class="header">
+                <div class="user-info">
+                    <div class="avatar" :class="profile.gender || 'none'">{{ initial }}</div>
+                    <div>
+                        <div class="username">{{ profile.username }}</div>
+                        <div class="gold-display">🪙 {{ profile.gold }}</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn-icon" @click="refreshFarm">🔄 刷新</button>
+                    <button class="btn-icon btn-logout" @click="handleLogout">退出</button>
+                </div>
+            </div>
+
+            <!-- 农田网格 -->
+            <div class="farm-grid">
+                <div v-for="plot in visiblePlots" :key="plot.plot_index"
+                     class="plot-card"
+                     :class="getPlotClass(plot)"
+                     @click="onPlotClick(plot)">
+                    <div class="plot-emoji">{{ getPlotEmoji(plot) }}</div>
+                    <div class="plot-name">{{ getPlotName(plot) }}</div>
+                    <div class="plot-status" v-html="getPlotStatus(plot)"></div>
+                    <div class="progress-bar" v-if="plot._status === 'growing'">
+                        <div class="progress-fill" :style="{ width: plot._progress + '%' }"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 种植弹窗 -->
+        <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal = false">
+            <div class="modal">
+                <h3>🌱 选择作物</h3>
+                <div class="crop-grid">
+                    <button v-for="crop in availableCrops" :key="crop.key"
+                            class="crop-btn"
+                            :disabled="profile.gold < crop.seed"
+                            @click="doPlant(crop)">
+                        <div style="font-size:2rem;">{{ crop.emoji }}</div>
+                        <div>{{ crop.name }}</div>
+                        <div style="font-size:0.7rem;">🪙{{ crop.seed }} ⏱{{ crop.growth }}分</div>
+                    </button>
+                </div>
+                <button class="btn-close" @click="showPlantModal = false">×</button>
+            </div>
+        </div>
+
+        <!-- 浇水弹窗 -->
+        <div v-if="showWaterModal" class="modal-overlay" @click.self="showWaterModal = false">
+            <div class="modal">
+                <h3>💧 浇水</h3>
+                <p>{{ waterPlotName }} 正在生长，要浇水加速吗？</p>
+                <button class="btn-water" @click="doWater">浇水（加速30%）</button>
+                <button class="btn-close" @click="showWaterModal = false">×</button>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" :class="{ show: toastMsg }">{{ toastMsg }}</div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed } = Vue;
+
+        const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ==================== 作物数据 ====================
+        const CROPS = {
+            strawberry: { name:'草莓', emoji:'🍓', seed:60, growth:12, min:100, max:140, type:'fruit', unlock:'初始' },
+            grape: { name:'葡萄', emoji:'🍇', seed:90, growth:18, min:150, max:220, type:'fruit', unlock:'初始' },
+            carrot: { name:'胡萝卜', emoji:'🥕', seed:20, growth:8, min:50, max:80, type:'vegetable', unlock:'初始' },
+            tomato: { name:'番茄', emoji:'🍅', seed:40, growth:10, min:70, max:100, type:'vegetable', unlock:'初始' },
+            corn: { name:'玉米', emoji:'🌽', seed:80, growth:15, min:130, max:180, type:'vegetable', unlock:'初始' },
+            potato: { name:'土豆', emoji:'🥔', seed:30, growth:9, min:60, max:90, type:'vegetable', unlock:'初始' },
+            cabbage: { name:'白菜', emoji:'🥬', seed:35, growth:8, min:55, max:85, type:'vegetable', unlock:'初始' },
+            sunflower: { name:'向日葵', emoji:'🌻', seed:50, growth:10, min:80, max:120, type:'flower', unlock:'初始' },
+            chrysanthemum: { name:'菊花', emoji:'🌼', seed:50, growth:10, min:80, max:120, type:'flower', unlock:'初始' },
+            mushroom: { name:'蘑菇', emoji:'🍄', seed:45, growth:10, min:70, max:110, type:'special', unlock:'初始' },
+            peanut: { name:'花生', emoji:'🥜', seed:55, growth:12, min:90, max:130, type:'special', unlock:'初始' },
+        };
+
+        // 初始可用的作物（unlock === '初始'）
+        const DEFAULT_CROPS = Object.entries(CROPS)
+            .filter(([k, v]) => v.unlock === '初始')
+            .map(([k, v]) => ({ key: k, ...v }));
+
+        const WATER_COOLDOWN_MS = 30 * 60 * 1000;
+
+        createApp({
+            setup() {
+                // ==================== 状态 ====================
+                const isLoggedIn = ref(false);
+                const authMode = ref('login');
+                const loading = ref(false);
+                const errorMsg = ref('');
+                const toastMsg = ref('');
+
+                const loginEmail = ref('');
+                const loginPassword = ref('');
+                const regUsername = ref('');
+                const regEmail = ref('');
+                const regPassword = ref('');
+                const regGender = ref('none');
+
+                const profile = reactive({ id: '', username: '', gender: 'none', gold: 0, unlocked_plots: 4 });
+                const rawPlots = ref([]);
+                const items = reactive({});
+
+                // 弹窗状态
+                const showPlantModal = ref(false);
+                const showWaterModal = ref(false);
+                const selectedPlotIndex = ref(-1);
+                const availableCrops = ref(DEFAULT_CROPS);
+
+                const initial = computed(() => (profile.username || '农')[0]);
+
+                // ==================== 地块计算属性 ====================
+                const visiblePlots = computed(() => {
+                    return rawPlots.value
+                        .filter(p => p.plot_index < (profile.unlocked_plots || 4))
+                        .map(p => {
+                            const now = new Date();
+                            let status = 'empty', progress = 0, remainingMin = 0, waterable = false, name = '空地', emoji = '🟫';
+
+                            if (p.crop_type && p.planted_at) {
+                                const crop = CROPS[p.crop_type];
+                                emoji = crop ? crop.emoji : '🌱';
+                                name = crop ? crop.name : '作物';
+                                const planted = new Date(p.planted_at);
+                                let gm = p.growth_minutes * 60 * 1000;
+                                if (p.watered_at) gm = Math.floor(gm * 0.7);
+                                const mt = new Date(planted.getTime() + gm);
+
+                                if (now >= mt) {
+                                    status = 'ready';
+                                    progress = 100;
+                                } else {
+                                    status = 'growing';
+                                    const el = now - planted;
+                                    progress = Math.floor((el / gm) * 100);
+                                    remainingMin = Math.ceil((mt - now) / 60000);
+                                    let wa = true;
+                                    if (p.watered_at) {
+                                        const lw = new Date(p.watered_at);
+                                        wa = (now - lw) >= WATER_COOLDOWN_MS;
+                                    }
+                                    waterable = wa;
+                                }
+                            }
+                            return { ...p, _status: status, _progress: progress, _remainingMin: remainingMin, _waterable: waterable, _name: name, _emoji: emoji };
+                        });
+                });
+
+                function getPlotClass(plot) {
+                    if (plot._status === 'empty') return 'empty';
+                    if (plot._status === 'ready') return 'ready';
+                    return 'planted';
+                }
+                function getPlotEmoji(plot) { return plot._emoji; }
+                function getPlotName(plot) { return plot._name; }
+                function getPlotStatus(plot) {
+                    if (plot._status === 'empty') return '空地';
+                    if (plot._status === 'ready') return '✨可收获';
+                    const wh = plot._waterable ? '💧可浇水' : '🔥加速中';
+                    return wh + ' 剩' + plot._remainingMin + '分';
+                }
+
+                // ==================== 地块操作 ====================
+                function onPlotClick(plot) {
+                    if (plot._status === 'empty') {
+                        selectedPlotIndex.value = plot.plot_index;
+                        availableCrops.value = DEFAULT_CROPS;
+                        showPlantModal.value = true;
+                    } else if (plot._status === 'ready') {
+                        doHarvest(plot);
+                    } else {
+                        selectedPlotIndex.value = plot.plot_index;
+                        showWaterModal.value = true;
+                    }
+                }
+
+                const waterPlotName = computed(() => {
+                    const p = rawPlots.value.find(p => p.plot_index === selectedPlotIndex.value);
+                    if (!p) return '';
+                    return CROPS[p.crop_type]?.name || '作物';
+                });
+
+                async function doPlant(crop) {
+                    if (profile.gold < crop.seed) { showToast('金币不足！'); return; }
+                    try {
+                        // 扣金币
+                        const { error: goldErr } = await db.rpc('add_gold', { p_user_id: profile.id, p_amount: -crop.seed });
+                        if (goldErr) throw goldErr;
+                        profile.gold -= crop.seed;
+
+                        // 写地块
+                        const now = new Date().toISOString();
+                        const { data: up, error } = await db.from('farm_plots')
+                            .update({ crop_type: crop.key, planted_at: now, growth_minutes: crop.growth, watered_at: null, stolen_count: 0 })
+                            .eq('owner_id', profile.id).eq('plot_index', selectedPlotIndex.value).select().single();
+                        if (error) throw error;
+
+                        // 更新本地数据
+                        const idx = rawPlots.value.findIndex(p => p.plot_index === selectedPlotIndex.value);
+                        if (idx !== -1) rawPlots.value[idx] = up;
+
+                        showPlantModal.value = false;
+                        showToast(`种下了${crop.name}！`);
+
+                        // 记日志
+                        db.from('event_logs').insert({ user_id: profile.id, event_type: 'plant', event_data: { crop: crop.key } }).then(() => {});
+                    } catch (e) {
+                        showToast('种植失败');
+                        console.error(e);
+                    }
+                }
+
+                async function doHarvest(plot) {
+                    const crop = CROPS[plot.crop_type];
+                    if (!crop) return;
+                    const reward = Math.floor(Math.random() * (crop.max - crop.min + 1)) + crop.min;
+
+                    try {
+                        // 加金币
+                        const { error: goldErr } = await db.rpc('add_gold', { p_user_id: profile.id, p_amount: reward });
+                        if (goldErr) throw goldErr;
+                        profile.gold += reward;
+
+                        // 清地块
+                        const { error } = await db.from('farm_plots')
+                            .update({ crop_type: null, planted_at: null, watered_at: null, stolen_count: 0 })
+                            .eq('owner_id', profile.id).eq('plot_index', plot.plot_index);
+                        if (error) throw error;
+
+                        // 更新本地
+                        const idx = rawPlots.value.findIndex(p => p.plot_index === plot.plot_index);
+                        if (idx !== -1) {
+                            rawPlots.value[idx] = { ...rawPlots.value[idx], crop_type: null, planted_at: null, watered_at: null, stolen_count: 0 };
+                        }
+
+                        // 作物入库
+                        await db.rpc('add_item_quantity', { p_user_id: profile.id, p_item_type: plot.crop_type, p_qty: 1 });
+                        if (!items[plot.crop_type]) items[plot.crop_type] = 0;
+                        items[plot.crop_type]++;
+
+                        showToast(`收获成功！🪙${reward}`);
+
+                        // 记日志
+                        db.from('event_logs').insert({ user_id: profile.id, event_type: 'harvest', event_data: { crop: plot.crop_type, gold: reward } }).then(() => {});
+                    } catch (e) {
+                        showToast('收获失败');
+                        console.error(e);
+                    }
+                }
+
+                async function doWater() {
+                    const plot = rawPlots.value.find(p => p.plot_index === selectedPlotIndex.value);
+                    if (!plot) return;
+                    const lw = plot.watered_at ? new Date(plot.watered_at) : null;
+                    if (lw && (new Date() - lw) < WATER_COOLDOWN_MS) {
+                        showToast('30分钟内已浇水');
+                        return;
+                    }
+                    try {
+                        const now = new Date().toISOString();
+                        const { data: up, error } = await db.from('farm_plots')
+                            .update({ watered_at: now })
+                            .eq('owner_id', profile.id).eq('plot_index', selectedPlotIndex.value).select().single();
+                        if (error) throw error;
+                        const idx = rawPlots.value.findIndex(p => p.plot_index === selectedPlotIndex.value);
+                        if (idx !== -1) rawPlots.value[idx] = up;
+                        showWaterModal.value = false;
+                        showToast('浇水成功！');
+                    } catch (e) {
+                        showToast('浇水失败');
+                        console.error(e);
+                    }
+                }
+
+                // ==================== Toast ====================
+                let toastTimer;
+                function showToast(msg) {
+                    toastMsg.value = msg;
+                    clearTimeout(toastTimer);
+                    toastTimer = setTimeout(() => toastMsg.value = '', 2000);
+                }
+
+                // ==================== 登录 ====================
+                async function handleLogin() {
+                    errorMsg.value = '';
+                    if (!loginEmail.value || !loginPassword.value) { errorMsg.value = '请输入邮箱和密码'; return; }
+                    loading.value = true;
+                    try {
+                        const { data, error } = await db.auth.signInWithPassword({ email: loginEmail.value, password: loginPassword.value });
+                        if (error) throw error;
+                        await loadAllData(data.user);
+                        isLoggedIn.value = true;
+                        showToast('登录成功！🌱');
+                    } catch (e) {
+                        errorMsg.value = e.message || '登录失败';
+                    } finally { loading.value = false; }
+                }
+
+                async function handleRegister() {
+                    errorMsg.value = '';
+                    if (!regUsername.value || !regEmail.value || !regPassword.value) { errorMsg.value = '请填写所有必填字段'; return; }
+                    if (regPassword.value.length < 6) { errorMsg.value = '密码至少6位'; return; }
+                    loading.value = true;
+                    try {
+                        const { data, error } = await db.auth.signUp({ email: regEmail.value, password: regPassword.value, options: { data: { username: regUsername.value, gender: regGender.value } } });
+                        if (error) throw error;
+                        if (data.user) {
+                            showToast('注册成功！🎉');
+                            await new Promise(r => setTimeout(r, 1500));
+                            await loadAllData(data.user);
+                            isLoggedIn.value = true;
+                        }
+                    } catch (e) {
+                        errorMsg.value = e.message || '注册失败';
+                    } finally { loading.value = false; }
+                }
+
+                // ==================== 数据加载 ====================
+                async function loadAllData(user) {
+                    profile.id = user.id;
+                    let { data: prof } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
+                    if (!prof) {
+                        const username = user.user_metadata?.username || '农夫';
+                        const gender = user.user_metadata?.gender || 'none';
+                        await db.from('profiles').insert({ id: user.id, username, gender, gold: 200, unlocked_plots: 4, pet_slots: 1, monster_log: {} });
+                        for (let i = 0; i < 4; i++) await db.from('farm_plots').insert({ owner_id: user.id, plot_index: i });
+                        prof = (await db.from('profiles').select('*').eq('id', user.id).single()).data;
+                    }
+                    Object.assign(profile, prof);
+                    const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id', user.id).order('plot_index');
+                    rawPlots.value = plots || [];
+                    const { data: itemData } = await db.from('player_items').select('*').eq('user_id', user.id);
+                    (itemData || []).forEach(d => items[d.item_type] = d.quantity);
+                }
+
+                async function refreshFarm() {
+                    const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id', profile.id).order('plot_index');
+                    rawPlots.value = plots || [];
+                    const { data: prof } = await db.from('profiles').select('*').eq('id', profile.id).single();
+                    if (prof) Object.assign(profile, prof);
+                }
+
+                async function handleLogout() {
+                    await db.auth.signOut();
+                    isLoggedIn.value = false;
+                    Object.assign(profile, { id: '', username: '', gender: 'none', gold: 0 });
+                    rawPlots.value = [];
+                    Object.keys(items).forEach(k => delete items[k]);
+                }
+
+                async function checkSession() {
+                    const { data } = await db.auth.getSession();
+                    if (data.session) { await loadAllData(data.session.user); isLoggedIn.value = true; }
+                }
+                checkSession();
+
+                return {
+                    isLoggedIn, authMode, loading, errorMsg, toastMsg,
+                    loginEmail, loginPassword, regUsername, regEmail, regPassword, regGender,
+                    profile, visiblePlots, initial,
+                    showPlantModal, showWaterModal, selectedPlotIndex, availableCrops, waterPlotName,
+                    getPlotClass, getPlotEmoji, getPlotName, getPlotStatus,
+                    onPlotClick, doPlant, doWater,
+                    handleLogin, handleRegister, handleLogout, refreshFarm
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
