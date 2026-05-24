@@ -2061,12 +2061,14 @@ async function loadAll() {
                 const token = crypto.randomUUID();
                 await supabase.from('profiles').update({ session_token: token }).eq('id', data.user.id);
                 localStorage.setItem('session_token', token);
+				sessionStorage.setItem('session_active', '1');  // ← 加这行
                 return data;
             }
             async function signOut() {
                 if (State.profileChannel) { supabase.removeChannel(State.profileChannel); State.profileChannel = null; }
                 await supabase.auth.signOut();
                 localStorage.removeItem('session_token');
+				sessionStorage.removeItem('session_active');  // ← 加这行
                 Object.assign(State, { currentUser: null, profile: null, farmPlots: [], friendIds: new Set(), friendProfiles: [], visitingFriend: null, visitingPlots: [], isSubmitting: false, pets: [], items: {}, equipment: [], battle: null, bossStatus: null, petSkills: [], passiveSkills: {}, profileChannel: null, orders: [], seedShop: null, stationedPet: null, mails: [], processingTasks: [], monsterLog: {}, monsterAffixes: [] });
                 render();
             }
