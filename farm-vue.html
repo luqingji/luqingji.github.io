@@ -463,350 +463,566 @@
         <div class="toast" :class="{ show: toastMsg }">{{ toastMsg }}</div>
     </div>
     <script>
-        const { createApp, ref, reactive, computed, watch } = Vue;
+    const { createApp, ref, reactive, computed, onUnmounted } = Vue;
 
-        const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // ==================== 数据常量 ====================
-        const CROPS = {
-            strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
-            grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
-            carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
-            tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
-            corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
-            potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
-            cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
-            sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-            chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-            mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
-            peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
-        };
-        const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
-        const PET_TYPES = {
-            cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
-            dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
-            rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:70,atk:15,def:5,spd:18,luk:12,sta:40}}
-        };
-        const EXPLORE_ROUTES = [
-            {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,exp:20},
-            {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,exp:40},
-            {id:'mine',name:'矿洞挖掘',emoji:'💎',time:2,cost:80,minLevel:10,exp:80},
-        ];
-        const SYNTHESIS_RECIPES = [
-            {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
-            {name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
-            {name:'草鞋',slot:'accessory',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
-            {name:'旅行杖',slot:'weapon',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
-            {name:'旅行斗篷',slot:'armor',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
-            {name:'旅行水壶',slot:'accessory',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
-        ];
-        const SYNTHESIS_FOOD = [
-            {name:'葡萄酒',icon:'🍷',materials:{grape:5},cost:100},
-            {name:'西瓜汁',icon:'🧃',materials:{watermelon:3},cost:50},
-            {name:'蓝莓酱',icon:'🫙',materials:{blueberry:5},cost:80},
-        ];
-        const SYNTHESIS_POTIONS = [
-            {name:'攻击药剂',icon:'🧪',materials:{pepper:3,moonstone:1},cost:300},
-            {name:'防御药剂',icon:'💊',materials:{mushroom:3,relic:1},cost:300},
-        ];
-        const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
-        const ENHANCE_CONFIG = [
-            {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none'},
-            {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none'},
-            {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none'},
-            {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none'},
-            {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none'},
-        ];
-        const MONSTERS = [
-            {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
-            {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
-            {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
-            {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
-            {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
-            {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
-        ];
-        const ELITE_MONSTERS = [
-            {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
-            {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
-            {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
-        ];
-        const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
-        const PVE_MAPS = [
-            {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','鼻涕虫','田鼠','蝗虫'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'},
-            {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['刺猬','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}},
-        ];
-        const MONSTER_AFFIXES = [
-            {id:'swift',name:'迅捷',color:'#3498db',effect:{spd_mult:2},reward:{gold:1.2}},
-            {id:'hard',name:'硬化',color:'#e67e22',effect:{def_mult:2,atk_mult:0.5},reward:{items:1.5}},
-            {id:'treasure',name:'宝藏',color:'#f0c040',effect:{hp_mult:2},reward:{gold:3}},
-        ];
-        const SEED_SHOP = [
-            {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
-            {crop:'chrysanthemum',price:800},{crop:'grape',price:1200},{crop:'peanut',price:1200},
-        ];
-        const ITEM_EMOJI = {
-            hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',
-            grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',
-            potato:'🥔',cabbage:'🥬',sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️',
-            potion_atk:'🧪',potion_def:'💊',wine:'🍷',juice_watermelon:'🧃',jam_blueberry:'🫙',
-            scroll_basic:'📜',protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',auto_battle_ticket:'🎫',
-        };
-        const ITEM_NAMES = {
-            hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',
-            clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',
-            grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',
-            corn:'玉米',potato:'土豆',cabbage:'白菜',sunflower:'向日葵',chrysanthemum:'菊花',
-            mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
-            potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',juice_watermelon:'西瓜汁',jam_blueberry:'蓝莓酱',
-            scroll_basic:'基础技能卷轴',protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',auto_battle_ticket:'自动战斗券',
-        };
-        const WATER_COOLDOWN_MS = 30 * 60 * 1000;
-        const BP_PER_PAGE = 8;
-        const MAX_ENERGY = 10;
+    // ==================== 数据常量 ====================
+    const CROPS = {
+        strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
+        grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
+        watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
+        blueberry:{name:'蓝莓',emoji:'🫐',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'},
+        carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
+        tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
+        corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
+        potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
+        cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
+        sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+        chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+        mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
+        peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
+    };
+    const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
 
-        createApp({
-            setup() {
-                // ===== 状态 =====
-                const isLoggedIn = ref(false);
-                const authMode = ref('login');
-                const loading = ref(false);
-                const errorMsg = ref('');
-                const toastMsg = ref('');
-                const loginEmail = ref(''), loginPassword = ref('');
-                const regUsername = ref(''), regEmail = ref(''), regPassword = ref(''), regGender = ref('none');
-                const profile = reactive({id:'',username:'',gender:'none',gold:0,unlocked_plots:4,pet_slots:1});
-                const rawPlots = ref([]);
-                const items = reactive({});
-                const pets = ref([]);
-                const stationedPet = ref(null);
-                const equipment = ref([]);
-                const monsterLog = reactive({});
+    // 宠物类型 + 性格 + 被动
+    const PET_TYPES = {
+        cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
+        dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
+        rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:70,atk:15,def:5,spd:18,luk:12,sta:40}}
+    };
+    const PET_NATURES = [
+        { id:'brave', name:'勇敢', atk_bonus:0.1, spd_penalty:-0.1 },
+        { id:'calm', name:'沉稳', def_bonus:0.1, atk_penalty:-0.1 },
+        { id:'hasty', name:'急躁', spd_bonus:0.1, def_penalty:-0.1 },
+        { id:'tough', name:'顽强', hp_bonus:0.1, luk_penalty:-0.1 },
+        { id:'lucky', name:'幸运', luk_bonus:0.1, sta_penalty:-0.1 },
+        { id:'balanced', name:'均衡' }
+    ];
+    const PASSIVE_SKILLS = {
+        fire_soul:{name:'炎之魂', desc:'火系伤害+20%，受到水系伤害+15%'},
+        brave:{name:'勇猛', desc:'攻击力+15%，防御力-10%'},
+        regen:{name:'再生', desc:'每回合回复3%最大HP'},
+        lucky:{name:'幸运儿', desc:'暴击率+10%，掉落奖励+20%'},
+    };
 
-                // 弹窗
-                const showPlantModal = ref(false), showWaterModal = ref(false);
-                const showPetsModal = ref(false), showAdoptModal = ref(false);
-                const showExploreModal = ref(false), showSynthesisModal = ref(false);
-                const showEquipmentModal = ref(false), showEquipSelectModal = ref(false);
-                const showBackpackModal = ref(false), showPveModal = ref(false);
-                const showOrdersModal = ref(false), showSeedShopModal = ref(false);
-                const showMailModal = ref(false), showEventLogModal = ref(false);
-                const showFriendsModal = ref(false), showLeaderboardModal = ref(false);
-                const showMonsterLogModal = ref(false);
-                const selectedPlotIndex = ref(-1);
-                const exploringPet = ref(null);
-                const synthTab = ref('equipment');
-                const equippingItem = ref(null);
-                const bpTab = ref('all'), bpPage = ref(1);
+    // 完整6条探险路线
+    const EXPLORE_ROUTES = [
+        {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,materials:{hair:2,seed:1,dew:0.5},rareItem:'dew',rareProb:0.1,eventProb:0.1,eventName:'遇到受伤小动物',eventReward:'gold50',exp:20},
+        {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,materials:{hair:3,ore:1.5,relic:0.3},rareItem:'relic',rareProb:0.15,eventProb:0.15,eventName:'发现宝箱',eventReward:'extra_materials',exp:40},
+        {id:'mine',name:'矿洞挖掘',emoji:'💎',time:2,cost:80,minLevel:10,materials:{ore:3,relic:1.5,moonstone:0.5},rareItem:'moonstone',rareProb:0.2,eventProb:0.2,eventName:'挖到矿石脉',eventReward:'double_materials',exp:80},
+        {id:'ruins',name:'遗迹探险',emoji:'🏛️',time:3,cost:150,minLevel:15,materials:{relic:3,feather:1.5,scale:0.5},rareItem:'scale',rareProb:0.25,eventProb:0.25,eventName:'触发古老机关',eventReward:'rare_material',exp:150},
+        {id:'dragon',name:'龙巢秘境',emoji:'🐉',time:4,cost:300,minLevel:20,materials:{feather:3,scale:2,dragon_soul:0.5},rareItem:'dragon_soul',rareProb:0.3,eventProb:0.3,eventName:'龙魂祝福',eventReward:'bonus_exp',exp:300},
+        {id:'night',name:'暗夜森林',emoji:'🌙',time:2,cost:100,minLevel:10,materials:{dew:3,clover:1.5,feather:0.5},rareItem:'feather',rareProb:0.2,eventProb:0.2,eventName:'萤火虫群',eventReward:'temp_luk',exp:100}
+    ];
 
-                // 战斗
-                const battle = ref(null);
-                const selectedBattlePetId = ref(null);
-                const pveMonsters = ref([]);
-                const pveMapId = ref('');
+    // 合成配方
+    const SYNTHESIS_RECIPES = [
+        {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
+        {name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
+        {name:'草鞋',slot:'accessory',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
+        {name:'旅行杖',slot:'weapon',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
+        {name:'旅行斗篷',slot:'armor',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
+        {name:'旅行水壶',slot:'accessory',quality:'blue',set_name:'旅人',materials:{ore:5,relic:2},cost:500},
+        {name:'矿镐',slot:'weapon',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},
+        {name:'矿工服',slot:'armor',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},
+        {name:'矿灯',slot:'accessory',quality:'purple',set_name:'矿工',materials:{ore:5,relic:4},cost:1200},
+    ];
+    const SYNTHESIS_FOOD = [
+        {name:'wine',icon:'🍷',label:'葡萄酒',materials:{grape:5},cost:100},
+        {name:'juice_watermelon',icon:'🧃',label:'西瓜汁',materials:{watermelon:3},cost:50},
+        {name:'jam_blueberry',icon:'🫙',label:'蓝莓酱',materials:{blueberry:5},cost:80},
+    ];
+    const SYNTHESIS_POTIONS = [
+        {name:'potion_atk',icon:'🧪',label:'攻击药剂',materials:{pepper:3,moonstone:1},cost:300},
+        {name:'potion_def',icon:'💊',label:'防御药剂',materials:{mushroom:3,relic:1},cost:300},
+    ];
+    const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
+    const ENHANCE_CONFIG = [
+        {level:1,cost:200,materials:{ore:2},prob:1.0,penalty:'none'},
+        {level:2,cost:400,materials:{ore:4},prob:1.0,penalty:'none'},
+        {level:3,cost:600,materials:{ore:6},prob:1.0,penalty:'none'},
+        {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9,penalty:'none'},
+        {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8,penalty:'none'},
+        {level:6,cost:2000,materials:{ore:8,relic:3},prob:0.7,penalty:'none'},
+        {level:7,cost:3000,materials:{scale:3,moonstone:2},prob:0.6,penalty:'downgrade'},
+        {level:8,cost:5000,materials:{scale:5,moonstone:3},prob:0.5,penalty:'downgrade'},
+        {level:9,cost:8000,materials:{scale:8,moonstone:5},prob:0.4,penalty:'downgrade'},
+        {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'},
+    ];
 
-                // 社交
-                const orders = ref([]);
-                const seedShop = ref([]);
-                const mails = ref([]);
-                const mailTab = ref('inbox');
-                const mailReceiver = ref(''), mailTitle = ref(''), mailContent = ref('');
-                const eventLogs = ref([]);
-                const friendProfiles = ref([]);
-                const lbTab = ref('global'), lbPage = ref(1), lbRanked = ref([]), lbTotalPages = ref(1);
+    // 怪物数据（战斗系统第二批才用，但为了图鉴保留）
+    const MONSTERS = [
+        {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
+        {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
+        {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
+        {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
+        {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
+        {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
+    ];
+    const ELITE_MONSTERS = [
+        {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
+        {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
+        {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
+    ];
+    const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
 
-                // ===== 计算属性 =====
-                const initial = computed(()=>(profile.username||'农')[0]);
-                const staFactor = computed(()=>{if(!exploringPet.value)return 1;return Math.max(0.2,1-(exploringPet.value.sta||50)/100);});
-                const currentRecipes = computed(()=>{if(synthTab.value==='equipment')return SYNTHESIS_RECIPES;if(synthTab.value==='food')return SYNTHESIS_FOOD;return SYNTHESIS_POTIONS;});
-                const pveMaps = computed(()=>PVE_MAPS.map(m=>({...m,unlocked:!m.unlockCond||(m.unlockCond.type==='elite_kills'?Object.values(monsterLog).reduce((s,x)=>s+(x.kills||0),0)>=m.unlockCond.count:true)})));
+    const SEED_SHOP = [
+        {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
+        {crop:'chrysanthemum',price:800},{crop:'grape',price:1200},{crop:'peanut',price:1200},
+    ];
+    const SEED_TICKET_EXCHANGE = [
+        {crop:'watermelon',cost:5},{crop:'blueberry',cost:5},{crop:'mushroom',cost:5},
+        {crop:'pepper',cost:5},{crop:'pineapple',cost:10},{crop:'mango',cost:10},
+    ];
 
-                const visiblePlots = computed(()=>rawPlots.value.filter(p=>p.plot_index<(profile.unlocked_plots||4)).map(p=>{
-                    const now=new Date();
-                    let status='empty',progress=0,remainingMin=0,waterable=false,name='空地',emoji='🟫';
-                    if(p.crop_type&&p.planted_at){
-                        const crop=CROPS[p.crop_type];emoji=crop?crop.emoji:'🌱';name=crop?crop.name:'作物';
-                        const planted=new Date(p.planted_at);let gm=p.growth_minutes*60*1000;
-                        if(p.watered_at)gm=Math.floor(gm*0.7);const mt=new Date(planted.getTime()+gm);
-                        if(now>=mt){status='ready';progress=100;}else{status='growing';progress=Math.floor((now-planted)/gm*100);remainingMin=Math.ceil((mt-now)/60000);let wa=true;if(p.watered_at)wa=(now-new Date(p.watered_at))>=WATER_COOLDOWN_MS;waterable=wa;}
-                    }
-                    return{...p,_status:status,_progress:progress,_remainingMin:remainingMin,_waterable:waterable,_name:name,_emoji:emoji};
-                }));
-                const waterPlotName = computed(()=>{const p=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);return p?CROPS[p.crop_type]?.name||'作物':'';});
-                const bpFilteredItems = computed(()=>{const all=Object.entries(items).map(([k,v])=>({key:k,qty:v}));if(bpTab.value==='all')return all;if(bpTab.value==='material')return all.filter(({key})=>['hair','seed','dew','ore','relic','moonstone','clover','feather','scale'].includes(key));if(bpTab.value==='seed')return all.filter(({key})=>key.startsWith('seed_'));if(bpTab.value==='crop')return all.filter(({key})=>CROPS[key]);if(bpTab.value==='tool')return all.filter(({key})=>['scroll_basic','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(key)||key.startsWith('book_')||key.startsWith('potion_'));return all;});
-                const bpTotalPages = computed(()=>Math.ceil(bpFilteredItems.value.length/BP_PER_PAGE)||1);
-                const bpPageItems = computed(()=>{const start=(bpPage.value-1)*BP_PER_PAGE;return bpFilteredItems.value.slice(start,start+BP_PER_PAGE).map(item=>({...item,emoji:ITEM_EMOJI[item.key]||'📦',name:ITEM_NAMES[item.key]||item.key,isBook:item.key.startsWith('book_'),isPotion:item.key.startsWith('potion_')}));});
-                const bpPlaceholders = computed(()=>Math.max(0,BP_PER_PAGE-bpPageItems.value.length));
+    const ITEM_EMOJI = {
+        hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',
+        grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',
+        potato:'🥔',cabbage:'🥬',sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️',
+        potion_atk:'🧪',potion_def:'💊',wine:'🍷',juice_watermelon:'🧃',jam_blueberry:'🫙',
+        scroll_basic:'📜',protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',auto_battle_ticket:'🎫',
+        stardust:'🌟',dragon_soul:'🔮',snowflake:'❄️',
+    };
+    const ITEM_NAMES = {
+        hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',
+        clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片',snowflake:'雪花结晶',
+        grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',
+        corn:'玉米',potato:'土豆',cabbage:'白菜',sunflower:'向日葵',chrysanthemum:'菊花',
+        mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
+        potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',juice_watermelon:'西瓜汁',jam_blueberry:'蓝莓酱',
+        scroll_basic:'基础技能卷轴',protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',auto_battle_ticket:'自动战斗券',
+    };
 
-                // ===== 工具函数 =====
-                function showToast(msg){toastMsg.value=msg;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastMsg.value='',2000);}
-                let toastTimer;
-                function getPlotClass(p){return{empty:'empty',ready:'ready'}[p._status]||'planted';}
-                function getPlotEmoji(p){return p._emoji;}
-                function getPlotName(p){return p._name;}
-                function getPlotStatus(p){if(p._status==='empty')return'空地';if(p._status==='ready')return'✨可收获';return(p._waterable?'💧可浇水':'🔥加速中')+' 剩'+p._remainingMin+'分';}
-                function getPetEmoji(t){return PET_TYPES[t]?.emoji||'🐾';}
-                function isStationed(p){return stationedPet.value?.id===p.id;}
-                function getEquippedPetName(eq){if(!eq.equipped_to)return'未装备';const pet=pets.value.find(p=>p.id===eq.equipped_to);return pet?pet.pet_name:'?';}
-                function formatMats(mats){return Object.entries(mats).map(([k,v])=>`${ITEM_EMOJI[k]||k}×${v}`).join(' ');}
-                function canCraft(recipe){return Object.entries(recipe.materials).every(([k,v])=>(items[k]||0)>=v)&&profile.gold>=recipe.cost;}
-                function getCropEmoji(k){return CROPS[k]?.emoji||'🌱';}
-                function getCropName(k){return CROPS[k]?.name||k;}
-                function formatTime(iso){if(!iso)return'';const d=new Date(iso),now=new Date(),diff=now-d,mins=Math.floor(diff/60000);if(mins<1)return'刚刚';if(mins<60)return`${mins}分钟前`;const hours=Math.floor(mins/60);if(hours<24)return`${hours}小时前`;return`${Math.floor(hours/24)}天前`;}
-                function formatMailItems(it){return Object.entries(it).filter(([k,v])=>v>0).map(([k,v])=>`${ITEM_EMOJI[k]||'📦'}×${v}`).join(' ');}
-                function formatEventMsg(log){const d=log.event_data||{};switch(log.event_type){case'plant':return`🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;case'harvest':return`🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;default:return log.event_type;}}
+    const WATER_COOLDOWN_MS = 30 * 60 * 1000;
+    const BP_PER_PAGE = 8;
+    const MAX_LOG_COUNT = 200;
+    const MAX_ENERGY = 10;
+    const PLOT_MAX_COUNT = 12;
+    const MAX_PET_SLOTS = 6;
+    const PET_MAX_LEVEL = 30;
+    const BASE_MATERIALS = ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
+    const PET_SLOT_UNLOCK = [
+        { slot:2, desc:'第1只宠物达到Lv.10', gold:5000, cond:{petLevel:10} },
+        { slot:3, desc:'解锁8块农田', gold:20000, cond:{plots:8} },
+        { slot:4, desc:'击败任意精英怪×5', gold:50000, cond:{eliteKills:5}, materials:{scale:10} },
+        { slot:5, desc:'宠物探险完成50次', gold:100000, cond:{explores:50}, materials:{dragon_soul:5} },
+        { slot:6, desc:'击败BOSS虫母女王×3', gold:200000, cond:{bossKills:3}, materials:{stardust:10} }
+    ];
+    const PET_STATION_EFFECTS = {
+        cat:'20%概率驱赶偷菜者；收获时5%概率双倍',
+        dog:'浇水效果+20%',
+        rabbit:'生长时间-10%，探险时间-10%'
+    };
 
-                // ===== 农田操作 =====
-                function onPlotClick(p){if(p._status==='empty'){selectedPlotIndex.value=p.plot_index;showPlantModal.value=true;}else if(p._status==='ready'){doHarvest(p);}else{selectedPlotIndex.value=p.plot_index;showWaterModal.value=true;}}
-                async function doPlant(crop){if(profile.gold<crop.seed){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-crop.seed});profile.gold-=crop.seed;const now=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({crop_type:crop.key,planted_at:now,growth_minutes:crop.growth,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showPlantModal.value=false;showToast(`种下了${crop.name}！`);db.from('event_logs').insert({user_id:profile.id,event_type:'plant',event_data:{crop:crop.key}}).then(()=>{});}catch(e){showToast('种植失败');}}
-                async function doHarvest(plot){const crop=CROPS[plot.crop_type];if(!crop)return;const reward=Math.floor(Math.random()*(crop.max-crop.min+1))+crop.min;try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:reward});profile.gold+=reward;await db.from('farm_plots').update({crop_type:null,planted_at:null,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',plot.plot_index);const idx=rawPlots.value.findIndex(p=>p.plot_index===plot.plot_index);if(idx!==-1)rawPlots.value[idx]={...rawPlots.value[idx],crop_type:null,planted_at:null,watered_at:null,stolen_count:0};await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:plot.crop_type,p_qty:1});if(!items[plot.crop_type])items[plot.crop_type]=0;items[plot.crop_type]++;showToast(`收获成功！🪙${reward}`);db.from('event_logs').insert({user_id:profile.id,event_type:'harvest',event_data:{crop:plot.crop_type,gold:reward}}).then(()=>{});}catch(e){showToast('收获失败');}}
-                async function doWater(){const plot=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);if(!plot)return;if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{const now=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({watered_at:now}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showWaterModal.value=false;showToast('浇水成功！');}catch(e){showToast('浇水失败');}}
+    createApp({
+        setup() {
+            // ===== 状态 =====
+            const isLoggedIn = ref(false);
+            const authMode = ref('login');
+            const loading = ref(false);
+            const errorMsg = ref('');
+            const toastMsg = ref('');
 
-                // ===== 宠物操作 =====
-                async function loadPetsData(){const{data}=await db.from('pets').select('*').eq('owner_id',profile.id);pets.value=data||[];}
-                function toggleStation(p){if(isStationed(p)){stationedPet.value=null;showToast('已取消驻扎');}else{stationedPet.value=p;showToast(`${p.pet_name}已驻扎农田！`);}}
-                async function doAdopt(type){const info=PET_TYPES[type];if(!info)return;if(pets.value.length>=profile.pet_slots){showToast('宠物槽位已满');return;}const base=info.baseAttr;const iv={hp:Math.round(base.hp*(0.85+Math.random()*0.3)),atk:Math.round(base.atk*(0.85+Math.random()*0.3)),def:Math.round(base.def*(0.85+Math.random()*0.3)),spd:Math.round(base.spd*(0.85+Math.random()*0.3)),luk:Math.round(base.luk*(0.85+Math.random()*0.3)),sta:Math.round(base.sta*(0.85+Math.random()*0.3))};try{const{data}=await db.from('pets').insert({owner_id:profile.id,pet_type:type,pet_name:info.name,level:1,exp:0,...iv,hunger:100,happiness:100}).select().single();pets.value.push(data);showAdoptModal.value=false;showToast('领养成功！');}catch(e){showToast('领养失败');}}
-                function openExplore(p){exploringPet.value=p;showExploreModal.value=true;}
-                async function doExplore(route){const pet=exploringPet.value;if(!pet)return;if(pet.level<route.minLevel){showToast(`需要宠物Lv.${route.minLevel}`);return;}if(profile.gold<route.cost){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-route.cost});profile.gold-=route.cost;const actualTime=Math.max(0.1,route.time*staFactor.value);const eu=new Date(Date.now()+actualTime*3600000).toISOString();await db.from('pets').update({exploring_until:eu}).eq('id',pet.id);pet.exploring_until=eu;showExploreModal.value=false;showToast(`${pet.pet_name}前往${route.name}探险！`);}catch(e){showToast('探险失败');}}
-                async function completeExplore(pet){try{const route=EXPLORE_ROUTES.find(r=>r.id==='grassland')||EXPLORE_ROUTES[0];const rewardGold=Math.floor(Math.random()*30)+10;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:rewardGold});profile.gold+=rewardGold;pet.exp=(pet.exp||0)+route.exp;if(pet.exp>=pet.level*100+pet.level*pet.level*15&&pet.level<30){pet.level++;pet.hp+=2;pet.atk+=1;pet.def+=1;showToast(`${pet.pet_name}升级到Lv.${pet.level}！`);}await db.from('pets').update({exploring_until:null,exp:pet.exp,level:pet.level}).eq('id',pet.id);pet.exploring_until=null;showToast(`${pet.pet_name}探险归来！🪙+${rewardGold}`);}catch(e){showToast('领取失败');}}
+            const loginEmail = ref(''), loginPassword = ref('');
+            const regUsername = ref(''), regEmail = ref(''), regPassword = ref(''), regGender = ref('none');
 
-                // ===== 装备操作 =====
-                async function loadEquipmentData(){const{data}=await db.from('equipment').select('*').eq('owner_id',profile.id);equipment.value=data||[];}
-                async function doSynthesize(recipe,idx){for(const[item,need]of Object.entries(recipe.materials)){if((items[item]||0)<need){showToast('材料不足');return;}}if(profile.gold<recipe.cost){showToast('金币不足');return;}try{for(const[item,need]of Object.entries(recipe.materials)){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-need});items[item]-=need;}await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-recipe.cost});profile.gold-=recipe.cost;if(synthTab.value==='equipment'){let q=recipe.quality;const rand=Math.random();if(recipe.quality==='white'&&rand>0.7)q=rand>0.95?'blue':'white';else if(recipe.quality==='blue'&&rand>0.75)q=rand>0.96?'purple':'blue';const ab=q==='gold'?30:q==='purple'?20:q==='blue'?15:10;const db2=recipe.slot==='armor'?(q==='gold'?20:q==='purple'?15:10):0;const lb=recipe.slot==='accessory'?(q==='gold'?15:10):0;const{data:newEq}=await db.from('equipment').insert({owner_id:profile.id,name:recipe.name,slot:recipe.slot,quality:q,set_name:recipe.set_name,atk_bonus:ab,def_bonus:db2,luk_bonus:lb}).select().single();equipment.value.push(newEq);showToast(`合成成功！获得${newEq.name}(${QUALITY_NAMES[q]})`);}else{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:recipe.name,p_qty:1});if(!items[recipe.name])items[recipe.name]=0;items[recipe.name]++;showToast(`合成成功！获得${recipe.icon}${recipe.name}`);}}catch(e){showToast('合成失败');}}
-                async function doEnhance(eq){const nextLevel=(eq.enhance_level||0)+1;const config=ENHANCE_CONFIG.find(c=>c.level===nextLevel);if(!config)return;for(const[item,need]of Object.entries(config.materials)){if((items[item]||0)<need){showToast(`材料不足`);return;}}if(profile.gold<config.cost){showToast('金币不足');return;}try{for(const[item,need]of Object.entries(config.materials)){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-need});items[item]-=need;}await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-config.cost});profile.gold-=config.cost;if(Math.random()<config.prob){const baseAtk=Math.round(eq.atk_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));const baseDef=Math.round(eq.def_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));const baseLuk=Math.round(eq.luk_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));const na=eq.atk_bonus+Math.round(baseAtk*0.1),nd=eq.def_bonus+Math.round(baseDef*0.1),nl=eq.luk_bonus+Math.round(baseLuk*0.1);await db.from('equipment').update({enhance_level:nextLevel,atk_bonus:na,def_bonus:nd,luk_bonus:nl}).eq('id',eq.id);eq.enhance_level=nextLevel;eq.atk_bonus=na;eq.def_bonus=nd;eq.luk_bonus=nl;showToast(`强化成功！+${nextLevel}`);}else{showToast('强化失败',true);}}catch(e){showToast('强化失败');}}
-                function openEquipSelect(eq){equippingItem.value=eq;showEquipSelectModal.value=true;}
-                async function doEquip(eq,pet){try{await db.from('equipment').update({equipped_to:null}).eq('equipped_to',pet.id).eq('slot',eq.slot);await db.from('equipment').update({equipped_to:pet.id}).eq('id',eq.id);equipment.value.forEach(e=>{if(e.equipped_to===pet.id&&e.slot===eq.slot)e.equipped_to=null;if(e.id===eq.id)e.equipped_to=pet.id;});showEquipSelectModal.value=false;showToast(`已装备${eq.name}`);}catch(e){showToast('装备失败');}}
-                async function doUnequip(eq){try{await db.from('equipment').update({equipped_to:null}).eq('id',eq.id);eq.equipped_to=null;showToast('已卸下');}catch(e){showToast('卸下失败');}}
-                async function doDecompose(eq){if(!confirm('确定分解？'))return;const recipe=SYNTHESIS_RECIPES.find(r=>r.name===eq.name);if(!recipe){showToast('无法分解');return;}const rates={white:0.6,blue:0.5,purple:0.4,gold:0.3};const rate=rates[eq.quality]||0.5;try{for(const[item,need]of Object.entries(recipe.materials)){const refund=Math.max(1,Math.floor(need*rate));await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:refund});items[item]=(items[item]||0)+refund;}if(eq.enhance_level>0){await db.rpc('add_gold',{p_user_id:profile.id,p_amount:eq.enhance_level*100});profile.gold+=eq.enhance_level*100;}await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);showToast('分解成功！');}catch(e){showToast('分解失败');}}
-                async function doSell(eq){if(!confirm('确定出售？'))return;const prices={white:200,blue:500,purple:1200,gold:3000};const price=Math.floor((prices[eq.quality]||200)*(1+(eq.enhance_level||0)*0.15));try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:price});profile.gold+=price;await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);showToast(`出售成功！🪙${price}`);}catch(e){showToast('出售失败');}}
+            const profile = reactive({id:'',username:'',gender:'none',gold:0,unlocked_plots:4,pet_slots:1});
+            const rawPlots = ref([]);
+            const items = reactive({});
+            const pets = ref([]);
+            const stationedPet = ref(null);
+            const equipment = ref([]);
+            const monsterLog = reactive({});
+            const friendProfiles = ref([]);
 
-                // ===== 战斗系统 =====
-                function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
-                function openPveMap(map){pveMapId.value=map.id;const monsterPool=MONSTERS.filter(m=>map.monsterIds.includes(m.name));const elitePool=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));const shuffled=[...monsterPool].sort(()=>Math.random()-0.5).slice(0,3);pveMonsters.value=shuffled.map(m=>{const affixCount=Math.random()<0.3?2:(Math.random()<0.5?1:0);const affixes=[];if(affixCount>0){const shuffledAffixes=[...MONSTER_AFFIXES].sort(()=>Math.random()-0.5);for(let i=0;i<affixCount;i++)affixes.push(shuffledAffixes[i]);}return{...m,affixes,isElite:false};}).concat(elitePool.map(m=>({...m,affixes:[],isElite:true})));}
-                function startPveBattle(monster){
-                    const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));
-                    if(!pet){showToast('请先领养宠物');return;}
-                    let mHp=monster.hp,mAtk=monster.atk,mDef=monster.def,mSpd=monster.spd;
-                    (monster.affixes||[]).forEach(a=>{if(a.effect.hp_mult)mHp=Math.floor(mHp*a.effect.hp_mult);if(a.effect.atk_mult)mAtk=Math.floor(mAtk*a.effect.atk_mult);if(a.effect.def_mult)mDef=Math.floor(mDef*a.effect.def_mult);if(a.effect.spd_mult)mSpd=Math.floor(mSpd*a.effect.spd_mult);});
-                    battle.value={
-                        myPet:pet,myCurrentHp:pet.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],mySkills:[],
-                        opponentPet:{...monster,hp:mHp,atk:mAtk,def:mDef,spd:mSpd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji,level:monster.minLevel},
-                        opponentName:monster.name,opponentCurrentHp:mHp,oppHpPct:100,oppEnergy:3,oppBuffs:[],
-                        skillCooldowns:{},logHTML:'',monster,affixes:monster.affixes||[],turn:1
-                    };
-                    showPveModal.value=false;showToast('战斗开始！');
-                }
-                function startFriendBattle(friend){
-                    const myPet=pets.value[0];if(!myPet){showToast('请先领养宠物');return;}
-                    db.from('pets').select('*').eq('owner_id',friend.id).then(({data})=>{
-                        if(!data||data.length===0){showToast('好友没有宠物');return;}
-                        const opp=data[0];
-                        battle.value={
-                            myPet,myCurrentHp:myPet.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],mySkills:[],
-                            opponentPet:opp,opponentName:friend.username,opponentCurrentHp:opp.hp,oppHpPct:100,oppEnergy:3,oppBuffs:[],
-                            skillCooldowns:{},logHTML:'',friend,affixes:[],turn:1
-                        };
-                        showFriendsModal.value=false;showToast('切磋开始！');
-                    });
-                }
-                function doBattleAction(action,skill=null){
-                    const b=battle.value;if(!b)return;
-                    let dmg=0,log='';
-                    if(action==='attack'){
-                        dmg=Math.max(1,b.myPet.atk-b.opponentPet.def+Math.floor(Math.random()*10));
-                        b.opponentCurrentHp=Math.max(0,b.opponentCurrentHp-dmg);
-                        b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+1);
-                        log=`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害`;
-                    }else if(action==='defend'){
-                        b.myBuffs.push({type:'defend',duration:1});
-                        b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+2);
-                        log=`你选择防御`;
-                    }
-                    // 怪物反击
-                    if(b.opponentCurrentHp>0){
-                        const oppDmg=Math.max(1,b.opponentPet.atk-b.myPet.def+Math.floor(Math.random()*5));
-                        const defended=b.myBuffs.some(bf=>bf.type==='defend');
-                        const finalDmg=defended?Math.floor(oppDmg*0.5):oppDmg;
-                        b.myCurrentHp=Math.max(0,b.myCurrentHp-finalDmg);
-                        log+=`<br>对手 ${b.opponentPet.pet_name} 攻击，造成 ${finalDmg} 点伤害${defended?'（防御减免）':''}`;
-                    }
-                    b.myBuffs=b.myBuffs.filter(bf=>{bf.duration--;return bf.duration>0;});
-                    b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));
-                    b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));
-                    b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;
-                    b.logHTML=(b.logHTML||'')+`<div>${log}</div>`;
-                    b.turn++;
-                    if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1000);}
-                    else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1000);}
-                }
-                async function endBattle(won){
-                    const b=battle.value;if(!b)return;
-                    if(won&&b.monster){
-                        const gr=b.monster.rewards?.gold||20;
-                        await db.rpc('add_gold',{p_user_id:profile.id,p_amount:gr});profile.gold+=gr;
-                        if(!monsterLog[b.monster.name])monsterLog[b.monster.name]={kills:0,affixes:[]};
-                        monsterLog[b.monster.name].kills++;
-                        await db.from('profiles').update({monster_log:monsterLog}).eq('id',profile.id);
-                        showToast(`胜利！🪙+${gr}`);
-                    }
-                    battle.value=null;
-                }
-                function fleeBattle(){battle.value=null;showToast('已逃跑');}
+            // 弹窗
+            const showPlantModal = ref(false), showWaterModal = ref(false);
+            const showPetsModal = ref(false), showAdoptModal = ref(false);
+            const showExploreModal = ref(false), showSynthesisModal = ref(false);
+            const showEquipmentModal = ref(false), showEquipSelectModal = ref(false);
+            const showBackpackModal = ref(false), showPveModal = ref(false);
+            const showOrdersModal = ref(false), showSeedShopModal = ref(false);
+            const showMailModal = ref(false), showEventLogModal = ref(false);
+            const showFriendsModal = ref(false), showLeaderboardModal = ref(false);
+            const showMonsterLogModal = ref(false);
+            const showUnlockPlotModal = ref(false), showPetSlotsModal = ref(false);
+            const showFriendFarmModal = ref(false), showHelpModal = ref(false);
 
-                // ===== 社交 =====
-                async function loadOrders(){const{data}=await db.from('player_orders').select('orders').eq('user_id',profile.id).eq('order_date',new Date().toDateString()).maybeSingle();if(data&&data.orders)orders.value=data.orders;else{const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始');const o=[];for(let i=0;i<3;i++){const ck=possible[Math.floor(Math.random()*possible.length)];o.push({crop:ck,amount:Math.floor(Math.random()*3)+1,rewardGold:100+Math.floor(Math.random()*200),rewardTicket:Math.floor(Math.random()*2)+1});}orders.value=o;await db.from('player_orders').upsert({user_id:profile.id,order_date:new Date().toDateString(),orders:o},{onConflict:'user_id,order_date'});}}
-                async function submitOrder(idx){const order=orders.value[idx];if(!order)return;if((items[order.crop]||0)<order.amount){showToast('作物不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:order.crop,p_qty:-order.amount});items[order.crop]-=order.amount;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:order.rewardGold});profile.gold+=order.rewardGold;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_ticket',p_qty:order.rewardTicket});if(!items['seed_ticket'])items['seed_ticket']=0;items['seed_ticket']+=order.rewardTicket;orders.value.splice(idx,1);showToast('订单完成！');}catch(e){showToast('提交失败');}}
-                async function loadSeedShop(){const today=new Date().toDateString();const shuffled=[...SEED_SHOP].sort(()=>Math.random()-0.5).slice(0,4);seedShop.value=shuffled.map(s=>({...s,price:s.price+Math.floor(Math.random()*200)}));}
-                async function buySeed(item){if(profile.gold<item.price){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-item.price});profile.gold-=item.price;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_'+item.crop,p_qty:1});if(!items['seed_'+item.crop])items['seed_'+item.crop]=0;items['seed_'+item.crop]++;showToast(`购买成功！`);}catch(e){showToast('购买失败');}}
-                async function loadMails(){const{data}=await db.from('mail').select('*').eq('receiver_id',profile.id).order('created_at',{ascending:false}).limit(20);mails.value=data||[];}
-                async function claimMail(m){try{if(m.items)for(const[k,v]of Object.entries(m.items)){if(v>0){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:k,p_qty:v});if(!items[k])items[k]=0;items[k]+=v;}}m.is_claimed=true;await db.from('mail').update({is_claimed:true}).eq('id',m.id);showToast('附件已领取！');}catch(e){showToast('领取失败');}}
-                async function sendMail(){if(!mailReceiver.value||!mailTitle.value){showToast('收件人和主题不能为空');return;}const{data:receiver}=await db.from('profiles').select('id,username').eq('username',mailReceiver.value).maybeSingle();if(!receiver){showToast('找不到该用户');return;}try{await db.from('mail').insert({receiver_id:receiver.id,receiver_name:receiver.username,sender_id:profile.id,sender_name:profile.username,title:mailTitle.value,content:mailContent.value,items:{},is_read:false,is_claimed:false});showToast('邮件已发送！');mailTab.value='inbox';}catch(e){showToast('发送失败');}}
-                async function loadEventLogs(){const{data}=await db.from('event_logs').select('*').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(100);eventLogs.value=data||[];}
-                async function loadFriendProfiles(){const{data:friended}=await db.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`).eq('status','accepted');const friendIds=new Set();(friended||[]).forEach(f=>friendIds.add(f.from_user===profile.id?f.to_user:f.from_user));if(friendIds.size>0){const{data}=await db.from('profiles').select('id,username,gender,gold').in('id',[...friendIds]);friendProfiles.value=data||[];}else friendProfiles.value=[];}
-                async function loadLeaderboard(){const{data}=await db.from('profiles').select('id,username,gold,gender').order('gold',{ascending:false});if(lbTab.value==='friends'){const friendIds=new Set((friendProfiles.value||[]).map(f=>f.id));friendIds.add(profile.id);lbRanked.value=(data||[]).filter(p=>friendIds.has(p.id)).slice((lbPage.value-1)*10,lbPage.value*10);lbTotalPages.value=Math.ceil((data||[]).filter(p=>friendIds.has(p.id)).length/10)||1;}else{lbRanked.value=(data||[]).slice((lbPage.value-1)*10,lbPage.value*10);lbTotalPages.value=Math.ceil((data||[]).length/10)||1;}}
-                function onBackpackItemClick(item){if(item.isBook){showBackpackModal.value=false;showToast('技能书请在旧版中使用');}else if(item.isPotion){showToast('战斗药剂请在战斗前使用');}}
+            const selectedPlotIndex = ref(-1);
+            const exploringPet = ref(null);
+            const synthTab = ref('equipment');
+            const equippingItem = ref(null);
+            const bpTab = ref('all'), bpPage = ref(1);
 
-                // ===== 登录 =====
-                async function handleLogin(){errorMsg.value='';if(!loginEmail.value||!loginPassword.value){errorMsg.value='请输入邮箱和密码';return;}loading.value=true;try{const{data,error}=await db.auth.signInWithPassword({email:loginEmail.value,password:loginPassword.value});if(error)throw error;await loadAllData(data.user);isLoggedIn.value=true;showToast('登录成功！🌱');}catch(e){errorMsg.value=e.message||'登录失败';}finally{loading.value=false;}}
-                async function handleRegister(){errorMsg.value='';if(!regUsername.value||!regEmail.value||!regPassword.value){errorMsg.value='请填写所有必填字段';return;}if(regPassword.value.length<6){errorMsg.value='密码至少6位';return;}loading.value=true;try{const{data,error}=await db.auth.signUp({email:regEmail.value,password:regPassword.value,options:{data:{username:regUsername.value,gender:regGender.value}}});if(error)throw error;if(data.user){showToast('注册成功！🎉');await new Promise(r=>setTimeout(r,1500));await loadAllData(data.user);isLoggedIn.value=true;}}catch(e){errorMsg.value=e.message||'注册失败';}finally{loading.value=false;}}
-                async function loadAllData(user){
-                    profile.id=user.id;
-                    let{data:prof}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();
-                    if(!prof){const username=user.user_metadata?.username||'农夫';const gender=user.user_metadata?.gender||'none';await db.from('profiles').insert({id:user.id,username,gender,gold:200,unlocked_plots:4,pet_slots:1,monster_log:{}});for(let i=0;i<4;i++)await db.from('farm_plots').insert({owner_id:user.id,plot_index:i});prof=(await db.from('profiles').select('*').eq('id',user.id).single()).data;}
-                    Object.assign(profile,prof);if(prof.monster_log)Object.assign(monsterLog,prof.monster_log);
-                    const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',user.id).order('plot_index');rawPlots.value=plots||[];
-                    const{data:itemData}=await db.from('player_items').select('*').eq('user_id',user.id);(itemData||[]).forEach(d=>items[d.item_type]=d.quantity);
-                    await loadPetsData();await loadEquipmentData();await loadOrders();await loadSeedShop();await loadFriendProfiles();
-                }
-                async function refreshFarm(){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',profile.id).order('plot_index');rawPlots.value=plots||[];const{data:prof}=await db.from('profiles').select('*').eq('id',profile.id).single();if(prof)Object.assign(profile,prof);}
-                async function handleLogout(){await db.auth.signOut();isLoggedIn.value=false;Object.assign(profile,{id:'',username:'',gender:'none',gold:0});rawPlots.value=[];pets.value=[];equipment.value=[];}
-                async function checkSession(){const{data}=await db.auth.getSession();if(data.session){await loadAllData(data.session.user);isLoggedIn.value=true;}}
-                checkSession();
+            // 战斗
+            const battle = ref(null);
+            const selectedBattlePetId = ref(null);
+            const pveMonsters = ref([]);
 
-                return {
-                    isLoggedIn,authMode,loading,errorMsg,toastMsg,loginEmail,loginPassword,regUsername,regEmail,regPassword,regGender,
-                    profile,visiblePlots,initial,items,rawPlots,pets,stationedPet,equipment,monsterLog,
-                    showPlantModal,showWaterModal,showPetsModal,showAdoptModal,showExploreModal,showSynthesisModal,
-                    showEquipmentModal,showEquipSelectModal,showBackpackModal,showPveModal,
-                    showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,
-                    selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,
-                    battle,selectedBattlePetId,pveMonsters,pveMapId,pveMaps,
-                    orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,eventLogs,friendProfiles,
-                    lbTab,lbPage,lbRanked,lbTotalPages,
-                    availableCrops:DEFAULT_CROPS,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,
-                    bpFilteredItems,bpTotalPages,bpPageItems,bpPlaceholders,ALL_MONSTERS,staFactor,
-                    getPlotClass,getPlotEmoji,getPlotName,getPlotStatus,getPetEmoji,isStationed,getEquippedPetName,
-                    formatMats,canCraft,getCropEmoji,getCropName,formatTime,formatMailItems,formatEventMsg,
-                    onPlotClick,doPlant,doWater,toggleStation,doAdopt,openExplore,doExplore,completeExplore,
-                    doSynthesize,doEnhance,openEquipSelect,doEquip,doUnequip,doDecompose,doSell,
-                    showPveMaps,openPveMap,startPveBattle,startFriendBattle,doBattleAction,fleeBattle,
-                    submitOrder,buySeed,claimMail,sendMail,onBackpackItemClick,
-                    loadLeaderboard,loadMails,loadEventLogs,
-                    handleLogin,handleRegister,handleLogout,refreshFarm
-                };
+            // 社交
+            const orders = ref([]);
+            const seedShop = ref([]);
+            const mails = ref([]);
+            const mailTab = ref('inbox');
+            const mailReceiver = ref(''), mailTitle = ref(''), mailContent = ref('');
+            const mailItemsText = ref('');
+            const eventLogs = ref([]);
+            const lbTab = ref('global'), lbPage = ref(1), lbRanked = ref([]), lbTotalPages = ref(1);
+
+            // 好友农场
+            const visitingFriend = ref(null);
+            const visitingPlots = ref([]);
+
+            // ===== 计算属性 =====
+            const initial = computed(()=>(profile.username||'农')[0]);
+            const staFactor = computed(()=>{if(!exploringPet.value)return 1;return Math.max(0.2,1-(exploringPet.value.sta||50)/100);});
+            const currentRecipes = computed(()=>{if(synthTab.value==='equipment')return SYNTHESIS_RECIPES;if(synthTab.value==='food')return SYNTHESIS_FOOD;return SYNTHESIS_POTIONS;});
+            const visiblePlots = computed(()=>rawPlots.value.filter(p=>p.plot_index<(profile.unlocked_plots||4)).map(p=>{
+                const now=new Date(); let status='empty',progress=0,remainingMin=0,waterable=false,name='空地',emoji='🟫';
+                if(p.crop_type&&p.planted_at){const crop=CROPS[p.crop_type];emoji=crop?crop.emoji:'🌱';name=crop?crop.name:'作物';const planted=new Date(p.planted_at);let gm=p.growth_minutes*60*1000;if(p.watered_at)gm=Math.floor(gm*0.7);const mt=new Date(planted.getTime()+gm);if(now>=mt){status='ready';progress=100;}else{status='growing';progress=Math.floor((now-planted)/gm*100);remainingMin=Math.ceil((mt-now)/60000);let wa=true;if(p.watered_at)wa=(now-new Date(p.watered_at))>=WATER_COOLDOWN_MS;waterable=wa;}}
+                return{...p,_status:status,_progress:progress,_remainingMin:remainingMin,_waterable:waterable,_name:name,_emoji:emoji};
+            }));
+            const waterPlotName = computed(()=>{const p=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);return p?CROPS[p.crop_type]?.name||'作物':'';});
+            const bpFilteredItems = computed(()=>{const all=Object.entries(items).map(([k,v])=>({key:k,qty:v}));if(bpTab.value==='all')return all;if(bpTab.value==='material')return all.filter(({key})=>['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','stardust','dragon_soul'].includes(key));if(bpTab.value==='seed')return all.filter(({key})=>key.startsWith('seed_'));if(bpTab.value==='crop')return all.filter(({key})=>CROPS[key]);if(bpTab.value==='tool')return all.filter(({key})=>['scroll_basic','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(key)||key.startsWith('book_')||key.startsWith('potion_'));return all;});
+            const bpTotalPages = computed(()=>Math.ceil(bpFilteredItems.value.length/BP_PER_PAGE)||1);
+            const bpPageItems = computed(()=>{const start=(bpPage.value-1)*BP_PER_PAGE;return bpFilteredItems.value.slice(start,start+BP_PER_PAGE).map(item=>({...item,emoji:ITEM_EMOJI[item.key]||'📦',name:ITEM_NAMES[item.key]||item.key,isBook:item.key.startsWith('book_'),isPotion:item.key.startsWith('potion_')}));});
+            const bpPlaceholders = computed(()=>Math.max(0,BP_PER_PAGE-bpPageItems.value.length));
+
+            // ===== 工具函数 =====
+            let toastTimer;
+            function showToast(msg){toastMsg.value=msg;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastMsg.value='',2000);}
+            function getPlotClass(p){return{empty:'empty',ready:'ready'}[p._status]||'planted';}
+            function getPlotEmoji(p){return p._emoji;}
+            function getPlotName(p){return p._name;}
+            function getPlotStatus(p){if(p._status==='empty')return'空地';if(p._status==='ready')return'✨可收获';return(p._waterable?'💧可浇水':'🔥加速中')+' 剩'+p._remainingMin+'分';}
+            function getPetEmoji(t){return PET_TYPES[t]?.emoji||'🐾';}
+            function isStationed(p){return stationedPet.value?.id===p.id;}
+            function getEquippedPetName(eq){if(!eq.equipped_to)return'未装备';const pet=pets.value.find(p=>p.id===eq.equipped_to);return pet?pet.pet_name:'?';}
+            function formatMats(mats){return Object.entries(mats).map(([k,v])=>`${ITEM_EMOJI[k]||k}×${v}`).join(' ');}
+            function canCraft(recipe){return Object.entries(recipe.materials).every(([k,v])=>(items[k]||0)>=v)&&profile.gold>=recipe.cost;}
+            function getCropEmoji(k){return CROPS[k]?.emoji||'🌱';}
+            function getCropName(k){return CROPS[k]?.name||k;}
+            function formatTime(iso){if(!iso)return'';const d=new Date(iso),now=new Date(),diff=now-d,mins=Math.floor(diff/60000);if(mins<1)return'刚刚';if(mins<60)return`${mins}分钟前`;const hours=Math.floor(mins/60);if(hours<24)return`${hours}小时前`;return`${Math.floor(hours/24)}天前`;}
+            function formatMailItems(it){return Object.entries(it).filter(([k,v])=>v>0).map(([k,v])=>`${ITEM_EMOJI[k]||'📦'}×${v}`).join(' ');}
+            function formatEventMsg(log){const d=log.event_data||{};switch(log.event_type){case'plant':return`🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;case'harvest':return`🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;case'water_self':return`💧 你为自己的作物浇了水`;case'water_sent':return`💧 你帮 ${d.friend} 浇了水`;case'steal_sent':return`🥷 你偷了 ${d.victim} 的 ${CROPS[d.crop]?.name||d.crop}`;case'adopt_pet':return`🐾 你领养了一只 ${d.pet}`;case'explore_start':return`🗺️ ${d.pet} 前往${d.route}探险了`;case'explore_complete':return`🗺️ ${d.pet} 探险归来`;case'plot_unlock':return`🔓 你解锁了第 ${d.plot} 块农田`;case'synthesis':return`🔧 你合成了 ${d.name}`;case'enhance':return`⚔️ 装备强化${d.success?'成功':'失败'}`;case'pve_win':return`🐉 你击败了 ${d.monster}`;case'pve_lose':return`🐉 你被 ${d.monster} 击败了`;case'auto_battle':return`⚔️ 自动战斗完成`;case'battle_win':return`⚔️ 切磋胜利`;case'battle_lose':return`⚔️ 切磋失败`;case'friend_accepted':return`🤝 和 ${d.friend} 成为好友`;default:return log.event_type;}}
+
+            // ===== 农田操作 =====
+            function onPlotClick(p){if(p._status==='empty'){selectedPlotIndex.value=p.plot_index;showPlantModal.value=true;}else if(p._status==='ready'){doHarvest(p);}else{selectedPlotIndex.value=p.plot_index;showWaterModal.value=true;}}
+            async function doPlant(crop){if(profile.gold<crop.seed){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-crop.seed});profile.gold-=crop.seed;const now=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({crop_type:crop.key,planted_at:now,growth_minutes:crop.growth,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showPlantModal.value=false;showToast(`种下了${crop.name}！`);db.from('event_logs').insert({user_id:profile.id,event_type:'plant',event_data:{crop:crop.key}}).then(()=>{});}catch(e){showToast('种植失败');}}
+            async function doHarvest(plot){const crop=CROPS[plot.crop_type];if(!crop)return;const reward=Math.floor(Math.random()*(crop.max-crop.min+1))+crop.min;try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:reward});profile.gold+=reward;await db.from('farm_plots').update({crop_type:null,planted_at:null,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',plot.plot_index);const idx=rawPlots.value.findIndex(p=>p.plot_index===plot.plot_index);if(idx!==-1)rawPlots.value[idx]={...rawPlots.value[idx],crop_type:null,planted_at:null,watered_at:null,stolen_count:0};await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:plot.crop_type,p_qty:1});if(!items[plot.crop_type])items[plot.crop_type]=0;items[plot.crop_type]++;showToast(`收获成功！🪙${reward}`);db.from('event_logs').insert({user_id:profile.id,event_type:'harvest',event_data:{crop:plot.crop_type,gold:reward}}).then(()=>{});}catch(e){showToast('收获失败');}}
+            async function doWater(){const plot=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);if(!plot)return;if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{const now=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({watered_at:now}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showWaterModal.value=false;showToast('浇水成功！');db.from('event_logs').insert({user_id:profile.id,event_type:'water_self',event_data:{plot:selectedPlotIndex.value,crop:plot.crop_type}}).then(()=>{});}catch(e){showToast('浇水失败');}}
+
+            // ===== 地块解锁 =====
+            async function unlockPlot(){
+                const ul = profile.unlocked_plots || 4;
+                if(ul >= PLOT_MAX_COUNT) { showToast('已解锁全部地块'); return; }
+                const plotNum = ul + 1, goldCost = plotNum * 1000;
+                if(profile.gold < goldCost) { showToast(`需要金币 ${goldCost}`); return; }
+                const requiredMaterials = BASE_MATERIALS.slice(0, plotNum);
+                for(const item of requiredMaterials) { if((items[item]||0) < plotNum) { showToast(`材料不足：${ITEM_NAMES[item]||item}×${plotNum}`); return; } }
+                try {
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-goldCost}); profile.gold -= goldCost;
+                    for(const item of requiredMaterials) { await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-plotNum}); items[item] -= plotNum; }
+                    await db.from('profiles').update({unlocked_plots:plotNum}).eq('id',profile.id);
+                    await db.from('farm_plots').insert({owner_id:profile.id,plot_index:ul});
+                    profile.unlocked_plots = plotNum;
+                    const { data: newPlots } = await db.from('farm_plots').select('*').eq('owner_id',profile.id).order('plot_index');
+                    rawPlots.value = newPlots || [];
+                    showToast(`解锁成功！获得第${plotNum}块农田`);
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'plot_unlock',event_data:{plot:plotNum}}).then(()=>{});
+                } catch(e) { showToast('解锁失败'); }
             }
-        }).mount('#app');
-    </script>
+
+            // ===== 宠物槽位解锁 =====
+            async function unlockPetSlot(slot){
+                const data = PET_SLOT_UNLOCK.find(s=>s.slot===slot);
+                if(!data) return;
+                try {
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-data.gold}); profile.gold -= data.gold;
+                    if(data.materials) for(const [item,need] of Object.entries(data.materials)) { await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-need}); items[item] -= need; }
+                    await db.from('profiles').update({pet_slots:slot}).eq('id',profile.id);
+                    profile.pet_slots = slot;
+                    showToast(`宠物槽位+1 (${slot}/${MAX_PET_SLOTS})`);
+                } catch(e) { showToast('解锁失败'); }
+            }
+
+            // ===== 宠物操作 =====
+            async function loadPetsData(){const{data}=await db.from('pets').select('*').eq('owner_id',profile.id);pets.value=data||[];}
+            function toggleStation(p){if(isStationed(p)){stationedPet.value=null;showToast('已取消驻扎');}else{stationedPet.value=p;showToast(`${p.pet_name}已驻扎农田！${PET_STATION_EFFECTS[p.pet_type]||''}`);}}
+            async function doAdopt(type){
+                const info = PET_TYPES[type];
+                if(!info) return;
+                if(pets.value.length >= profile.pet_slots) { showToast('宠物槽位已满'); return; }
+                const base = info.baseAttr;
+                const iv = {
+                    hp:Math.round(base.hp*(0.85+Math.random()*0.3)), atk:Math.round(base.atk*(0.85+Math.random()*0.3)),
+                    def:Math.round(base.def*(0.85+Math.random()*0.3)), spd:Math.round(base.spd*(0.85+Math.random()*0.3)),
+                    luk:Math.round(base.luk*(0.85+Math.random()*0.3)), sta:Math.round(base.sta*(0.85+Math.random()*0.3)),
+                };
+                const nature = PET_NATURES[Math.floor(Math.random()*PET_NATURES.length)];
+                const passiveKeys = Object.keys(PASSIVE_SKILLS);
+                const passiveId = passiveKeys[Math.floor(Math.random()*passiveKeys.length)];
+                try {
+                    const { data } = await db.from('pets').insert({
+                        owner_id:profile.id, pet_type:type, pet_name:info.name,
+                        level:1, exp:0, ...iv, hunger:100, happiness:100,
+                        nature:nature.id, passive_skill:passiveId
+                    }).select().single();
+                    pets.value.push(data);
+                    showAdoptModal.value = false;
+                    showToast(`领养成功！性格${nature.name}，被动${PASSIVE_SKILLS[passiveId]?.name}`);
+                } catch(e) { showToast('领养失败'); }
+            }
+            function openExplore(p){exploringPet.value=p;showExploreModal.value=true;}
+            async function doExplore(route){
+                const pet = exploringPet.value;
+                if(!pet) return;
+                if(pet.level < route.minLevel) { showToast(`需要宠物Lv.${route.minLevel}`); return; }
+                if(profile.gold < route.cost) { showToast('金币不足'); return; }
+                try {
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-route.cost}); profile.gold -= route.cost;
+                    const actualTime = Math.max(0.1, route.time * staFactor.value);
+                    const eu = new Date(Date.now() + actualTime * 3600000).toISOString();
+                    await db.from('pets').update({exploring_until:eu}).eq('id',pet.id);
+                    pet.exploring_until = eu;
+                    showExploreModal.value = false;
+                    showToast(`${pet.pet_name}前往${route.name}探险！`);
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'explore_start',event_data:{pet:pet.pet_name,route:route.name}}).then(()=>{});
+                } catch(e) { showToast('探险失败'); }
+            }
+            async function completeExplore(pet){
+                const route = EXPLORE_ROUTES.find(r=>r.id==='grassland') || EXPLORE_ROUTES[0];
+                try {
+                    // 基础奖励
+                    let goldReward = Math.floor(Math.random()*30)+10;
+                    const mats = {};
+                    for(const [item,qty] of Object.entries(route.materials)){ const actual = Math.floor(qty*(0.8+Math.random()*0.4)); if(actual>0) mats[item]=(mats[item]||0)+actual; }
+                    if(Math.random() < route.rareProb){ mats[route.rareItem] = (mats[route.rareItem]||0)+1; }
+                    // 事件
+                    let eventTriggered = false;
+                    if(Math.random() < route.eventProb){
+                        eventTriggered = true;
+                        if(route.eventReward === 'gold50') goldReward += 50;
+                        else if(route.eventReward === 'extra_materials') for(const [item,qty] of Object.entries(route.materials)){ mats[item]=(mats[item]||0)+Math.floor(qty); }
+                        else if(route.eventReward === 'bonus_exp') pet.exp = (pet.exp||0)+200;
+                    }
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:goldReward}); profile.gold += goldReward;
+                    for(const [item,qty] of Object.entries(mats)){ await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:qty}); items[item]=(items[item]||0)+qty; }
+                    pet.exp = (pet.exp||0) + route.exp;
+                    let levelUp = false;
+                    while(pet.level < PET_MAX_LEVEL && pet.exp >= pet.level*100 + pet.level*pet.level*15){ pet.level++; levelUp=true; pet.hp+=2; pet.atk+=1; pet.def+=1; }
+                    if(levelUp) showToast(`${pet.pet_name}升级到Lv.${pet.level}！`);
+                    await db.from('pets').update({exploring_until:null,exp:pet.exp,level:pet.level,hp:pet.hp,atk:pet.atk,def:pet.def}).eq('id',pet.id);
+                    pet.exploring_until = null;
+                    const matStr = Object.entries(mats).map(([k,v])=>`${ITEM_EMOJI[k]||'📦'}×${v}`).join(' ');
+                    showToast(`${pet.pet_name}探险归来！🪙+${goldReward} ${matStr}`);
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'explore_complete',event_data:{pet:pet.pet_name,route:route.name}}).then(()=>{});
+                } catch(e) { showToast('领取失败'); }
+            }
+
+            // ===== 装备操作 =====
+            async function loadEquipmentData(){const{data}=await db.from('equipment').select('*').eq('owner_id',profile.id);equipment.value=data||[];}
+            async function doSynthesize(recipe,idx){
+                for(const[item,need]of Object.entries(recipe.materials)){if((items[item]||0)<need){showToast('材料不足');return;}}
+                if(profile.gold<recipe.cost){showToast('金币不足');return;}
+                try{
+                    for(const[item,need]of Object.entries(recipe.materials)){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-need});items[item]-=need;}
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-recipe.cost});profile.gold-=recipe.cost;
+                    if(synthTab.value==='equipment'){
+                        let q=recipe.quality;const rand=Math.random();
+                        if(recipe.quality==='white'&&rand>0.7)q=rand>0.95?'blue':'white';
+                        else if(recipe.quality==='blue'&&rand>0.75)q=rand>0.96?'purple':'blue';
+                        const ab=q==='gold'?30:q==='purple'?20:q==='blue'?15:10;
+                        const db2=recipe.slot==='armor'?(q==='gold'?20:q==='purple'?15:10):0;
+                        const lb=recipe.slot==='accessory'?(q==='gold'?15:10):0;
+                        const{data:newEq}=await db.from('equipment').insert({owner_id:profile.id,name:recipe.name,slot:recipe.slot,quality:q,set_name:recipe.set_name,atk_bonus:ab,def_bonus:db2,luk_bonus:lb}).select().single();
+                        equipment.value.push(newEq);
+                        showToast(`合成成功！获得${newEq.name}(${QUALITY_NAMES[q]})`);
+                    }else{
+                        await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:recipe.name,p_qty:1});
+                        if(!items[recipe.name])items[recipe.name]=0;items[recipe.name]++;
+                        showToast(`合成成功！获得${recipe.icon}${recipe.label||ITEM_NAMES[recipe.name]||recipe.name}`);
+                    }
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'synthesis',event_data:{name:recipe.name}}).then(()=>{});
+                }catch(e){showToast('合成失败');}
+            }
+            async function doEnhance(eq){
+                const nextLevel=(eq.enhance_level||0)+1;
+                const config=ENHANCE_CONFIG.find(c=>c.level===nextLevel);
+                if(!config)return;
+                for(const[item,need]of Object.entries(config.materials)){if((items[item]||0)<need){showToast('材料不足');return;}}
+                if(profile.gold<config.cost){showToast('金币不足');return;}
+                try{
+                    for(const[item,need]of Object.entries(config.materials)){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-need});items[item]-=need;}
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-config.cost});profile.gold-=config.cost;
+                    if(Math.random()<config.prob){
+                        const baseAtk=Math.round(eq.atk_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));
+                        const baseDef=Math.round(eq.def_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));
+                        const baseLuk=Math.round(eq.luk_bonus/Math.max(1,(1+(eq.enhance_level||0)*0.1)));
+                        const na=eq.atk_bonus+Math.round(baseAtk*0.1),nd=eq.def_bonus+Math.round(baseDef*0.1),nl=eq.luk_bonus+Math.round(baseLuk*0.1);
+                        await db.from('equipment').update({enhance_level:nextLevel,atk_bonus:na,def_bonus:nd,luk_bonus:nl}).eq('id',eq.id);
+                        eq.enhance_level=nextLevel;eq.atk_bonus=na;eq.def_bonus=nd;eq.luk_bonus=nl;
+                        showToast(`强化成功！+${nextLevel}`);
+                        db.from('event_logs').insert({user_id:profile.id,event_type:'enhance',event_data:{name:eq.name,success:true,level:nextLevel}}).then(()=>{});
+                    }else{
+                        if(config.penalty==='downgrade'){
+                            const nl=Math.max(0,eq.enhance_level-1);
+                            const baseAtk=Math.round(eq.atk_bonus/Math.max(1,(1+eq.enhance_level*0.1)));
+                            const na=Math.max(0,eq.atk_bonus-Math.round(baseAtk*0.1));
+                            await db.from('equipment').update({enhance_level:nl,atk_bonus:na}).eq('id',eq.id);
+                            eq.enhance_level=nl;eq.atk_bonus=na;
+                            showToast('强化失败，降级',true);
+                        }else if(config.penalty==='reset'){
+                            await db.from('equipment').update({enhance_level:0,atk_bonus:Math.round(eq.atk_bonus/(1+eq.enhance_level*0.1))}).eq('id',eq.id);
+                            eq.enhance_level=0;
+                            showToast('强化失败，归零',true);
+                        }else{showToast('强化失败',true);}
+                        db.from('event_logs').insert({user_id:profile.id,event_type:'enhance',event_data:{name:eq.name,success:false,level:eq.enhance_level}}).then(()=>{});
+                    }
+                }catch(e){showToast('强化失败');}
+            }
+            function openEquipSelect(eq){equippingItem.value=eq;showEquipSelectModal.value=true;}
+            async function doEquip(eq,pet){try{await db.from('equipment').update({equipped_to:null}).eq('equipped_to',pet.id).eq('slot',eq.slot);await db.from('equipment').update({equipped_to:pet.id}).eq('id',eq.id);equipment.value.forEach(e=>{if(e.equipped_to===pet.id&&e.slot===eq.slot)e.equipped_to=null;if(e.id===eq.id)e.equipped_to=pet.id;});showEquipSelectModal.value=false;showToast(`已装备${eq.name}`);}catch(e){showToast('装备失败');}}
+            async function doUnequip(eq){try{await db.from('equipment').update({equipped_to:null}).eq('id',eq.id);eq.equipped_to=null;showToast('已卸下');}catch(e){showToast('卸下失败');}}
+            async function doDecompose(eq){if(!confirm('确定分解？'))return;const recipe=SYNTHESIS_RECIPES.find(r=>r.name===eq.name);if(!recipe){showToast('无法分解');return;}const rates={white:0.6,blue:0.5,purple:0.4,gold:0.3};const rate=rates[eq.quality]||0.5;try{for(const[item,need]of Object.entries(recipe.materials)){const refund=Math.max(1,Math.floor(need*rate));await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:refund});items[item]=(items[item]||0)+refund;}if(eq.enhance_level>0){await db.rpc('add_gold',{p_user_id:profile.id,p_amount:eq.enhance_level*100});profile.gold+=eq.enhance_level*100;}await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);showToast('分解成功！');}catch(e){showToast('分解失败');}}
+            async function doSell(eq){if(!confirm('确定出售？'))return;const prices={white:200,blue:500,purple:1200,gold:3000};const price=Math.floor((prices[eq.quality]||200)*(1+(eq.enhance_level||0)*0.15));try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:price});profile.gold+=price;await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);showToast(`出售成功！🪙${price}`);}catch(e){showToast('出售失败');}}
+
+            // ===== 好友农场 =====
+            async function visitFriend(friend){
+                const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id',friend.id).order('plot_index');
+                visitingPlots.value = plots || [];
+                visitingFriend.value = friend;
+                showFriendFarmModal.value = true;
+            }
+            async function stealCrop(plot){
+                if(plot.stolen_count >= 2) { showToast('已被偷光'); return; }
+                const crop = CROPS[plot.crop_type];
+                if(!crop) return;
+                const reward = Math.floor((Math.random()*(crop.max-crop.min+1)+crop.min)*0.4);
+                try {
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:reward}); profile.gold += reward;
+                    await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:-reward});
+                    await db.from('farm_plots').update({stolen_count:plot.stolen_count+1}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);
+                    plot.stolen_count++;
+                    showToast(`偷取成功！🪙+${reward}`);
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'steal_sent',event_data:{victim:visitingFriend.value.username,crop:plot.crop_type,gold:reward}}).then(()=>{});
+                } catch(e) { showToast('偷取失败'); }
+            }
+            async function waterFriendPlot(plot){
+                if(plot.watered_at && (new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}
+                try {
+                    await db.from('farm_plots').update({watered_at:new Date().toISOString()}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);
+                    plot.watered_at = new Date().toISOString();
+                    await db.rpc('add_gold',{p_user_id:profile.id,p_amount:5}); profile.gold += 5;
+                    await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:5});
+                    showToast('浇水成功！双方+5金币');
+                    db.from('event_logs').insert({user_id:profile.id,event_type:'water_sent',event_data:{friend:visitingFriend.value.username}}).then(()=>{});
+                } catch(e) { showToast('浇水失败'); }
+            }
+
+            // ===== 社交 =====
+            async function loadOrders(){const{data}=await db.from('player_orders').select('orders').eq('user_id',profile.id).eq('order_date',new Date().toDateString()).maybeSingle();if(data&&data.orders)orders.value=data.orders;else{const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始');const o=[];for(let i=0;i<3;i++){const ck=possible[Math.floor(Math.random()*possible.length)];o.push({crop:ck,amount:Math.floor(Math.random()*3)+1,rewardGold:100+Math.floor(Math.random()*200),rewardTicket:Math.floor(Math.random()*2)+1});}orders.value=o;await db.from('player_orders').upsert({user_id:profile.id,order_date:new Date().toDateString(),orders:o},{onConflict:'user_id,order_date'});}}
+            async function submitOrder(idx){const order=orders.value[idx];if(!order)return;if((items[order.crop]||0)<order.amount){showToast('作物不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:order.crop,p_qty:-order.amount});items[order.crop]-=order.amount;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:order.rewardGold});profile.gold+=order.rewardGold;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_ticket',p_qty:order.rewardTicket});if(!items['seed_ticket'])items['seed_ticket']=0;items['seed_ticket']+=order.rewardTicket;orders.value.splice(idx,1);showToast('订单完成！');}catch(e){showToast('提交失败');}}
+            async function loadSeedShop(){const shuffled=[...SEED_SHOP].sort(()=>Math.random()-0.5).slice(0,4);seedShop.value=shuffled.map(s=>({...s,price:s.price+Math.floor(Math.random()*200)}));}
+            async function buySeed(item){if(profile.gold<item.price){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-item.price});profile.gold-=item.price;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_'+item.crop,p_qty:1});if(!items['seed_'+item.crop])items['seed_'+item.crop]=0;items['seed_'+item.crop]++;showToast('购买成功！');}catch(e){showToast('购买失败');}}
+            async function exchangeTicket(item){if((items['seed_ticket']||0)<item.cost){showToast('种子券不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_ticket',p_qty:-item.cost});items['seed_ticket']-=item.cost;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_'+item.crop,p_qty:1});if(!items['seed_'+item.crop])items['seed_'+item.crop]=0;items['seed_'+item.crop]++;showToast('兑换成功！');}catch(e){showToast('兑换失败');}}
+            async function loadMails(){const{data}=await db.from('mail').select('*').eq('receiver_id',profile.id).order('created_at',{ascending:false}).limit(20);mails.value=data||[];}
+            async function claimMail(m){try{if(m.items)for(const[k,v]of Object.entries(m.items)){if(v>0){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:k,p_qty:v});if(!items[k])items[k]=0;items[k]+=v;}}m.is_claimed=true;await db.from('mail').update({is_claimed:true}).eq('id',m.id);showToast('附件已领取！');}catch(e){showToast('领取失败');}}
+            async function sendMail(){
+                if(!mailReceiver.value||!mailTitle.value){showToast('收件人和主题不能为空');return;}
+                const { data: receiver } = await db.from('profiles').select('id,username').eq('username',mailReceiver.value).maybeSingle();
+                if(!receiver){showToast('找不到该用户');return;}
+                let mailItems = {};
+                if(mailItemsText.value.trim()){
+                    const lines = mailItemsText.value.trim().split('\n');
+                    for(const line of lines){
+                        const [key, qtyStr] = line.trim().split(/\s+/);
+                        if(key && qtyStr && ITEM_NAMES[key]){ const need = parseInt(qtyStr); if((items[key]||0) < need){ showToast(`你背包里的 ${ITEM_NAMES[key]} 不足`); return; } mailItems[key] = (mailItems[key]||0) + need; }
+                    }
+                }
+                try {
+                    for(const [item,qty] of Object.entries(mailItems)){ await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:-qty}); items[item] -= qty; }
+                    await db.from('mail').insert({ receiver_id:receiver.id, receiver_name:receiver.username, sender_id:profile.id, sender_name:profile.username, title:mailTitle.value, content:mailContent.value, items:mailItems, is_read:false, is_claimed:false });
+                    showToast('邮件已发送！');
+                    mailTab.value = 'inbox';
+                    mailReceiver.value = ''; mailTitle.value = ''; mailContent.value = ''; mailItemsText.value = '';
+                } catch(e) { showToast('发送失败'); }
+            }
+            async function loadEventLogs(){const{data}=await db.from('event_logs').select('*').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(MAX_LOG_COUNT);eventLogs.value=data||[];const{count}=await db.from('event_logs').select('*',{count:'exact',head:true}).eq('user_id',profile.id);if(count>MAX_LOG_COUNT){const{data:oldLogs}=await db.from('event_logs').select('id').eq('user_id',profile.id).order('created_at',{ascending:true}).limit(count-MAX_LOG_COUNT);if(oldLogs&&oldLogs.length)await db.from('event_logs').delete().in('id',oldLogs.map(l=>l.id));}}
+            async function loadFriendProfiles(){const{data:friended}=await db.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`).eq('status','accepted');const friendIds=new Set();(friended||[]).forEach(f=>friendIds.add(f.from_user===profile.id?f.to_user:f.from_user));if(friendIds.size>0){const{data}=await db.from('profiles').select('id,username,gender,gold').in('id',[...friendIds]);friendProfiles.value=data||[];}else friendProfiles.value=[];}
+            async function loadLeaderboard(){
+                const{data:allProfiles}=await db.from('profiles').select('id,username,gold,gender').order('gold',{ascending:false});
+                let ranked = allProfiles || [];
+                if(lbTab.value==='friends'){const friendIds=new Set((friendProfiles.value||[]).map(f=>f.id));friendIds.add(profile.id);ranked=ranked.filter(p=>friendIds.has(p.id));}
+                else if(lbTab.value==='pet'){
+                    const{data:petsData}=await db.from('pets').select('*,profiles(username,gender)').order('id');
+                    const{data:allEquip}=await db.from('equipment').select('*');
+                    ranked = (petsData||[]).map(pet=>{
+                        const equip=(allEquip||[]).filter(e=>e.equipped_to===pet.id);
+                        let atk=pet.atk,def=pet.def,spd=pet.spd,luk=pet.luk,hp=pet.hp;
+                        equip.forEach(e=>{atk+=e.atk_bonus;def+=e.def_bonus;spd+=e.spd_bonus;luk+=e.luk_bonus;});
+                        if(pet.nature){const nature=PET_NATURES.find(n=>n.id===pet.nature);if(nature){if(nature.atk_bonus)atk=Math.floor(atk*(1+nature.atk_bonus));if(nature.def_bonus)def=Math.floor(def*(1+nature.def_bonus));if(nature.spd_bonus)spd=Math.floor(spd*(1+nature.spd_bonus));if(nature.hp_bonus)hp=Math.floor(hp*(1+nature.hp_bonus));}}
+                        if(pet.passive_skill&&PASSIVE_SKILLS[pet.passive_skill]){const passive=PASSIVE_SKILLS[pet.passive_skill];if(passive.atk_bonus)atk=Math.floor(atk*(1+passive.atk_bonus));if(passive.def_bonus)def=Math.floor(def*(1+passive.def_bonus));if(passive.spd_bonus)spd=Math.floor(spd*(1+passive.spd_bonus));}
+                        return{...pet,power:atk+def+spd+luk+hp,ownerName:pet.profiles?.username||'?'};
+                    }).sort((a,b)=>b.power-a.power).slice(0,50);
+                }
+                lbTotalPages.value = Math.ceil(ranked.length/10)||1;
+                lbRanked.value = ranked.slice((lbPage.value-1)*10,lbPage.value*10);
+            }
+            async function addFriend(uid){try{await db.from('friendships').insert({from_user:profile.id,to_user:uid});showToast('好友申请已发送！');}catch(e){showToast('发送失败');}}
+
+            function onBackpackItemClick(item){if(item.isBook){showBackpackModal.value=false;showToast('技能书请在旧版中使用');}else if(item.isPotion){showToast('战斗药剂请在战斗前使用');}}
+
+            // ===== 登录 =====
+            async function handleLogin(){errorMsg.value='';if(!loginEmail.value||!loginPassword.value){errorMsg.value='请输入邮箱和密码';return;}loading.value=true;try{const{data,error}=await db.auth.signInWithPassword({email:loginEmail.value,password:loginPassword.value});if(error)throw error;await loadAllData(data.user);isLoggedIn.value=true;showToast('登录成功！🌱');}catch(e){errorMsg.value=e.message||'登录失败';}finally{loading.value=false;}}
+            async function handleRegister(){errorMsg.value='';if(!regUsername.value||!regEmail.value||!regPassword.value){errorMsg.value='请填写所有必填字段';return;}if(regPassword.value.length<6){errorMsg.value='密码至少6位';return;}loading.value=true;try{const{data,error}=await db.auth.signUp({email:regEmail.value,password:regPassword.value,options:{data:{username:regUsername.value,gender:regGender.value}}});if(error)throw error;if(data.user){showToast('注册成功！🎉');await new Promise(r=>setTimeout(r,1500));await loadAllData(data.user);isLoggedIn.value=true;}}catch(e){errorMsg.value=e.message||'注册失败';}finally{loading.value=false;}}
+            async function loadAllData(user){
+                profile.id=user.id;
+                let{data:prof}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();
+                if(!prof){const username=user.user_metadata?.username||'农夫';const gender=user.user_metadata?.gender||'none';await db.from('profiles').insert({id:user.id,username,gender,gold:200,unlocked_plots:4,pet_slots:1,monster_log:{}});for(let i=0;i<4;i++)await db.from('farm_plots').insert({owner_id:user.id,plot_index:i});prof=(await db.from('profiles').select('*').eq('id',user.id).single()).data;}
+                Object.assign(profile,prof);if(prof.monster_log)Object.assign(monsterLog,prof.monster_log);
+                const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',user.id).order('plot_index');rawPlots.value=plots||[];
+                const{data:itemData}=await db.from('player_items').select('*').eq('user_id',user.id);(itemData||[]).forEach(d=>items[d.item_type]=d.quantity);
+                await loadPetsData();await loadEquipmentData();await loadOrders();await loadSeedShop();await loadFriendProfiles();
+            }
+            async function refreshFarm(){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',profile.id).order('plot_index');rawPlots.value=plots||[];const{data:prof}=await db.from('profiles').select('*').eq('id',profile.id).single();if(prof)Object.assign(profile,prof);}
+            async function handleLogout(){await db.auth.signOut();isLoggedIn.value=false;Object.assign(profile,{id:'',username:'',gender:'none',gold:0});rawPlots.value=[];pets.value=[];equipment.value=[];}
+            async function checkSession(){const{data}=await db.auth.getSession();if(data.session){await loadAllData(data.session.user);isLoggedIn.value=true;}}
+            checkSession();
+
+            // 定时刷新
+            const growthTimer = setInterval(() => { if(isLoggedIn.value && !battle.value) refreshFarm(); }, 30000);
+            onUnmounted(() => clearInterval(growthTimer));
+
+            return {
+                isLoggedIn,authMode,loading,errorMsg,toastMsg,loginEmail,loginPassword,regUsername,regEmail,regPassword,regGender,
+                profile,visiblePlots,initial,items,rawPlots,pets,stationedPet,equipment,monsterLog,
+                showPlantModal,showWaterModal,showPetsModal,showAdoptModal,showExploreModal,showSynthesisModal,
+                showEquipmentModal,showEquipSelectModal,showBackpackModal,showPveModal,
+                showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,
+                showUnlockPlotModal,showPetSlotsModal,showFriendFarmModal,showHelpModal,
+                selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,
+                battle,selectedBattlePetId,pveMonsters,
+                orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,
+                lbTab,lbPage,lbRanked,lbTotalPages,
+                visitingFriend,visitingPlots,
+                availableCrops:DEFAULT_CROPS,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,SEED_TICKET_EXCHANGE,
+                bpFilteredItems,bpTotalPages,bpPageItems,bpPlaceholders,ALL_MONSTERS,staFactor,
+                PET_NATURES,PASSIVE_SKILLS,PET_SLOT_UNLOCK,PLOT_MAX_COUNT,MAX_PET_SLOTS,
+                getPlotClass,getPlotEmoji,getPlotName,getPlotStatus,getPetEmoji,isStationed,getEquippedPetName,
+                formatMats,canCraft,getCropEmoji,getCropName,formatTime,formatMailItems,formatEventMsg,
+                onPlotClick,doPlant,doWater,toggleStation,doAdopt,openExplore,doExplore,completeExplore,
+                doSynthesize,doEnhance,openEquipSelect,doEquip,doUnequip,doDecompose,doSell,
+                submitOrder,buySeed,exchangeTicket,claimMail,sendMail,onBackpackItemClick,unlockPlot,unlockPetSlot,
+                visitFriend,stealCrop,waterFriendPlot,addFriend,
+                loadLeaderboard,loadMails,loadEventLogs,loadSeedShop,loadOrders,
+                handleLogin,handleRegister,handleLogout,refreshFarm
+            };
+        }
+    }).mount('#app');
+</script>
 </body>
 </html>
