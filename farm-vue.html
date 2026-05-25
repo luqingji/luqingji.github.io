@@ -91,6 +91,7 @@
         .btn-accept { background: var(--green); color: #fff; }
         .btn-fight-small { background: var(--red); color: #fff; }
         .btn-view { background: #e67e22; color: #fff; }
+        .btn-detail { background: #6c5ce7; color: #fff; }
 
         .synthesis-tabs, .backpack-tabs, .mail-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
         .synth-tab, .bp-tab, .mail-tab { padding: 6px 10px; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.75rem; background: #fdfcf9; font-weight: 600; }
@@ -218,7 +219,7 @@
                     <button class="btn-icon" @click="showBackpackModal = true">🎒</button>
                     <button class="btn-icon" @click="showSynthesisModal = true">🔧</button>
                     <button class="btn-icon" @click="showEquipmentModal = true">⚔️</button>
-                    <button class="btn-icon btn-fight" @click="showPveModal = true">🐉讨伐</button>
+                    <button class="btn-icon btn-fight" @click="showPveMaps()">🐉讨伐</button>
                     <button class="btn-icon" @click="showExploreModal = true; exploringPet = null">🗺️</button>
                     <button class="btn-icon" @click="showOrdersModal = true">📦</button>
                     <button class="btn-icon" @click="showSeedShopModal = true">🛒</button>
@@ -251,17 +252,31 @@
             <div v-if="pets.length === 0"><p>还没有宠物</p><button class="btn-small btn-adopt-pet" @click="showAdoptModal = true">🐾 领养宠物</button></div>
             <div v-else><div v-for="pet in pets" :key="pet.id" class="pet-card">
                 <div class="pet-header"><span style="font-size:1.8rem;">{{ getPetEmoji(pet.pet_type) }}</span><div><strong>#{{ pet.id }} {{ pet.pet_name }}</strong> Lv.{{ pet.level }}</div></div>
-                <div class="pet-stats">❤️{{ pet.hp }} ⚔️{{ pet.atk }} 🛡️{{ pet.def }} ⚡{{ pet.spd }} 🍀{{ pet.luk }} 💪{{ pet.sta || 50 }}</div>
+                <div class="pet-stats">❤️{{ getPetStats(pet).hp }} ⚔️{{ getPetStats(pet).atk }} 🛡️{{ getPetStats(pet).def }} ⚡{{ getPetStats(pet).spd }} 🍀{{ getPetStats(pet).luk }} 💪{{ getPetStats(pet).sta }}</div>
                 <div class="pet-actions">
                     <button v-if="!pet.exploring_until" class="btn-small btn-explore" @click="openExplore(pet)">🗺️探险</button>
                     <button v-else-if="new Date(pet.exploring_until) <= new Date()" class="btn-small btn-view" @click="completeExplore(pet)">查看收获</button>
                     <button v-else class="btn-small" disabled>探险中</button>
                     <button v-if="isStationed(pet)" class="btn-small btn-unstation" @click="toggleStation(pet)">取消驻扎</button>
                     <button v-else class="btn-small btn-station" @click="toggleStation(pet)">🏠驻扎</button>
+                    <button class="btn-small btn-detail" @click="openPetDetail(pet)">📊属性</button>
                 </div>
             </div>
             <button v-if="pets.length < profile.pet_slots" class="btn-small btn-adopt-pet" @click="showAdoptModal = true">🐾 领养新宠物</button></div>
             <button class="btn-close" @click="showPetsModal = false">×</button>
+        </div></div>
+
+        <!-- 宠物属性详情弹窗 -->
+        <div v-if="showPetDetailModal" class="modal-overlay" @click.self="showPetDetailModal = false"><div class="modal" style="text-align:left;">
+            <h3 style="text-align:center;">📊 宠物属性详情</h3>
+            <div v-if="petDetailData" style="font-size:0.85rem;">
+                <p><strong>{{ petDetailData.pet_name }}</strong> Lv.{{ petDetailData.level }}</p>
+                <p>基础：❤️{{ petDetailData.hp }} ⚔️{{ petDetailData.atk }} 🛡️{{ petDetailData.def }} ⚡{{ petDetailData.spd }} 🍀{{ petDetailData.luk }} 💪{{ petDetailData.sta || 50 }}</p>
+                <p style="color:var(--accent);">最终：❤️{{ getPetStats(petDetailData).hp }} ⚔️{{ getPetStats(petDetailData).atk }} 🛡️{{ getPetStats(petDetailData).def }} ⚡{{ getPetStats(petDetailData).spd }} 🍀{{ getPetStats(petDetailData).luk }} 💪{{ getPetStats(petDetailData).sta }}</p>
+                <p>性格：{{ PET_NATURES.find(n => n.id === petDetailData.nature)?.name || '未知' }}</p>
+                <p>被动：{{ PASSIVE_SKILLS[petDetailData.passive_skill]?.name || '无' }}</p>
+            </div>
+            <button class="btn-close" @click="showPetDetailModal = false">×</button>
         </div></div>
 
         <!-- 领养弹窗 -->
@@ -287,7 +302,7 @@
                 <button class="synth-tab" :class="{ active: synthTab === 'potion' }" @click="synthTab = 'potion'">药剂</button>
             </div>
             <div v-for="(recipe, idx) in currentRecipes" :key="idx" class="recipe-card">
-                <strong>{{ recipe.icon || '' }} {{ recipe.name }}</strong>
+                <strong>{{ recipe.icon || '' }} {{ recipe.label || ITEM_NAMES[recipe.name] || recipe.name }}</strong>
                 <span v-if="recipe.set_name" style="font-size:0.7rem;color:#6c5ce7;">[{{ recipe.set_name }}]</span>
                 <span v-if="recipe.quality" style="font-size:0.7rem;">- {{ QUALITY_NAMES[recipe.quality] }}</span>
                 <div class="recipe-mats">材料：{{ formatMats(recipe.materials) }}</div>
@@ -344,13 +359,7 @@
 
         <!-- PvE弹窗 -->
         <div v-if="showPveModal" class="modal-overlay" @click.self="showPveModal = false"><div class="modal"><h3>🐉 怪物讨伐</h3>
-            <div v-if="pveMaps.length > 0">
-                <div v-for="map in pveMaps" :key="map.id" class="route-card" :class="{ locked: !map.unlocked }" :style="{ background: map.bg }" @click="map.unlocked && openPveMap(map)">
-                    <strong>{{ map.emoji }} {{ map.name }}</strong> Lv.{{ map.minLevel }}~{{ map.maxLevel }}
-                    <div v-if="!map.unlocked" style="color:var(--red);font-size:0.7rem;">🔒 {{ map.unlockDesc }}</div>
-                </div>
-            </div>
-            <div v-else-if="pveMonsters.length > 0">
+            <div v-if="pveMonsters.length > 0">
                 <p style="font-size:0.85rem;">选择要讨伐的怪物：</p>
                 <div v-for="mon in pveMonsters" :key="mon.name" style="cursor:pointer;" @click="startPveBattle(mon)">
                     <div :class="mon.isElite ? 'elite-card' : 'pet-card'">
@@ -358,7 +367,12 @@
                         <div v-if="mon.affixes && mon.affixes.length" style="font-size:0.7rem;">词缀：<span v-for="a in mon.affixes" :key="a.id" class="affix-tag unlocked">{{ a.name }}</span></div>
                     </div>
                 </div>
-                <button class="btn-icon" @click="showPveModal = false; showPveMaps()" style="margin-top:8px;">← 返回地图</button>
+            </div>
+            <div v-else-if="pveMaps.length > 0">
+                <div v-for="map in pveMaps" :key="map.id" class="route-card" :class="{ locked: !map.unlocked }" :style="{ background: map.bg }" @click="map.unlocked && openPveMap(map)">
+                    <strong>{{ map.emoji }} {{ map.name }}</strong> Lv.{{ map.minLevel }}~{{ map.maxLevel }}
+                    <div v-if="!map.unlocked" style="color:var(--red);font-size:0.7rem;">🔒 {{ map.unlockDesc }}</div>
+                </div>
             </div>
             <p v-else>暂无可讨伐的怪物</p>
             <button class="btn-close" @click="showPveModal = false">×</button>
@@ -379,11 +393,16 @@
 
         <!-- 商店弹窗 -->
         <div v-if="showSeedShopModal" class="modal-overlay" @click.self="showSeedShopModal = false"><div class="modal"><h3>🛒 商店</h3>
+            <p style="font-size:0.8rem;">🎫 种子券：{{ items['seed_ticket'] || 0 }}</p>
+            <p style="font-weight:600;text-align:left;">🪙 金币购买</p>
             <div v-for="item in seedShop" :key="item.crop" class="pet-card" style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:2rem;">{{ getCropEmoji(item.crop) }}</span>
-                <span style="flex:1;">{{ getCropName(item.crop) }}种子</span>
-                <span>🪙{{ item.price }}</span>
+                <span style="font-size:2rem;">{{ getCropEmoji(item.crop) }}</span><span style="flex:1;">{{ getCropName(item.crop) }}种子</span><span>🪙{{ item.price }}</span>
                 <button class="btn-small btn-adopt-pet" :disabled="profile.gold < item.price" @click="buySeed(item)">购买</button>
+            </div>
+            <p style="font-weight:600;text-align:left;margin-top:12px;">🎫 种子券兑换</p>
+            <div v-for="item in SEED_TICKET_EXCHANGE" :key="item.crop" class="pet-card" style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:2rem;">{{ getCropEmoji(item.crop) }}</span><span style="flex:1;">{{ getCropName(item.crop) }}种子</span><span>🎫×{{ item.cost }}</span>
+                <button class="btn-small btn-accept" :disabled="(items['seed_ticket'] || 0) < item.cost" @click="exchangeTicket(item)">兑换</button>
             </div>
             <button class="btn-close" @click="showSeedShopModal = false">×</button>
         </div></div>
@@ -398,8 +417,7 @@
             <div v-if="mailTab === 'inbox'">
                 <div v-if="!mails || mails.length === 0"><p>收件箱为空</p></div>
                 <div v-for="(m, idx) in mails" :key="idx" class="order-card">
-                    <strong>{{ m.title }}</strong>
-                    <div style="font-size:0.75rem;">发件人：{{ m.sender_name }}</div>
+                    <strong>{{ m.title }}</strong><div style="font-size:0.75rem;">发件人：{{ m.sender_name }}</div>
                     <div v-if="m.items" style="font-size:0.75rem;">附件：{{ formatMailItems(m.items) }}</div>
                     <button v-if="!m.is_claimed && m.items" class="btn-small btn-accept" @click="claimMail(m)">领取</button>
                 </div>
@@ -408,6 +426,7 @@
                 <div class="form-group"><label>收件人</label><input v-model="mailReceiver" placeholder="输入昵称"></div>
                 <div class="form-group"><label>主题</label><input v-model="mailTitle" placeholder="邮件主题"></div>
                 <div class="form-group"><label>内容</label><textarea v-model="mailContent" style="width:100%;height:60px;" placeholder="想说的话..."></textarea></div>
+                <div class="form-group"><label>附件（每行：物品ID 数量）</label><textarea v-model="mailItemsText" style="width:100%;height:60px;" placeholder="例如：hair 3"></textarea></div>
                 <button class="btn-small btn-accept" @click="sendMail">发送</button>
             </div>
             <button class="btn-close" @click="showMailModal = false">×</button>
@@ -424,11 +443,24 @@
         <div v-if="showFriendsModal" class="modal-overlay" @click.self="showFriendsModal = false"><div class="modal"><h3>👥 好友</h3>
             <div v-if="!friendProfiles || friendProfiles.length === 0"><p>还没有好友</p></div>
             <div v-for="f in friendProfiles" :key="f.id" class="pet-card" style="display:flex;align-items:center;gap:8px;">
-                <span>{{ (f.username || '?')[0] }}</span>
-                <span style="flex:1;">{{ f.username }}</span>
-                <button class="btn-small btn-fight-small" @click="startFriendBattle(f)">切磋</button>
+                <span>{{ (f.username || '?')[0] }}</span><span style="flex:1;">{{ f.username }}</span>
+                <button class="btn-small btn-fight-small" @click="visitFriend(f)">访问</button>
             </div>
             <button class="btn-close" @click="showFriendsModal = false">×</button>
+        </div></div>
+
+        <!-- 好友农场弹窗 -->
+        <div v-if="showFriendFarmModal" class="modal-overlay" @click.self="showFriendFarmModal = false"><div class="modal"><h3>🌾 {{ visitingFriend?.username }} 的农场</h3>
+            <div v-for="plot in visitingPlots" :key="plot.plot_index" class="pet-card">
+                <div v-if="!plot.crop_type">🟫 空地</div>
+                <div v-else>
+                    <span style="font-size:1.5rem;">{{ getCropEmoji(plot.crop_type) }}</span>
+                    <strong>{{ getCropName(plot.crop_type) }}</strong>
+                    <button v-if="getPlotClass(plot) === 'ready' && plot.stolen_count < 2" class="btn-small btn-fight-small" @click="stealCrop(plot)">偷菜</button>
+                    <button v-if="getPlotClass(plot) === 'planted'" class="btn-small btn-water" @click="waterFriendPlot(plot)">浇水</button>
+                </div>
+            </div>
+            <button class="btn-close" @click="showFriendFarmModal = false">×</button>
         </div></div>
 
         <!-- 排行榜弹窗 -->
@@ -436,11 +468,13 @@
             <div class="mail-tabs">
                 <button class="mail-tab" :class="{ active: lbTab === 'global' }" @click="lbTab = 'global'; loadLeaderboard()">全服</button>
                 <button class="mail-tab" :class="{ active: lbTab === 'friends' }" @click="lbTab = 'friends'; loadLeaderboard()">好友</button>
+                <button class="mail-tab" :class="{ active: lbTab === 'pet' }" @click="lbTab = 'pet'; loadLeaderboard()">宠物</button>
             </div>
             <div v-for="(p, idx) in lbRanked" :key="p.id" class="pet-card" style="display:flex;align-items:center;gap:8px;">
                 <span style="font-weight:700;">{{ (lbPage - 1) * 10 + idx + 1 }}</span>
-                <span style="flex:1;">{{ p.username }}</span>
-                <span>🪙{{ p.gold }}</span>
+                <span style="flex:1;">{{ lbTab === 'pet' ? (p.pet_name + ' (' + (p.ownerName || '?') + ')') : p.username }}</span>
+                <span>{{ lbTab === 'pet' ? '战力 '+p.power : '🪙'+p.gold }}</span>
+                <button v-if="lbTab !== 'pet' && p.id !== profile.id" class="btn-small btn-adopt-pet" @click="addFriend(p.id)">+好友</button>
             </div>
             <div v-if="lbTotalPages > 1" style="display:flex;justify-content:center;gap:6px;margin-top:12px;">
                 <button class="page-btn" :disabled="lbPage <= 1" @click="lbPage--; loadLeaderboard()">‹</button>
@@ -462,7 +496,8 @@
 
         <div class="toast" :class="{ show: toastMsg }">{{ toastMsg }}</div>
     </div>
-    <script>
+
+<script>
     const { createApp, ref, reactive, computed, onUnmounted } = Vue;
 
     const SUPABASE_URL = 'https://siwacsnuminepetpxljh.supabase.co';
@@ -750,11 +785,7 @@
                 }
                 return { atk, def, spd, luk, hp, sta };
             }
-
-            function openPetDetail(pet) {
-                petDetailData.value = pet;
-                showPetDetailModal.value = true;
-            }
+            function openPetDetail(pet) { petDetailData.value = pet; showPetDetailModal.value = true; }
 
             // ===== 农田操作 =====
             function onPlotClick(p){if(p._status==='empty'){selectedPlotIndex.value=p.plot_index;showPlantModal.value=true;}else if(p._status==='ready'){doHarvest(p);}else{selectedPlotIndex.value=p.plot_index;showWaterModal.value=true;}}
