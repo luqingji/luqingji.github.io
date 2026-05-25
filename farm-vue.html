@@ -568,6 +568,11 @@
         {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','鼻涕虫','田鼠','蝗虫'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'},
         {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['刺猬','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}},
     ];
+    const MONSTER_AFFIXES = [
+        { id:'swift', name:'迅捷', color:'#3498db', effect:{spd_mult:2}, reward:{gold:1.2} },
+        { id:'hard', name:'硬化', color:'#e67e22', effect:{def_mult:2,atk_mult:0.5}, reward:{items:1.5} },
+        { id:'treasure', name:'宝藏', color:'#f0c040', effect:{hp_mult:2}, reward:{gold:3} },
+    ];
 
     const SEED_SHOP = [
         {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
@@ -650,6 +655,8 @@
             const showMonsterLogModal = ref(false);
             const showUnlockPlotModal = ref(false), showPetSlotsModal = ref(false);
             const showFriendFarmModal = ref(false), showHelpModal = ref(false);
+            const showPetDetailModal = ref(false);
+            const petDetailData = ref(null);
 
             const selectedPlotIndex = ref(-1);
             const exploringPet = ref(null);
@@ -680,17 +687,10 @@
             const initial = computed(()=>(profile.username||'农')[0]);
             const staFactor = computed(()=>{if(!exploringPet.value)return 1;return Math.max(0.2,1-(exploringPet.value.sta||50)/100);});
             const currentRecipes = computed(()=>{if(synthTab.value==='equipment')return SYNTHESIS_RECIPES;if(synthTab.value==='food')return SYNTHESIS_FOOD;return SYNTHESIS_POTIONS;});
-
-            // PvE 地图（补上缺失的计算属性）
             const pveMaps = computed(() => PVE_MAPS.map(m => ({
                 ...m,
-                unlocked: !m.unlockCond || (
-                    m.unlockCond.type === 'elite_kills' 
-                    ? Object.values(monsterLog).reduce((sum, x) => sum + (x.kills || 0), 0) >= m.unlockCond.count 
-                    : true
-                )
+                unlocked: !m.unlockCond || (m.unlockCond.type === 'elite_kills' ? Object.values(monsterLog).reduce((sum, x) => sum + (x.kills || 0), 0) >= m.unlockCond.count : true)
             })));
-
             const visiblePlots = computed(()=>rawPlots.value.filter(p=>p.plot_index<(profile.unlocked_plots||4)).map(p=>{
                 const now=new Date(); let status='empty',progress=0,remainingMin=0,waterable=false,name='空地',emoji='🟫';
                 if(p.crop_type&&p.planted_at){const crop=CROPS[p.crop_type];emoji=crop?crop.emoji:'🌱';name=crop?crop.name:'作物';const planted=new Date(p.planted_at);let gm=p.growth_minutes*60*1000;if(p.watered_at)gm=Math.floor(gm*0.7);const mt=new Date(planted.getTime()+gm);if(now>=mt){status='ready';progress=100;}else{status='growing';progress=Math.floor((now-planted)/gm*100);remainingMin=Math.ceil((mt-now)/60000);let wa=true;if(p.watered_at)wa=(now-new Date(p.watered_at))>=WATER_COOLDOWN_MS;waterable=wa;}}
@@ -719,6 +719,42 @@
             function formatTime(iso){if(!iso)return'';const d=new Date(iso),now=new Date(),diff=now-d,mins=Math.floor(diff/60000);if(mins<1)return'刚刚';if(mins<60)return`${mins}分钟前`;const hours=Math.floor(mins/60);if(hours<24)return`${hours}小时前`;return`${Math.floor(hours/24)}天前`;}
             function formatMailItems(it){return Object.entries(it).filter(([k,v])=>v>0).map(([k,v])=>`${ITEM_EMOJI[k]||'📦'}×${v}`).join(' ');}
             function formatEventMsg(log){const d=log.event_data||{};switch(log.event_type){case'plant':return`🌱 你种下了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}`;case'harvest':return`🌾 你收获了 ${CROPS[d.crop]?.emoji||''}${CROPS[d.crop]?.name||d.crop}，获得 ${d.gold} 金币`;case'water_self':return`💧 你为自己的作物浇了水`;case'water_sent':return`💧 你帮 ${d.friend} 浇了水`;case'steal_sent':return`🥷 你偷了 ${d.victim} 的 ${CROPS[d.crop]?.name||d.crop}`;case'adopt_pet':return`🐾 你领养了一只 ${d.pet}`;case'explore_start':return`🗺️ ${d.pet} 前往${d.route}探险了`;case'explore_complete':return`🗺️ ${d.pet} 探险归来`;case'plot_unlock':return`🔓 你解锁了第 ${d.plot} 块农田`;case'synthesis':return`🔧 你合成了 ${d.name}`;case'enhance':return`⚔️ 装备强化${d.success?'成功':'失败'}`;case'pve_win':return`🐉 你击败了 ${d.monster}`;case'pve_lose':return`🐉 你被 ${d.monster} 击败了`;case'auto_battle':return`⚔️ 自动战斗完成`;case'battle_win':return`⚔️ 切磋胜利`;case'battle_lose':return`⚔️ 切磋失败`;case'friend_accepted':return`🤝 和 ${d.friend} 成为好友`;default:return log.event_type;}}
+
+            // ===== 宠物属性计算 =====
+            function getPetStats(pet) {
+                const equip = equipment.value.filter(e => e.equipped_to === pet.id);
+                let atk = pet.atk || 0, def = pet.def || 0, spd = pet.spd || 0, luk = pet.luk || 0, hp = pet.hp || 0, sta = pet.sta || 50;
+                equip.forEach(e => { atk += e.atk_bonus || 0; def += e.def_bonus || 0; spd += e.spd_bonus || 0; luk += e.luk_bonus || 0; });
+                if (pet.nature) {
+                    const nature = PET_NATURES.find(n => n.id === pet.nature);
+                    if (nature) {
+                        if (nature.atk_bonus) atk = Math.floor(atk * (1 + nature.atk_bonus));
+                        if (nature.def_bonus) def = Math.floor(def * (1 + nature.def_bonus));
+                        if (nature.spd_bonus) spd = Math.floor(spd * (1 + nature.spd_bonus));
+                        if (nature.luk_bonus) luk = Math.floor(luk * (1 + nature.luk_bonus));
+                        if (nature.hp_bonus) hp = Math.floor(hp * (1 + nature.hp_bonus));
+                        if (nature.sta_bonus) sta = Math.floor(sta * (1 + nature.sta_bonus));
+                        if (nature.atk_penalty) atk = Math.floor(atk * (1 + nature.atk_penalty));
+                        if (nature.def_penalty) def = Math.floor(def * (1 + nature.def_penalty));
+                        if (nature.spd_penalty) spd = Math.floor(spd * (1 + nature.spd_penalty));
+                        if (nature.luk_penalty) luk = Math.floor(luk * (1 + nature.luk_penalty));
+                        if (nature.hp_penalty) hp = Math.floor(hp * (1 + nature.hp_penalty));
+                        if (nature.sta_penalty) sta = Math.floor(sta * (1 + nature.sta_penalty));
+                    }
+                }
+                if (pet.passive_skill && PASSIVE_SKILLS[pet.passive_skill]) {
+                    const passive = PASSIVE_SKILLS[pet.passive_skill];
+                    if (passive.atk_bonus) atk = Math.floor(atk * (1 + passive.atk_bonus));
+                    if (passive.def_bonus) def = Math.floor(def * (1 + passive.def_bonus));
+                    if (passive.spd_bonus) spd = Math.floor(spd * (1 + passive.spd_bonus));
+                }
+                return { atk, def, spd, luk, hp, sta };
+            }
+
+            function openPetDetail(pet) {
+                petDetailData.value = pet;
+                showPetDetailModal.value = true;
+            }
 
             // ===== 农田操作 =====
             function onPlotClick(p){if(p._status==='empty'){selectedPlotIndex.value=p.plot_index;showPlantModal.value=true;}else if(p._status==='ready'){doHarvest(p);}else{selectedPlotIndex.value=p.plot_index;showWaterModal.value=true;}}
@@ -985,6 +1021,47 @@
 
             function onBackpackItemClick(item){if(item.isBook){showBackpackModal.value=false;showToast('技能书请在旧版中使用');}else if(item.isPotion){showToast('战斗药剂请在战斗前使用');}}
 
+            // ===== PvE =====
+            function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
+            function openPveMap(map){
+                const monsterPool = MONSTERS.filter(m => map.monsterIds.includes(m.name));
+                const elitePool = ELITE_MONSTERS.filter(m => map.eliteIds.includes(m.name));
+                const shuffled = [...monsterPool].sort(() => Math.random() - 0.5).slice(0, 3);
+                pveMonsters.value = shuffled.map(m => {
+                    const affixCount = Math.random() < 0.3 ? 2 : (Math.random() < 0.5 ? 1 : 0);
+                    const affixes = [];
+                    if(affixCount > 0){
+                        const shuffledAffixes = [...MONSTER_AFFIXES].sort(() => Math.random() - 0.5);
+                        for(let i = 0; i < affixCount; i++) affixes.push(shuffledAffixes[i]);
+                    }
+                    return { ...m, affixes, isElite: false };
+                }).concat(elitePool.map(m => ({ ...m, affixes: [], isElite: true })));
+            }
+            function startPveBattle(monster){
+                const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));
+                if(!pet){showToast('请先领养宠物');return;}
+                let mHp=monster.hp,mAtk=monster.atk,mDef=monster.def,mSpd=monster.spd;
+                (monster.affixes||[]).forEach(a=>{if(a.effect.hp_mult)mHp=Math.floor(mHp*a.effect.hp_mult);if(a.effect.atk_mult)mAtk=Math.floor(mAtk*a.effect.atk_mult);if(a.effect.def_mult)mDef=Math.floor(mDef*a.effect.def_mult);if(a.effect.spd_mult)mSpd=Math.floor(mSpd*a.effect.spd_mult);});
+                battle.value={
+                    myPet:pet,myCurrentHp:pet.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],mySkills:[],
+                    opponentPet:{...monster,hp:mHp,atk:mAtk,def:mDef,spd:mSpd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji,level:monster.minLevel},
+                    opponentName:monster.name,opponentCurrentHp:mHp,oppHpPct:100,oppEnergy:3,oppBuffs:[],
+                    skillCooldowns:{},logHTML:'',monster,affixes:monster.affixes||[],turn:1
+                };
+                showPveModal.value=false;showToast('战斗开始！');
+            }
+            function doBattleAction(action,skill=null){
+                const b=battle.value;if(!b)return;
+                let dmg=0,log='';
+                if(action==='attack'){dmg=Math.max(1,b.myPet.atk-b.opponentPet.def+Math.floor(Math.random()*10));b.opponentCurrentHp=Math.max(0,b.opponentCurrentHp-dmg);b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+1);log=`你的 ${b.myPet.pet_name} 攻击，造成 ${dmg} 点伤害`;}
+                else if(action==='defend'){b.myBuffs.push({type:'defend',duration:1});b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+2);log=`你选择防御`;}
+                if(b.opponentCurrentHp>0){const oppDmg=Math.max(1,b.opponentPet.atk-b.myPet.def+Math.floor(Math.random()*5));const defended=b.myBuffs.some(bf=>bf.type==='defend');const finalDmg=defended?Math.floor(oppDmg*0.5):oppDmg;b.myCurrentHp=Math.max(0,b.myCurrentHp-finalDmg);log+=`<br>对手 ${b.opponentPet.pet_name} 攻击，造成 ${finalDmg} 点伤害${defended?'（防御减免）':''}`;}
+                b.myBuffs=b.myBuffs.filter(bf=>{bf.duration--;return bf.duration>0;});b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;b.logHTML=(b.logHTML||'')+`<div>${log}</div>`;b.turn++;
+                if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1000);}else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1000);}
+            }
+            async function endBattle(won){const b=battle.value;if(!b)return;if(won&&b.monster){const gr=b.monster.rewards?.gold||20;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:gr});profile.gold+=gr;if(!monsterLog[b.monster.name])monsterLog[b.monster.name]={kills:0,affixes:[]};monsterLog[b.monster.name].kills++;await db.from('profiles').update({monster_log:monsterLog}).eq('id',profile.id);showToast(`胜利！🪙+${gr}`);}battle.value=null;}
+            function fleeBattle(){battle.value=null;showToast('已逃跑');}
+
             // ===== 登录 =====
             async function handleLogin(){errorMsg.value='';if(!loginEmail.value||!loginPassword.value){errorMsg.value='请输入邮箱和密码';return;}loading.value=true;try{const{data,error}=await db.auth.signInWithPassword({email:loginEmail.value,password:loginPassword.value});if(error)throw error;await loadAllData(data.user);isLoggedIn.value=true;showToast('登录成功！🌱');}catch(e){errorMsg.value=e.message||'登录失败';}finally{loading.value=false;}}
             async function handleRegister(){errorMsg.value='';if(!regUsername.value||!regEmail.value||!regPassword.value){errorMsg.value='请填写所有必填字段';return;}if(regPassword.value.length<6){errorMsg.value='密码至少6位';return;}loading.value=true;try{const{data,error}=await db.auth.signUp({email:regEmail.value,password:regPassword.value,options:{data:{username:regUsername.value,gender:regGender.value}}});if(error)throw error;if(data.user){showToast('注册成功！🎉');await new Promise(r=>setTimeout(r,1500));await loadAllData(data.user);isLoggedIn.value=true;}}catch(e){errorMsg.value=e.message||'注册失败';}finally{loading.value=false;}}
@@ -1002,7 +1079,6 @@
             async function checkSession(){const{data}=await db.auth.getSession();if(data.session){await loadAllData(data.session.user);isLoggedIn.value=true;}}
             checkSession();
 
-            // 定时刷新
             const growthTimer = setInterval(() => { if(isLoggedIn.value && !battle.value) refreshFarm(); }, 30000);
             onUnmounted(() => clearInterval(growthTimer));
 
@@ -1012,7 +1088,7 @@
                 showPlantModal,showWaterModal,showPetsModal,showAdoptModal,showExploreModal,showSynthesisModal,
                 showEquipmentModal,showEquipSelectModal,showBackpackModal,showPveModal,
                 showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,
-                showUnlockPlotModal,showPetSlotsModal,showFriendFarmModal,showHelpModal,
+                showUnlockPlotModal,showPetSlotsModal,showFriendFarmModal,showHelpModal,showPetDetailModal,petDetailData,
                 selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,
                 battle,selectedBattlePetId,pveMonsters,pveMaps,
                 orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,
@@ -1023,12 +1099,14 @@
                 PET_NATURES,PASSIVE_SKILLS,PET_SLOT_UNLOCK,PLOT_MAX_COUNT,MAX_PET_SLOTS,
                 getPlotClass,getPlotEmoji,getPlotName,getPlotStatus,getPetEmoji,isStationed,getEquippedPetName,
                 formatMats,canCraft,getCropEmoji,getCropName,formatTime,formatMailItems,formatEventMsg,
+                getPetStats,openPetDetail,
                 onPlotClick,doPlant,doWater,toggleStation,doAdopt,openExplore,doExplore,completeExplore,
                 doSynthesize,doEnhance,openEquipSelect,doEquip,doUnequip,doDecompose,doSell,
                 submitOrder,buySeed,exchangeTicket,claimMail,sendMail,onBackpackItemClick,unlockPlot,unlockPetSlot,
                 visitFriend,stealCrop,waterFriendPlot,addFriend,
                 loadLeaderboard,loadMails,loadEventLogs,loadSeedShop,loadOrders,
-                handleLogin,handleRegister,handleLogout,refreshFarm
+                handleLogin,handleRegister,handleLogout,refreshFarm,
+                showPveMaps,openPveMap,startPveBattle,doBattleAction,endBattle,fleeBattle
             };
         }
     }).mount('#app');
