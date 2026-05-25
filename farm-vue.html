@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>麦田守护者 - Vue 3</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -487,7 +487,6 @@
     };
     const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
 
-    // 宠物类型 + 性格 + 被动
     const PET_TYPES = {
         cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
         dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
@@ -508,7 +507,6 @@
         lucky:{name:'幸运儿', desc:'暴击率+10%，掉落奖励+20%'},
     };
 
-    // 完整6条探险路线
     const EXPLORE_ROUTES = [
         {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,materials:{hair:2,seed:1,dew:0.5},rareItem:'dew',rareProb:0.1,eventProb:0.1,eventName:'遇到受伤小动物',eventReward:'gold50',exp:20},
         {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,materials:{hair:3,ore:1.5,relic:0.3},rareItem:'relic',rareProb:0.15,eventProb:0.15,eventName:'发现宝箱',eventReward:'extra_materials',exp:40},
@@ -518,7 +516,6 @@
         {id:'night',name:'暗夜森林',emoji:'🌙',time:2,cost:100,minLevel:10,materials:{dew:3,clover:1.5,feather:0.5},rareItem:'feather',rareProb:0.2,eventProb:0.2,eventName:'萤火虫群',eventReward:'temp_luk',exp:100}
     ];
 
-    // 合成配方
     const SYNTHESIS_RECIPES = [
         {name:'稻草叉',slot:'weapon',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
         {name:'草帽',slot:'armor',quality:'white',set_name:'稻草人',materials:{ore:3,hair:2},cost:200},
@@ -553,7 +550,6 @@
         {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'},
     ];
 
-    // 怪物数据（战斗系统第二批才用，但为了图鉴保留）
     const MONSTERS = [
         {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
         {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
@@ -568,6 +564,10 @@
         {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
     ];
     const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
+    const PVE_MAPS = [
+        {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','鼻涕虫','田鼠','蝗虫'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'},
+        {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['刺猬','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}},
+    ];
 
     const SEED_SHOP = [
         {crop:'potato',price:500},{crop:'cabbage',price:500},{crop:'sunflower',price:800},
@@ -680,6 +680,17 @@
             const initial = computed(()=>(profile.username||'农')[0]);
             const staFactor = computed(()=>{if(!exploringPet.value)return 1;return Math.max(0.2,1-(exploringPet.value.sta||50)/100);});
             const currentRecipes = computed(()=>{if(synthTab.value==='equipment')return SYNTHESIS_RECIPES;if(synthTab.value==='food')return SYNTHESIS_FOOD;return SYNTHESIS_POTIONS;});
+
+            // PvE 地图（补上缺失的计算属性）
+            const pveMaps = computed(() => PVE_MAPS.map(m => ({
+                ...m,
+                unlocked: !m.unlockCond || (
+                    m.unlockCond.type === 'elite_kills' 
+                    ? Object.values(monsterLog).reduce((sum, x) => sum + (x.kills || 0), 0) >= m.unlockCond.count 
+                    : true
+                )
+            })));
+
             const visiblePlots = computed(()=>rawPlots.value.filter(p=>p.plot_index<(profile.unlocked_plots||4)).map(p=>{
                 const now=new Date(); let status='empty',progress=0,remainingMin=0,waterable=false,name='空地',emoji='🟫';
                 if(p.crop_type&&p.planted_at){const crop=CROPS[p.crop_type];emoji=crop?crop.emoji:'🌱';name=crop?crop.name:'作物';const planted=new Date(p.planted_at);let gm=p.growth_minutes*60*1000;if(p.watered_at)gm=Math.floor(gm*0.7);const mt=new Date(planted.getTime()+gm);if(now>=mt){status='ready';progress=100;}else{status='growing';progress=Math.floor((now-planted)/gm*100);remainingMin=Math.ceil((mt-now)/60000);let wa=true;if(p.watered_at)wa=(now-new Date(p.watered_at))>=WATER_COOLDOWN_MS;waterable=wa;}}
@@ -796,12 +807,10 @@
             async function completeExplore(pet){
                 const route = EXPLORE_ROUTES.find(r=>r.id==='grassland') || EXPLORE_ROUTES[0];
                 try {
-                    // 基础奖励
                     let goldReward = Math.floor(Math.random()*30)+10;
                     const mats = {};
                     for(const [item,qty] of Object.entries(route.materials)){ const actual = Math.floor(qty*(0.8+Math.random()*0.4)); if(actual>0) mats[item]=(mats[item]||0)+actual; }
                     if(Math.random() < route.rareProb){ mats[route.rareItem] = (mats[route.rareItem]||0)+1; }
-                    // 事件
                     let eventTriggered = false;
                     if(Math.random() < route.eventProb){
                         eventTriggered = true;
@@ -1005,7 +1014,7 @@
                 showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,
                 showUnlockPlotModal,showPetSlotsModal,showFriendFarmModal,showHelpModal,
                 selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,
-                battle,selectedBattlePetId,pveMonsters,
+                battle,selectedBattlePetId,pveMonsters,pveMaps,
                 orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,
                 lbTab,lbPage,lbRanked,lbTotalPages,
                 visitingFriend,visitingPlots,
