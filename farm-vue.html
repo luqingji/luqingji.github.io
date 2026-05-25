@@ -165,10 +165,10 @@
 </div>
 
 <script>
-const { createApp, ref, reactive, computed, onUnmounted } = Vue;
-const db = window.supabase.createClient('https://siwacsnuminepetpxljh.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s');
+    const { createApp, ref, reactive, computed, onUnmounted } = Vue;
+    const db = window.supabase.createClient('https://siwacsnuminepetpxljh.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s');
 
-    // ==================== 数据常量 ====================
+    // ==================== 完整数据常量 ====================
     const CROPS = {
         strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
         grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
@@ -249,28 +249,47 @@ const db = window.supabase.createClient('https://siwacsnuminepetpxljh.supabase.c
         {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'},
     ];
 
+    // 完整的怪物数据（14种普通）
     const MONSTERS = [
         {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
         {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
+        {name:'蚜虫群',emoji:'🐜',minLevel:1,maxLevel:5,hp:45,atk:9,def:1,spd:7,rewards:{gold:25,items:{seed:0.3}}},
         {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
         {name:'蝗虫',emoji:'🦗',minLevel:5,maxLevel:10,hp:55,atk:15,def:3,spd:10,rewards:{gold:45,items:{dew:0.35}}},
+        {name:'草蛇',emoji:'🐍',minLevel:5,maxLevel:10,hp:70,atk:14,def:5,spd:7,rewards:{gold:50,items:{hair:0.35}}},
+        {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
         {name:'刺猬',emoji:'🦔',minLevel:10,maxLevel:15,hp:100,atk:12,def:12,spd:6,rewards:{gold:80,items:{relic:0.25}}},
         {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
+        {name:'野猪',emoji:'🐗',minLevel:15,maxLevel:25,hp:220,atk:35,def:15,spd:8,rewards:{gold:180,items:{ore:0.35}}},
+        {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}},
+        {name:'毒蝎',emoji:'🦂',minLevel:20,maxLevel:30,hp:200,atk:50,def:12,spd:16,rewards:{gold:220,items:{relic:0.3}}},
+        {name:'地龙',emoji:'🐲',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,rewards:{gold:400,items:{scale:0.25}}},
+        {name:'巨猿',emoji:'🦍',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,rewards:{gold:450,items:{ore:0.4}}}
     ];
+    // 完整的精英怪物（6种）
     const ELITE_MONSTERS = [
         {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
         {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
         {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5,moonstone:0.35}}},
+        {name:'九尾狐',emoji:'🦊✨',minLevel:15,maxLevel:25,hp:270,atk:45,def:18,spd:22,rewards:{gold:350,items:{feather:0.5}}},
+        {name:'熔岩幼龙',emoji:'🐉🔥',minLevel:20,maxLevel:30,hp:375,atk:60,def:22,spd:25,rewards:{gold:500,items:{scale:0.3}}},
+        {name:'水晶地龙',emoji:'🐲💎',minLevel:25,maxLevel:35,hp:525,atk:82,def:42,spd:20,rewards:{gold:800,items:{scale:0.4}}}
     ];
     const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
     const PVE_MAPS = [
-        {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','鼻涕虫','田鼠','蝗虫'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'},
-        {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['刺猬','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}},
+        {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,unlockDesc:'初始解锁',monsterIds:['菜青虫','鼻涕虫','蚜虫群','田鼠','蝗虫','草蛇'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'},
+        {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,unlockDesc:'击败任意精英怪×3',monsterIds:['蝙蝠','刺猬','狐妖','野猪'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}},
+        {id:'mine',name:'废弃矿洞',emoji:'💎',minLevel:20,maxLevel:30,unlockDesc:'解锁8块农田',monsterIds:['幼龙','毒蝎','地龙','巨猿'],eliteIds:['九尾狐'],bg:'#f0ebe4',unlockCond:{type:'plots',count:8}},
+        {id:'ruins',name:'古老遗迹',emoji:'🏛️',minLevel:25,maxLevel:35,unlockDesc:'任意宠物达到Lv.25',monsterIds:[],eliteIds:['黄金菜青虫','鼠王','血蝙蝠','九尾狐','熔岩幼龙','水晶地龙'],bg:'#ede8f0',unlockCond:{type:'pet_level',count:25}},
+        {id:'boss_lair',name:'虫母巢穴',emoji:'👹',minLevel:1,maxLevel:35,unlockDesc:'全服共享BOSS',monsterIds:[],eliteIds:[],isBoss:true,bg:'#fdf0e0'}
     ];
     const MONSTER_AFFIXES = [
         { id:'swift', name:'迅捷', color:'#3498db', effect:{spd_mult:2}, reward:{gold:1.2} },
         { id:'hard', name:'硬化', color:'#e67e22', effect:{def_mult:2,atk_mult:0.5}, reward:{items:1.5} },
+        { id:'vampire', name:'吸血鬼', color:'#c0392b', effect:{lifesteal:0.15}, reward:{gold:1.5} },
         { id:'treasure', name:'宝藏', color:'#f0c040', effect:{hp_mult:2}, reward:{gold:3} },
+        { id:'clone', name:'分身', color:'#9b59b6', effect:{clone:0.3}, reward:{exp:1.5} },
+        { id:'bomb', name:'自爆', color:'#e74c3c', effect:{bomb:0.3}, reward:{gold:2} },
     ];
 
     const SEED_SHOP = [
@@ -299,12 +318,11 @@ const db = window.supabase.createClient('https://siwacsnuminepetpxljh.supabase.c
         potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',juice_watermelon:'西瓜汁',jam_blueberry:'蓝莓酱',
         scroll_basic:'基础技能卷轴',protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',auto_battle_ticket:'自动战斗券',
     };
-
-const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
-const BASE_MATERIALS=['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-const PET_SLOT_UNLOCK=[{slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},{slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},{slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},{slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},{slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}];
-const PET_STATION_EFFECTS={cat:'20%概率驱赶偷菜者；收获时5%概率双倍',dog:'浇水效果+20%',rabbit:'生长时间-10%，探险时间-10%'};
-const BATTLE_POTIONS=[{key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},{key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}},{key:'potion_spd',name:'速度药剂',emoji:'⚗️',effect:{spd:0.2}},{key:'potion_hp',name:'生命药剂',emoji:'❤️',effect:{hp:0.3}},{key:'potion_crit',name:'暴击药剂',emoji:'💥',effect:{crit:0.15}}];
+    const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
+    const BASE_MATERIALS=['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
+    const PET_SLOT_UNLOCK=[{slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},{slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},{slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},{slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},{slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}];
+    const PET_STATION_EFFECTS={cat:'20%概率驱赶偷菜者；收获时5%概率双倍',dog:'浇水效果+20%',rabbit:'生长时间-10%，探险时间-10%'};
+    const BATTLE_POTIONS=[{key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},{key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}},{key:'potion_spd',name:'速度药剂',emoji:'⚗️',effect:{spd:0.2}},{key:'potion_hp',name:'生命药剂',emoji:'❤️',effect:{hp:0.3}},{key:'potion_crit',name:'暴击药剂',emoji:'💥',effect:{crit:0.15}}];
 
 createApp({setup(){
     // ===== 状态 =====
@@ -312,7 +330,7 @@ createApp({setup(){
     const loginEmail=ref(''),loginPassword=ref(''),regUsername=ref(''),regEmail=ref(''),regPassword=ref(''),regGender=ref('none');
     const profile=reactive({id:'',username:'',gender:'none',gold:0,unlocked_plots:4,pet_slots:1});
     const rawPlots=ref([]),items=reactive({}),pets=ref([]),stationedPet=ref(null),equipment=ref([]),monsterLog=reactive({}),friendProfiles=ref([]);
-    const showPlantModal=ref(false),showWaterModal=ref(false),showPetsModal=ref(false),showAdoptModal=ref(false),showExploreModal=ref(false),showSynthesisModal=ref(false),showEquipmentModal=ref(false),showEquipSelectModal=ref(false),showBackpackModal=ref(false),showPveModal=ref(false),showOrdersModal=ref(false),showSeedShopModal=ref(false),showMailModal=ref(false),showEventLogModal=ref(false),showFriendsModal=ref(false),showLeaderboardModal=ref(false),showMonsterLogModal=ref(false),showFriendFarmModal=ref(false),showPetDetailModal=ref(false),showPotionModal=ref(false);
+    const showPlantModal=ref(false),showWaterModal=ref(false),showPetsModal=ref(false),showAdoptModal=ref(false),showExploreModal=ref(false),showSynthesisModal=ref(false),showEquipmentModal=ref(false),showEquipSelectModal=ref(false),showBackpackModal=ref(false),showPveModal=ref(false),showOrdersModal=ref(false),showSeedShopModal=ref(false),showMailModal=ref(false),showEventLogModal=ref(false),showFriendsModal=ref(false),showLeaderboardModal=ref(false),showMonsterLogModal=ref(false),showFriendFarmModal=ref(false),showPetDetailModal=ref(false),showPotionModal=ref(false),showSelectBattlePetModal=ref(false);
     const selectedPlotIndex=ref(-1),exploringPet=ref(null),synthTab=ref('equipment'),equippingItem=ref(null),bpTab=ref('all'),bpPage=ref(1),petDetailData=ref(null),pendingPotion=ref(null);
     const battle=ref(null),selectedBattlePetId=ref(null),pveMonsters=ref([]);
     const orders=ref([]),seedShop=ref([]),mails=ref([]),mailTab=ref('inbox'),mailReceiver=ref(''),mailTitle=ref(''),mailContent=ref(''),mailItemsText=ref(''),eventLogs=ref([]),lbTab=ref('global'),lbPage=ref(1),lbRanked=ref([]),lbTotalPages=ref(1);
@@ -399,10 +417,12 @@ createApp({setup(){
 
     // ===== 战斗系统 =====
     function usePotion(pot){if((items[pot.key]||0)<=0){showToast('药剂不足');return;}db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:pot.key,p_qty:-1}).then(()=>{items[pot.key]--;pendingPotion.value=pot;showPotionModal.value=false;showPveMaps();});}
+    function showSelectPetForBattle() { if (pets.value.length === 0) { showToast('请先领养宠物'); return; } if (pets.value.length === 1) { selectedBattlePetId.value = pets.value[0].id; showPotionModal.value = true; } else { showSelectBattlePetModal.value = true; } }
+    function selectPetForBattle(pet) { selectedBattlePetId.value = pet.id; showSelectBattlePetModal.value = false; showPotionModal.value = true; }
     function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
     function openPveMap(map){const mp=MONSTERS.filter(m=>map.monsterIds.includes(m.name));const ep=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));const sh=[...mp].sort(()=>Math.random()-0.5).slice(0,4);pveMonsters.value=sh.map(m=>{const ac=Math.random()<0.3?2:(Math.random()<0.5?1:0);const af=[];if(ac>0){const sa=[...MONSTER_AFFIXES].sort(()=>Math.random()-0.5);for(let i=0;i<ac;i++)af.push(sa[i]);}return{...m,affixes:af,isElite:false};}).concat(ep.map(m=>({...m,affixes:[],isElite:true})));}
     function startPveBattle(monster){const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));if(!pet){showToast('请先领养宠物');return;}let mHp=monster.hp,mAtk=monster.atk,mDef=monster.def,mSpd=monster.spd;(monster.affixes||[]).forEach(a=>{if(a.effect.hp_mult)mHp=Math.floor(mHp*a.effect.hp_mult);if(a.effect.atk_mult)mAtk=Math.floor(mAtk*a.effect.atk_mult);if(a.effect.def_mult)mDef=Math.floor(mDef*a.effect.def_mult);if(a.effect.spd_mult)mSpd=Math.floor(mSpd*a.effect.spd_mult);});const stats=getPetStats(pet);const mySkills=[];let potionBonus={};if(pendingPotion.value){potionBonus=pendingPotion.value.effect;showToast(`使用${pendingPotion.value.name}！`);}battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],mySkills,myParalyzed:false,myBound:false,mySkip:false,opponentPet:{...monster,hp:mHp,atk:mAtk,def:mDef,spd:mSpd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji},opponentName:monster.name,opponentCurrentHp:mHp,oppHpPct:100,oppEnergy:3,oppBuffs:[],skillCooldowns:{},oppSkillCooldowns:{},logHTML:'',monster,affixes:monster.affixes||[],turn:1,potionBonus};showPveModal.value=false;}
-    function doBattleAction(action,skill=null){const b=battle.value;if(!b)return;let log='',dmg=0,mySpd=b.myPet.spd,oppSpd=b.opponentPet.spd;if(b.potionBonus&&b.potionBonus.spd)mySpd=Math.floor(mySpd*(1+b.potionBonus.spd));const order=mySpd>=oppSpd?'(先手)':'<(后手)';if(order==='(先手)'){log+=executePlayerTurn(b,action,skill);if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);}else{if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);if(b.myCurrentHp>0)log+=executePlayerTurn(b,action,skill);}b.myEnergy=Math.min(MAX_ENERGY,(b.myEnergy||0)+1);b.oppEnergy=Math.min(MAX_ENERGY,(b.oppEnergy||0)+1);for(const k in b.skillCooldowns)if(b.skillCooldowns[k]>0)b.skillCooldowns[k]--;for(const k in b.oppSkillCooldowns)if(b.oppSkillCooldowns[k]>0)b.oppSkillCooldowns[k]--;b.myBuffs=tickBuffs(b.myBuffs);b.oppBuffs=tickBuffs(b.oppBuffs);b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;b.logHTML+=`<div>[第${b.turn}回合]${order}${log}</div>`;b.turn++;if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1500);}else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1500);}}
+    function doBattleAction(action,skill=null){const b=battle.value;if(!b)return;let log='',dmg=0,mySpd=b.myPet.spd,oppSpd=b.opponentPet.spd;if(b.potionBonus&&b.potionBonus.spd)mySpd=Math.floor(mySpd*(1+b.potionBonus.spd));const order=mySpd>=oppSpd?'(先手)':'(后手)';if(order==='(先手)'){log+=executePlayerTurn(b,action,skill);if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);}else{if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);if(b.myCurrentHp>0)log+=executePlayerTurn(b,action,skill);}b.myEnergy=Math.min(MAX_ENERGY,(b.myEnergy||0)+1);b.oppEnergy=Math.min(MAX_ENERGY,(b.oppEnergy||0)+1);for(const k in b.skillCooldowns)if(b.skillCooldowns[k]>0)b.skillCooldowns[k]--;for(const k in b.oppSkillCooldowns)if(b.oppSkillCooldowns[k]>0)b.oppSkillCooldowns[k]--;b.myBuffs=tickBuffs(b.myBuffs);b.oppBuffs=tickBuffs(b.oppBuffs);b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;b.logHTML+=`<div>[第${b.turn}回合]${order}${log}</div>`;b.turn++;if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1500);}else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1500);}}
     function executePlayerTurn(b,action,skill){let log='',dmg=0;if(b.mySkip){log+='你被跳过回合 ';b.mySkip=false;return log;}if(b.myParalyzed){log+='你被麻痹无法行动 ';return log;}if(b.myBound){log+='你被束缚无法攻击 ';b.myBound=false;return log;}if(action==='attack'){let atk=b.myPet.atk;if(b.potionBonus&&b.potionBonus.atk)atk=Math.floor(atk*(1+b.potionBonus.atk));dmg=Math.max(1,atk-b.opponentPet.def+Math.floor(Math.random()*8));b.opponentCurrentHp=Math.max(0,b.opponentCurrentHp-dmg);b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+1);log+=`你攻击造成${dmg}点伤害 `;}else if(action==='defend'){b.myBuffs.push({type:'defend',duration:1,label:'🛡️'});b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+2);log+='你选择防御 ';}return log;}
     function executeMonsterTurn(b){let log='',dmg=0;const md=b.monster;let atk=b.opponentPet.atk,def=b.opponentPet.def;const defended=b.myBuffs.some(bf=>bf.type==='defend');dmg=Math.max(1,atk-b.myPet.def+Math.floor(Math.random()*5));const finalDmg=defended?Math.floor(dmg*0.5):dmg;b.myCurrentHp=Math.max(0,b.myCurrentHp-finalDmg);log+=`${b.opponentPet.pet_name}攻击造成${finalDmg}点伤害${defended?'(减免)':''}`;return log;}
     function tickBuffs(buffs){if(!buffs)return[];return buffs.filter(b=>{b.duration--;return b.duration>0;});}
@@ -420,7 +440,7 @@ createApp({setup(){
     const growthTimer=setInterval(()=>{if(isLoggedIn.value&&!battle.value)refreshFarm();},30000);
     onUnmounted(()=>clearInterval(growthTimer));
 
-    return{isLoggedIn,authMode,loading,errorMsg,toastMsg,loginEmail,loginPassword,regUsername,regEmail,regPassword,regGender,profile,visiblePlots,initial,items,rawPlots,pets,stationedPet,equipment,monsterLog,showPlantModal,showWaterModal,showPetsModal,showAdoptModal,showExploreModal,showSynthesisModal,showEquipmentModal,showEquipSelectModal,showBackpackModal,showPveModal,showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,showFriendFarmModal,showPetDetailModal,showPotionModal,selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,petDetailData,pendingPotion,battle,selectedBattlePetId,pveMonsters,pveMaps,orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,lbTab,lbPage,lbRanked,lbTotalPages,visitingFriend,visitingPlots,availableCrops:DEFAULT_CROPS,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,SEED_TICKET_EXCHANGE,bpFilteredItems,bpTotalPages,bpPageItems,bpPlaceholders,ALL_MONSTERS,staFactor,PET_NATURES,PASSIVE_SKILLS,PET_SLOT_UNLOCK,PLOT_MAX_COUNT,MAX_PET_SLOTS,BATTLE_POTIONS,getPlotClass,getPlotEmoji,getPlotName,getPlotStatus,getPetEmoji,isStationed,getEquippedPetName,formatMats,canCraft,getCropEmoji,getCropName,formatTime,formatMailItems,formatEventMsg,getPetStats,openPetDetail,onPlotClick,doPlant,doWater,toggleStation,doAdopt,openExplore,doExplore,completeExplore,doSynthesize,doEnhance,openEquipSelect,doEquip,doUnequip,doDecompose,doSell,submitOrder,buySeed,exchangeTicket,claimMail,sendMail,onBackpackItemClick,unlockPlot,unlockPetSlot,visitFriend,stealCrop,waterFriendPlot,addFriend,loadLeaderboard,loadMails,loadEventLogs,loadSeedShop,loadOrders,handleLogin,handleRegister,handleLogout,refreshFarm,showPveMaps,openPveMap,startPveBattle,doBattleAction,endBattle,fleeBattle,usePotion};
+    return{isLoggedIn,authMode,loading,errorMsg,toastMsg,loginEmail,loginPassword,regUsername,regEmail,regPassword,regGender,profile,visiblePlots,initial,items,rawPlots,pets,stationedPet,equipment,monsterLog,showPlantModal,showWaterModal,showPetsModal,showAdoptModal,showExploreModal,showSynthesisModal,showEquipmentModal,showEquipSelectModal,showBackpackModal,showPveModal,showOrdersModal,showSeedShopModal,showMailModal,showEventLogModal,showFriendsModal,showLeaderboardModal,showMonsterLogModal,showFriendFarmModal,showPetDetailModal,showPotionModal,showSelectBattlePetModal,selectedPlotIndex,waterPlotName,exploringPet,synthTab,equippingItem,bpTab,bpPage,petDetailData,pendingPotion,battle,selectedBattlePetId,pveMonsters,pveMaps,orders,seedShop,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,lbTab,lbPage,lbRanked,lbTotalPages,visitingFriend,visitingPlots,availableCrops:DEFAULT_CROPS,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,SEED_TICKET_EXCHANGE,bpFilteredItems,bpTotalPages,bpPageItems,bpPlaceholders,ALL_MONSTERS,staFactor,PET_NATURES,PASSIVE_SKILLS,PET_SLOT_UNLOCK,PLOT_MAX_COUNT,MAX_PET_SLOTS,BATTLE_POTIONS,getPlotClass,getPlotEmoji,getPlotName,getPlotStatus,getPetEmoji,isStationed,getEquippedPetName,formatMats,canCraft,getCropEmoji,getCropName,formatTime,formatMailItems,formatEventMsg,getPetStats,openPetDetail,onPlotClick,doPlant,doWater,toggleStation,doAdopt,openExplore,doExplore,completeExplore,doSynthesize,doEnhance,openEquipSelect,doEquip,doUnequip,doDecompose,doSell,submitOrder,buySeed,exchangeTicket,claimMail,sendMail,onBackpackItemClick,unlockPlot,unlockPetSlot,visitFriend,stealCrop,waterFriendPlot,addFriend,loadLeaderboard,loadMails,loadEventLogs,loadSeedShop,loadOrders,handleLogin,handleRegister,handleLogout,refreshFarm,showPveMaps,openPveMap,startPveBattle,doBattleAction,endBattle,fleeBattle,usePotion,showSelectPetForBattle,selectPetForBattle};
 }}).mount('#app');
 </script>
 </body>
