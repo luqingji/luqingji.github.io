@@ -249,7 +249,6 @@
         {level:10,cost:15000,materials:{dragon_soul:5,stardust:5},prob:0.25,penalty:'reset'},
     ];
 
-    // 完整的怪物数据（14种普通）
     const MONSTERS = [
         {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,rewards:{gold:20,items:{hair:0.3}}},
         {name:'鼻涕虫',emoji:'🐌',minLevel:1,maxLevel:5,hp:35,atk:5,def:3,spd:3,rewards:{gold:15,items:{dew:0.3}}},
@@ -266,7 +265,6 @@
         {name:'地龙',emoji:'🐲',minLevel:25,maxLevel:35,hp:350,atk:55,def:28,spd:15,rewards:{gold:400,items:{scale:0.25}}},
         {name:'巨猿',emoji:'🦍',minLevel:25,maxLevel:35,hp:450,atk:50,def:30,spd:10,rewards:{gold:450,items:{ore:0.4}}}
     ];
-    // 完整的精英怪物（6种）
     const ELITE_MONSTERS = [
         {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6,clover:0.5}}},
         {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6,clover:0.4}}},
@@ -308,6 +306,11 @@
         potion_atk:'🧪',potion_def:'💊',wine:'🍷',juice_watermelon:'🧃',jam_blueberry:'🫙',
         scroll_basic:'📜',protect_charm:'🛡️',lucky_stone:'💎',seed_ticket:'🎫',auto_battle_ticket:'🎫',
         stardust:'🌟',dragon_soul:'🔮',snowflake:'❄️',
+        seed_cabbage:'🥬', seed_peanut:'🥜', seed_watermelon:'🍉', seed_blueberry:'🫐', seed_potato:'🥔',
+        seed_grape:'🍇', seed_carrot:'🥕', seed_tomato:'🍅', seed_corn:'🌽', seed_sunflower:'🌻',
+        seed_chrysanthemum:'🌼', seed_mushroom:'🍄',
+        book_grass_vine:'📕', book_grass_drain:'📕', book_fire_storm:'📕', book_light_purify:'📕',
+        book_dark_strike:'📕', book_fire_claw:'📕', book_water_ball:'📕', book_grass_spore:'📕',
     };
     const ITEM_NAMES = {
         hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',
@@ -317,13 +320,19 @@
         mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
         potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',juice_watermelon:'西瓜汁',jam_blueberry:'蓝莓酱',
         scroll_basic:'基础技能卷轴',protect_charm:'保护符',lucky_stone:'幸运石',seed_ticket:'种子券',auto_battle_ticket:'自动战斗券',
+        seed_cabbage:'白菜种子', seed_peanut:'花生种子', seed_watermelon:'西瓜种子', seed_blueberry:'蓝莓种子', seed_potato:'土豆种子',
+        seed_grape:'葡萄种子', seed_carrot:'胡萝卜种子', seed_tomato:'番茄种子', seed_corn:'玉米种子',
+        seed_sunflower:'向日葵种子', seed_chrysanthemum:'菊花种子', seed_mushroom:'蘑菇种子',
+        book_grass_vine:'《藤蔓缠绕》', book_grass_drain:'《生命汲取》', book_fire_storm:'《火焰风暴》',
+        book_light_purify:'《净化》', book_dark_strike:'《暗影突袭》', book_fire_claw:'《烈焰爪击》',
+        book_water_ball:'《水流弹》', book_grass_spore:'《毒孢子》',
     };
     const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
     const BASE_MATERIALS=['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
     const PET_SLOT_UNLOCK=[{slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},{slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},{slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},{slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},{slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}];
     const PET_STATION_EFFECTS={cat:'20%概率驱赶偷菜者；收获时5%概率双倍',dog:'浇水效果+20%',rabbit:'生长时间-10%，探险时间-10%'};
     const BATTLE_POTIONS=[{key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},{key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}},{key:'potion_spd',name:'速度药剂',emoji:'⚗️',effect:{spd:0.2}},{key:'potion_hp',name:'生命药剂',emoji:'❤️',effect:{hp:0.3}},{key:'potion_crit',name:'暴击药剂',emoji:'💥',effect:{crit:0.15}}];
-
+    
 createApp({setup(){
     // ===== 状态 =====
     const isLoggedIn=ref(false),authMode=ref('login'),loading=ref(false),errorMsg=ref(''),toastMsg=ref('');
