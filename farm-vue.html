@@ -214,8 +214,46 @@
         {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','田鼠'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9'}, {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['蝙蝠','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3}}, {id:'boss_lair',name:'虫母巢穴',emoji:'👹',minLevel:1,maxLevel:35,monsterIds:[],eliteIds:[],isBoss:true,bg:'#fdf0e0'}
     ];
     const MONSTER_AFFIXES = [ { id:'swift', name:'迅捷', effect:{spd_mult:2} }, { id:'treasure', name:'宝藏', effect:{hp_mult:2}, reward:{gold:3} } ];
-    const ITEM_EMOJI = { hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮', grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬',sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️', potion_atk:'🧪',potion_def:'💊',wine:'🍷',scroll_basic:'📜',protect_charm:'🛡️',seed_ticket:'🎫', blueprint_boss:'📜', seed_cabbage:'🥬',seed_peanut:'🥜',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_potato:'🥔' };
-    const ITEM_NAMES = { hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片', grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',potato:'土豆',cabbage:'白菜',sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒', potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券', blueprint_boss:'BOSS图纸', seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子' };
+    
+    // ==================== 完整物品映射（修复英文显示） ====================
+    const ITEM_EMOJI = {
+        hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮',
+        grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬',
+        sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️',
+        potion_atk:'🧪',potion_def:'💊',wine:'🍷',scroll_basic:'📜',protect_charm:'🛡️',seed_ticket:'🎫',blueprint_boss:'📜',
+        seed_cabbage:'🥬',seed_peanut:'🥜',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_potato:'🥔',seed_grape:'🍇',seed_carrot:'🥕',
+        seed_tomato:'🍅',seed_corn:'🌽',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',seed_mushroom:'🍄',
+        seed_apple:'🍎',seed_peach:'🍑',seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',
+        seed_cherry:'🍒',seed_lemon:'🍋',seed_banana:'🍌',seed_pear:'🍐',seed_kiwi:'🥝',
+        seed_melon:'🍈',seed_coconut:'🥥',seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',
+        seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',seed_cactus:'🌵',seed_hibiscus:'🌺',
+        seed_white_flower:'💮',seed_herb:'🌿',seed_potted_plant:'🪴',seed_cucumber:'🥒',
+        seed_onion:'🧅',seed_garlic:'🧄',seed_eggplant:'🍆',seed_broccoli:'🥦',
+        seed_green_pepper:'🫑',seed_lettuce:'🥗',seed_beans:'🫘',seed_rice:'🌾',seed_tea:'🍃',
+        seed_bamboo:'🎋',seed_chestnut:'🌰',seed_honey:'🍯',seed_candy:'🍬',
+        seed_chocolate:'🍫',seed_spice:'🧂',seed_pumpkin:'🎃',seed_sweet_potato:'🍠',
+    };
+    const ITEM_NAMES = {
+        hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',
+        feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片',
+        grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',
+        potato:'土豆',cabbage:'白菜',sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
+        potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券',blueprint_boss:'BOSS图纸',
+        seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子',
+        seed_grape:'葡萄种子',seed_carrot:'胡萝卜种子',seed_tomato:'番茄种子',seed_corn:'玉米种子',seed_sunflower:'向日葵种子',
+        seed_chrysanthemum:'菊花种子',seed_mushroom:'蘑菇种子',
+        seed_apple:'苹果种子',seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',
+        seed_mango:'芒果种子',seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',
+        seed_pear:'梨种子',seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子',
+        seed_tulip:'郁金香种子',seed_clover:'三叶草种子',seed_rose:'玫瑰种子',seed_lily:'百合种子',
+        seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',seed_hibiscus:'芙蓉种子',
+        seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子',
+        seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',
+        seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',
+        seed_rice:'水稻种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',seed_chestnut:'栗子种子',
+        seed_honey:'蜂蜜种子',seed_candy:'糖果种子',seed_chocolate:'巧克力种子',seed_spice:'香料种子',
+        seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子',
+    };
     const SET_BONUSES = { '暗影':{2:{atk:10},3:{steal_extra:1}}, '龙骑士':{2:{atk:20},3:{boss_dmg:0.15}} };
     const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
     const BASE_MATERIALS=['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
@@ -288,11 +326,36 @@
             async function visitFriend(f){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',f.id).order('plot_index');visitingPlots.value=plots||[];visitingFriend.value=f;showFriendFarmModal.value=true;}
             async function stealCrop(plot){if(plot.stolen_count>=2){showToast('已被偷光');return;}const crop=CROPS[plot.crop_type];if(!crop)return;const rwd=Math.floor((Math.random()*(crop.max-crop.min+1)+crop.min)*0.4);try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:rwd});profile.gold+=rwd;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:-rwd});await db.from('farm_plots').update({stolen_count:plot.stolen_count+1}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);plot.stolen_count++;showToast(`偷取成功！🪙+${rwd}`);}catch(e){showToast('偷取失败');}}
             async function waterFriendPlot(plot){if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{await db.from('farm_plots').update({watered_at:new Date().toISOString()}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);await db.rpc('add_gold',{p_user_id:profile.id,p_amount:5});profile.gold+=5;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:5});showToast('浇水成功！');}catch(e){showToast('浇水失败');}}
-            async function loadMarket(){const{data:listings}=await db.from('market_listings').select('*').order('listed_at',{ascending:false}).limit(50);marketListings.value=listings||[];const today=new Date().toDateString();const{data:seeds}=await db.from('market_seed_shop').select('*').eq('stock_date',today);if(!seeds||seeds.length===0){const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始'||CROPS[k].unlock==='探险');const shuffled=[...possible].sort(()=>Math.random()-0.5).slice(0,5);const newSeeds=shuffled.map(cropKey=>({seed_type:'seed_'+cropKey,price:CROPS[cropKey].seed+Math.floor(Math.random()*200),stock_date:today}));for(const s of newSeeds){await db.from('market_seed_shop').insert(s);}marketSeedShop.value=newSeeds;}else{marketSeedShop.value=seeds;}}
+
+            // ==================== 交易行（修复版：清理旧记录+确保每日仅5种） ====================
+            async function loadMarket(){
+                const { data: listings } = await db.from('market_listings').select('*').order('listed_at', { ascending: false }).limit(50);
+                marketListings.value = listings || [];
+                const today = new Date().toDateString();
+                // 清理今日旧记录，确保每次只保留5条
+                await db.from('market_seed_shop').delete().neq('stock_date', today);
+                const { data: seeds } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
+                if (!seeds || seeds.length === 0) {
+                    const possible = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始' || CROPS[k].unlock === '探险');
+                    const shuffled = [...possible].sort(() => Math.random() - 0.5).slice(0, 5);
+                    const newSeeds = shuffled.map(cropKey => ({
+                        seed_type: 'seed_' + cropKey,
+                        price: CROPS[cropKey].seed + Math.floor(Math.random() * 200),
+                        stock_date: today
+                    }));
+                    for (const s of newSeeds) {
+                        await db.from('market_seed_shop').insert(s);
+                    }
+                    marketSeedShop.value = newSeeds;
+                } else {
+                    marketSeedShop.value = seeds;
+                }
+            }
             async function listItem(itemType,qty,price){if((items[itemType]||0)<qty){showToast('物品不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:itemType,p_qty:-qty});items[itemType]-=qty;await db.from('market_listings').insert({seller_id:profile.id,seller_name:profile.username,item_type:itemType,quantity:qty,price:price});showToast(`已挂卖`);loadMarket();}catch(e){showToast('挂卖失败');}}
             async function buyListing(listing){if(profile.gold<listing.price){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-listing.price});profile.gold-=listing.price;await db.rpc('add_gold',{p_user_id:listing.seller_id,p_amount:listing.price});await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:listing.item_type,p_qty:1});if(!items[listing.item_type])items[listing.item_type]=0;items[listing.item_type]++;if(listing.quantity<=1){await db.from('market_listings').delete().eq('id',listing.id);}else{await db.from('market_listings').update({quantity:listing.quantity-1}).eq('id',listing.id);}showToast(`购买成功！`);loadMarket();}catch(e){showToast('购买失败');}}
             async function quickSell(itemType){const qty=items[itemType]||0;if(qty<=0){showToast('没有该物品');return;}const crop=CROPS[itemType];if(!crop){showToast('只能出售作物');return;}const bp=Math.floor(crop.min/2);const total=bp*qty;if(!confirm(`确定出售？🪙+${total}`))return;try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:itemType,p_qty:-qty});items[itemType]-=qty;if(items[itemType]<=0)delete items[itemType];await db.rpc('add_gold',{p_user_id:profile.id,p_amount:total});profile.gold+=total;showToast(`出售成功！🪙+${total}`);}catch(e){showToast('出售失败');}}
             async function buyMarketSeed(s){if(profile.gold<s.price){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-s.price});profile.gold-=s.price;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:s.seed_type,p_qty:1});if(!items[s.seed_type])items[s.seed_type]=0;items[s.seed_type]++;showToast(`购买成功！`);}catch(e){showToast('购买失败');}}
+
             async function loadOrders(){const{data}=await db.from('player_orders').select('orders').eq('user_id',profile.id).eq('order_date',new Date().toDateString()).maybeSingle();if(data&&data.orders)orders.value=data.orders;else{const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始');const o=[];for(let i=0;i<3;i++){const ck=possible[Math.floor(Math.random()*possible.length)];o.push({crop:ck,amount:Math.floor(Math.random()*3)+1,rewardGold:100+Math.floor(Math.random()*200),rewardTicket:Math.floor(Math.random()*2)+1});}orders.value=o;await db.from('player_orders').upsert({user_id:profile.id,order_date:new Date().toDateString(),orders:o},{onConflict:'user_id,order_date'});}}
             async function submitOrder(idx){const o=orders.value[idx];if(!o)return;if((items[o.crop]||0)<o.amount){showToast('作物不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:o.crop,p_qty:-o.amount});items[o.crop]-=o.amount;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:o.rewardGold});profile.gold+=o.rewardGold;if(o.rewardTicket){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:'seed_ticket',p_qty:o.rewardTicket});if(!items['seed_ticket'])items['seed_ticket']=0;items['seed_ticket']+=o.rewardTicket;}orders.value.splice(idx,1);showToast('订单完成！');}catch(e){showToast('提交失败');}}
             async function loadMails(){const{data}=await db.from('mail').select('*').eq('receiver_id',profile.id).order('created_at',{ascending:false}).limit(20);mails.value=data||[];}
