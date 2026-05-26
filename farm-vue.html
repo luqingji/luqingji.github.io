@@ -215,7 +215,6 @@
     ];
     const MONSTER_AFFIXES = [ { id:'swift', name:'迅捷', effect:{spd_mult:2} }, { id:'treasure', name:'宝藏', effect:{hp_mult:2}, reward:{gold:3} } ];
     
-    // ==================== 完整物品映射（修复英文显示） ====================
     const ITEM_EMOJI = {
         hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮',
         grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬',
@@ -271,7 +270,7 @@
             const showPlantModal=ref(false),showWaterModal=ref(false),showPetsModal=ref(false),showAdoptModal=ref(false),showExploreModal=ref(false),showSynthesisModal=ref(false),showEquipmentModal=ref(false),showEquipSelectModal=ref(false),showBackpackModal=ref(false),showPveModal=ref(false),showOrdersModal=ref(false),showSeedShopModal=ref(false),showMailModal=ref(false),showEventLogModal=ref(false),showFriendsModal=ref(false),showLeaderboardModal=ref(false),showMonsterLogModal=ref(false),showFriendFarmModal=ref(false),showPetDetailModal=ref(false),showPotionModal=ref(false),showSelectBattlePetModal=ref(false),showEnchantModal=ref(false);
             const selectedPlotIndex=ref(-1),exploringPet=ref(null),synthTab=ref('equipment'),equippingItem=ref(null),enchantingItem=ref(null),bpTab=ref('all'),bpPage=ref(1),petDetailData=ref(null),pendingPotion=ref(null);
             const battle=ref(null),selectedBattlePetId=ref(null),pveMonsters=ref([]);
-            const orders=ref([]),seedShop=ref([]),mails=ref([]),mailTab=ref('inbox'),mailReceiver=ref(''),mailTitle=ref(''),mailContent=ref(''),mailItemsText=ref(''),eventLogs=ref([]),lbTab=ref('global'),lbPage=ref(1),lbRanked=ref([]),lbTotalPages=ref(1);
+            const orders=ref([]),mails=ref([]),mailTab=ref('inbox'),mailReceiver=ref(''),mailTitle=ref(''),mailContent=ref(''),mailItemsText=ref(''),eventLogs=ref([]),lbTab=ref('global'),lbPage=ref(1),lbRanked=ref([]),lbTotalPages=ref(1);
             const visitingFriend=ref(null),visitingPlots=ref([]);
             const marketListings=ref([]),marketSeedShop=ref([]),marketTab=ref('seeds');
 
@@ -281,6 +280,21 @@
             const pveMaps=computed(()=>PVE_MAPS.map(m=>({...m,unlocked:!m.unlockCond||(m.unlockCond.type==='elite_kills'?Object.values(monsterLog).reduce((s,x)=>s+(x.kills||0),0)>=m.unlockCond.count:true)})));
             const visiblePlots=computed(()=>rawPlots.value.filter(p=>p.plot_index<(profile.unlocked_plots||4)).map(p=>{const now=new Date();let s='empty',prog=0,rm=0,wa=false,n='空地',e='🟫';if(p.crop_type&&p.planted_at){const c=CROPS[p.crop_type];e=c?c.emoji:'🌱';n=c?c.name:'作物';const pt=new Date(p.planted_at);let gm=p.growth_minutes*60*1000;if(p.watered_at)gm=Math.floor(gm*0.7);const mt=new Date(pt.getTime()+gm);if(now>=mt){s='ready';prog=100;}else{s='growing';prog=Math.floor((now-pt)/gm*100);rm=Math.ceil((mt-now)/60000);let w=true;if(p.watered_at)w=(now-new Date(p.watered_at))>=WATER_COOLDOWN_MS;wa=w;}}return{...p,_status:s,_progress:prog,_remainingMin:rm,_waterable:wa,_name:n,_emoji:e};}));
             const waterPlotName=computed(()=>{const p=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);return p?CROPS[p.crop_type]?.name||'作物':'';});
+            
+            // 种植弹窗：根据背包种子动态生成可选作物
+            const availableCrops=computed(()=>{
+                const result=[];
+                for(const[key,qty]of Object.entries(items)){
+                    if(key.startsWith('seed_')&&qty>0){
+                        const cropKey=key.replace('seed_','');
+                        const crop=CROPS[cropKey];
+                        if(crop)result.push({key:cropKey,...crop});
+                    }
+                }
+                if(result.length===0)return DEFAULT_CROPS;
+                return result;
+            });
+            
             const bpFilteredItems=computed(()=>{const all=Object.entries(items).map(([k,v])=>({key:k,qty:v}));if(bpTab.value==='all')return all;if(bpTab.value==='material')return all.filter(({key})=>['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','stardust','dragon_soul'].includes(key));if(bpTab.value==='seed')return all.filter(({key})=>key.startsWith('seed_'));if(bpTab.value==='crop')return all.filter(({key})=>CROPS[key]);if(bpTab.value==='tool')return all.filter(({key})=>['scroll_basic','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(key)||key.startsWith('book_')||key.startsWith('potion_')||key==='blueprint_boss');return all;});
             const bpTotalPages=computed(()=>Math.ceil(bpFilteredItems.value.length/BP_PER_PAGE)||1);
             const bpPageItems=computed(()=>{const start=(bpPage.value-1)*BP_PER_PAGE;return bpFilteredItems.value.slice(start,start+BP_PER_PAGE).map(item=>({...item,emoji:ITEM_EMOJI[item.key]||'📦',name:ITEM_NAMES[item.key]||item.key,isBook:item.key.startsWith('book_'),isPotion:item.key.startsWith('potion_')}));});
@@ -327,28 +341,26 @@
             async function stealCrop(plot){if(plot.stolen_count>=2){showToast('已被偷光');return;}const crop=CROPS[plot.crop_type];if(!crop)return;const rwd=Math.floor((Math.random()*(crop.max-crop.min+1)+crop.min)*0.4);try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:rwd});profile.gold+=rwd;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:-rwd});await db.from('farm_plots').update({stolen_count:plot.stolen_count+1}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);plot.stolen_count++;showToast(`偷取成功！🪙+${rwd}`);}catch(e){showToast('偷取失败');}}
             async function waterFriendPlot(plot){if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{await db.from('farm_plots').update({watered_at:new Date().toISOString()}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);await db.rpc('add_gold',{p_user_id:profile.id,p_amount:5});profile.gold+=5;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:5});showToast('浇水成功！');}catch(e){showToast('浇水失败');}}
 
-            // ==================== 交易行（修复版：清理旧记录+确保每日仅5种） ====================
+            // ==================== 交易行（修复版：确保每日仅5种且不重复） ====================
             async function loadMarket(){
                 const { data: listings } = await db.from('market_listings').select('*').order('listed_at', { ascending: false }).limit(50);
                 marketListings.value = listings || [];
                 const today = new Date().toDateString();
-                // 清理今日旧记录，确保每次只保留5条
-                await db.from('market_seed_shop').delete().neq('stock_date', today);
-                const { data: seeds } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
-                if (!seeds || seeds.length === 0) {
+                const { data: existing } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
+                if (!existing || existing.length === 0) {
+                    await db.from('market_seed_shop').delete().neq('stock_date', today);
                     const possible = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始' || CROPS[k].unlock === '探险');
                     const shuffled = [...possible].sort(() => Math.random() - 0.5).slice(0, 5);
-                    const newSeeds = shuffled.map(cropKey => ({
-                        seed_type: 'seed_' + cropKey,
-                        price: CROPS[cropKey].seed + Math.floor(Math.random() * 200),
-                        stock_date: today
-                    }));
-                    for (const s of newSeeds) {
-                        await db.from('market_seed_shop').insert(s);
+                    const newSeeds = [];
+                    for (const cropKey of shuffled) {
+                        const seedType = 'seed_' + cropKey;
+                        const price = CROPS[cropKey].seed + Math.floor(Math.random() * 200);
+                        await db.from('market_seed_shop').insert({ seed_type: seedType, price: price, stock_date: today });
+                        newSeeds.push({ seed_type: seedType, price: price, stock_date: today });
                     }
                     marketSeedShop.value = newSeeds;
                 } else {
-                    marketSeedShop.value = seeds;
+                    marketSeedShop.value = existing;
                 }
             }
             async function listItem(itemType,qty,price){if((items[itemType]||0)<qty){showToast('物品不足');return;}try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:itemType,p_qty:-qty});items[itemType]-=qty;await db.from('market_listings').insert({seller_id:profile.id,seller_name:profile.username,item_type:itemType,quantity:qty,price:price});showToast(`已挂卖`);loadMarket();}catch(e){showToast('挂卖失败');}}
@@ -401,7 +413,7 @@
                 orders,mails,mailTab,mailReceiver,mailTitle,mailContent,mailItemsText,eventLogs,friendProfiles,
                 lbTab,lbPage,lbRanked,lbTotalPages,visitingFriend,visitingPlots,
                 marketListings,marketSeedShop,marketTab,
-                availableCrops:DEFAULT_CROPS,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,SEED_TICKET_EXCHANGE:[],
+                availableCrops,PET_TYPES,EXPLORE_ROUTES,currentRecipes,QUALITY_NAMES,
                 bpFilteredItems,bpTotalPages,bpPageItems,bpPlaceholders,ALL_MONSTERS,staFactor,
                 PET_NATURES,PASSIVE_SKILLS,PET_SLOT_UNLOCK,PLOT_MAX_COUNT,MAX_PET_SLOTS,BATTLE_POTIONS,
                 ENCHANT_MATERIALS,ENCHANT_ATTRS,BLUEPRINT_RECIPES,
