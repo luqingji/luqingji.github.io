@@ -122,7 +122,7 @@
     <div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn-icon" @click="showPetsModal=true">🐾</button><button class="btn-icon" @click="showBackpackModal=true">🎒</button><button class="btn-icon" @click="showSynthesisModal=true">🔧</button><button class="btn-icon" @click="showEquipmentModal=true">⚔️</button><button class="btn-icon btn-fight-call" @click="showSelectPetForBattle()">🐉讨伐</button><button class="btn-icon" @click="showExploreModal=true;exploringPet=null">🗺️</button><button class="btn-icon" @click="showOrdersModal=true">📦</button><button class="btn-icon" @click="showSeedShopModal=true;loadMarketDynamic();marketTab='seeds'">🏪</button><button class="btn-icon" @click="showMailModal=true">📬</button><button class="btn-icon" @click="showMonsterLogModal=true">📖</button><button class="btn-icon" @click="openEventLog">📋</button><button class="btn-icon" @click="showLeaderboardModal=true;lbTab='global';loadLeaderboard()">🏆</button><button class="btn-icon" @click="showFriendsModal=true">👥</button><button class="btn-icon" @click="refreshFarm">🔄</button><button class="btn-icon btn-logout" @click="handleLogout">退出</button></div></div>
     <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
   </div>
-  <!-- 弹窗区 -->
+  <!-- 弹窗区完整代码 -->
   <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
     <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
     <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
@@ -171,6 +171,7 @@
     <button class="btn-close" @click="showSeasonModal=false">×</button></div></div>
   <div class="toast" :class="{show:toastMsg}">{{toastMsg}}</div>
 </div>
+
 <script>
 const { createApp, ref, reactive, computed, onUnmounted } = Vue;
 const db = window.supabase.createClient('https://siwacsnuminepetpxljh.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s');
@@ -276,7 +277,6 @@ createApp({
         }
         marketSeedShop.value=newSeeds;
       }else{
-        // 重新计算动态价格并更新
         const uniqueMap=new Map();const uniqueSeeds=[];
         for(const seed of existing){
           if(!uniqueMap.has(seed.seed_type)){
@@ -284,15 +284,11 @@ createApp({
             if(!seed.base_price) seed.base_price=seed.price;
             const totalSold=marketDynamics.seeds[seed.seed_type]?.total_sold_today||0;
             const newPrice=calculateDynamicPrice(seed.base_price,totalSold);
-            if(newPrice!==seed.price){
-              await db.from('market_seed_shop').update({price:newPrice}).eq('id',seed.id);
-              seed.price=newPrice;
-            }
+            if(newPrice!==seed.price){await db.from('market_seed_shop').update({price:newPrice}).eq('id',seed.id);seed.price=newPrice;}
             uniqueSeeds.push(seed);
           }
         }
         marketSeedShop.value=uniqueSeeds.slice(0,5);
-        // 删除多余重复
         const keepIds=new Set(marketSeedShop.value.map(s=>s.id));
         const toDelete=existing.filter(s=>!keepIds.has(s.id));
         if(toDelete.length>0) await db.from('market_seed_shop').delete().in('id',toDelete.map(s=>s.id));
@@ -323,13 +319,14 @@ createApp({
     async function openPveMap(map){
       if(map.isBoss){
         const bossState=await loadBossState();if(!bossState)return;
-        if(bossState.is_alive===false){
+        if(bossState.is_alive===false||bossState.current_hp<=0){
           const respawnTime=bossState.next_respawn;
           if(respawnTime)showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);
           else showToast('BOSS已被击杀，等待复活中...');
           return;
         }
-        const bossMonster={name:'虫母女王',emoji:'👸',hp:bossState.current_hp,maxHp:bossState.max_hp,atk:50,def:30,spd:12,minLevel:1,maxLevel:35,rewards:{gold:1000,items:{scale:3}},skills:['fire_storm','burn_out','summon_bugs'],isBoss:true,maxEnergy:10,dbId:BOSS_DB_ID};
+        const currentHp=bossState.current_hp>0?bossState.current_hp:bossState.max_hp;
+        const bossMonster={name:'虫母女王',emoji:'👸',hp:currentHp,maxHp:bossState.max_hp,atk:50,def:30,spd:12,minLevel:1,maxLevel:35,rewards:{gold:1000,items:{scale:3}},skills:['fire_storm','burn_out','summon_bugs'],isBoss:true,maxEnergy:10,dbId:BOSS_DB_ID};
         pveMonsters.value=[bossMonster];
       }else{
         const mp=MONSTERS.filter(m=>map.monsterIds.includes(m.name));const ep=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));
@@ -337,10 +334,10 @@ createApp({
       }
     }
     function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
-    function startPveBattle(monster){const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));if(!pet){showToast('请先领养宠物');return;}const stats=getPetStats(pet);let pb={};if(pendingPotion.value){pb=pendingPotion.value.effect;showToast(`使用${pendingPotion.value.name}！`);}battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],opponentPet:{...monster,hp:monster.hp,atk:monster.atk,def:monster.def,spd:monster.spd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji||'👾',isBoss:monster.isBoss||false,maxEnergy:monster.maxEnergy||10,skills:monster.skills||[]},opponentName:monster.name,opponentCurrentHp:monster.hp,oppHpPct:100,oppEnergy:monster.isBoss?3:0,oppEnergyPct:monster.isBoss?30:0,oppMaxEnergy:monster.maxEnergy||10,oppBuffs:[],skillCooldowns:{},logHTML:'',monster,turn:1,potionBonus:pb,processing:false};showPveModal.value=false;}
+    function startPveBattle(monster){const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));if(!pet){showToast('请先领养宠物');return;}const stats=getPetStats(pet);let pb={};if(pendingPotion.value){pb=pendingPotion.value.effect;showToast(`使用${pendingPotion.value.name}！`);}const monsterHp=monster.hp||monster.maxHp||800;battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],opponentPet:{...monster,hp:monsterHp,atk:monster.atk||10,def:monster.def||2,spd:monster.spd||5,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji||'👾',isBoss:monster.isBoss||false,maxEnergy:monster.maxEnergy||10,skills:monster.skills||[]},opponentName:monster.name,opponentCurrentHp:monsterHp,oppHpPct:100,oppEnergy:monster.isBoss?3:0,oppEnergyPct:monster.isBoss?30:0,oppMaxEnergy:monster.maxEnergy||10,oppBuffs:[],skillCooldowns:{},logHTML:'',monster,turn:1,potionBonus:pb,processing:false};showPveModal.value=false;}
 
     function processBuffs(b){
-      const now={};const process=(arr,ownerKey)=>{for(let i=arr.length-1;i>=0;i--){const bf=arr[i];if(bf.duration<=0){arr.splice(i,1);continue;}bf.duration--;if(bf.duration<=0){if(bf.type==='def_down'&&ownerKey==='opp'){b.opponentPet.def=Math.ceil(b.opponentPet.def/(1-0.3));}arr.splice(i,1);}}};
+      const now={};const process=(arr,ownerKey)=>{for(let i=arr.length-1;i>=0;i--){const bf=arr[i];bf.duration--;if(bf.duration<=0){if(bf.type==='def_down'&&ownerKey==='opp'){b.opponentPet.def=Math.ceil(b.opponentPet.def/(1-0.3));}arr.splice(i,1);}}};
       process(b.myBuffs,'my');process(b.oppBuffs,'opp');
     }
 
@@ -364,6 +361,8 @@ createApp({
     async function doUnequip(eq){try{await db.from('equipment').update({equipped_to:null}).eq('id',eq.id);eq.equipped_to=null;showToast('已卸下');}catch(e){showToast('卸下失败');}}
     function openEnchant(eq){enchantingItem.value=eq;showEnchantModal.value=true;}
     async function enchantEquipment(eq,materialIdx){const mat=ENCHANT_MATERIALS[materialIdx];if(!mat)return;if((items[mat.name]||0)<mat.qty){showToast('材料不足');return;}if(profile.gold<mat.cost){showToast('金币不足');return;}const enchants=(eq.enchants||[]).slice();try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:mat.name,p_qty:-mat.qty});items[mat.name]-=mat.qty;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-mat.cost});profile.gold-=mat.cost;const attr=ENCHANT_ATTRS[Math.floor(Math.random()*ENCHANT_ATTRS.length)];const value=Math.floor(Math.random()*(attr.max-attr.min+1))+attr.min;const enchant={attr:attr.key,name:attr.name,value};const existingIdx=enchants.findIndex(e=>e.attr===attr.key);if(existingIdx>=0){const oldVal=enchants[existingIdx].value;eq[attr.key]=(eq[attr.key]||0)-oldVal+value;enchants[existingIdx]=enchant;showToast(`附魔覆盖！${attr.name}+${value}`);}else if(enchants.length<5){eq[attr.key]=(eq[attr.key]||0)+value;enchants.push(enchant);showToast(`附魔成功！${attr.name}+${value}`);}else{showToast('附魔已满');await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:mat.name,p_qty:mat.qty});items[mat.name]+=mat.qty;await db.rpc('add_gold',{p_user_id:profile.id,p_amount:mat.cost});profile.gold+=mat.cost;return;}await db.from('equipment').update({enchants}).eq('id',eq.id);eq.enchants=enchants;}catch(e){showToast('附魔失败');}}
+    async function doSell(eq){const sellPrice=eq.quality==='gold'?2000:eq.quality==='purple'?1000:500;if(!confirm(`确定出售 ${eq.name} 获得 🪙${sellPrice} 吗？`))return;try{await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);await db.rpc('add_gold',{p_user_id:profile.id,p_amount:sellPrice});profile.gold+=sellPrice;showToast(`出售成功！🪙+${sellPrice}`);}catch(e){showToast('出售失败');}}
+    async function doDecompose(eq){if(!confirm(`确定分解 ${eq.name} 吗？你将获得一些材料。`))return;const mats={};if(eq.quality==='gold'){mats.ore=Math.floor(Math.random()*5)+3;mats.relic=Math.floor(Math.random()*3)+1;}else if(eq.quality==='purple'){mats.ore=Math.floor(Math.random()*4)+2;mats.relic=Math.floor(Math.random()*2)+1;}else{mats.ore=Math.floor(Math.random()*3)+1;}try{await db.from('equipment').delete().eq('id',eq.id);equipment.value=equipment.value.filter(e=>e.id!==eq.id);for(const[item,qty]of Object.entries(mats)){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:item,p_qty:qty});if(!items[item])items[item]=0;items[item]+=qty;}showToast(`分解成功！获得：${Object.entries(mats).map(([k,v])=>`${ITEM_NAMES[k]}×${v}`).join('，')}`);}catch(e){showToast('分解失败');}}
     async function visitFriend(f){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',f.id).order('plot_index');visitingPlots.value=plots||[];visitingFriend.value=f;showFriendFarmModal.value=true;}
     async function stealCrop(plot){if(plot.stolen_count>=2){showToast('已被偷光');return;}const crop=CROPS[plot.crop_type];if(!crop)return;const rwd=Math.floor((Math.random()*(crop.max-crop.min+1)+crop.min)*0.4);try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:rwd});profile.gold+=rwd;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:-rwd});await db.from('farm_plots').update({stolen_count:plot.stolen_count+1}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);plot.stolen_count++;showToast(`偷取成功！🪙+${rwd}`);}catch(e){showToast('偷取失败');}}
     async function waterFriendPlot(plot){if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{await db.from('farm_plots').update({watered_at:new Date().toISOString()}).eq('owner_id',visitingFriend.value.id).eq('plot_index',plot.plot_index);await db.rpc('add_gold',{p_user_id:profile.id,p_amount:5});profile.gold+=5;await db.rpc('add_gold',{p_user_id:visitingFriend.value.id,p_amount:5});showToast('浇水成功！');}catch(e){showToast('浇水失败');}}
@@ -422,7 +421,9 @@ createApp({
       handleLogin,handleRegister,handleLogout,refreshFarm,
       showPveMaps,openPveMap,startPveBattle,doBattleAction,endBattle,fleeBattle,
       showSelectPetForBattle,selectPetForBattle,openEventLog,
-      updateQuestProgress,addSeasonXp,claimQuestReward,initSeasonData,calculateDynamicPrice
+      updateQuestProgress,addSeasonXp,claimQuestReward,initSeasonData,calculateDynamicPrice,
+      doSell,
+      doDecompose
     };
   }
 }).mount('#app');
