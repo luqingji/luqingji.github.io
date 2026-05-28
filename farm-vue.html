@@ -196,14 +196,9 @@ const ITEM_EMOJI = { hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',
 const ITEM_NAMES = { hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片', grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',potato:'土豆',cabbage:'白菜',sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒', potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券',blueprint_boss:'BOSS图纸', seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子',seed_grape:'葡萄种子',seed_carrot:'胡萝卜种子',seed_tomato:'番茄种子',seed_corn:'玉米种子',seed_sunflower:'向日葵种子',seed_chrysanthemum:'菊花种子',seed_mushroom:'蘑菇种子',seed_strawberry:'草莓种子', seed_apple:'苹果种子',seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',seed_pear:'梨种子',seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子',seed_tulip:'郁金香种子',seed_clover:'三叶草种子',seed_rose:'玫瑰种子',seed_lily:'百合种子',seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',seed_hibiscus:'芙蓉种子',seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子',seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',seed_rice:'水稻种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',seed_chestnut:'栗子种子',seed_honey:'蜂蜜种子',seed_candy:'糖果种子',seed_chocolate:'巧克力种子',seed_spice:'香料种子',seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子', };
 const SET_BONUSES = { '暗影':{2:{atk:10},3:{steal_extra:1}}, '龙骑士':{2:{atk:20},3:{boss_dmg:0.15}} };
 const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
+const BASE_MATERIALS=['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
+const PET_SLOT_UNLOCK=[{slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},{slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},{slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},{slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},{slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}];
 const BATTLE_POTIONS=[{key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},{key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}}];
-const PET_SLOT_UNLOCK = [
-  { slot: 2, desc: '第1只宠物达到Lv.10', gold: 5000, cond: { petLevel: 10 } },
-  { slot: 3, desc: '解锁8块农田', gold: 20000, cond: { plots: 8 } },
-  { slot: 4, desc: '击败任意精英怪×5', gold: 50000, cond: { eliteKills: 5 }, materials: { scale: 10 } },
-  { slot: 5, desc: '宠物探险完成50次', gold: 100000, cond: { explores: 50 }, materials: { dragon_soul: 5 } },
-  { slot: 6, desc: '击败BOSS虫母女王×3', gold: 200000, cond: { bossKills: 3 }, materials: { stardust: 10 } }
-];
 const BOSS_RESPAWN_HOURS = 6;
 const BOSS_DB_ID = 1;
 const SEASON_CONFIG = { id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10, startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'), freeRewards:{1:{items:{seed_ticket:5},gold:500},2:{items:{hair:20},gold:800},3:{items:{potion_atk:2},gold:1000},4:{items:{protect_charm:1},gold:1500},5:{items:{seed_strawberry:10},gold:2000},6:{items:{ore:15},gold:2500},7:{items:{scroll_basic:2},gold:3000},8:{items:{relic:8},gold:4000},9:{items:{dragon_soul:3},gold:5000},10:{items:{blueprint_boss:1},gold:10000}} };
@@ -261,40 +256,95 @@ createApp({
     async function initSeasonData(){const now=new Date();const diff=SEASON_CONFIG.endDate.getTime()-now.getTime();seasonState.remainingDays=Math.max(0,Math.ceil(diff/(1000*60*60*24)));const{data:playerSeason}=await db.from('player_season').select('*').eq('user_id',profile.id).eq('season_id',currentSeasonId.value).maybeSingle();if(playerSeason){seasonState.level=playerSeason.level||1;seasonState.xp=playerSeason.xp||0;seasonState.claimedLevels=playerSeason.claimed_levels||[];}const{data:questData}=await db.from('player_season_quests').select('*').eq('user_id',profile.id).eq('season_id',currentSeasonId.value).maybeSingle();if(questData&&questData.quests){seasonQuests.value=SEASON_QUESTS_CONFIG.map(config=>{const saved=questData.quests.find(q=>q.id===config.id);return{...config,current:saved?saved.current:0};});}else{seasonQuests.value=SEASON_QUESTS_CONFIG.map(q=>({...q,current:0}));}}
 
     function calculateDynamicPrice(baseSeedCost,totalSoldToday){const factor=Math.max(0.6,Math.min(1.5,1-(totalSoldToday/200)));return Math.floor(baseSeedCost*factor);}
-    async function loadMarketDynamic(){const{data:listings}=await db.from('market_listings').select('*').order('listed_at',{ascending:false}).limit(50);marketListings.value=listings||[];const today=new Date().toDateString();const{data:dynamicsData}=await db.from('market_dynamics').select('*').eq('date',today);if(dynamicsData&&dynamicsData.length>0){dynamicsData.forEach(d=>{marketDynamics.seeds[d.seed_type]=d;});}const{data:existing}=await db.from('market_seed_shop').select('*').eq('stock_date',today);if(!existing||existing.length===0){await db.from('market_seed_shop').delete().neq('stock_date',today);const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始'||CROPS[k].unlock==='探险');const shuffled=[...possible].sort(()=>Math.random()-0.5).slice(0,5);const newSeeds=[];for(const cropKey of shuffled){const seedType='seed_'+cropKey;const baseCost=CROPS[cropKey].seed;const totalSold=marketDynamics.seeds[seedType]?.total_sold_today||0;const dynamicPrice=calculateDynamicPrice(baseCost,totalSold);await db.from('market_seed_shop').insert({seed_type:seedType,price:dynamicPrice,base_price:baseCost,stock_date:today});newSeeds.push({seed_type:seedType,price:dynamicPrice,base_price:baseCost,stock_date:today});}marketSeedShop.value=newSeeds;}else{const uniqueMap=new Map();const uniqueSeeds=[];for(const seed of existing){if(!uniqueMap.has(seed.seed_type)){uniqueMap.set(seed.seed_type,seed);if(!seed.base_price)seed.base_price=seed.price;uniqueSeeds.push(seed);}}marketSeedShop.value=uniqueSeeds.slice(0,5);const keepIds=new Set(marketSeedShop.value.map(s=>s.id));const toDelete=existing.filter(s=>!keepIds.has(s.id));if(toDelete.length>0)await db.from('market_seed_shop').delete().in('id',toDelete.map(s=>s.id));}}
-    async function quickSellDynamic(itemType){const qty=items[itemType]||0;if(qty<=0){showToast('没有该物品');return;}const crop=CROPS[itemType];if(!crop){showToast('只能出售作物');return;}const bp=Math.floor(crop.min/2);const total=bp*qty;if(!confirm(`确定出售？🪙+${total}`))return;try{await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:itemType,p_qty:-qty});items[itemType]-=qty;if(items[itemType]<=0)delete items[itemType];await db.rpc('add_gold',{p_user_id:profile.id,p_amount:total});profile.gold+=total;const seedType='seed_'+itemType;const today=new Date().toDateString();const{data:existing}=await db.from('market_dynamics').select('*').eq('date',today).eq('seed_type',seedType).maybeSingle();if(existing){await db.from('market_dynamics').update({total_sold_today:existing.total_sold_today+qty}).eq('id',existing.id);}else{await db.from('market_dynamics').insert({date:today,seed_type:seedType,total_sold_today:qty});}updateQuestProgress('sell_gold',total);showToast(`出售成功！🪙+${total}`);}catch(e){showToast('出售失败');}}
+    async function loadMarketDynamic(){
+      const{data:listings}=await db.from('market_listings').select('*').order('listed_at',{ascending:false}).limit(50);marketListings.value=listings||[];
+      const today=new Date().toDateString();
+      const{data:dynamicsData}=await db.from('market_dynamics').select('*').eq('date',today);
+      if(dynamicsData&&dynamicsData.length>0){dynamicsData.forEach(d=>{marketDynamics.seeds[d.seed_type]=d;});}
+      const{data:existing}=await db.from('market_seed_shop').select('*').eq('stock_date',today);
+      if(!existing||existing.length===0){
+        await db.from('market_seed_shop').delete().neq('stock_date',today);
+        const possible=Object.keys(CROPS).filter(k=>CROPS[k].unlock==='初始'||CROPS[k].unlock==='探险');
+        const shuffled=[...possible].sort(()=>Math.random()-0.5).slice(0,5);
+        const newSeeds=[];
+        for(const cropKey of shuffled){
+          const seedType='seed_'+cropKey;const baseCost=CROPS[cropKey].seed;
+          const totalSold=marketDynamics.seeds[seedType]?.total_sold_today||0;
+          const dynamicPrice=calculateDynamicPrice(baseCost,totalSold);
+          await db.from('market_seed_shop').insert({seed_type:seedType,price:dynamicPrice,base_price:baseCost,stock_date:today});
+          newSeeds.push({seed_type:seedType,price:dynamicPrice,base_price:baseCost,stock_date:today});
+        }
+        marketSeedShop.value=newSeeds;
+      }else{
+        // 重新计算动态价格并更新
+        const uniqueMap=new Map();const uniqueSeeds=[];
+        for(const seed of existing){
+          if(!uniqueMap.has(seed.seed_type)){
+            uniqueMap.set(seed.seed_type,seed);
+            if(!seed.base_price) seed.base_price=seed.price;
+            const totalSold=marketDynamics.seeds[seed.seed_type]?.total_sold_today||0;
+            const newPrice=calculateDynamicPrice(seed.base_price,totalSold);
+            if(newPrice!==seed.price){
+              await db.from('market_seed_shop').update({price:newPrice}).eq('id',seed.id);
+              seed.price=newPrice;
+            }
+            uniqueSeeds.push(seed);
+          }
+        }
+        marketSeedShop.value=uniqueSeeds.slice(0,5);
+        // 删除多余重复
+        const keepIds=new Set(marketSeedShop.value.map(s=>s.id));
+        const toDelete=existing.filter(s=>!keepIds.has(s.id));
+        if(toDelete.length>0) await db.from('market_seed_shop').delete().in('id',toDelete.map(s=>s.id));
+      }
+    }
+    async function quickSellDynamic(itemType){
+      const qty=items[itemType]||0;if(qty<=0){showToast('没有该物品');return;}const crop=CROPS[itemType];if(!crop){showToast('只能出售作物');return;}
+      const bp=Math.floor(crop.min/2);const total=bp*qty;if(!confirm(`确定出售？🪙+${total}`))return;
+      try{
+        await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:itemType,p_qty:-qty});items[itemType]-=qty;if(items[itemType]<=0)delete items[itemType];
+        await db.rpc('add_gold',{p_user_id:profile.id,p_amount:total});profile.gold+=total;
+        const seedType='seed_'+itemType;const today=new Date().toDateString();
+        const{data:existing}=await db.from('market_dynamics').select('*').eq('date',today).eq('seed_type',seedType).maybeSingle();
+        if(existing){await db.from('market_dynamics').update({total_sold_today:existing.total_sold_today+qty}).eq('id',existing.id);}
+        else{await db.from('market_dynamics').insert({date:today,seed_type:seedType,total_sold_today:qty});}
+        updateQuestProgress('sell_gold',total);showToast(`出售成功！🪙+${total}`);
+      }catch(e){showToast('出售失败');}
+    }
 
     function onPlotClick(p){if(p._status==='empty'){if(availableCrops.value.length===0){showToast('没有种子啦！去🏪商店购买或🗺️探险获取吧');return;}selectedPlotIndex.value=p.plot_index;showPlantModal.value=true;}else if(p._status==='ready'){doHarvest(p);}else{selectedPlotIndex.value=p.plot_index;showWaterModal.value=true;}}
     async function doPlant(crop){const seedKey=crop.seedKey||('seed_'+crop.key);if((items[seedKey]||0)<1){showToast('种子不足！');return;}if(profile.gold<crop.seed){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-crop.seed});profile.gold-=crop.seed;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:seedKey,p_qty:-1});items[seedKey]--;if(items[seedKey]<=0)delete items[seedKey];const n=new Date().toISOString();let{data:up}=await db.from('farm_plots').update({crop_type:crop.key,planted_at:n,growth_minutes:crop.growth,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();if(!up){const{data:inserted}=await db.from('farm_plots').insert({owner_id:profile.id,plot_index:selectedPlotIndex.value,crop_type:crop.key,planted_at:n,growth_minutes:crop.growth}).select().single();if(inserted)up=inserted;else throw new Error('地块创建失败');}const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;else rawPlots.value.push(up);showPlantModal.value=false;showToast(`种下了${crop.name}！`);updateQuestProgress('plant');}catch(e){showToast('种植失败');}}
-    async function doHarvest(plot){const crop=CROPS[plot.crop_type];if(!crop)return;const highYield=Math.random()<0.05;const cropQty=highYield?2:1;const returnSeed=Math.random()<0.10;try{await db.from('farm_plots').update({crop_type:null,planted_at:null,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',plot.plot_index);const idx=rawPlots.value.findIndex(p=>p.plot_index===plot.plot_index);if(idx!==-1)rawPlots.value[idx]={...rawPlots.value[idx],crop_type:null,planted_at:null,watered_at:null,stolen_count:0};for(let i=0;i<cropQty;i++){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:plot.crop_type,p_qty:1});}if(!items[plot.crop_type])items[plot.crop_type]=0;items[plot.crop_type]+=cropQty;if(returnSeed){const seedKey='seed_'+plot.crop_type;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:seedKey,p_qty:1});if(!items[seedKey])items[seedKey]=0;items[seedKey]++;}let msg=`收获成功！获得 ${crop.emoji} ${crop.name} ×${cropQty}`;if(highYield)msg=`🎉高产！获得 ${crop.emoji} ${crop.name} ×2`;if(returnSeed)msg+=' + 🌰种子';showToast(msg);updateQuestProgress('harvest');}catch(e){showToast('收获失败');}}
+    async function doHarvest(plot){const crop=CROPS[plot.crop_type];if(!crop)return;const highYield=Math.random()<0.05;const cropQty=highYield?2:1;const returnSeed=Math.random()<0.10;const goldReward=Math.floor(Math.random()*(crop.max-crop.min+1)+crop.min);try{await db.from('farm_plots').update({crop_type:null,planted_at:null,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',plot.plot_index);const idx=rawPlots.value.findIndex(p=>p.plot_index===plot.plot_index);if(idx!==-1)rawPlots.value[idx]={...rawPlots.value[idx],crop_type:null,planted_at:null,watered_at:null,stolen_count:0};for(let i=0;i<cropQty;i++){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:plot.crop_type,p_qty:1});}if(!items[plot.crop_type])items[plot.crop_type]=0;items[plot.crop_type]+=cropQty;if(returnSeed){const seedKey='seed_'+plot.crop_type;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:seedKey,p_qty:1});if(!items[seedKey])items[seedKey]=0;items[seedKey]++;}await db.rpc('add_gold',{p_user_id:profile.id,p_amount:goldReward});profile.gold+=goldReward;let msg=`收获成功！获得 ${crop.emoji} ${crop.name} ×${cropQty} + 🪙${goldReward}`;if(highYield)msg=`🎉高产！获得 ${crop.emoji} ${crop.name} ×2 + 🪙${goldReward}`;if(returnSeed)msg+=' + 🌰种子';showToast(msg);updateQuestProgress('harvest');}catch(e){showToast('收获失败');}}
     async function doWater(){const plot=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);if(!plot)return;if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{const n=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({watered_at:n}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showWaterModal.value=false;showToast('浇水成功！');updateQuestProgress('water');}catch(e){showToast('浇水失败');}}
-	async function loadBossState() {
-  const { data, error } = await db.rpc('boss_check_respawn');
-  if (error) return null;
-  if (Array.isArray(data) && data.length > 0) return data[0];
-  return data;
-}
-	async function bossTakeDamage(damage) {
-  const { data, error } = await db.rpc('boss_take_damage', { damage });
-  if (error) {
-    console.error('BOSS扣血RPC错误:', error);
-    return null;
-  }
-  // data 是数组 [{success, remaining_hp}]，取第一个元素
-  if (data && Array.isArray(data) && data.length > 0) {
-    return data[0];
-  }
-  // 如果返回格式不是预期，返回 null 表示失败
-  return null;
-}
+
+    async function loadBossState(){const{data,error}=await db.rpc('boss_check_respawn');if(error)return null;if(Array.isArray(data)&&data.length>0)return data[0];return data;}
+    async function bossTakeDamage(damage){const{data,error}=await db.rpc('boss_take_damage',{damage});if(error)return null;if(Array.isArray(data)&&data.length>0)return data[0];return null;}
     async function bossKill(){const next=new Date(Date.now()+BOSS_RESPAWN_HOURS*3600000).toISOString();await db.from('boss_state').update({is_alive:false,next_respawn:next,current_hp:0}).eq('id',BOSS_DB_ID);}
-    async function openPveMap(map) {
-     if (map.isBoss) {const bossState = await loadBossState();if (!bossState) return; // 查询失败时静默返回，不提示错误 
-     if (bossState.is_alive === false) {const respawnTime = bossState.next_respawn;if (respawnTime) {showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);} else {showToast('BOSS已被击杀，等待复活中...');}return;}const bossMonster = {name: '虫母女王',emoji: '👸',hp: bossState.current_hp,maxHp: bossState.max_hp,atk: 50, def: 30, spd: 12,minLevel: 1, maxLevel: 35,rewards: { gold: 1000, items: { scale: 3 } },skills: ['fire_storm', 'burn_out', 'summon_bugs'],isBoss: true,maxEnergy: 10,dbId: BOSS_DB_ID};pveMonsters.value = [bossMonster];} else {const mp = MONSTERS.filter(m => map.monsterIds.includes(m.name));const ep = ELITE_MONSTERS.filter(m => map.eliteIds.includes(m.name));pveMonsters.value = [...mp.sort(() => Math.random() - 0.5).slice(0, 4).map(m => ({ ...m, skills: [], isElite: false })),...ep.map(m => ({ ...m, skills: [], isElite: true }))];}}
+    async function openPveMap(map){
+      if(map.isBoss){
+        const bossState=await loadBossState();if(!bossState)return;
+        if(bossState.is_alive===false){
+          const respawnTime=bossState.next_respawn;
+          if(respawnTime)showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);
+          else showToast('BOSS已被击杀，等待复活中...');
+          return;
+        }
+        const bossMonster={name:'虫母女王',emoji:'👸',hp:bossState.current_hp,maxHp:bossState.max_hp,atk:50,def:30,spd:12,minLevel:1,maxLevel:35,rewards:{gold:1000,items:{scale:3}},skills:['fire_storm','burn_out','summon_bugs'],isBoss:true,maxEnergy:10,dbId:BOSS_DB_ID};
+        pveMonsters.value=[bossMonster];
+      }else{
+        const mp=MONSTERS.filter(m=>map.monsterIds.includes(m.name));const ep=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));
+        pveMonsters.value=[...mp].sort(()=>Math.random()-0.5).slice(0,4).map(m=>({...m,skills:[],isElite:false})).concat(ep.map(m=>({...m,skills:[],isElite:true})));
+      }
+    }
     function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
     function startPveBattle(monster){const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));if(!pet){showToast('请先领养宠物');return;}const stats=getPetStats(pet);let pb={};if(pendingPotion.value){pb=pendingPotion.value.effect;showToast(`使用${pendingPotion.value.name}！`);}battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],opponentPet:{...monster,hp:monster.hp,atk:monster.atk,def:monster.def,spd:monster.spd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji||'👾',isBoss:monster.isBoss||false,maxEnergy:monster.maxEnergy||10,skills:monster.skills||[]},opponentName:monster.name,opponentCurrentHp:monster.hp,oppHpPct:100,oppEnergy:monster.isBoss?3:0,oppEnergyPct:monster.isBoss?30:0,oppMaxEnergy:monster.maxEnergy||10,oppBuffs:[],skillCooldowns:{},logHTML:'',monster,turn:1,potionBonus:pb,processing:false};showPveModal.value=false;}
 
-    async function doBattleAction(action){const b=battle.value;if(!b||b.processing)return;b.processing=true;try{let log='';const order=b.myPet.spd>=b.opponentPet.spd?'(先手)':'(后手)';if(order==='(先手)'){log+=await executePlayerTurn(b,action);if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);}else{if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);if(b.myCurrentHp>0)log+=await executePlayerTurn(b,action);}b.myEnergy=Math.min(MAX_ENERGY,(b.myEnergy||0)+1);b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;b.oppEnergyPct=(b.opponentEnergy||0)/(b.oppMaxEnergy||10)*100;b.logHTML+=`<div>[第${b.turn}回合]${order}${log}</div>`;b.turn++;if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1500);}else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1500);}}finally{b.processing=false;}}
+    function processBuffs(b){
+      const now={};const process=(arr,ownerKey)=>{for(let i=arr.length-1;i>=0;i--){const bf=arr[i];if(bf.duration<=0){arr.splice(i,1);continue;}bf.duration--;if(bf.duration<=0){if(bf.type==='def_down'&&ownerKey==='opp'){b.opponentPet.def=Math.ceil(b.opponentPet.def/(1-0.3));}arr.splice(i,1);}}};
+      process(b.myBuffs,'my');process(b.oppBuffs,'opp');
+    }
+
+    async function doBattleAction(action){const b=battle.value;if(!b||b.processing)return;b.processing=true;try{processBuffs(b);let log='';const order=b.myPet.spd>=b.opponentPet.spd?'(先手)':'(后手)';if(order==='(先手)'){log+=await executePlayerTurn(b,action);if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);}else{if(b.opponentCurrentHp>0)log+=executeMonsterTurn(b);if(b.myCurrentHp>0)log+=await executePlayerTurn(b,action);}b.myEnergy=Math.min(MAX_ENERGY,(b.myEnergy||0)+1);b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));b.myEnergyPct=b.myEnergy/MAX_ENERGY*100;b.oppEnergyPct=(b.opponentEnergy||0)/(b.oppMaxEnergy||10)*100;b.logHTML+=`<div>[第${b.turn}回合]${order}${log}</div>`;b.turn++;if(b.myCurrentHp<=0){b.logHTML+='<div>你输了！</div>';setTimeout(()=>endBattle(false),1500);}else if(b.opponentCurrentHp<=0){b.logHTML+='<div>你赢了！</div>';setTimeout(()=>endBattle(true),1500);}}finally{b.processing=false;}}
     async function executePlayerTurn(b,action){if(action==='attack'){let atk=b.myPet.atk;if(b.potionBonus?.atk)atk=Math.floor(atk*(1+b.potionBonus.atk));const dmg=Math.max(1,atk-b.opponentPet.def+Math.floor(Math.random()*8));if(b.opponentPet.isBoss){const res=await bossTakeDamage(dmg);if(!res||!res.success){showToast('BOSS血量同步失败，请重试');return'';}b.opponentCurrentHp=res.remaining_hp;}else{b.opponentCurrentHp=Math.max(0,b.opponentCurrentHp-dmg);}b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+1);return`你攻击造成${dmg}点伤害 `;}else if(action==='defend'){b.myBuffs.push({type:'defend',duration:1,label:'🛡️'});b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+2);return'你选择防御 ';}return'';}
     function executeMonsterTurn(b){let log='';let dmg=0;const opp=b.opponentPet;const hasSkills=opp.skills&&opp.skills.length>0;if(hasSkills){b.opponentEnergy=b.opponentEnergy||0;const hpPct=b.opponentCurrentHp/opp.hp;let chosenSkill=null;if(b.opponentEnergy>=8&&hpPct<0.5&&opp.skills.includes('summon_bugs'))chosenSkill='summon_bugs';else if(b.opponentEnergy>=6&&opp.skills.includes('burn_out'))chosenSkill='burn_out';else if(b.opponentEnergy>=4&&opp.skills.includes('fire_storm'))chosenSkill='fire_storm';if(chosenSkill&&opp.skills.includes(chosenSkill)){const skill=BOSS_SKILLS[chosenSkill];if(skill){b.opponentEnergy-=skill.cost;dmg=Math.max(1,Math.floor(opp.atk*skill.dmgMult)-b.myPet.def+Math.floor(Math.random()*6));if(chosenSkill==='burn_out'){b.oppBuffs.push({type:'def_down',duration:2,label:'🔻防'});opp.def=Math.floor(opp.def*(1-skill.selfDefPenalty));}if(chosenSkill==='summon_bugs'){const heal=Math.floor(opp.hp*skill.healPct);b.opponentCurrentHp=Math.min(opp.hp,b.opponentCurrentHp+heal);log+=`🐛虫母召唤小虫群！回复${heal}HP，`;}b.myCurrentHp=Math.max(0,b.myCurrentHp-dmg);log+=`${skill.name}！造成${dmg}点伤害 (消耗${skill.cost}能量) `;b.opponentEnergy=Math.min(b.oppMaxEnergy||10,b.opponentEnergy+1);return log;}}}if(hasSkills)b.opponentEnergy=Math.min(b.oppMaxEnergy||10,(b.opponentEnergy||0)+2);const defended=b.myBuffs.some(bf=>bf.type==='defend');dmg=Math.max(1,opp.atk-b.myPet.def+Math.floor(Math.random()*5));const finalDmg=defended?Math.floor(dmg*0.5):dmg;b.myCurrentHp=Math.max(0,b.myCurrentHp-finalDmg);log+=`${opp.pet_name}攻击造成${finalDmg}点伤害${defended?'(减免)':''}${hasSkills?' (能量+2)':''}`;return log;}
 
@@ -335,9 +385,9 @@ createApp({
     async function buyListing(listing){if(profile.gold<listing.price){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-listing.price});profile.gold-=listing.price;await db.rpc('add_gold',{p_user_id:listing.seller_id,p_amount:listing.price});await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:listing.item_type,p_qty:1});if(!items[listing.item_type])items[listing.item_type]=0;items[listing.item_type]++;if(listing.quantity<=1){await db.from('market_listings').delete().eq('id',listing.id);}else{await db.from('market_listings').update({quantity:listing.quantity-1}).eq('id',listing.id);}showToast(`购买成功！`);loadMarketDynamic();}catch(e){showToast('购买失败');}}
     async function handleLogin(){errorMsg.value='';if(!loginEmail.value||!loginPassword.value){errorMsg.value='请输入邮箱和密码';return;}loading.value=true;try{const{data,error}=await db.auth.signInWithPassword({email:loginEmail.value,password:loginPassword.value});if(error)throw error;await loadAllData(data.user);isLoggedIn.value=true;showToast('登录成功！🌱');}catch(e){errorMsg.value=e.message||'登录失败';}finally{loading.value=false;}}
     async function handleRegister(){errorMsg.value='';if(!regUsername.value||!regEmail.value||!regPassword.value){errorMsg.value='请填写所有必填字段';return;}if(regPassword.value.length<6){errorMsg.value='密码至少6位';return;}loading.value=true;try{const{data,error}=await db.auth.signUp({email:regEmail.value,password:regPassword.value,options:{data:{username:regUsername.value,gender:regGender.value}}});if(error)throw error;if(data.user){showToast('注册成功！🎉');await new Promise(r=>setTimeout(r,1500));await loadAllData(data.user);isLoggedIn.value=true;}}catch(e){errorMsg.value=e.message||'注册失败';}finally{loading.value=false;}}
-    async function loadAllData(user){profile.id=user.id;let{data:prof}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(!prof){const un=user.user_metadata?.username||'农夫',ge=user.user_metadata?.gender||'none';await db.from('profiles').insert({id:user.id,username:un,gender:ge,gold:200,unlocked_plots:4,pet_slots:1,monster_log:{}});for(let i=0;i<4;i++)await db.from('farm_plots').insert({owner_id:user.id,plot_index:i});prof=(await db.from('profiles').select('*').eq('id',user.id).single()).data;}Object.assign(profile,prof);if(prof.monster_log)Object.assign(monsterLog,prof.monster_log);const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',user.id).order('plot_index');rawPlots.value=plots||[];const{data:id}=await db.from('player_items').select('*').eq('user_id',user.id);(id||[]).forEach(d=>items[d.item_type]=d.quantity);await loadPetsData();await loadEquipmentData();await loadOrders();await loadFriendProfiles();await initSeasonData();await loadMarketDynamic();}
+    async function loadAllData(user){profile.id=user.id;let{data:prof}=await db.from('profiles').select('*').eq('id',user.id).maybeSingle();if(!prof){const un=user.user_metadata?.username||'农夫',ge=user.user_metadata?.gender||'none';await db.from('profiles').insert({id:user.id,username:un,gender:ge,gold:200,unlocked_plots:4,pet_slots:1,monster_log:{}});for(let i=0;i<4;i++){const{data:ep}=await db.from('farm_plots').select('plot_index').eq('owner_id',user.id).eq('plot_index',i).maybeSingle();if(!ep)await db.from('farm_plots').insert({owner_id:user.id,plot_index:i});}prof=(await db.from('profiles').select('*').eq('id',user.id).single()).data;}Object.assign(profile,prof);if(prof.monster_log)Object.assign(monsterLog,prof.monster_log);const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',user.id).order('plot_index');rawPlots.value=plots||[];const{data:id}=await db.from('player_items').select('*').eq('user_id',user.id);(id||[]).forEach(d=>items[d.item_type]=d.quantity);await loadPetsData();await loadEquipmentData();await loadOrders();await loadFriendProfiles();await initSeasonData();await loadMarketDynamic();}
     async function loadPetsData(){const{data}=await db.from('pets').select('*').eq('owner_id',profile.id);pets.value=data||[];}
-    async function refreshFarm(){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',profile.id).order('plot_index');if(plots)rawPlots.value=plots;const existingIndices=new Set((plots||[]).map(p=>p.plot_index));const expectedCount=profile.unlocked_plots||4;for(let i=0;i<expectedCount;i++){if(!existingIndices.has(i))try{await db.from('farm_plots').insert({owner_id:profile.id,plot_index:i});}catch(e){}}const{data:prof}=await db.from('profiles').select('*').eq('id',profile.id).single();if(prof)Object.assign(profile,prof);}
+    async function refreshFarm(){const{data:plots}=await db.from('farm_plots').select('*').eq('owner_id',profile.id).order('plot_index');if(plots)rawPlots.value=plots;const existingIndices=new Set((plots||[]).map(p=>p.plot_index));const expectedCount=profile.unlocked_plots||4;for(let i=0;i<expectedCount;i++){if(!existingIndices.has(i)){try{await db.from('farm_plots').upsert({owner_id:profile.id,plot_index:i,crop_type:null,planted_at:null},{onConflict:'owner_id,plot_index'});}catch(e){}}}const{data:prof}=await db.from('profiles').select('*').eq('id',profile.id).single();if(prof)Object.assign(profile,prof);}
     async function handleLogout(){await db.auth.signOut();isLoggedIn.value=false;}
     async function checkSession(){const{data}=await db.auth.getSession();if(data.session){await loadAllData(data.session.user);isLoggedIn.value=true;}}
     checkSession();const growthTimer=setInterval(()=>{if(isLoggedIn.value&&!battle.value)refreshFarm();},30000);onUnmounted(()=>clearInterval(growthTimer));
@@ -377,7 +427,7 @@ createApp({
   }
 }).mount('#app');
 </script>
-<!-- 数据库扩展：请执行以下SQL创建赛季与动态经济相关表
+<!-- 数据库扩展脚本（在Supabase SQL Editor中执行）：
 CREATE TABLE IF NOT EXISTS player_season (
   user_id UUID NOT NULL,
   season_id TEXT NOT NULL,
@@ -386,12 +436,18 @@ CREATE TABLE IF NOT EXISTS player_season (
   claimed_levels JSONB DEFAULT '[]',
   PRIMARY KEY (user_id, season_id)
 );
+ALTER TABLE player_season ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "允许所有用户操作赛季进度" ON player_season FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 CREATE TABLE IF NOT EXISTS player_season_quests (
   user_id UUID NOT NULL,
   season_id TEXT NOT NULL,
   quests JSONB DEFAULT '[]',
   PRIMARY KEY (user_id, season_id)
 );
+ALTER TABLE player_season_quests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "允许所有用户操作赛季任务" ON player_season_quests FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 CREATE TABLE IF NOT EXISTS market_dynamics (
   id SERIAL PRIMARY KEY,
   date TEXT NOT NULL,
@@ -399,6 +455,8 @@ CREATE TABLE IF NOT EXISTS market_dynamics (
   total_sold_today INT DEFAULT 0,
   UNIQUE(date, seed_type)
 );
+ALTER TABLE market_dynamics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "允许所有用户操作市场动态" ON market_dynamics FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 -->
 </body>
 </html>
