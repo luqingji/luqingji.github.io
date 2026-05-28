@@ -197,6 +197,13 @@ const ITEM_NAMES = { hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',
 const SET_BONUSES = { '暗影':{2:{atk:10},3:{steal_extra:1}}, '龙骑士':{2:{atk:20},3:{boss_dmg:0.15}} };
 const WATER_COOLDOWN_MS=30*60*1000,BP_PER_PAGE=8,MAX_LOG_COUNT=200,MAX_ENERGY=10,PLOT_MAX_COUNT=12,MAX_PET_SLOTS=6,PET_MAX_LEVEL=30;
 const BATTLE_POTIONS=[{key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},{key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}}];
+const PET_SLOT_UNLOCK = [
+  { slot: 2, desc: '第1只宠物达到Lv.10', gold: 5000, cond: { petLevel: 10 } },
+  { slot: 3, desc: '解锁8块农田', gold: 20000, cond: { plots: 8 } },
+  { slot: 4, desc: '击败任意精英怪×5', gold: 50000, cond: { eliteKills: 5 }, materials: { scale: 10 } },
+  { slot: 5, desc: '宠物探险完成50次', gold: 100000, cond: { explores: 50 }, materials: { dragon_soul: 5 } },
+  { slot: 6, desc: '击败BOSS虫母女王×3', gold: 200000, cond: { bossKills: 3 }, materials: { stardust: 10 } }
+];
 const BOSS_RESPAWN_HOURS = 6;
 const BOSS_DB_ID = 1;
 const SEASON_CONFIG = { id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10, startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'), freeRewards:{1:{items:{seed_ticket:5},gold:500},2:{items:{hair:20},gold:800},3:{items:{potion_atk:2},gold:1000},4:{items:{protect_charm:1},gold:1500},5:{items:{seed_strawberry:10},gold:2000},6:{items:{ore:15},gold:2500},7:{items:{scroll_basic:2},gold:3000},8:{items:{relic:8},gold:4000},9:{items:{dragon_soul:3},gold:5000},10:{items:{blueprint_boss:1},gold:10000}} };
