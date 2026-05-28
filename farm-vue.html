@@ -268,10 +268,31 @@ createApp({
     async function doPlant(crop){const seedKey=crop.seedKey||('seed_'+crop.key);if((items[seedKey]||0)<1){showToast('种子不足！');return;}if(profile.gold<crop.seed){showToast('金币不足');return;}try{await db.rpc('add_gold',{p_user_id:profile.id,p_amount:-crop.seed});profile.gold-=crop.seed;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:seedKey,p_qty:-1});items[seedKey]--;if(items[seedKey]<=0)delete items[seedKey];const n=new Date().toISOString();let{data:up}=await db.from('farm_plots').update({crop_type:crop.key,planted_at:n,growth_minutes:crop.growth,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();if(!up){const{data:inserted}=await db.from('farm_plots').insert({owner_id:profile.id,plot_index:selectedPlotIndex.value,crop_type:crop.key,planted_at:n,growth_minutes:crop.growth}).select().single();if(inserted)up=inserted;else throw new Error('地块创建失败');}const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;else rawPlots.value.push(up);showPlantModal.value=false;showToast(`种下了${crop.name}！`);updateQuestProgress('plant');}catch(e){showToast('种植失败');}}
     async function doHarvest(plot){const crop=CROPS[plot.crop_type];if(!crop)return;const highYield=Math.random()<0.05;const cropQty=highYield?2:1;const returnSeed=Math.random()<0.10;try{await db.from('farm_plots').update({crop_type:null,planted_at:null,watered_at:null,stolen_count:0}).eq('owner_id',profile.id).eq('plot_index',plot.plot_index);const idx=rawPlots.value.findIndex(p=>p.plot_index===plot.plot_index);if(idx!==-1)rawPlots.value[idx]={...rawPlots.value[idx],crop_type:null,planted_at:null,watered_at:null,stolen_count:0};for(let i=0;i<cropQty;i++){await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:plot.crop_type,p_qty:1});}if(!items[plot.crop_type])items[plot.crop_type]=0;items[plot.crop_type]+=cropQty;if(returnSeed){const seedKey='seed_'+plot.crop_type;await db.rpc('add_item_quantity',{p_user_id:profile.id,p_item_type:seedKey,p_qty:1});if(!items[seedKey])items[seedKey]=0;items[seedKey]++;}let msg=`收获成功！获得 ${crop.emoji} ${crop.name} ×${cropQty}`;if(highYield)msg=`🎉高产！获得 ${crop.emoji} ${crop.name} ×2`;if(returnSeed)msg+=' + 🌰种子';showToast(msg);updateQuestProgress('harvest');}catch(e){showToast('收获失败');}}
     async function doWater(){const plot=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);if(!plot)return;if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{const n=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({watered_at:n}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showWaterModal.value=false;showToast('浇水成功！');updateQuestProgress('water');}catch(e){showToast('浇水失败');}}
-
-    async function loadBossState() {const { data, error } = await db.rpc('boss_check_respawn');if (error) {console.error('boss_check_respawn error:', error);showToast('BOSS状态查询失败，请稍后再试');return null;}return data;}
-	async function bossTakeDamage(damage) {const { data, error } = await db.rpc('boss_take_damage', { damage });console.log('BOSS扣血返回:', data, error); // 新增调试日志
-      if (error) {console.error('RPC错误:', error);showToast('BOSS血量同步失败');return null;}return data;}
+	async function loadBossState() {
+  const { data, error } = await db.rpc('boss_check_respawn');
+  if (error) {
+    console.error('boss_check_respawn error:', error);
+    return null;
+  }
+  // 确保返回的是对象，不是数组
+  if (Array.isArray(data) && data.length > 0) {
+    return data[0];
+  }
+  return data; // 如果已经是对象则直接返回
+}
+	async function bossTakeDamage(damage) {
+  const { data, error } = await db.rpc('boss_take_damage', { damage });
+  if (error) {
+    console.error('BOSS扣血RPC错误:', error);
+    return null;
+  }
+  // data 是数组 [{success, remaining_hp}]，取第一个元素
+  if (data && Array.isArray(data) && data.length > 0) {
+    return data[0];
+  }
+  // 如果返回格式不是预期，返回 null 表示失败
+  return null;
+}
     async function bossKill(){const next=new Date(Date.now()+BOSS_RESPAWN_HOURS*3600000).toISOString();await db.from('boss_state').update({is_alive:false,next_respawn:next,current_hp:0}).eq('id',BOSS_DB_ID);}
     async function openPveMap(map) {
      if (map.isBoss) {const bossState = await loadBossState();if (!bossState) return; // 查询失败时静默返回，不提示错误 
