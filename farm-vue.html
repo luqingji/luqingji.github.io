@@ -272,7 +272,40 @@ createApp({
     async function loadBossState(){const{data,error}=await db.rpc('boss_check_respawn');if(error)return null;return data;}
     async function bossTakeDamage(damage){const{data,error}=await db.rpc('boss_take_damage',{damage});if(error)return null;return data;}
     async function bossKill(){const next=new Date(Date.now()+BOSS_RESPAWN_HOURS*3600000).toISOString();await db.from('boss_state').update({is_alive:false,next_respawn:next,current_hp:0}).eq('id',BOSS_DB_ID);}
-    async function openPveMap(map){if(map.isBoss){const bossState=await loadBossState();if(!bossState||!bossState.is_alive){const{data:raw}=await db.from('boss_state').select('next_respawn').eq('id',BOSS_DB_ID).single();if(raw&&raw.next_respawn)showToast(`BOSS已被击杀，${new Date(raw.next_respawn).toLocaleString()}重生`);else showToast('BOSS已被击杀');return;}const bossMonster={name:'虫母女王',emoji:'👸',hp:bossState.current_hp,maxHp:bossState.max_hp,atk:50,def:30,spd:12,minLevel:1,maxLevel:35,rewards:{gold:1000,items:{scale:3}},skills:['fire_storm','burn_out','summon_bugs'],isBoss:true,maxEnergy:10,dbId:BOSS_DB_ID};pveMonsters.value=[bossMonster];}else{const mp=MONSTERS.filter(m=>map.monsterIds.includes(m.name));const ep=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));pveMonsters.value=[...mp].sort(()=>Math.random()-0.5).slice(0,4).map(m=>({...m,skills:[],isElite:false})).concat(ep.map(m=>({...m,skills:[],isElite:true})));}}
+	async function openPveMap(map) {
+  if (map.isBoss) {
+    const bossState = await loadBossState();
+    if (!bossState || !bossState.is_alive) {
+      // 直接使用 loadBossState 返回的 next_respawn，不再查询 boss_state 表
+      const respawnTime = bossState?.next_respawn;
+      if (respawnTime) {
+        showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);
+      } else {
+        showToast('BOSS已被击杀');
+      }
+      return;
+    }
+    const bossMonster = {
+      name: '虫母女王',
+      emoji: '👸',
+      hp: bossState.current_hp,
+      maxHp: bossState.max_hp,
+      atk: 50, def: 30, spd: 12,
+      minLevel: 1, maxLevel: 35,
+      rewards: { gold: 1000, items: { scale: 3 } },
+      skills: ['fire_storm', 'burn_out', 'summon_bugs'],
+      isBoss: true,
+      maxEnergy: 10,
+      dbId: BOSS_DB_ID
+    };
+    pveMonsters.value = [bossMonster];
+  } else {
+    const mp = MONSTERS.filter(m => map.monsterIds.includes(m.name));
+    const ep = ELITE_MONSTERS.filter(m => map.eliteIds.includes(m.name));
+    pveMonsters.value = [...mp].sort(() => Math.random() - 0.5).slice(0, 4).map(m => ({ ...m, skills: [], isElite: false }))
+      .concat(ep.map(m => ({ ...m, skills: [], isElite: true })));
+  }
+}
     function showPveMaps(){pveMonsters.value=[];showPveModal.value=true;}
     function startPveBattle(monster){const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id));if(!pet){showToast('请先领养宠物');return;}const stats=getPetStats(pet);let pb={};if(pendingPotion.value){pb=pendingPotion.value.effect;showToast(`使用${pendingPotion.value.name}！`);}battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],opponentPet:{...monster,hp:monster.hp,atk:monster.atk,def:monster.def,spd:monster.spd,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji||'👾',isBoss:monster.isBoss||false,maxEnergy:monster.maxEnergy||10,skills:monster.skills||[]},opponentName:monster.name,opponentCurrentHp:monster.hp,oppHpPct:100,oppEnergy:monster.isBoss?3:0,oppEnergyPct:monster.isBoss?30:0,oppMaxEnergy:monster.maxEnergy||10,oppBuffs:[],skillCooldowns:{},logHTML:'',monster,turn:1,potionBonus:pb,processing:false};showPveModal.value=false;}
 
