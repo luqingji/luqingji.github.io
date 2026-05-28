@@ -270,7 +270,8 @@ createApp({
     async function doWater(){const plot=rawPlots.value.find(p=>p.plot_index===selectedPlotIndex.value);if(!plot)return;if(plot.watered_at&&(new Date()-new Date(plot.watered_at))<WATER_COOLDOWN_MS){showToast('30分钟内已浇水');return;}try{const n=new Date().toISOString();const{data:up}=await db.from('farm_plots').update({watered_at:n}).eq('owner_id',profile.id).eq('plot_index',selectedPlotIndex.value).select().single();const idx=rawPlots.value.findIndex(p=>p.plot_index===selectedPlotIndex.value);if(idx!==-1)rawPlots.value[idx]=up;showWaterModal.value=false;showToast('浇水成功！');updateQuestProgress('water');}catch(e){showToast('浇水失败');}}
 
     async function loadBossState() {const { data, error } = await db.rpc('boss_check_respawn');if (error) {console.error('boss_check_respawn error:', error);showToast('BOSS状态查询失败，请稍后再试');return null;}return data;}
-    async function bossTakeDamage(damage){const{data,error}=await db.rpc('boss_take_damage',{damage});if(error)return null;return data;}
+	async function bossTakeDamage(damage) {const { data, error } = await db.rpc('boss_take_damage', { damage });console.log('BOSS扣血返回:', data, error); // 新增调试日志
+      if (error) {console.error('RPC错误:', error);showToast('BOSS血量同步失败');return null;}return data;}
     async function bossKill(){const next=new Date(Date.now()+BOSS_RESPAWN_HOURS*3600000).toISOString();await db.from('boss_state').update({is_alive:false,next_respawn:next,current_hp:0}).eq('id',BOSS_DB_ID);}
     async function openPveMap(map) {
      if (map.isBoss) {const bossState = await loadBossState();if (!bossState) return; // 查询失败时静默返回，不提示错误 
