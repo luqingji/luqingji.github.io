@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>麦田守护者 v8.0 · 最终完整版</title>
+  <title>麦田守护者 v8.0 · 完整修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ========== 完整样式 ========== */
+    /* 完整样式（已包含所有必要样式） */
     :root {
       --bg: #f5f0eb;
       --card: #ffffff;
@@ -95,7 +95,7 @@
   <!-- 认证界面 -->
   <div v-if="!isLoggedIn" class="auth-form">
     <h1>🌱 麦田守护者 v8.0</h1>
-    <p style="color:#888;margin-bottom:16px;">最终完整版 · 安全赛季</p>
+    <p style="color:#888;margin-bottom:16px;">安全赛季 · 全服BOSS</p>
     <div class="auth-tabs"><button class="auth-tab" :class="{active:authMode==='login'}" @click="authMode='login'">登录</button><button class="auth-tab" :class="{active:authMode==='register'}" @click="authMode='register'">注册</button></div>
     <div v-if="authMode==='login'"><div class="form-group"><label>邮箱</label><input type="email" v-model="loginEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="loginPassword"></div><button class="btn-primary" @click="handleLogin" :disabled="loading">登录农场</button></div>
     <div v-else><div class="form-group"><label>昵称</label><input type="text" v-model="regUsername" maxlength="12"></div><div class="form-group"><label>邮箱</label><input type="email" v-model="regEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="regPassword"></div><div class="form-group"><label>性别</label><select v-model="regGender"><option value="none">不透露</option><option value="male">男士</option><option value="female">女士</option></select></div><button class="btn-primary" @click="handleRegister" :disabled="loading">注册并进入农场</button></div>
@@ -123,11 +123,11 @@
       <div class="season-level">Lv.{{ seasonState?.level || 1 }}</div>
     </div>
     <div class="header"><div class="user-info"><div class="avatar" :class="profile.gender||'none'">{{initial}}</div><div><div class="username">{{profile.username}}</div><div class="gold-display">🪙 {{profile.gold}}</div></div></div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn-icon" @click="showPetsModal=true">🐾</button><button class="btn-icon" @click="showBackpackModal=true">🎒</button><button class="btn-icon" @click="showSynthesisModal=true">🔧</button><button class="btn-icon" @click="showEquipmentModal=true">⚔️</button><button class="btn-icon btn-fight-call" @click="showSelectPetForBattle()">🐉讨伐</button><button class="btn-icon" @click="showExploreModal=true;exploringPet=null">🗺️</button><button class="btn-icon" @click="showOrdersModal=true">📦</button><button class="btn-icon" @click="showSeedShopModal=true;loadMarketDynamic();marketTab='seeds'">🏪</button><button class="btn-icon" @click="showMailModal=true">📬</button><button class="btn-icon" @click="showMonsterLogModal=true">📖</button><button class="btn-icon" @click="openEventLog">📋</button><button class="btn-icon" @click="showLeaderboardModal=true;lbTab='global';loadLeaderboard()">🏆</button><button class="btn-icon" @click="showFriendsModal=true">👥</button><button class="btn-icon" @click="refreshFarm">🔄</button><button class="btn-icon btn-logout" @click="handleLogout">退出</button></div></div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn-icon" @click="showPetsModal=true">🐾</button><button class="btn-icon" @click="showBackpackModal=true">🎒</button><button class="btn-icon" @click="showSynthesisModal=true">🔧</button><button class="btn-icon" @click="showEquipmentModal=true">⚔️</button><button class="btn-icon btn-fight-call" @click="showSelectPetForBattle()">🐉讨伐</button><button class="btn-icon" @click="showExploreModal=true;exploringPet=null">🗺️</button><button class="btn-icon" @click="showOrdersModal=true">📦</button><button class="btn-icon" @click="showSeedShopModal=true;loadMarketDynamic();marketTab='seeds'">🏪</button><button class="btn-icon" @click="showMailModal=true;loadMails()">📬</button><button class="btn-icon" @click="showMonsterLogModal=true">📖</button><button class="btn-icon" @click="openEventLog">📋</button><button class="btn-icon" @click="showLeaderboardModal=true;lbTab='global';loadLeaderboard()">🏆</button><button class="btn-icon" @click="showFriendsModal=true">👥</button><button class="btn-icon" @click="refreshFarm">🔄</button><button class="btn-icon btn-logout" @click="handleLogout">退出</button></div></div>
     <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
   </div>
 
-  <!-- ========== 所有弹窗（完整保留） ========== -->
+  <!-- 所有弹窗（完整保留） -->
   <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
     <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
     <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
@@ -183,26 +183,166 @@ const supabaseUrl = 'https://siwacsnuminepetpxljh.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
 const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-// ======================== 完整常量定义 ========================
-const CROPS = { strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'}, grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'}, watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'}, blueberry:{name:'蓝莓',emoji:'🫐',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'}, apple:{name:'苹果',emoji:'🍎',seed:70,growth:14,min:110,max:160,type:'fruit',unlock:'探险'}, peach:{name:'桃子',emoji:'🍑',seed:85,growth:16,min:130,max:190,type:'fruit',unlock:'探险'}, orange:{name:'橘子',emoji:'🍊',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'}, pineapple:{name:'菠萝',emoji:'🍍',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'}, mango:{name:'芒果',emoji:'🥭',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'}, cherry:{name:'樱桃',emoji:'🍒',seed:95,growth:16,min:140,max:210,type:'fruit',unlock:'探险'}, lemon:{name:'柠檬',emoji:'🍋',seed:85,growth:14,min:120,max:180,type:'fruit',unlock:'探险'}, banana:{name:'香蕉',emoji:'🍌',seed:110,growth:20,min:170,max:250,type:'fruit',unlock:'探险'}, pear:{name:'梨',emoji:'🍐',seed:75,growth:13,min:110,max:160,type:'fruit',unlock:'探险'}, kiwi:{name:'猕猴桃',emoji:'🥝',seed:100,growth:18,min:150,max:230,type:'fruit',unlock:'探险'}, melon:{name:'甜瓜',emoji:'🍈',seed:130,growth:24,min:210,max:320,type:'fruit',unlock:'探险'}, coconut:{name:'椰子',emoji:'🥥',seed:160,growth:30,min:280,max:420,type:'fruit',unlock:'探险'}, sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'}, chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'}, tulip:{name:'郁金香',emoji:'🌷',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'}, clover:{name:'三叶草',emoji:'🍀',seed:40,growth:8,min:60,max:90,type:'flower',unlock:'探险'}, rose:{name:'玫瑰',emoji:'🌹',seed:100,growth:20,min:180,max:260,type:'flower',unlock:'探险'}, lily:{name:'百合',emoji:'🏵️',seed:90,growth:18,min:160,max:230,type:'flower',unlock:'探险'}, sakura:{name:'樱花',emoji:'🌸',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'}, lotus:{name:'荷花',emoji:'🪷',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'}, cactus:{name:'仙人掌花',emoji:'🌵',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'}, hibiscus:{name:'芙蓉',emoji:'🌺',seed:105,growth:19,min:160,max:240,type:'flower',unlock:'探险'}, white_flower:{name:'白花',emoji:'💮',seed:60,growth:11,min:90,max:140,type:'flower',unlock:'探险'}, herb:{name:'香草',emoji:'🌿',seed:55,growth:9,min:80,max:120,type:'flower',unlock:'探险'}, potted_plant:{name:'盆栽',emoji:'🪴',seed:140,growth:26,min:220,max:340,type:'flower',unlock:'战斗'}, carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'}, tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'}, corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'}, potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'}, cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'}, rice:{name:'水稻',emoji:'🌾',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'}, pepper:{name:'辣椒',emoji:'🌶️',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'}, cucumber:{name:'黄瓜',emoji:'🥒',seed:45,growth:10,min:70,max:110,type:'vegetable',unlock:'探险'}, onion:{name:'洋葱',emoji:'🧅',seed:50,growth:11,min:80,max:120,type:'vegetable',unlock:'探险'}, garlic:{name:'大蒜',emoji:'🧄',seed:55,growth:12,min:85,max:130,type:'vegetable',unlock:'探险'}, eggplant:{name:'茄子',emoji:'🍆',seed:65,growth:13,min:100,max:150,type:'vegetable',unlock:'探险'}, broccoli:{name:'西兰花',emoji:'🥦',seed:75,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'}, green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'}, lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'}, beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'}, mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'}, peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'}, tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'}, bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'}, chestnut:{name:'栗子',emoji:'🌰',seed:70,growth:14,min:110,max:170,type:'special',unlock:'探险'}, honey:{name:'蜂蜜',emoji:'🍯',seed:150,growth:25,min:230,max:380,type:'special',unlock:'探险'}, candy:{name:'糖果',emoji:'🍬',seed:120,growth:20,min:180,max:280,type:'special',unlock:'探险'}, chocolate:{name:'巧克力',emoji:'🍫',seed:160,growth:26,min:250,max:400,type:'special',unlock:'战斗'}, spice:{name:'香料',emoji:'🧂',seed:90,growth:16,min:140,max:210,type:'special',unlock:'探险'}, pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'}, sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'} };
-const PET_TYPES = { cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}}, dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}}, rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:70,atk:15,def:5,spd:18,luk:12,sta:40}} };
-const PET_NATURES = [ {id:'brave',name:'勇敢',atk_bonus:0.1,spd_penalty:-0.1}, {id:'calm',name:'沉稳',def_bonus:0.1,atk_penalty:-0.1}, {id:'hasty',name:'急躁',spd_bonus:0.1,def_penalty:-0.1}, {id:'tough',name:'顽强',hp_bonus:0.1,luk_penalty:-0.1}, {id:'lucky',name:'幸运',luk_bonus:0.1,sta_penalty:-0.1}, {id:'energetic',name:'活力',sta_bonus:0.1,hp_penalty:-0.1}, {id:'balanced',name:'均衡'} ];
-const PASSIVE_SKILLS = { fire_soul:{name:'炎之魂',desc:'火系伤害+20%',atk_bonus:0.2}, brave:{name:'勇猛',desc:'攻击力+15%，防御力-10%',atk_bonus:0.15,def_penalty:0.1}, regen:{name:'再生',desc:'每回合回复3%最大HP'}, lucky:{name:'幸运儿',desc:'暴击率+10%，掉落奖励+20%'} };
-const EXPLORE_ROUTES = [ {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,materials:{hair:2,seed:1,dew:0.5},rareItem:'dew',rareProb:0.1,eventProb:0.1,eventName:'遇到受伤小动物',eventReward:'gold50',exp:20}, {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,materials:{hair:3,ore:1.5,relic:0.3},rareItem:'relic',rareProb:0.15,eventProb:0.15,eventName:'发现宝箱',eventReward:'extra_materials',exp:40}, {id:'mine',name:'矿洞挖掘',emoji:'💎',time:2,cost:80,minLevel:10,materials:{ore:3,relic:1.5,moonstone:0.5},rareItem:'moonstone',rareProb:0.2,eventProb:0.2,eventName:'挖到矿石脉',eventReward:'double_materials',exp:80}, {id:'ruins',name:'遗迹探险',emoji:'🏛️',time:3,cost:150,minLevel:15,materials:{relic:3,feather:1.5,scale:0.5},rareItem:'scale',rareProb:0.25,eventProb:0.25,eventName:'触发古老机关',eventReward:'rare_material',exp:150}, {id:'dragon',name:'龙巢秘境',emoji:'🐉',time:4,cost:300,minLevel:20,materials:{feather:3,scale:2,dragon_soul:0.5},rareItem:'dragon_soul',rareProb:0.3,eventProb:0.3,eventName:'龙魂祝福',eventReward:'bonus_exp',exp:300}, {id:'night',name:'暗夜森林',emoji:'🌙',time:2,cost:100,minLevel:10,materials:{dew:3,clover:1.5,feather:0.5},rareItem:'feather',rareProb:0.2,eventProb:0.2,eventName:'萤火虫群',eventReward:'temp_luk',exp:100} ];
-const SYNTHESIS_FOOD = [ {name:'wine',icon:'🍷',label:'葡萄酒',materials:{grape:5},cost:100}, {name:'juice_watermelon',icon:'🧃',label:'西瓜汁',materials:{watermelon:3},cost:50} ];
-const SYNTHESIS_POTIONS = [ {name:'potion_atk',icon:'🧪',label:'攻击药剂',materials:{pepper:3,moonstone:1},cost:300}, {name:'potion_def',icon:'💊',label:'防御药剂',materials:{mushroom:3,relic:1},cost:300} ];
-const BLUEPRINT_RECIPES = [ {name:'暗影匕首',slot:'weapon',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3,scale:2},cost:3000,blueprint:'blueprint_boss'}, {name:'龙枪',slot:'weapon',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3,ore:3},cost:3000,blueprint:'blueprint_boss'} ];
+// ======================== 游戏常量（完整） ========================
+const CROPS = {
+  strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
+  grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
+  watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
+  blueberry:{name:'蓝莓',emoji:'🫐',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'},
+  apple:{name:'苹果',emoji:'🍎',seed:70,growth:14,min:110,max:160,type:'fruit',unlock:'探险'},
+  peach:{name:'桃子',emoji:'🍑',seed:85,growth:16,min:130,max:190,type:'fruit',unlock:'探险'},
+  orange:{name:'橘子',emoji:'🍊',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'},
+  pineapple:{name:'菠萝',emoji:'🍍',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'},
+  mango:{name:'芒果',emoji:'🥭',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'},
+  cherry:{name:'樱桃',emoji:'🍒',seed:95,growth:16,min:140,max:210,type:'fruit',unlock:'探险'},
+  lemon:{name:'柠檬',emoji:'🍋',seed:85,growth:14,min:120,max:180,type:'fruit',unlock:'探险'},
+  banana:{name:'香蕉',emoji:'🍌',seed:110,growth:20,min:170,max:250,type:'fruit',unlock:'探险'},
+  pear:{name:'梨',emoji:'🍐',seed:75,growth:13,min:110,max:160,type:'fruit',unlock:'探险'},
+  kiwi:{name:'猕猴桃',emoji:'🥝',seed:100,growth:18,min:150,max:230,type:'fruit',unlock:'探险'},
+  melon:{name:'甜瓜',emoji:'🍈',seed:130,growth:24,min:210,max:320,type:'fruit',unlock:'探险'},
+  coconut:{name:'椰子',emoji:'🥥',seed:160,growth:30,min:280,max:420,type:'fruit',unlock:'探险'},
+  sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+  chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
+  tulip:{name:'郁金香',emoji:'🌷',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'},
+  clover:{name:'三叶草',emoji:'🍀',seed:40,growth:8,min:60,max:90,type:'flower',unlock:'探险'},
+  rose:{name:'玫瑰',emoji:'🌹',seed:100,growth:20,min:180,max:260,type:'flower',unlock:'探险'},
+  lily:{name:'百合',emoji:'🏵️',seed:90,growth:18,min:160,max:230,type:'flower',unlock:'探险'},
+  sakura:{name:'樱花',emoji:'🌸',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'},
+  lotus:{name:'荷花',emoji:'🪷',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'},
+  cactus:{name:'仙人掌花',emoji:'🌵',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'},
+  hibiscus:{name:'芙蓉',emoji:'🌺',seed:105,growth:19,min:160,max:240,type:'flower',unlock:'探险'},
+  white_flower:{name:'白花',emoji:'💮',seed:60,growth:11,min:90,max:140,type:'flower',unlock:'探险'},
+  herb:{name:'香草',emoji:'🌿',seed:55,growth:9,min:80,max:120,type:'flower',unlock:'探险'},
+  potted_plant:{name:'盆栽',emoji:'🪴',seed:140,growth:26,min:220,max:340,type:'flower',unlock:'战斗'},
+  carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
+  tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
+  corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
+  potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
+  cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
+  rice:{name:'水稻',emoji:'🌾',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'},
+  pepper:{name:'辣椒',emoji:'🌶️',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
+  cucumber:{name:'黄瓜',emoji:'🥒',seed:45,growth:10,min:70,max:110,type:'vegetable',unlock:'探险'},
+  onion:{name:'洋葱',emoji:'🧅',seed:50,growth:11,min:80,max:120,type:'vegetable',unlock:'探险'},
+  garlic:{name:'大蒜',emoji:'🧄',seed:55,growth:12,min:85,max:130,type:'vegetable',unlock:'探险'},
+  eggplant:{name:'茄子',emoji:'🍆',seed:65,growth:13,min:100,max:150,type:'vegetable',unlock:'探险'},
+  broccoli:{name:'西兰花',emoji:'🥦',seed:75,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
+  green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'},
+  lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'},
+  beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'},
+  mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
+  peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
+  tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
+  bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
+  chestnut:{name:'栗子',emoji:'🌰',seed:70,growth:14,min:110,max:170,type:'special',unlock:'探险'},
+  honey:{name:'蜂蜜',emoji:'🍯',seed:150,growth:25,min:230,max:380,type:'special',unlock:'探险'},
+  candy:{name:'糖果',emoji:'🍬',seed:120,growth:20,min:180,max:280,type:'special',unlock:'探险'},
+  chocolate:{name:'巧克力',emoji:'🍫',seed:160,growth:26,min:250,max:400,type:'special',unlock:'战斗'},
+  spice:{name:'香料',emoji:'🧂',seed:90,growth:16,min:140,max:210,type:'special',unlock:'探险'},
+  pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
+  sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'}
+};
+const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
+const PET_TYPES = {
+  cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
+  dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
+  rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:70,atk:15,def:5,spd:18,luk:12,sta:40}}
+};
+const PET_NATURES = [
+  {id:'brave',name:'勇敢',atk_bonus:0.1,spd_penalty:-0.1},
+  {id:'calm',name:'沉稳',def_bonus:0.1,atk_penalty:-0.1},
+  {id:'hasty',name:'急躁',spd_bonus:0.1,def_penalty:-0.1},
+  {id:'tough',name:'顽强',hp_bonus:0.1,luk_penalty:-0.1},
+  {id:'lucky',name:'幸运',luk_bonus:0.1,sta_penalty:-0.1},
+  {id:'energetic',name:'活力',sta_bonus:0.1,hp_penalty:-0.1},
+  {id:'balanced',name:'均衡'}
+];
+const PASSIVE_SKILLS = {
+  fire_soul:{name:'炎之魂',desc:'火系伤害+20%',atk_bonus:0.2},
+  brave:{name:'勇猛',desc:'攻击力+15%，防御力-10%',atk_bonus:0.15,def_penalty:0.1},
+  regen:{name:'再生',desc:'每回合回复3%最大HP'},
+  lucky:{name:'幸运儿',desc:'暴击率+10%，掉落奖励+20%'}
+};
+const EXPLORE_ROUTES = [
+  {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,materials:{hair:2,seed:1,dew:0.5},rareItem:'dew',rareProb:0.1,eventProb:0.1,eventName:'遇到受伤小动物',eventReward:'gold50',exp:20},
+  {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,materials:{hair:3,ore:1.5,relic:0.3},rareItem:'relic',rareProb:0.15,eventProb:0.15,eventName:'发现宝箱',eventReward:'extra_materials',exp:40},
+  {id:'mine',name:'矿洞挖掘',emoji:'💎',time:2,cost:80,minLevel:10,materials:{ore:3,relic:1.5,moonstone:0.5},rareItem:'moonstone',rareProb:0.2,eventProb:0.2,eventName:'挖到矿石脉',eventReward:'double_materials',exp:80},
+  {id:'ruins',name:'遗迹探险',emoji:'🏛️',time:3,cost:150,minLevel:15,materials:{relic:3,feather:1.5,scale:0.5},rareItem:'scale',rareProb:0.25,eventProb:0.25,eventName:'触发古老机关',eventReward:'rare_material',exp:150},
+  {id:'dragon',name:'龙巢秘境',emoji:'🐉',time:4,cost:300,minLevel:20,materials:{feather:3,scale:2,dragon_soul:0.5},rareItem:'dragon_soul',rareProb:0.3,eventProb:0.3,eventName:'龙魂祝福',eventReward:'bonus_exp',exp:300},
+  {id:'night',name:'暗夜森林',emoji:'🌙',time:2,cost:100,minLevel:10,materials:{dew:3,clover:1.5,feather:0.5},rareItem:'feather',rareProb:0.2,eventProb:0.2,eventName:'萤火虫群',eventReward:'temp_luk',exp:100}
+];
+const SYNTHESIS_FOOD = [
+  {name:'wine',icon:'🍷',label:'葡萄酒',materials:{grape:5},cost:100},
+  {name:'juice_watermelon',icon:'🧃',label:'西瓜汁',materials:{watermelon:3},cost:50}
+];
+const SYNTHESIS_POTIONS = [
+  {name:'potion_atk',icon:'🧪',label:'攻击药剂',materials:{pepper:3,moonstone:1},cost:300},
+  {name:'potion_def',icon:'💊',label:'防御药剂',materials:{mushroom:3,relic:1},cost:300}
+];
+const BLUEPRINT_RECIPES = [
+  {name:'暗影匕首',slot:'weapon',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3,scale:2},cost:3000,blueprint:'blueprint_boss'},
+  {name:'龙枪',slot:'weapon',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3,ore:3},cost:3000,blueprint:'blueprint_boss'}
+];
 const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
-const ENHANCE_CONFIG = [ {level:1,cost:200,materials:{ore:2},prob:1.0}, {level:2,cost:400,materials:{ore:4},prob:1.0}, {level:3,cost:600,materials:{ore:6},prob:1.0}, {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9}, {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8} ];
-const ENCHANT_MATERIALS = [ {name:'ore',qty:3,cost:500}, {name:'relic',qty:2,cost:800}, {name:'moonstone',qty:1,cost:1200} ];
-const ENCHANT_ATTRS = [ {key:'atk_bonus',name:'攻击',min:1,max:8}, {key:'def_bonus',name:'防御',min:1,max:6}, {key:'luk_bonus',name:'幸运',min:1,max:4} ];
-const BOSS_SKILLS = { fire_storm:{name:'🔥火焰风暴',cost:4,dmgMult:1.5,desc:'造成1.5倍伤害'}, burn_out:{name:'💥燃烧殆尽',cost:6,dmgMult:2.5,selfDefPenalty:0.3,desc:'造成2.5倍伤害，自身防御降低30%'}, summon_bugs:{name:'🐛召唤小虫',cost:8,dmgMult:1.0,healPct:0.15,desc:'召唤小虫群，回复15%HP并造成伤害'} };
-const MONSTERS = [ {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,skills:[],rewards:{gold:20,items:{hair:0.3}}}, {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}}, {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}}, {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}}, {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}} ];
-const ELITE_MONSTERS = [ {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6}}}, {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6}}}, {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5}}} ];
+const ENHANCE_CONFIG = [
+  {level:1,cost:200,materials:{ore:2},prob:1.0},
+  {level:2,cost:400,materials:{ore:4},prob:1.0},
+  {level:3,cost:600,materials:{ore:6},prob:1.0},
+  {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9},
+  {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8}
+];
+const ENCHANT_MATERIALS = [
+  {name:'ore',qty:3,cost:500},
+  {name:'relic',qty:2,cost:800},
+  {name:'moonstone',qty:1,cost:1200}
+];
+const ENCHANT_ATTRS = [
+  {key:'atk_bonus',name:'攻击',min:1,max:8},
+  {key:'def_bonus',name:'防御',min:1,max:6},
+  {key:'luk_bonus',name:'幸运',min:1,max:4}
+];
+const BOSS_SKILLS = {
+  fire_storm:{name:'🔥火焰风暴',cost:4,dmgMult:1.5,desc:'造成1.5倍伤害'},
+  burn_out:{name:'💥燃烧殆尽',cost:6,dmgMult:2.5,selfDefPenalty:0.3,desc:'造成2.5倍伤害，自身防御降低30%'},
+  summon_bugs:{name:'🐛召唤小虫',cost:8,dmgMult:1.0,healPct:0.15,desc:'召唤小虫群，回复15%HP并造成伤害'}
+};
+const MONSTERS = [
+  {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,skills:[],rewards:{gold:20,items:{hair:0.3}}},
+  {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
+  {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
+  {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
+  {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}}
+];
+const ELITE_MONSTERS = [
+  {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6}}},
+  {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6}}},
+  {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5}}}
+];
 const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
-const PVE_MAPS = [ {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','田鼠'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9',unlockDesc:''}, {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['蝙蝠','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3},unlockDesc:'击败任意3个精英怪解锁'}, {id:'boss_lair',name:'虫母巢穴',emoji:'👹',minLevel:1,maxLevel:35,monsterIds:[],eliteIds:[],isBoss:true,bg:'#fdf0e0',unlockDesc:''} ];
-const ITEM_EMOJI = { hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮', grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬', sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️', potion_atk:'🧪',potion_def:'💊',wine:'🍷',scroll_basic:'📜',protect_charm:'🛡️',seed_ticket:'🎫',blueprint_boss:'📜', seed_cabbage:'🥬',seed_peanut:'🥜',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_potato:'🥔',seed_grape:'🍇',seed_carrot:'🥕',seed_tomato:'🍅',seed_corn:'🌽',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',seed_mushroom:'🍄',seed_strawberry:'🍓', seed_apple:'🍎',seed_peach:'🍑',seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_cherry:'🍒',seed_lemon:'🍋',seed_banana:'🍌',seed_pear:'🍐',seed_kiwi:'🥝',seed_melon:'🍈',seed_coconut:'🥥', seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',seed_cactus:'🌵',seed_hibiscus:'🌺',seed_white_flower:'💮',seed_herb:'🌿',seed_potted_plant:'🪴', seed_cucumber:'🥒',seed_onion:'🧅',seed_garlic:'🧄',seed_eggplant:'🍆',seed_broccoli:'🥦',seed_green_pepper:'🫑',seed_lettuce:'🥗',seed_beans:'🫘',seed_rice:'🌾',seed_tea:'🍃',seed_bamboo:'🎋',seed_chestnut:'🌰',seed_honey:'🍯',seed_candy:'🍬',seed_chocolate:'🍫',seed_spice:'🧂',seed_pumpkin:'🎃',seed_sweet_potato:'🍠' };
-const ITEM_NAMES = { hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片', grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',potato:'土豆',cabbage:'白菜', sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒', potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券',blueprint_boss:'BOSS图纸', seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子',seed_grape:'葡萄种子',seed_carrot:'胡萝卜种子',seed_tomato:'番茄种子',seed_corn:'玉米种子',seed_sunflower:'向日葵种子',seed_chrysanthemum:'菊花种子',seed_mushroom:'蘑菇种子',seed_strawberry:'草莓种子', seed_apple:'苹果种子',seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',seed_pear:'梨种子',seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子', seed_tulip:'郁金香种子',seed_clover:'三叶草种子',seed_rose:'玫瑰种子',seed_lily:'百合种子',seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',seed_hibiscus:'芙蓉种子',seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子', seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',seed_rice:'水稻种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',seed_chestnut:'栗子种子',seed_honey:'蜂蜜种子',seed_candy:'糖果种子',seed_chocolate:'巧克力种子',seed_spice:'香料种子',seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子' };
+const PVE_MAPS = [
+  {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','田鼠'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9',unlockDesc:''},
+  {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['蝙蝠','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3},unlockDesc:'击败任意3个精英怪解锁'},
+  {id:'boss_lair',name:'虫母巢穴',emoji:'👹',minLevel:1,maxLevel:35,monsterIds:[],eliteIds:[],isBoss:true,bg:'#fdf0e0',unlockDesc:''}
+];
+const ITEM_EMOJI = {
+  hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮',
+  grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬',
+  sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️',
+  potion_atk:'🧪',potion_def:'💊',wine:'🍷',scroll_basic:'📜',protect_charm:'🛡️',seed_ticket:'🎫',blueprint_boss:'📜',
+  seed_cabbage:'🥬',seed_peanut:'🥜',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_potato:'🥔',seed_grape:'🍇',seed_carrot:'🥕',seed_tomato:'🍅',seed_corn:'🌽',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',seed_mushroom:'🍄',seed_strawberry:'🍓',
+  seed_apple:'🍎',seed_peach:'🍑',seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_cherry:'🍒',seed_lemon:'🍋',seed_banana:'🍌',seed_pear:'🍐',seed_kiwi:'🥝',seed_melon:'🍈',seed_coconut:'🥥',
+  seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',seed_cactus:'🌵',seed_hibiscus:'🌺',seed_white_flower:'💮',seed_herb:'🌿',seed_potted_plant:'🪴',
+  seed_cucumber:'🥒',seed_onion:'🧅',seed_garlic:'🧄',seed_eggplant:'🍆',seed_broccoli:'🥦',seed_green_pepper:'🫑',seed_lettuce:'🥗',seed_beans:'🫘',seed_rice:'🌾',seed_tea:'🍃',seed_bamboo:'🎋',seed_chestnut:'🌰',seed_honey:'🍯',seed_candy:'🍬',seed_chocolate:'🍫',seed_spice:'🧂',seed_pumpkin:'🎃',seed_sweet_potato:'🍠'
+};
+const ITEM_NAMES = {
+  hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片',
+  grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',potato:'土豆',cabbage:'白菜',
+  sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
+  potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券',blueprint_boss:'BOSS图纸',
+  seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子',seed_grape:'葡萄种子',seed_carrot:'胡萝卜种子',seed_tomato:'番茄种子',seed_corn:'玉米种子',seed_sunflower:'向日葵种子',seed_chrysanthemum:'菊花种子',seed_mushroom:'蘑菇种子',seed_strawberry:'草莓种子',
+  seed_apple:'苹果种子',seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',seed_pear:'梨种子',seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子',
+  seed_tulip:'郁金香种子',seed_clover:'三叶草种子',seed_rose:'玫瑰种子',seed_lily:'百合种子',seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',seed_hibiscus:'芙蓉种子',seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子',
+  seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',seed_rice:'水稻种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',seed_chestnut:'栗子种子',seed_honey:'蜂蜜种子',seed_candy:'糖果种子',seed_chocolate:'巧克力种子',seed_spice:'香料种子',seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子'
+};
 const SET_BONUSES = { '暗影':{2:{atk:10},3:{steal_extra:1}}, '龙骑士':{2:{atk:20},3:{boss_dmg:0.15}} };
 const WATER_COOLDOWN_MS = 30*60*1000;
 const BP_PER_PAGE = 8;
@@ -212,12 +352,39 @@ const PLOT_MAX_COUNT = 12;
 const MAX_PET_SLOTS = 6;
 const PET_MAX_LEVEL = 30;
 const BASE_MATERIALS = ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-const PET_SLOT_UNLOCK = [ {slot:2, desc:'第1只宠物达到Lv.10', gold:5000, cond:{petLevel:10}}, {slot:3, desc:'解锁8块农田', gold:20000, cond:{plots:8}}, {slot:4, desc:'击败任意精英怪×5', gold:50000, cond:{eliteKills:5}, materials:{scale:10}}, {slot:5, desc:'宠物探险完成50次', gold:100000, cond:{explores:50}, materials:{dragon_soul:5}}, {slot:6, desc:'击败BOSS虫母女王×3', gold:200000, cond:{bossKills:3}, materials:{stardust:10}} ];
-const BATTLE_POTIONS = [ {key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}}, {key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}} ];
+const PET_SLOT_UNLOCK = [
+  {slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},
+  {slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},
+  {slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},
+  {slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},
+  {slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}
+];
+const BATTLE_POTIONS = [
+  {key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},
+  {key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}}
+];
 const BOSS_RESPAWN_HOURS = 6;
 const BOSS_DB_ID = 1;
-const SEASON_CONFIG = { id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10, startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'), freeRewards:{ 1:{items:{seed_ticket:5},gold:500}, 2:{items:{hair:20},gold:800}, 3:{items:{potion_atk:2},gold:1000}, 4:{items:{protect_charm:1},gold:1500}, 5:{items:{seed_strawberry:10},gold:2000}, 6:{items:{ore:15},gold:2500}, 7:{items:{scroll_basic:2},gold:3000}, 8:{items:{relic:8},gold:4000}, 9:{items:{dragon_soul:3},gold:5000}, 10:{items:{blueprint_boss:1},gold:10000} } };
-const SEASON_QUESTS_CONFIG = [ {id:'q_plant_20',desc:'种植作物20次',type:'plant',target:20,rewardXp:50}, {id:'q_harvest_15',desc:'收获作物15次',type:'harvest',target:15,rewardXp:50}, {id:'q_explore_10',desc:'宠物探险10次',type:'explore',target:10,rewardXp:60}, {id:'q_defeat_10',desc:'击败怪物10只',type:'defeat',target:10,rewardXp:80}, {id:'q_defeat_boss_3',desc:'参与击败BOSS3次',type:'boss_defeat',target:3,rewardXp:150}, {id:'q_synth_5',desc:'合成物品5次',type:'synthesis',target:5,rewardXp:40}, {id:'q_water_10',desc:'浇水10次',type:'water',target:10,rewardXp:30}, {id:'q_sell_50',desc:'出售作物累计获得50金币',type:'sell_gold',target:50,rewardXp:40} ];
+const SEASON_CONFIG = {
+  id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10,
+  startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'),
+  freeRewards:{
+    1:{items:{seed_ticket:5},gold:500},2:{items:{hair:20},gold:800},3:{items:{potion_atk:2},gold:1000},
+    4:{items:{protect_charm:1},gold:1500},5:{items:{seed_strawberry:10},gold:2000},6:{items:{ore:15},gold:2500},
+    7:{items:{scroll_basic:2},gold:3000},8:{items:{relic:8},gold:4000},9:{items:{dragon_soul:3},gold:5000},
+    10:{items:{blueprint_boss:1},gold:10000}
+  }
+};
+const SEASON_QUESTS_CONFIG = [
+  {id:'q_plant_20',desc:'种植作物20次',type:'plant',target:20,rewardXp:50},
+  {id:'q_harvest_15',desc:'收获作物15次',type:'harvest',target:15,rewardXp:50},
+  {id:'q_explore_10',desc:'宠物探险10次',type:'explore',target:10,rewardXp:60},
+  {id:'q_defeat_10',desc:'击败怪物10只',type:'defeat',target:10,rewardXp:80},
+  {id:'q_defeat_boss_3',desc:'参与击败BOSS3次',type:'boss_defeat',target:3,rewardXp:150},
+  {id:'q_synth_5',desc:'合成物品5次',type:'synthesis',target:5,rewardXp:40},
+  {id:'q_water_10',desc:'浇水10次',type:'water',target:10,rewardXp:30},
+  {id:'q_sell_50',desc:'出售作物累计获得50金币',type:'sell_gold',target:50,rewardXp:40}
+];
 
 // ======================== Vue 应用 ========================
 createApp({
@@ -299,6 +466,7 @@ createApp({
     const seasonQuests = ref([]);
     const currentSeasonId = ref('s1_life_spring');
 
+    // 辅助函数
     let toastTimer;
     function showToast(msg) { toastMsg.value = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => toastMsg.value = '', 2000); }
 
@@ -340,7 +508,7 @@ createApp({
     const bpFilteredItems = computed(() => {
       const all = Object.entries(items).map(([k, v]) => ({ key: k, qty: v }));
       if (bpTab.value === 'all') return all;
-      if (bpTab.value === 'material') return all.filter(({ key }) => BASE_MATERIALS.includes(key));
+      if (bpTab.value === 'material') return all.filter(({ key }) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','stardust','dragon_soul'].includes(key));
       if (bpTab.value === 'seed') return all.filter(({ key }) => key.startsWith('seed_'));
       if (bpTab.value === 'crop') return all.filter(({ key }) => CROPS[key]);
       if (bpTab.value === 'tool') return all.filter(({ key }) => ['scroll_basic','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(key) || key.startsWith('book_') || key.startsWith('potion_') || key === 'blueprint_boss');
@@ -357,13 +525,14 @@ createApp({
     const bpPlaceholders = computed(() => Math.max(0, BP_PER_PAGE - bpPageItems.value.length));
     const seasonXpPercent = computed(() => Math.min(100, (seasonState.xp / SEASON_CONFIG.xpPerLevel) * 100));
 
+    // 安全 RPC 调用
     async function safeRpc(funcName, params = {}) {
       const { data, error } = await db.rpc(funcName, params);
       if (error) throw new Error(error.message);
       return data;
     }
 
-    // ========== 数据加载 ==========
+    // ========== 数据加载（只读） ==========
     async function loadAllData(user) {
       profile.id = user.id;
       let { data: prof, error: profErr } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
@@ -504,7 +673,7 @@ createApp({
       showToast(`任务完成！+${quest.rewardXp}XP`);
     }
 
-    // ========== 业务函数（安全 RPC） ==========
+    // ========== 业务函数（安全 RPC 调用） ==========
     async function doPlant(crop) {
       try {
         await safeRpc('plant_crop', { plot_index: selectedPlotIndex.value, crop_key: crop.key });
@@ -668,6 +837,10 @@ createApp({
       const { data } = await db.from('event_logs').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(MAX_LOG_COUNT);
       eventLogs.value = data || [];
     }
+    async function openEventLog() {
+      showEventLogModal.value = true;
+      await loadEventLogs();
+    }
     async function buyMarketSeed(s) {
       if (profile.gold < s.price) { showToast('金币不足'); return; }
       try {
@@ -759,7 +932,7 @@ createApp({
     async function bossKill() {
       await db.from('boss_state').update({ is_alive: false, next_respawn: new Date(Date.now() + BOSS_RESPAWN_HOURS * 3600000).toISOString(), current_hp: 0 }).eq('id', BOSS_DB_ID);
     }
-    // 战斗流程
+    // 战斗流程（辅助函数）
     function processBuffs(b) {
       const process = (arr, ownerKey) => {
         for (let i = arr.length - 1; i >= 0; i--) {
@@ -957,11 +1130,7 @@ createApp({
         showPveMaps();
       });
     }
-    async function openEventLog() {
-      showEventLogModal.value = true;
-      await loadEventLogs();
-    }
-    // 辅助函数
+    // 纯辅助函数
     function getPetEmoji(t) { return PET_TYPES[t]?.emoji || '🐾'; }
     function isStationed(p) { return stationedPet.value?.id === p.id; }
     function getEquippedPetName(eq) { if (!eq.equipped_to) return '未装备'; const pet = pets.value.find(p => p.id === eq.equipped_to); return pet ? pet.pet_name : '?'; }
@@ -1000,7 +1169,7 @@ createApp({
     function openExplore(pet) { exploringPet.value = pet; showExploreModal.value = true; }
     function openEquipSelect(eq) { equippingItem.value = eq; showEquipSelectModal.value = true; }
     function onBackpackItemClick(item) { if (item.key === 'blueprint_boss') showToast('BOSS图纸，用于合成传说装备'); }
-    // 认证
+    // 认证函数
     async function handleLogin() { errorMsg.value = ''; if (!loginEmail.value || !loginPassword.value) { errorMsg.value = '请输入邮箱和密码'; return; } loading.value = true; try { const { data, error } = await db.auth.signInWithPassword({ email: loginEmail.value, password: loginPassword.value }); if (error) throw error; await loadAllData(data.user); isLoggedIn.value = true; showToast('登录成功！🌱'); } catch (e) { errorMsg.value = e.message || '登录失败'; } finally { loading.value = false; } }
     async function handleRegister() { errorMsg.value = ''; if (!regUsername.value || !regEmail.value || !regPassword.value) { errorMsg.value = '请填写所有必填字段'; return; } if (regPassword.value.length < 6) { errorMsg.value = '密码至少6位'; return; } loading.value = true; try { const { data, error } = await db.auth.signUp({ email: regEmail.value, password: regPassword.value, options: { data: { username: regUsername.value, gender: regGender.value } } }); if (error) throw error; if (data.user) { showToast('注册成功！🎉'); await new Promise(r => setTimeout(r, 1500)); await loadAllData(data.user); isLoggedIn.value = true; } } catch (e) { errorMsg.value = e.message || '注册失败'; } finally { loading.value = false; } }
     async function handleLogout() { await db.auth.signOut(); isLoggedIn.value = false; }
