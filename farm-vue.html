@@ -127,7 +127,7 @@
     <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
   </div>
 
-  <!-- 所有弹窗（完整保留） -->
+  <!-- ========== 所有弹窗 ========== -->
   <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
     <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
     <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
@@ -183,7 +183,7 @@ const supabaseUrl = 'https://siwacsnuminepetpxljh.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
 const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-// ======================== 游戏常量（完整） ========================
+// ======================== 游戏常量 ========================
 const CROPS = {
   strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
   grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
@@ -241,6 +241,7 @@ const CROPS = {
   pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
   sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'}
 };
+const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
 const PET_TYPES = {
   cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
   dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
@@ -350,14 +351,6 @@ const MAX_ENERGY = 10;
 const PLOT_MAX_COUNT = 12;
 const MAX_PET_SLOTS = 6;
 const PET_MAX_LEVEL = 30;
-const BASE_MATERIALS = ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-const PET_SLOT_UNLOCK = [
-  {slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},
-  {slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},
-  {slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},
-  {slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},
-  {slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}
-];
 const BATTLE_POTIONS = [
   {key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},
   {key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}}
@@ -623,9 +616,7 @@ createApp({
       } else if (shopData && shopData.length > 0) {
         marketSeedShop.value = shopData;
       } else {
-        // 如果没有当日数据，调用后端 RPC 生成（需要先创建该 RPC，但以防万一，我们可以尝试直接生成）
-        // 注意：这里需要后端 RPC，如果未创建，会出错。为了简化，我们可以让后端自动生成（通过之前提供的 SQL）。
-        // 如果用户已执行基础 SQL，则此 RPC 应已存在；若不存在，会报错，但不影响其他功能。
+        // 如果没有当日数据，调用后端 RPC 生成
         try {
           const { data: generated } = await db.rpc('refresh_market_seed_shop');
           marketSeedShop.value = generated || [];
@@ -823,6 +814,11 @@ createApp({
         mailReceiver.value = ''; mailTitle.value = ''; mailContent.value = ''; mailItemsText.value = '';
         await loadItemsData();
       } catch (e) { showToast(e.message); }
+    }
+    async function loadMails() {
+      if (!profile.id) return;
+      const { data } = await db.from('mail').select('*').eq('receiver_id', profile.id).order('created_at', { ascending: false }).limit(50);
+      mails.value = data || [];
     }
     async function claimMail(m) {
       try {
@@ -1211,7 +1207,5 @@ createApp({
   }
 }).mount('#app');
 </script>
-</body>
-</html>
 </body>
 </html>
