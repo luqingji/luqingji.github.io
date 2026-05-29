@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>麦田守护者 v8.0 · 完整修复版</title>
+  <title>麦田守护者 v8.0 · 全功能修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* 完整样式（已包含所有必要样式） */
+    /* ========== 完整样式（与原始代码一致） ========== */
     :root {
       --bg: #f5f0eb;
       --card: #ffffff;
@@ -95,7 +95,7 @@
   <!-- 认证界面 -->
   <div v-if="!isLoggedIn" class="auth-form">
     <h1>🌱 麦田守护者 v8.0</h1>
-    <p style="color:#888;margin-bottom:16px;">安全赛季 · 全服BOSS</p>
+    <p style="color:#888;margin-bottom:16px;">全功能修复版 · 无需额外RPC</p>
     <div class="auth-tabs"><button class="auth-tab" :class="{active:authMode==='login'}" @click="authMode='login'">登录</button><button class="auth-tab" :class="{active:authMode==='register'}" @click="authMode='register'">注册</button></div>
     <div v-if="authMode==='login'"><div class="form-group"><label>邮箱</label><input type="email" v-model="loginEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="loginPassword"></div><button class="btn-primary" @click="handleLogin" :disabled="loading">登录农场</button></div>
     <div v-else><div class="form-group"><label>昵称</label><input type="text" v-model="regUsername" maxlength="12"></div><div class="form-group"><label>邮箱</label><input type="email" v-model="regEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="regPassword"></div><div class="form-group"><label>性别</label><select v-model="regGender"><option value="none">不透露</option><option value="male">男士</option><option value="female">女士</option></select></div><button class="btn-primary" @click="handleRegister" :disabled="loading">注册并进入农场</button></div>
@@ -127,12 +127,13 @@
     <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
   </div>
 
-  <!-- 所有弹窗（完整保留） -->
+  <!-- 弹窗模板（剩余部分将在消息2和3中提供） -->
   <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
     <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
     <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
   <button class="btn-close" @click="showPlantModal=false">×</button></div></div>
   <div v-if="showWaterModal" class="modal-overlay" @click.self="showWaterModal=false"><div class="modal"><h3>💧浇水</h3><p>{{waterPlotName}}正在生长</p><button class="btn-water" @click="doWater">浇水</button><button class="btn-close" @click="showWaterModal=false">×</button></div></div>
+  <!-- 更多弹窗将在消息2和3中继续 -->
   <div v-if="showPetsModal" class="modal-overlay" @click.self="showPetsModal=false"><div class="modal"><h3>🐾宠物({{pets.length}}/{{profile.pet_slots}})</h3>
     <div v-if="pets.length===0"><p>还没有宠物</p><button class="btn-small btn-adopt-pet" @click="showAdoptModal=true">🐾领养</button></div>
     <div v-else><div v-for="pet in pets" :key="pet.id" class="pet-card"><div class="pet-header"><span style="font-size:1.8rem;">{{getPetEmoji(pet.pet_type)}}</span><div><strong>#{{pet.id}} {{pet.pet_name}}</strong> Lv.{{pet.level}}</div></div><div class="pet-stats">❤️{{getPetStats(pet).hp}} ⚔️{{getPetStats(pet).atk}} 🛡️{{getPetStats(pet).def}} ⚡{{getPetStats(pet).spd}} 🍀{{getPetStats(pet).luk}} 💪{{getPetStats(pet).sta}}</div><div class="pet-actions"><button v-if="!pet.exploring_until" class="btn-small btn-explore" @click="openExplore(pet)">🗺️探险</button><button v-else-if="new Date(pet.exploring_until)<=new Date()" class="btn-small btn-view" @click="completeExplore(pet)">查看收获</button><button v-else class="btn-small" disabled>探险中</button><button v-if="isStationed(pet)" class="btn-small btn-unstation" @click="toggleStation(pet)">取消驻扎</button><button v-else class="btn-small btn-station" @click="toggleStation(pet)">🏠驻扎</button><button class="btn-small btn-detail" @click="openPetDetail(pet)">📊属性</button></div></div><button v-if="pets.length<profile.pet_slots" class="btn-small btn-adopt-pet" @click="showAdoptModal=true">🐾领养新宠物</button></div><button class="btn-close" @click="showPetsModal=false">×</button></div></div>
@@ -385,7 +386,6 @@ const SEASON_QUESTS_CONFIG = [
   {id:'q_water_10',desc:'浇水10次',type:'water',target:10,rewardXp:30},
   {id:'q_sell_50',desc:'出售作物累计获得50金币',type:'sell_gold',target:50,rewardXp:40}
 ];
-
 // ======================== Vue 应用 ========================
 createApp({
   setup() {
