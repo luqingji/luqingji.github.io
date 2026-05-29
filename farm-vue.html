@@ -7,7 +7,7 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ========== 完整样式（与原代码完全相同） ========== */
+    /* ========== 完整样式 ========== */
     :root {
       --bg: #f5f0eb;
       --card: #ffffff;
@@ -241,6 +241,7 @@ const CROPS = {
   pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
   sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'}
 };
+
 const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
 const PET_TYPES = {
   cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
@@ -386,7 +387,7 @@ const SEASON_QUESTS_CONFIG = [
   {id:'q_sell_50',desc:'出售作物累计获得50金币',type:'sell_gold',target:50,rewardXp:40}
 ];
 
-// ======================== Vue应用 ========================
+// ======================== Vue 应用 ========================
 createApp({
   setup() {
     // 响应式数据
@@ -525,14 +526,14 @@ createApp({
     const bpPlaceholders = computed(() => Math.max(0, BP_PER_PAGE - bpPageItems.value.length));
     const seasonXpPercent = computed(() => Math.min(100, (seasonState.xp / SEASON_CONFIG.xpPerLevel) * 100));
 
-    // 安全RPC调用
+    // 安全 RPC 调用
     async function safeRpc(funcName, params = {}) {
       const { data, error } = await db.rpc(funcName, params);
       if (error) throw new Error(error.message);
       return data;
     }
 
-    // 数据加载函数
+    // ========== 数据加载（只读） ==========
     async function loadAllData(user) {
       profile.id = user.id;
       let { data: prof, error: profErr } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
@@ -609,30 +610,20 @@ createApp({
       } else friendProfiles.value = [];
     }
     async function loadMarketDynamic() {
+      // 加载挂单
       const { data: listings } = await db.from('market_listings').select('*').order('listed_at', { ascending: false }).limit(50);
       marketListings.value = listings || [];
+      // 加载市场动态（用于价格波动显示）
       const today = new Date().toDateString();
       const { data: dynamicsData } = await db.from('market_dynamics').select('*').eq('date', today);
       if (dynamicsData && dynamicsData.length) dynamicsData.forEach(d => { marketDynamics.seeds[d.seed_type] = d; });
-      const { data: existing } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
-      if (!existing || existing.length === 0) {
-        await db.from('market_seed_shop').delete().neq('stock_date', today);
-        const possible = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始' || CROPS[k].unlock === '探险');
-        const shuffled = [...possible].sort(() => Math.random() - 0.5).slice(0, 5);
-        const newSeeds = [];
-        for (const cropKey of shuffled) {
-          const seedType = 'seed_' + cropKey;
-          const baseCost = CROPS[cropKey].seed;
-          const totalSold = marketDynamics.seeds[seedType]?.total_sold_today || 0;
-          const dynamicPrice = Math.floor(baseCost * Math.max(0.6, Math.min(1.5, 1 - totalSold / 200)));
-          await db.from('market_seed_shop').insert({ seed_type: seedType, price: dynamicPrice, base_price: baseCost, stock_date: today });
-          newSeeds.push({ seed_type: seedType, price: dynamicPrice, base_price: baseCost });
-        }
-        marketSeedShop.value = newSeeds;
+      // 调用安全 RPC 获取或刷新种子商店（不再直接操作表）
+      const { data: shopData, error: shopError } = await db.rpc('refresh_market_seed_shop');
+      if (shopError) {
+        console.error('刷新种子商店失败', shopError);
+        marketSeedShop.value = [];
       } else {
-        const unique = new Map();
-        for (const seed of existing) { if (!unique.has(seed.seed_type)) unique.set(seed.seed_type, seed); }
-        marketSeedShop.value = [...unique.values()].slice(0, 5);
+        marketSeedShop.value = shopData || [];
       }
     }
     async function initSeasonData() {
@@ -678,7 +669,7 @@ createApp({
       showToast(`任务完成！+${quest.rewardXp}XP`);
     }
 
-    // 业务函数（安全RPC版）
+    // ========== 业务函数（安全 RPC 调用） ==========
     async function doPlant(crop) {
       try {
         await safeRpc('plant_crop', { plot_index: selectedPlotIndex.value, crop_key: crop.key });
@@ -907,7 +898,7 @@ createApp({
       lbTotalPages.value = Math.ceil(ranked.length / 10) || 1;
       lbRanked.value = ranked.slice((lbPage.value - 1) * 10, lbPage.value * 10);
     }
-    // 战斗相关（BOSS RPC简化版）
+    // BOSS 相关
     async function loadBossState() {
       const { data, error } = await db.rpc('boss_check_respawn');
       if (error) return null;
@@ -923,133 +914,256 @@ createApp({
     async function bossKill() {
       await db.from('boss_state').update({ is_alive: false, next_respawn: new Date(Date.now() + BOSS_RESPAWN_HOURS * 3600000).toISOString(), current_hp: 0 }).eq('id', BOSS_DB_ID);
     }
-    // 辅助函数（纯前端）
-    function getPetEmoji(t) { return PET_TYPES[t]?.emoji || '🐾'; }
-    function isStationed(p) { return stationedPet.value?.id === p.id; }
-    function getEquippedPetName(eq) { if (!eq.equipped_to) return '未装备'; const pet = pets.value.find(p => p.id === eq.equipped_to); return pet ? pet.pet_name : '?'; }
-    function formatMats(m) { return Object.entries(m).map(([k,v]) => `${ITEM_EMOJI[k] || k}×${v}`).join(' '); }
-    function canCraft(r) { return Object.entries(r.materials).every(([k,v]) => (items[k]||0) >= v) && profile.gold >= r.cost; }
-    function getCropEmoji(k) { return CROPS[k]?.emoji || '🌱'; }
-    function getCropName(k) { return CROPS[k]?.name || k; }
-    function formatTime(iso) { if(!iso) return ''; const d=new Date(iso), now=new Date(), diff=now-d, mins=Math.floor(diff/60000); if(mins<1) return'刚刚'; if(mins<60) return`${mins}分钟前`; const h=Math.floor(mins/60); if(h<24) return`${h}小时前`; return`${Math.floor(h/24)}天前`; }
-    function formatMailItems(it) { return Object.entries(it).filter(([k,v])=>v>0).map(([k,v])=>`${ITEM_EMOJI[k]||'📦'}×${v}`).join(' '); }
-    function formatEventMsg(log){ try{ const d=log.event_data||{}; switch(log.event_type){ case'plant':return`🌱种下了${CROPS[d.crop]?.name||d.crop}`; case'harvest':return`🌾收获了${CROPS[d.crop]?.name||d.crop}`; case'pve_win':return`🐉击败了${d.monster}+${d.gold}金币`; default:return log.event_type; } } catch(e){ return log.event_type; } }
-    function getPetStats(pet){
-      const equip = equipment.value.filter(e => e.equipped_to === pet.id);
-      let a = pet.atk||0, d = pet.def||0, s = pet.spd||0, l = pet.luk||0, h = pet.hp||0, st = pet.sta||50;
-      equip.forEach(e => { a += e.atk_bonus||0; d += e.def_bonus||0; s += e.spd_bonus||0; l += e.luk_bonus||0;
-        if(e.enchants && Array.isArray(e.enchants)) e.enchants.forEach(en => { if(en.attr==='atk_bonus') a+=en.value||0; else if(en.attr==='def_bonus') d+=en.value||0; else if(en.attr==='luk_bonus') l+=en.value||0; });
-      });
-      const setCounts={}; equip.forEach(e=>{ if(e.set_name) setCounts[e.set_name]=(setCounts[e.set_name]||0)+1; });
-      for(const[sn,ct] of Object.entries(setCounts)){ const b=SET_BONUSES[sn]; if(!b) continue; if(ct>=2&&b[2]){ if(b[2].atk) a+=b[2].atk; if(b[2].def) d+=b[2].def; } if(ct>=3&&b[3]){ if(b[3].atk) a+=b[3].atk; if(b[3].def) d+=b[3].def; } }
-      if(pet.nature){ const n=PET_NATURES.find(n=>n.id===pet.nature); if(n){ if(n.atk_bonus) a=Math.floor(a*(1+n.atk_bonus)); if(n.def_bonus) d=Math.floor(d*(1+n.def_bonus)); if(n.atk_penalty) a=Math.floor(a*(1+n.atk_penalty)); if(n.def_penalty) d=Math.floor(d*(1+n.def_penalty)); } }
-      if(pet.passive_skill && PASSIVE_SKILLS[pet.passive_skill]){ const p=PASSIVE_SKILLS[pet.passive_skill]; if(p.atk_bonus) a=Math.floor(a*(1+p.atk_bonus)); if(p.def_bonus) d=Math.floor(d*(1+p.def_bonus)); }
-      return { atk:a, def:d, spd:s, luk:l, hp:h, sta:st };
+    // 战斗流程（辅助函数）
+    function processBuffs(b) {
+      const process = (arr, ownerKey) => {
+        for (let i = arr.length - 1; i >= 0; i--) {
+          const bf = arr[i];
+          bf.duration--;
+          if (bf.duration <= 0) {
+            if (bf.type === 'def_down' && ownerKey === 'opp') {
+              b.opponentPet.def = Math.ceil(b.opponentPet.def / (1 - 0.3));
+            }
+            arr.splice(i, 1);
+          }
+        }
+      };
+      process(b.myBuffs, 'my');
+      process(b.oppBuffs, 'opp');
     }
-    function getSetCount(setName){ return equipment.value.filter(e=>e.set_name===setName && e.equipped_to!==null).length; }
-    function getSetBonusText(setName){ const bonus=SET_BONUSES[setName]; if(!bonus) return ''; const texts=[]; if(bonus[2]){ const b=bonus[2]; if(b.atk) texts.push(`攻+${b.atk}`); if(b.def) texts.push(`防+${b.def}`); } return texts.join('，'); }
-    function openPetDetail(pet){ petDetailData.value=pet; showPetDetailModal.value=true; }
-    function getPlotClass(p){ return {empty:'empty',ready:'ready'}[p._status] || 'planted'; }
-    function getPlotEmoji(p){ return p._emoji; }
-    function getPlotName(p){ return p._name; }
-    function getPlotStatus(p){ if(p._status==='empty') return'空地'; if(p._status==='ready') return'✨可收获'; return (p._waterable?'💧可浇水':'🔥加速中') + ' 剩'+p._remainingMin+'分'; }
-    function onPlotClick(p){
-      if(p._status==='empty'){ if(availableCrops.value.length===0){ showToast('没有种子啦！去🏪商店购买或🗺️探险获取吧'); return; } selectedPlotIndex.value=p.plot_index; showPlantModal.value=true; }
-      else if(p._status==='ready'){ doHarvest(p); }
-      else { selectedPlotIndex.value=p.plot_index; showWaterModal.value=true; }
-    }
-    function showPveMaps(){ pveMonsters.value=[]; showPveModal.value=true; }
-    async function openPveMap(map){
-      if(map.isBoss){
-        const bossState=await loadBossState(); if(!bossState) return;
-        if(bossState.is_alive===false || bossState.current_hp<=0){ const respawnTime=bossState.next_respawn; if(respawnTime) showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`); else showToast('BOSS已被击杀，等待复活中...'); return; }
-        const currentHp=bossState.current_hp>0?bossState.current_hp:bossState.max_hp;
-        const bossMonster={name:'虫母女王',emoji:'👸',hp:currentHp,maxHp:bossState.max_hp,atk:50,def:30,spd:12,minLevel:1,maxLevel:35,rewards:{gold:1000,items:{scale:3}},skills:['fire_storm','burn_out','summon_bugs'],isBoss:true,maxEnergy:10,dbId:BOSS_DB_ID};
-        pveMonsters.value=[bossMonster];
-      } else {
-        const mp=MONSTERS.filter(m=>map.monsterIds.includes(m.name)); const ep=ELITE_MONSTERS.filter(m=>map.eliteIds.includes(m.name));
-        pveMonsters.value=[...mp].sort(()=>Math.random()-0.5).slice(0,4).map(m=>({...m,skills:[],isElite:false})).concat(ep.map(m=>({...m,skills:[],isElite:true})));
+    async function executePlayerTurn(b, action) {
+      if (action === 'attack') {
+        let atk = b.myPet.atk;
+        if (b.potionBonus?.atk) atk = Math.floor(atk * (1 + b.potionBonus.atk));
+        const dmg = Math.max(1, atk - b.opponentPet.def + Math.floor(Math.random() * 8));
+        if (b.opponentPet.isBoss) {
+          const res = await bossTakeDamage(dmg);
+          if (!res || !res.success) { showToast('BOSS血量同步失败，请重试'); return ''; }
+          b.opponentCurrentHp = res.remaining_hp;
+        } else {
+          b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
+        }
+        b.myEnergy = Math.min(MAX_ENERGY, b.myEnergy + 1);
+        return `你攻击造成${dmg}点伤害 `;
+      } else if (action === 'defend') {
+        b.myBuffs.push({ type: 'defend', duration: 1, label: '🛡️' });
+        b.myEnergy = Math.min(MAX_ENERGY, b.myEnergy + 2);
+        return '你选择防御 ';
       }
-    }
-    function startPveBattle(monster){
-      const pet=pets.value.find(p=>p.id===(selectedBattlePetId.value||pets.value[0]?.id)); if(!pet){ showToast('请先领养宠物'); return; }
-      const stats=getPetStats(pet); let pb={}; if(pendingPotion.value){ pb=pendingPotion.value.effect; showToast(`使用${pendingPotion.value.name}！`); }
-      const monsterHp=monster.hp||monster.maxHp||800;
-      battle.value={myPet:{...pet,hp:stats.hp,atk:stats.atk,def:stats.def,spd:stats.spd,luk:stats.luk,sta:stats.sta},myCurrentHp:stats.hp,myHpPct:100,myEnergy:3,myEnergyPct:30,myBuffs:[],opponentPet:{...monster,hp:monsterHp,atk:monster.atk||10,def:monster.def||2,spd:monster.spd||5,pet_name:monster.name,pet_type:'monster',emoji:monster.emoji||'👾',isBoss:monster.isBoss||false,maxEnergy:monster.maxEnergy||10,skills:monster.skills||[]},opponentName:monster.name,opponentCurrentHp:monsterHp,oppHpPct:100,oppEnergy:monster.isBoss?3:0,oppEnergyPct:monster.isBoss?30:0,oppMaxEnergy:monster.maxEnergy||10,oppBuffs:[],skillCooldowns:{},logHTML:'',monster,turn:1,potionBonus:pb,processing:false};
-      showPveModal.value=false;
-    }
-    function processBuffs(b){ const process=(arr,ownerKey)=>{ for(let i=arr.length-1;i>=0;i--){ const bf=arr[i]; bf.duration--; if(bf.duration<=0){ if(bf.type==='def_down'&&ownerKey==='opp'){ b.opponentPet.def=Math.ceil(b.opponentPet.def/(1-0.3)); } arr.splice(i,1); } } }; process(b.myBuffs,'my'); process(b.oppBuffs,'opp'); }
-    async function doBattleAction(action){
-      const b=battle.value; if(!b||b.processing) return; b.processing=true;
-      try{
-        processBuffs(b); let log=''; const order=b.myPet.spd>=b.opponentPet.spd?'(先手)':'(后手)';
-        if(order==='(先手)'){ log+=await executePlayerTurn(b,action); if(b.opponentCurrentHp>0) log+=executeMonsterTurn(b); }
-        else { if(b.opponentCurrentHp>0) log+=executeMonsterTurn(b); if(b.myCurrentHp>0) log+=await executePlayerTurn(b,action); }
-        b.myEnergy=Math.min(MAX_ENERGY,(b.myEnergy||0)+1); b.myHpPct=Math.max(0,Math.min(100,Math.round(b.myCurrentHp/b.myPet.hp*100)));
-        b.oppHpPct=Math.max(0,Math.min(100,Math.round(b.opponentCurrentHp/(b.opponentPet.hp||1)*100)));
-        b.myEnergyPct=b.myEnergy/MAX_ENERGY*100; b.oppEnergyPct=(b.opponentEnergy||0)/(b.oppMaxEnergy||10)*100;
-        b.logHTML+=`<div>[第${b.turn}回合]${order}${log}</div>`; b.turn++;
-        if(b.myCurrentHp<=0){ b.logHTML+='<div>你输了！</div>'; setTimeout(()=>endBattle(false),1500); }
-        else if(b.opponentCurrentHp<=0){ b.logHTML+='<div>你赢了！</div>'; setTimeout(()=>endBattle(true),1500); }
-      } finally { b.processing=false; }
-    }
-    async function executePlayerTurn(b,action){
-      if(action==='attack'){
-        let atk=b.myPet.atk; if(b.potionBonus?.atk) atk=Math.floor(atk*(1+b.potionBonus.atk));
-        const dmg=Math.max(1,atk-b.opponentPet.def+Math.floor(Math.random()*8));
-        if(b.opponentPet.isBoss){ const res=await bossTakeDamage(dmg); if(!res||!res.success){ showToast('BOSS血量同步失败，请重试'); return''; } b.opponentCurrentHp=res.remaining_hp; }
-        else { b.opponentCurrentHp=Math.max(0,b.opponentCurrentHp-dmg); }
-        b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+1); return`你攻击造成${dmg}点伤害 `;
-      } else if(action==='defend'){ b.myBuffs.push({type:'defend',duration:1,label:'🛡️'}); b.myEnergy=Math.min(MAX_ENERGY,b.myEnergy+2); return'你选择防御 '; }
       return '';
     }
-    function executeMonsterTurn(b){
-      let log=''; let dmg=0; const opp=b.opponentPet; const hasSkills=opp.skills&&opp.skills.length>0;
-      if(hasSkills){
-        b.opponentEnergy=b.opponentEnergy||0; const hpPct=b.opponentCurrentHp/opp.hp; let chosenSkill=null;
-        if(b.opponentEnergy>=8&&hpPct<0.5&&opp.skills.includes('summon_bugs')) chosenSkill='summon_bugs';
-        else if(b.opponentEnergy>=6&&opp.skills.includes('burn_out')) chosenSkill='burn_out';
-        else if(b.opponentEnergy>=4&&opp.skills.includes('fire_storm')) chosenSkill='fire_storm';
-        if(chosenSkill&&opp.skills.includes(chosenSkill)){
-          const skill=BOSS_SKILLS[chosenSkill]; if(skill){
-            b.opponentEnergy-=skill.cost; dmg=Math.max(1,Math.floor(opp.atk*skill.dmgMult)-b.myPet.def+Math.floor(Math.random()*6));
-            if(chosenSkill==='burn_out'){ b.oppBuffs.push({type:'def_down',duration:2,label:'🔻防'}); opp.def=Math.floor(opp.def*(1-skill.selfDefPenalty)); }
-            if(chosenSkill==='summon_bugs'){ const heal=Math.floor(opp.hp*skill.healPct); b.opponentCurrentHp=Math.min(opp.hp,b.opponentCurrentHp+heal); log+=`🐛虫母召唤小虫群！回复${heal}HP，`; }
-            b.myCurrentHp=Math.max(0,b.myCurrentHp-dmg); log+=`${skill.name}！造成${dmg}点伤害 (消耗${skill.cost}能量) `;
-            b.opponentEnergy=Math.min(b.oppMaxEnergy||10,b.opponentEnergy+1); return log;
+    function executeMonsterTurn(b) {
+      let log = '';
+      let dmg = 0;
+      const opp = b.opponentPet;
+      const hasSkills = opp.skills && opp.skills.length > 0;
+      if (hasSkills) {
+        b.opponentEnergy = b.opponentEnergy || 0;
+        const hpPct = b.opponentCurrentHp / opp.hp;
+        let chosenSkill = null;
+        if (b.opponentEnergy >= 8 && hpPct < 0.5 && opp.skills.includes('summon_bugs')) chosenSkill = 'summon_bugs';
+        else if (b.opponentEnergy >= 6 && opp.skills.includes('burn_out')) chosenSkill = 'burn_out';
+        else if (b.opponentEnergy >= 4 && opp.skills.includes('fire_storm')) chosenSkill = 'fire_storm';
+        if (chosenSkill && opp.skills.includes(chosenSkill)) {
+          const skill = BOSS_SKILLS[chosenSkill];
+          if (skill) {
+            b.opponentEnergy -= skill.cost;
+            dmg = Math.max(1, Math.floor(opp.atk * skill.dmgMult) - b.myPet.def + Math.floor(Math.random() * 6));
+            if (chosenSkill === 'burn_out') {
+              b.oppBuffs.push({ type: 'def_down', duration: 2, label: '🔻防' });
+              opp.def = Math.floor(opp.def * (1 - skill.selfDefPenalty));
+            }
+            if (chosenSkill === 'summon_bugs') {
+              const heal = Math.floor(opp.hp * skill.healPct);
+              b.opponentCurrentHp = Math.min(opp.hp, b.opponentCurrentHp + heal);
+              log += `🐛虫母召唤小虫群！回复${heal}HP，`;
+            }
+            b.myCurrentHp = Math.max(0, b.myCurrentHp - dmg);
+            log += `${skill.name}！造成${dmg}点伤害 (消耗${skill.cost}能量) `;
+            b.opponentEnergy = Math.min(b.oppMaxEnergy || 10, b.opponentEnergy + 1);
+            return log;
           }
         }
       }
-      if(hasSkills) b.opponentEnergy=Math.min(b.oppMaxEnergy||10,(b.opponentEnergy||0)+2);
-      const defended=b.myBuffs.some(bf=>bf.type==='defend'); dmg=Math.max(1,opp.atk-b.myPet.def+Math.floor(Math.random()*5));
-      const finalDmg=defended?Math.floor(dmg*0.5):dmg; b.myCurrentHp=Math.max(0,b.myCurrentHp-finalDmg);
-      log+=`${opp.pet_name}攻击造成${finalDmg}点伤害${defended?'(减免)':''}${hasSkills?' (能量+2)':''}`; return log;
+      if (hasSkills) b.opponentEnergy = Math.min(b.oppMaxEnergy || 10, (b.opponentEnergy || 0) + 2);
+      const defended = b.myBuffs.some(bf => bf.type === 'defend');
+      dmg = Math.max(1, opp.atk - b.myPet.def + Math.floor(Math.random() * 5));
+      const finalDmg = defended ? Math.floor(dmg * 0.5) : dmg;
+      b.myCurrentHp = Math.max(0, b.myCurrentHp - finalDmg);
+      log += `${opp.pet_name}攻击造成${finalDmg}点伤害${defended ? '(减免)' : ''}${hasSkills ? ' (能量+2)' : ''}`;
+      return log;
     }
-    async function endBattle(won){
-      const b=battle.value; if(!b) return;
-      if(won&&b.monster){
-        const gr=b.monster.rewards?.gold||20; await safeRpc('add_gold', { amount: gr });
-        profile.gold+=gr;
-        if(!monsterLog[b.monster.name]) monsterLog[b.monster.name]={kills:0}; monsterLog[b.monster.name].kills++;
-        await db.from('profiles').update({monster_log:monsterLog}).eq('id',profile.id);
-        if(b.monster.isBoss){ await bossKill(); await safeRpc('add_item_quantity', { item_type: 'blueprint_boss', qty: 1 }); showToast('🎉全服广播：虫母女王已被击败！📜获得BOSS图纸！'); updateQuestProgress('boss_defeat'); }
-        else { showToast(`胜利！🪙+${gr}`); updateQuestProgress('defeat'); }
+    async function doBattleAction(action) {
+      const b = battle.value;
+      if (!b || b.processing) return;
+      b.processing = true;
+      try {
+        processBuffs(b);
+        let log = '';
+        const order = b.myPet.spd >= b.opponentPet.spd ? '(先手)' : '(后手)';
+        if (order === '(先手)') {
+          log += await executePlayerTurn(b, action);
+          if (b.opponentCurrentHp > 0) log += executeMonsterTurn(b);
+        } else {
+          if (b.opponentCurrentHp > 0) log += executeMonsterTurn(b);
+          if (b.myCurrentHp > 0) log += await executePlayerTurn(b, action);
+        }
+        b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + 1);
+        b.myHpPct = Math.max(0, Math.min(100, Math.round(b.myCurrentHp / b.myPet.hp * 100)));
+        b.oppHpPct = Math.max(0, Math.min(100, Math.round(b.opponentCurrentHp / (b.opponentPet.hp || 1) * 100)));
+        b.myEnergyPct = b.myEnergy / MAX_ENERGY * 100;
+        b.oppEnergyPct = (b.opponentEnergy || 0) / (b.oppMaxEnergy || 10) * 100;
+        b.logHTML += `<div>[第${b.turn}回合]${order}${log}</div>`;
+        b.turn++;
+        if (b.myCurrentHp <= 0) {
+          b.logHTML += '<div>你输了！</div>';
+          setTimeout(() => endBattle(false), 1500);
+        } else if (b.opponentCurrentHp <= 0) {
+          b.logHTML += '<div>你赢了！</div>';
+          setTimeout(() => endBattle(true), 1500);
+        }
+      } finally {
+        b.processing = false;
       }
-      battle.value=null; pendingPotion.value=null;
     }
-    function fleeBattle(){ battle.value=null; pendingPotion.value=null; showToast('已逃跑'); }
-    function showSelectPetForBattle(){ if(pets.value.length===0){ showToast('请先领养宠物'); return; } if(pets.value.length===1){ selectedBattlePetId.value=pets.value[0].id; showPotionModal.value=true; } else { showSelectBattlePetModal.value=true; } }
-    function selectPetForBattle(pet){ selectedBattlePetId.value=pet.id; showSelectBattlePetModal.value=false; showPotionModal.value=true; }
-    function usePotion(pot){ if((items[pot.key]||0)<=0){ showToast('药剂不足'); return; } db.rpc('add_item_quantity',{p_item_type:pot.key,p_qty:-1}).then(()=>{ items[pot.key]--; pendingPotion.value=pot; showPotionModal.value=false; showPveMaps(); }); }
-    async function openEventLog(){ showEventLogModal.value=true; await new Promise(r=>setTimeout(r,200)); const{data}=await db.from('event_logs').select('*').eq('user_id',profile.id).order('created_at',{ascending:false}).limit(MAX_LOG_COUNT); eventLogs.value=data||[]; }
-    function onBackpackItemClick(item){ if(item.key==='blueprint_boss') showToast('BOSS图纸，用于合成传说装备'); }
-    async function handleLogin(){ errorMsg.value=''; if(!loginEmail.value||!loginPassword.value){ errorMsg.value='请输入邮箱和密码'; return; } loading.value=true; try{ const{data,error}=await db.auth.signInWithPassword({email:loginEmail.value,password:loginPassword.value}); if(error) throw error; await loadAllData(data.user); isLoggedIn.value=true; showToast('登录成功！🌱'); } catch(e){ errorMsg.value=e.message||'登录失败'; } finally{ loading.value=false; } }
-    async function handleRegister(){ errorMsg.value=''; if(!regUsername.value||!regEmail.value||!regPassword.value){ errorMsg.value='请填写所有必填字段'; return; } if(regPassword.value.length<6){ errorMsg.value='密码至少6位'; return; } loading.value=true; try{ const{data,error}=await db.auth.signUp({email:regEmail.value,password:regPassword.value,options:{data:{username:regUsername.value,gender:regGender.value}}}); if(error) throw error; if(data.user){ showToast('注册成功！🎉'); await new Promise(r=>setTimeout(r,1500)); await loadAllData(data.user); isLoggedIn.value=true; } } catch(e){ errorMsg.value=e.message||'注册失败'; } finally{ loading.value=false; } }
-    async function handleLogout(){ await db.auth.signOut(); isLoggedIn.value=false; }
-    async function checkSession(){ const{data}=await db.auth.getSession(); if(data.session){ await loadAllData(data.session.user); isLoggedIn.value=true; } }
+    async function endBattle(won) {
+      const b = battle.value;
+      if (!b) return;
+      if (won && b.monster) {
+        const gr = b.monster.rewards?.gold || 20;
+        await safeRpc('add_gold', { amount: gr });
+        profile.gold += gr;
+        if (!monsterLog[b.monster.name]) monsterLog[b.monster.name] = { kills: 0 };
+        monsterLog[b.monster.name].kills++;
+        await db.from('profiles').update({ monster_log: monsterLog }).eq('id', profile.id);
+        if (b.monster.isBoss) {
+          await bossKill();
+          await safeRpc('add_item_quantity', { item_type: 'blueprint_boss', qty: 1 });
+          showToast('🎉全服广播：虫母女王已被击败！📜获得BOSS图纸！');
+          updateQuestProgress('boss_defeat');
+        } else {
+          showToast(`胜利！🪙+${gr}`);
+          updateQuestProgress('defeat');
+        }
+      }
+      battle.value = null;
+      pendingPotion.value = null;
+    }
+    function fleeBattle() { battle.value = null; pendingPotion.value = null; showToast('已逃跑'); }
+    function showPveMaps() { pveMonsters.value = []; showPveModal.value = true; }
+    async function openPveMap(map) {
+      if (map.isBoss) {
+        const bossState = await loadBossState();
+        if (!bossState) return;
+        if (bossState.is_alive === false || bossState.current_hp <= 0) {
+          const respawnTime = bossState.next_respawn;
+          if (respawnTime) showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);
+          else showToast('BOSS已被击杀，等待复活中...');
+          return;
+        }
+        const currentHp = bossState.current_hp > 0 ? bossState.current_hp : bossState.max_hp;
+        const bossMonster = {
+          name: '虫母女王', emoji: '👸', hp: currentHp, maxHp: bossState.max_hp,
+          atk: 50, def: 30, spd: 12, minLevel: 1, maxLevel: 35,
+          rewards: { gold: 1000, items: { scale: 3 } },
+          skills: ['fire_storm', 'burn_out', 'summon_bugs'], isBoss: true, maxEnergy: 10, dbId: BOSS_DB_ID
+        };
+        pveMonsters.value = [bossMonster];
+      } else {
+        const mp = MONSTERS.filter(m => map.monsterIds.includes(m.name));
+        const ep = ELITE_MONSTERS.filter(m => map.eliteIds.includes(m.name));
+        pveMonsters.value = [...mp].sort(() => Math.random() - 0.5).slice(0, 4).map(m => ({ ...m, skills: [], isElite: false }))
+          .concat(ep.map(m => ({ ...m, skills: [], isElite: true })));
+      }
+    }
+    function startPveBattle(monster) {
+      const pet = pets.value.find(p => p.id === (selectedBattlePetId.value || pets.value[0]?.id));
+      if (!pet) { showToast('请先领养宠物'); return; }
+      const stats = getPetStats(pet);
+      let pb = {};
+      if (pendingPotion.value) { pb = pendingPotion.value.effect; showToast(`使用${pendingPotion.value.name}！`); }
+      const monsterHp = monster.hp || monster.maxHp || 800;
+      battle.value = {
+        myPet: { ...pet, hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd, luk: stats.luk, sta: stats.sta },
+        myCurrentHp: stats.hp, myHpPct: 100, myEnergy: 3, myEnergyPct: 30, myBuffs: [],
+        opponentPet: {
+          ...monster, hp: monsterHp, atk: monster.atk || 10, def: monster.def || 2, spd: monster.spd || 5,
+          pet_name: monster.name, pet_type: 'monster', emoji: monster.emoji || '👾',
+          isBoss: monster.isBoss || false, maxEnergy: monster.maxEnergy || 10, skills: monster.skills || []
+        },
+        opponentName: monster.name, opponentCurrentHp: monsterHp, oppHpPct: 100,
+        oppEnergy: monster.isBoss ? 3 : 0, oppEnergyPct: monster.isBoss ? 30 : 0, oppMaxEnergy: monster.maxEnergy || 10,
+        oppBuffs: [], skillCooldowns: {}, logHTML: '', monster, turn: 1, potionBonus: pb, processing: false
+      };
+      showPveModal.value = false;
+    }
+    function showSelectPetForBattle() {
+      if (pets.value.length === 0) { showToast('请先领养宠物'); return; }
+      if (pets.value.length === 1) { selectedBattlePetId.value = pets.value[0].id; showPotionModal.value = true; }
+      else { showSelectBattlePetModal.value = true; }
+    }
+    function selectPetForBattle(pet) { selectedBattlePetId.value = pet.id; showSelectBattlePetModal.value = false; showPotionModal.value = true; }
+    function usePotion(pot) {
+      if ((items[pot.key] || 0) <= 0) { showToast('药剂不足'); return; }
+      db.rpc('add_item_quantity', { p_item_type: pot.key, p_qty: -1 }).then(() => {
+        items[pot.key]--;
+        pendingPotion.value = pot;
+        showPotionModal.value = false;
+        showPveMaps();
+      });
+    }
+    async function openEventLog() {
+      showEventLogModal.value = true;
+      await new Promise(r => setTimeout(r, 200));
+      const { data } = await db.from('event_logs').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(MAX_LOG_COUNT);
+      eventLogs.value = data || [];
+    }
+    // 纯辅助函数
+    function getPetEmoji(t) { return PET_TYPES[t]?.emoji || '🐾'; }
+    function isStationed(p) { return stationedPet.value?.id === p.id; }
+    function getEquippedPetName(eq) { if (!eq.equipped_to) return '未装备'; const pet = pets.value.find(p => p.id === eq.equipped_to); return pet ? pet.pet_name : '?'; }
+    function formatMats(m) { return Object.entries(m).map(([k, v]) => `${ITEM_EMOJI[k] || k}×${v}`).join(' '); }
+    function canCraft(r) { return Object.entries(r.materials).every(([k, v]) => (items[k] || 0) >= v) && profile.gold >= r.cost; }
+    function getCropEmoji(k) { return CROPS[k]?.emoji || '🌱'; }
+    function getCropName(k) { return CROPS[k]?.name || k; }
+    function formatTime(iso) { if (!iso) return ''; const d = new Date(iso), now = new Date(), diff = now - d, mins = Math.floor(diff / 60000); if (mins < 1) return '刚刚'; if (mins < 60) return `${mins}分钟前`; const h = Math.floor(mins / 60); if (h < 24) return `${h}小时前`; return `${Math.floor(h / 24)}天前`; }
+    function formatMailItems(it) { return Object.entries(it).filter(([k, v]) => v > 0).map(([k, v]) => `${ITEM_EMOJI[k] || '📦'}×${v}`).join(' '); }
+    function formatEventMsg(log) { try { const d = log.event_data || {}; switch (log.event_type) { case 'plant': return `🌱种下了${CROPS[d.crop]?.name || d.crop}`; case 'harvest': return `🌾收获了${CROPS[d.crop]?.name || d.crop}`; case 'pve_win': return `🐉击败了${d.monster}+${d.gold}金币`; default: return log.event_type; } } catch (e) { return log.event_type; } }
+    function getPetStats(pet) {
+      const equip = equipment.value.filter(e => e.equipped_to === pet.id);
+      let a = pet.atk || 0, d = pet.def || 0, s = pet.spd || 0, l = pet.luk || 0, h = pet.hp || 0, st = pet.sta || 50;
+      equip.forEach(e => {
+        a += e.atk_bonus || 0; d += e.def_bonus || 0; s += e.spd_bonus || 0; l += e.luk_bonus || 0;
+        if (e.enchants && Array.isArray(e.enchants)) e.enchants.forEach(en => { if (en.attr === 'atk_bonus') a += en.value || 0; else if (en.attr === 'def_bonus') d += en.value || 0; else if (en.attr === 'luk_bonus') l += en.value || 0; });
+      });
+      const setCounts = {}; equip.forEach(e => { if (e.set_name) setCounts[e.set_name] = (setCounts[e.set_name] || 0) + 1; });
+      for (const [sn, ct] of Object.entries(setCounts)) { const b = SET_BONUSES[sn]; if (!b) continue; if (ct >= 2 && b[2]) { if (b[2].atk) a += b[2].atk; if (b[2].def) d += b[2].def; } if (ct >= 3 && b[3]) { if (b[3].atk) a += b[3].atk; if (b[3].def) d += b[3].def; } }
+      if (pet.nature) { const n = PET_NATURES.find(n => n.id === pet.nature); if (n) { if (n.atk_bonus) a = Math.floor(a * (1 + n.atk_bonus)); if (n.def_bonus) d = Math.floor(d * (1 + n.def_bonus)); if (n.atk_penalty) a = Math.floor(a * (1 + n.atk_penalty)); if (n.def_penalty) d = Math.floor(d * (1 + n.def_penalty)); } }
+      if (pet.passive_skill && PASSIVE_SKILLS[pet.passive_skill]) { const p = PASSIVE_SKILLS[pet.passive_skill]; if (p.atk_bonus) a = Math.floor(a * (1 + p.atk_bonus)); if (p.def_bonus) d = Math.floor(d * (1 + p.def_bonus)); }
+      return { atk: a, def: d, spd: s, luk: l, hp: h, sta: st };
+    }
+    function getSetCount(setName) { return equipment.value.filter(e => e.set_name === setName && e.equipped_to !== null).length; }
+    function getSetBonusText(setName) { const bonus = SET_BONUSES[setName]; if (!bonus) return ''; const texts = []; if (bonus[2]) { const b = bonus[2]; if (b.atk) texts.push(`攻+${b.atk}`); if (b.def) texts.push(`防+${b.def}`); } return texts.join('，'); }
+    function openPetDetail(pet) { petDetailData.value = pet; showPetDetailModal.value = true; }
+    function getPlotClass(p) { return { empty: 'empty', ready: 'ready' }[p._status] || 'planted'; }
+    function getPlotEmoji(p) { return p._emoji; }
+    function getPlotName(p) { return p._name; }
+    function getPlotStatus(p) { if (p._status === 'empty') return '空地'; if (p._status === 'ready') return '✨可收获'; return (p._waterable ? '💧可浇水' : '🔥加速中') + ' 剩' + p._remainingMin + '分'; }
+    function onPlotClick(p) {
+      if (p._status === 'empty') { if (availableCrops.value.length === 0) { showToast('没有种子啦！去🏪商店购买或🗺️探险获取吧'); return; } selectedPlotIndex.value = p.plot_index; showPlantModal.value = true; }
+      else if (p._status === 'ready') { doHarvest(p); }
+      else { selectedPlotIndex.value = p.plot_index; showWaterModal.value = true; }
+    }
+    function openExplore(pet) { exploringPet.value = pet; showExploreModal.value = true; }
+    function onBackpackItemClick(item) { if (item.key === 'blueprint_boss') showToast('BOSS图纸，用于合成传说装备'); }
+    // 认证函数
+    async function handleLogin() { errorMsg.value = ''; if (!loginEmail.value || !loginPassword.value) { errorMsg.value = '请输入邮箱和密码'; return; } loading.value = true; try { const { data, error } = await db.auth.signInWithPassword({ email: loginEmail.value, password: loginPassword.value }); if (error) throw error; await loadAllData(data.user); isLoggedIn.value = true; showToast('登录成功！🌱'); } catch (e) { errorMsg.value = e.message || '登录失败'; } finally { loading.value = false; } }
+    async function handleRegister() { errorMsg.value = ''; if (!regUsername.value || !regEmail.value || !regPassword.value) { errorMsg.value = '请填写所有必填字段'; return; } if (regPassword.value.length < 6) { errorMsg.value = '密码至少6位'; return; } loading.value = true; try { const { data, error } = await db.auth.signUp({ email: regEmail.value, password: regPassword.value, options: { data: { username: regUsername.value, gender: regGender.value } } }); if (error) throw error; if (data.user) { showToast('注册成功！🎉'); await new Promise(r => setTimeout(r, 1500)); await loadAllData(data.user); isLoggedIn.value = true; } } catch (e) { errorMsg.value = e.message || '注册失败'; } finally { loading.value = false; } }
+    async function handleLogout() { await db.auth.signOut(); isLoggedIn.value = false; }
+    async function checkSession() { const { data } = await db.auth.getSession(); if (data.session) { await loadAllData(data.session.user); isLoggedIn.value = true; } }
     checkSession();
-    const growthTimer=setInterval(()=>{ if(isLoggedIn.value&&!battle.value) refreshFarm(); },30000);
-    onUnmounted(()=>clearInterval(growthTimer));
+    const growthTimer = setInterval(() => { if (isLoggedIn.value && !battle.value) refreshFarm(); }, 30000);
+    onUnmounted(() => clearInterval(growthTimer));
 
     return {
       isLoggedIn, authMode, loading, errorMsg, toastMsg, loginEmail, loginPassword, regUsername, regEmail, regPassword, regGender,
