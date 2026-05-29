@@ -357,6 +357,14 @@ const BATTLE_POTIONS = [
 ];
 const BOSS_RESPAWN_HOURS = 6;
 const BOSS_DB_ID = 1;
+// 宠物槽位解锁配置
+const PET_SLOT_UNLOCK = [
+  {slot: 2, desc: '第1只宠物达到Lv.10', gold: 5000, cond: {petLevel: 10}},
+  {slot: 3, desc: '解锁8块农田', gold: 20000, cond: {plots: 8}},
+  {slot: 4, desc: '击败任意精英怪×5', gold: 50000, cond: {eliteKills: 5}, materials: {scale: 10}},
+  {slot: 5, desc: '宠物探险完成50次', gold: 100000, cond: {explores: 50}, materials: {dragon_soul: 5}},
+  {slot: 6, desc: '击败BOSS虫母女王×3', gold: 200000, cond: {bossKills: 3}, materials: {stardust: 10}}
+];
 const SEASON_CONFIG = {
   id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10,
   startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'),
