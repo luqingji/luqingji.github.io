@@ -127,7 +127,7 @@
     <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
   </div>
 
-  <!-- ========== 所有弹窗 ========== -->
+  <!-- 所有弹窗（完整保留） -->
   <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
     <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
     <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
@@ -241,8 +241,6 @@ const CROPS = {
   pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
   sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'}
 };
-
-const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
 const PET_TYPES = {
   cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
   dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
@@ -617,13 +615,24 @@ createApp({
       const today = new Date().toDateString();
       const { data: dynamicsData } = await db.from('market_dynamics').select('*').eq('date', today);
       if (dynamicsData && dynamicsData.length) dynamicsData.forEach(d => { marketDynamics.seeds[d.seed_type] = d; });
-      // 调用安全 RPC 获取或刷新种子商店（不再直接操作表）
-      const { data: shopData, error: shopError } = await db.rpc('refresh_market_seed_shop');
+      // 直接查询当日种子商店（RLS 允许 SELECT）
+      const { data: shopData, error: shopError } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
       if (shopError) {
-        console.error('刷新种子商店失败', shopError);
+        console.error('加载种子商店失败', shopError);
         marketSeedShop.value = [];
+      } else if (shopData && shopData.length > 0) {
+        marketSeedShop.value = shopData;
       } else {
-        marketSeedShop.value = shopData || [];
+        // 如果没有当日数据，调用后端 RPC 生成（需要先创建该 RPC，但以防万一，我们可以尝试直接生成）
+        // 注意：这里需要后端 RPC，如果未创建，会出错。为了简化，我们可以让后端自动生成（通过之前提供的 SQL）。
+        // 如果用户已执行基础 SQL，则此 RPC 应已存在；若不存在，会报错，但不影响其他功能。
+        try {
+          const { data: generated } = await db.rpc('refresh_market_seed_shop');
+          marketSeedShop.value = generated || [];
+        } catch (e) {
+          console.warn('无法自动刷新种子商店，请确保后端已创建 refresh_market_seed_shop 函数', e);
+          marketSeedShop.value = [];
+        }
       }
     }
     async function initSeasonData() {
@@ -1155,6 +1164,7 @@ createApp({
       else { selectedPlotIndex.value = p.plot_index; showWaterModal.value = true; }
     }
     function openExplore(pet) { exploringPet.value = pet; showExploreModal.value = true; }
+    function openEquipSelect(eq) { equippingItem.value = eq; showEquipSelectModal.value = true; }
     function onBackpackItemClick(item) { if (item.key === 'blueprint_boss') showToast('BOSS图纸，用于合成传说装备'); }
     // 认证函数
     async function handleLogin() { errorMsg.value = ''; if (!loginEmail.value || !loginPassword.value) { errorMsg.value = '请输入邮箱和密码'; return; } loading.value = true; try { const { data, error } = await db.auth.signInWithPassword({ email: loginEmail.value, password: loginPassword.value }); if (error) throw error; await loadAllData(data.user); isLoggedIn.value = true; showToast('登录成功！🌱'); } catch (e) { errorMsg.value = e.message || '登录失败'; } finally { loading.value = false; } }
@@ -1201,5 +1211,7 @@ createApp({
   }
 }).mount('#app');
 </script>
+</body>
+</html>
 </body>
 </html>
