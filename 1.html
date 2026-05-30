@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 人性化体力版</title>
+  <title>梦幻宠物大冒险 · 最终版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -193,11 +193,11 @@
       </div>
     </div>
 
-    <!-- 世界BOSS -->
+    <!-- 世界BOSS（自动复活） -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
-        <p v-if="!worldBoss.active">妖风已被击败，等待下次刷新…</p>
+        <p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p>
         <template v-else>
           <p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p>
           <div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div>
@@ -280,6 +280,7 @@ createApp({
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
     );
 
+    // ---------- 基础状态 ----------
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
@@ -292,7 +293,7 @@ createApp({
     const encounter = ref({});
     const battle = reactive({ active: false });
     const dailyQuests = ref([]);
-    const worldBoss = ref({ hp: 0, max_hp: 0, active: true });
+    const worldBoss = ref({ hp: 0, max_hp: 10000, active: true, defeated_date: null });
     const friends = ref([]);
     const friendName = ref('');
     const worldBossAttackedToday = ref(false);
@@ -312,6 +313,7 @@ createApp({
     const playerHp = ref(100);
     const petHp = ref(0);
 
+    // ---------- 计算属性 ----------
     const playerSkills = computed(() => {
       if (!profile.value?.sect_id) return [];
       const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
@@ -335,6 +337,7 @@ createApp({
       return profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1);
     });
 
+    // ---------- 工具函数 ----------
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
     function petSkillNames(pet) {
       const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
@@ -353,6 +356,7 @@ createApp({
       return grades[ivGrade(pet)] || '弱小';
     }
 
+    // ---------- 数据刷新 ----------
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
@@ -365,7 +369,7 @@ createApp({
         supabase.from('areas').select('*'),
         supabase.from('sects').select('*'),
         supabase.rpc('get_daily_quests'),
-        supabase.from('world_bosses').select('*').eq('active', true).single(),
+        supabase.from('world_bosses').select('*').eq('id', 1).single(),
         supabase.rpc('get_friends')
       ]);
       if (profRes.data) {
@@ -379,7 +383,8 @@ createApp({
       if (questRes.data) dailyQuests.value = questRes.data.quests || [];
       if (bossRes.data) worldBoss.value = bossRes.data;
       if (friendRes.data) friends.value = friendRes.data;
-      
+
+      // 检查今日是否已攻击
       if (user) {
         const { data: attackData } = await supabase.from('world_boss_attacks')
           .select('*')
@@ -389,12 +394,13 @@ createApp({
           .maybeSingle();
         worldBossAttackedToday.value = !!attackData;
       }
-      
+
       if (profile.value && !profile.value.sect_id) view.value = 'auth';
       else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
       else if (hasPet.value) view.value = 'map';
     }
 
+    // ---------- 认证 ----------
     async function login() {
       if (loading.value) return;
       loading.value = true;
@@ -419,6 +425,7 @@ createApp({
       supabase.removeAllChannels();
     }
 
+    // ---------- 门派/初始宠/昵称/携带/放生 ----------
     async function joinSect(sectId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { alert('请先登录'); view.value = 'auth'; return; }
@@ -458,6 +465,7 @@ createApp({
       refreshData();
     }
 
+    // ---------- 探索/战斗 ----------
     async function openArea(area) {
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
@@ -567,6 +575,7 @@ createApp({
       });
     }
 
+    // ---------- 任务/BOSS/好友 ----------
     async function getDailyQuests() {
       const { data, error } = await supabase.rpc('get_daily_quests');
       if (error) { alert('获取任务失败'); return; }
@@ -599,6 +608,7 @@ createApp({
       refreshData();
     }
 
+    // ---------- 生命周期 ----------
     onMounted(() => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
@@ -615,6 +625,19 @@ createApp({
       window.addEventListener('beforeunload', () => {
         if (profile.value?.id) supabase.from('profiles').update({ is_online: false }).eq('id', profile.value.id);
       });
+
+      // 每30秒同步一次体力
+      setInterval(async () => {
+        if (profile.value?.id) {
+          try {
+            const { data } = await supabase.rpc('recover_energy');
+            if (data) {
+              energy.value = data.energy;
+              Object.assign(profile.value, data);
+            }
+          } catch (e) { /* 静默 */ }
+        }
+      }, 30000);
     });
 
     return {
