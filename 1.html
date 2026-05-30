@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 战斗优化版</title>
+  <title>梦幻宠物大冒险 · 模式B</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -24,7 +24,6 @@
     .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; }
 
-    /* 战斗新样式 */
     .battle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: flex-end; z-index: 100; }
     .battle-enemy-area { text-align: center; padding: 20px 20px 10px; color: white; }
     .battle-enemy-area .enemy-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; color: #ffd700; }
@@ -192,7 +191,7 @@
       <div v-if="!catching" class="battle-actions">
         <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
         <button class="btn" @click="showSkillPanel = !showSkillPanel" :disabled="battleBusy">📜 技能</button>
-        <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || catchBallCount <= 0">🎯 捕捉 ({{ catchBallCount }})</button>
+        <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy">🎯 捕捉</button>
         <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
       </div>
     </div>
@@ -218,7 +217,6 @@ createApp({
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
     );
 
-    // 基础状态
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
@@ -235,7 +233,6 @@ createApp({
     const friends = ref([]);
     const friendName = ref('');
 
-    // 战斗相关
     const showSkillPanel = ref(false);
     const battleBusy = ref(false);
     const catching = ref(false);
@@ -255,10 +252,6 @@ createApp({
       if (!activePet.value?.skills) return [];
       const skillMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
       return activePet.value.skills.map(id => ({ id, name: skillMap[id] || '未知' }));
-    });
-    const catchBallCount = computed(() => {
-      const ball = inventory.value.find(i => i.item_id === 1);
-      return ball ? ball.quantity : 0;
     });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
     const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20);
@@ -372,9 +365,11 @@ createApp({
         return;
       }
       if (action === 'catch') {
-        if (catchBallCount.value <= 0) { alert('没有捕捉球了！'); battleBusy.value = false; return; }
         catching.value = true;
-        const { data, error } = await supabase.rpc('catch_wild_pet', { p_pet_id: activePet.value.id, p_wild_base_id: encounter.value.id });
+        const { data, error } = await supabase.rpc('catch_wild_pet', {
+          p_pet_id: activePet.value.id,
+          p_wild_base_id: encounter.value.id
+        });
         if (error) { alert('捕捉失败：' + error.message); catching.value = false; battleBusy.value = false; return; }
         await shakeBall(3);
         if (data.caught) {
@@ -413,7 +408,6 @@ createApp({
         battle.active = false;
         refreshData();
       }
-      // 如果未结束，战斗保持开启，等待玩家下一个动作
     }
     function shakeBall(times) {
       return new Promise(resolve => {
@@ -466,7 +460,7 @@ createApp({
       profile, hasPet, starters, sects,
       areas, currentScenes, currentAreaName, myPets, activePet, inventory,
       encounter, battle, dailyQuests, worldBoss, friends, friendName,
-      playerSkills, petSkills, catchBallCount, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
+      playerSkills, petSkills, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
       enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, enemyHp, playerHp, petHp,
       getMonsterName, petSkillNames, refreshData, login, register, logout, joinSect, selectStarter,
       openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend
