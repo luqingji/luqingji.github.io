@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 精致版</title>
+  <title>梦幻宠物大冒险 · 等级经验版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -23,8 +23,15 @@
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; }
+    .hp-bar { height: 6px; background: #555; border-radius: 3px; margin: 4px 0; }
+    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
+    .exp-bar { height: 4px; background: #555; border-radius: 2px; margin: 2px 0; }
+    .exp-fill { height: 100%; width: 100%; background: #3498db; transition: width 0.3s; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 200; }
+    .carried-tag { background: var(--gold); color: #2c1810; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+    .nickname-edit { cursor: pointer; color: #f5d78c; text-decoration: underline; }
+    .level-box { background: #8b5a2b; color: white; border-radius: 4px; padding: 0 4px; font-size: 12px; margin-left: 4px; }
 
-    /* 战斗界面 - 精致版 */
     .battle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: flex-end; z-index: 100; }
     .battle-enemy-area { text-align: center; padding: 15px 20px 5px; color: white; }
     .battle-enemy-area .enemy-name { font-size: 18px; font-weight: bold; color: #ffd700; }
@@ -54,14 +61,32 @@
 <body>
 <div id="app">
   <div class="top-bar">
-    <span>⚔️ {{ username || '江湖小虾' }}</span>
+    <span class="nickname-edit" @click="showNicknameInput = true">
+      ⚔️ {{ username || '江湖小虾' }} <span class="level-box">Lv.{{ profile?.level || 1 }}</span>
+    </span>
     <span>💰 {{ silver }}</span>
     <span>💎 {{ diamond }}</span>
     <span>⚡ {{ energy }}/10</span>
     <button @click="logout">退出</button>
   </div>
+  <div style="background: #2c1810; padding: 2px 15px;">
+    <div class="exp-bar">
+      <div class="exp-fill" :style="{width: playerExpPercent+'%'}"></div>
+    </div>
+    <small style="color:#aaa; font-size:10px;">经验 {{ profile?.exp || 0 }}/{{ (profile?.level || 1) * 100 }}</small>
+  </div>
 
   <div class="main">
+    <!-- 昵称修改弹窗 -->
+    <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
+      <div class="card" style="width: 80%">
+        <h3>修改昵称</h3>
+        <input v-model="newNickname" placeholder="输入新昵称（最多10字）" maxlength="10">
+        <button class="btn" @click="saveNickname">保存</button>
+        <button class="btn red" @click="showNicknameInput = false">取消</button>
+      </div>
+    </div>
+
     <!-- 认证界面 -->
     <div v-if="view === 'auth'">
       <div class="card" v-if="!profile">
@@ -69,7 +94,7 @@
         <input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email">
         <input v-model="password" placeholder="密码" type="password" autocomplete="current-password">
         <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">{{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}</button>
-        <p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px;" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
+        <p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
       </div>
       <div class="card" v-if="profile && !profile.sect_id">
         <h3>拜师学艺</h3>
@@ -105,11 +130,30 @@
     <div v-if="view === 'pets'">
       <h3>🐾 灵兽</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
-        <div v-for="p in myPets" :key="p.id" class="card">
+        <div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)">
           <strong>{{ p.nickname }}</strong> Lv.{{ p.level }}
-          <div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/p.base_hp*100)+'%'}"></div></div>
+          <span v-if="p.is_carried" class="carried-tag">携带中</span>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div>
           <small>技能: {{ petSkillNames(p) }}</small>
+          <button class="btn" style="font-size:12px; padding:2px 6px; margin-top:5px" @click.stop="setCarried(p.id)" :disabled="p.current_hp <= 0">设为携带</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 宠物详情弹窗 -->
+    <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
+      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+        <h3>{{ detailPet.nickname }}  Lv.{{ detailPet.level }}</h3>
+        <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / (detailPet.base_hp + detailPet.iv_hp) * 100) + '%'}"></div></div>
+        <p>HP: {{ detailPet.current_hp }} / {{ detailPet.base_hp + detailPet.iv_hp }}</p>
+        <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
+        <p>经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p>
+        <hr>
+        <p><strong>种族值</strong> (HP/攻击/防御/速度): {{ detailPet.base_hp }}/{{ detailPet.base_atk }}/{{ detailPet.base_def }}/{{ detailPet.base_spd }}</p>
+        <p><strong>个体值</strong> (IV): {{ detailPet.iv_hp }}/{{ detailPet.iv_atk }}/{{ detailPet.iv_def }}/{{ detailPet.iv_spd }}</p>
+        <p><strong>努力值</strong> (EV): {{ detailPet.ev_hp || 0 }}/{{ detailPet.ev_atk || 0 }}/{{ detailPet.ev_def || 0 }}/{{ detailPet.ev_spd || 0 }}</p>
+        <p><strong>技能</strong>: {{ petSkillNames(detailPet) }}</p>
+        <button class="btn red" @click="showPetDetail = false">关闭</button>
       </div>
     </div>
 
@@ -158,11 +202,9 @@
         <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
         <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
       </div>
-
       <div class="battle-log-area">
         <p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p>
       </div>
-
       <div class="battle-ally-area">
         <div class="ally-block">
           <div class="name">🧑 {{ username }}</div>
@@ -175,12 +217,10 @@
           <div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div>
         </div>
       </div>
-
       <div v-if="catching" class="catch-animation">
         <div class="pokeball" :class="ballShakeClass"></div>
         <p>{{ catchMessage }}</p>
       </div>
-
       <div v-if="showSkillPanel && !catching" class="skill-panel">
         <h4>人物技能</h4>
         <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">✨ {{ skill.name }}</button>
@@ -188,7 +228,6 @@
         <button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">🐾 {{ skill.name }}</button>
         <button class="btn red" @click="showSkillPanel=false">取消</button>
       </div>
-
       <div v-if="!catching" class="battle-actions">
         <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
         <button class="btn" @click="showSkillPanel = !showSkillPanel" :disabled="battleBusy">📜 技能</button>
@@ -234,6 +273,11 @@ createApp({
     const friends = ref([]);
     const friendName = ref('');
 
+    const showNicknameInput = ref(false);
+    const newNickname = ref('');
+    const showPetDetail = ref(false);
+    const detailPet = ref(null);
+
     const showSkillPanel = ref(false);
     const battleBusy = ref(false);
     const catching = ref(false);
@@ -259,6 +303,10 @@ createApp({
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
     const petMaxHp = computed(() => (activePet.value?.base_hp || 1) + (activePet.value?.iv_hp || 0));
     const petHpPercent = computed(() => (petHp.value / petMaxHp.value) * 100);
+    const playerExpPercent = computed(() => {
+      if (!profile.value) return 0;
+      return (profile.value.exp / (profile.value.level * 100)) * 100;
+    });
 
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
     function petSkillNames(pet) {
@@ -273,7 +321,7 @@ createApp({
       try { await supabase.rpc('recover_energy'); } catch (e) { console.warn(e); }
       const [profRes, petRes, itemRes, areaRes, sectRes, questRes, bossRes, friendRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('pets').select('*, base_pet:base_pet_id(base_hp)').eq('owner_id', user.id),
+        supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd)').eq('owner_id', user.id),
         supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
         supabase.from('areas').select('*'),
         supabase.from('sects').select('*'),
@@ -333,6 +381,23 @@ createApp({
       if (error) { alert('选宠失败：' + error.message); return; }
       refreshData();
     }
+    async function saveNickname() {
+      if (!newNickname.value.trim()) return alert('昵称不能为空');
+      const { error } = await supabase.rpc('update_nickname', { p_nickname: newNickname.value.trim() });
+      if (error) return alert('修改失败：' + error.message);
+      alert('昵称修改成功！');
+      showNicknameInput.value = false;
+      refreshData();
+    }
+    async function setCarried(petId) {
+      const { error } = await supabase.rpc('set_carried_pet', { p_pet_id: petId });
+      if (error) return alert('操作失败：' + error.message);
+      refreshData();
+    }
+    function openPetDetail(pet) {
+      detailPet.value = pet;
+      showPetDetail.value = true;
+    }
     async function openArea(area) {
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
@@ -344,7 +409,9 @@ createApp({
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
         encounter.value = data.data;
-        activePet.value = myPets.value[0];
+        const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
+        activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
+        if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
         petHp.value = activePet.value.current_hp;
         enemyHp.value = data.data.hp;
         playerHp.value = playerMaxHp.value;
@@ -411,6 +478,8 @@ createApp({
         data.log.forEach(msg => recentLogs.value.push(msg.text));
         if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
       }
+      if (data.pet_leveled_up) alert('你的宠物升级了！');
+      if (data.player_leveled_up) alert('你升级了！');
       if (data.win) {
         setTimeout(() => { battle.active = false; refreshData(); }, 1500);
       } else if (playerHp.value <= 0) {
@@ -470,10 +539,13 @@ createApp({
       profile, hasPet, starters, sects,
       areas, currentScenes, currentAreaName, myPets, activePet, inventory,
       encounter, battle, dailyQuests, worldBoss, friends, friendName,
-      playerSkills, petSkills, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
+      showNicknameInput, newNickname, showPetDetail, detailPet,
+      showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
       enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, enemyHp, playerHp, petHp,
+      playerSkills, petSkills, playerExpPercent,
       getMonsterName, petSkillNames, refreshData, login, register, logout, joinSect, selectStarter,
-      openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend
+      saveNickname, setCarried, openPetDetail, openArea, explore, battleAction,
+      getDailyQuests, submitQuest, attackWorldBoss, addFriend
     }
   }
 }).mount('#app');
