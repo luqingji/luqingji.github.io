@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>梦幻宠物大冒险</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; --jade: #2ecc71; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "STKaiti","楷体","PingFang SC",sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #app { width: 420px; max-width: 100%; background: var(--bg); border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; height: 95vh; max-height: 800px; }
+    .top-bar { background: linear-gradient(180deg, #2c1810 0%, #4a2c1a 100%); color: #f5d78c; padding: 10px 15px; display: flex; justify-content: space-between; font-size: 14px; border-bottom: 2px solid #8b5a2b; }
+    .top-bar span { display: flex; align-items: center; gap: 3px; }
+    .main { flex: 1; overflow-y: auto; padding: 12px; background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23f5e6d3"><path d="M20 20h60v60H20z" opacity="0.1"/></svg>'); }
+    .bottom-nav { display: flex; background: #2c1810; border-top: 2px solid #8b5a2b; }
+    .bottom-nav button { flex: 1; padding: 10px; border: none; background: transparent; color: #d4af37; font-size: 18px; cursor: pointer; }
+    .bottom-nav button:active { background: #3a2415; }
+    .btn { background: linear-gradient(180deg, #d4af37 0%, #b8860b 100%); border: 1px solid #8b6914; color: #2c1810; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin: 3px 0; }
+    .btn.red { background: linear-gradient(180deg, #e74c3c, #c0392b); border-color: #8b0000; color: white; }
+    .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; }
+    .hp-bar { height: 6px; background: #555; border-radius: 3px; margin: 4px 0; }
+    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+    .battle-box { background: #1a120b; border: 3px solid #8b5a2b; color: #f5d78c; padding: 15px; width: 90%; border-radius: 12px; }
+    .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <span>⚔️ {{ username || '江湖小虾' }}</span>
+    <span>💰 {{ silver }}</span>
+    <span>💎 {{ diamond }}</span>
+    <span>⚡ {{ energy }}/10</span>
+  </div>
+
+  <div class="main">
+    <!-- 登录/注册/选门派/选初始宠 -->
+    <div v-if="view === 'auth'">
+      <div class="card" v-if="!profile">
+        <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
+        <input v-model="email" placeholder="英雄邮箱" type="email">
+        <input v-model="password" placeholder="密码" type="password">
+        <button class="btn" @click="isLogin ? login() : register()">{{ isLogin ? '登录' : '注册' }}</button>
+        <p style="text-align:center; cursor:pointer; color:#8b5a2b" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
+      </div>
+      <div class="card" v-if="profile && !profile.sect_id">
+        <h3>拜师学艺</h3>
+        <div v-for="sect in sects" :key="sect.id" @click="joinSect(sect.id)" class="card" style="cursor:pointer">
+          <strong>{{ sect.name }}</strong> - {{ sect.description }}
+        </div>
+      </div>
+      <div class="card" v-if="profile && profile.sect_id && !hasPet">
+        <h3>选初始伙伴</h3>
+        <div v-for="p in starters" :key="p.id" @click="selectStarter(p.id)" class="card" style="cursor:pointer">
+          {{ p.name }} ({{ p.element_primary }}) HP:{{ p.base_hp }}
+        </div>
+      </div>
+    </div>
+
+    <!-- 地图 -->
+    <div v-if="view === 'map'">
+      <div v-for="area in areas" :key="area.id" class="card" @click="openArea(area)">
+        <strong>{{ area.name }}</strong> (Lv.{{ area.required_level }})
+      </div>
+    </div>
+
+    <!-- 场景探索 -->
+    <div v-if="view === 'scene'">
+      <button class="btn" @click="view='map'" style="width:auto">← 返回</button>
+      <h3>{{ currentAreaName }}</h3>
+      <div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)">
+        <strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})
+      </div>
+    </div>
+
+    <!-- 宠物列表 -->
+    <div v-if="view === 'pets'">
+      <h3>🐾 灵兽</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
+        <div v-for="p in myPets" :key="p.id" class="card">
+          <strong>{{ p.nickname }}</strong> Lv.{{ p.level }}
+          <div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/p.base_hp*100)+'%'}"></div></div>
+          <small>技能: {{ p.skills.join(',') }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- 背包 -->
+    <div v-if="view === 'inventory'">
+      <h3>🎒 行囊</h3>
+      <div v-for="item in inventory" :key="item.id" class="card">
+        {{ item.items_def?.name }} x{{ item.quantity }}
+      </div>
+    </div>
+
+    <!-- 师门任务 -->
+    <div v-if="view === 'quest'">
+      <h3>📜 师门任务</h3>
+      <button class="btn" @click="getDailyQuests">刷新任务</button>
+      <div v-for="q in dailyQuests" :key="q.id" class="card">
+        <p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p>
+        <button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button>
+      </div>
+    </div>
+
+    <!-- 世界BOSS -->
+    <div v-if="view === 'boss'">
+      <h3>👹 妖风</h3>
+      <div class="card">
+        <p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p>
+        <div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div>
+        <button class="btn red" @click="attackWorldBoss">攻击</button>
+      </div>
+    </div>
+
+    <!-- 好友 -->
+    <div v-if="view === 'friends'">
+      <h3>👥 江湖好友</h3>
+      <input v-model="friendName" placeholder="输入好友名字">
+      <button class="btn" @click="addFriend">添加</button>
+      <div v-for="f in friends" :key="f.username" class="card">
+        {{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span>
+      </div>
+    </div>
+
+    <!-- 战斗界面 -->
+    <div v-if="battle.active" class="overlay">
+      <div class="battle-box">
+        <h3>{{ encounter.name }} Lv.{{ encounter.level || 1 }}</h3>
+        <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
+        <p style="margin:5px 0">{{ battleLog }}</p>
+        <div style="display:flex; justify-content: space-between;">
+          <div>
+            <p>🧑 {{ username }}</p>
+            <div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div>
+          </div>
+          <div>
+            <p>🐾 {{ activePet?.nickname }}</p>
+            <div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div>
+          </div>
+        </div>
+        <div class="skills-grid">
+          <button class="btn" @click="battleAction('player_attack')">🗡️ 普通攻击</button>
+          <button class="btn" @click="battleAction('pet_attack')">🐾 宠物攻击</button>
+          <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id)">✨ {{ skill.name }}</button>
+          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')">🎯 捕捉</button>
+          <button class="btn red" @click="battle.active=false; view='map'">🏃 逃跑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <button @click="view='map'">🌍</button>
+    <button @click="view='pets'">🐾</button>
+    <button @click="view='inventory'">🎒</button>
+    <button @click="view='quest'">📜</button>
+    <button @click="view='boss'">👹</button>
+    <button @click="view='friends'">👥</button>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+  setup() {
+    const supabase = window.supabase.createClient(
+      'https://siwacsnuminepetpxljh.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s'
+    );
+
+    // 状态变量
+    const view = ref('auth');
+    const isLogin = ref(true);
+    const email = ref(''); const password = ref('');
+    const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
+    const hasPet = ref(false); const starters = ref([]); const sects = ref([]);
+    const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
+    const myPets = ref([]); const activePet = ref(null);
+    const inventory = ref([]);
+    const encounter = ref({}); const battleLog = ref(''); const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
+    const battle = reactive({ active: false });
+    const dailyQuests = ref([]);
+    const worldBoss = ref({ hp: 0, max_hp: 0 });
+    const friends = ref([]);
+    const friendName = ref('');
+
+    // 门派技能映射
+    const playerSkills = computed(() => {
+      if (!profile.value?.sect_id) return [];
+      const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
+      return map[profile.value.sect_id] || [];
+    });
+
+    // 血量百分比
+    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
+    const petHpPercent = computed(() => (petHp.value / (activePet.value?.base_hp || 1)) * 100);
+    const playerHpPercent = computed(() => {
+      let maxHp = 100 + (profile.value?.level || 1) * 20;
+      return (playerHp.value / maxHp) * 100;
+    });
+
+    function getMonsterName(id) {
+      const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'};
+      return map[id] || '未知';
+    }
+
+    // 初始化数据拉取
+    async function refreshData() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.rpc('recover_energy');
+      const [profRes, petRes, itemRes, areaRes, sectRes, questRes, bossRes, friendRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('pets').select('*, base_pet:base_pet_id(base_hp)').eq('owner_id', user.id),
+        supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
+        supabase.from('areas').select('*'),
+        supabase.from('sects').select('*'),
+        supabase.rpc('get_daily_quests'),
+        supabase.from('world_bosses').select('*').eq('active', true).single(),
+        supabase.rpc('get_friends')
+      ]);
+      if (profRes.data) {
+        profile.value = profRes.data; username.value = profRes.data.username;
+        silver.value = profRes.data.silver; diamond.value = profRes.data.diamond; energy.value = profRes.data.energy;
+      }
+      if (petRes.data) { myPets.value = petRes.data; hasPet.value = petRes.data.length > 0; }
+      if (itemRes.data) inventory.value = itemRes.data;
+      if (areaRes.data) areas.value = areaRes.data;
+      if (sectRes.data) sects.value = sectRes.data;
+      if (questRes.data) dailyQuests.value = questRes.data;
+      if (bossRes.data) worldBoss.value = bossRes.data;
+      if (friendRes.data) friends.value = friendRes.data;
+      
+      // 自动跳转视图
+      if (profile.value && !profile.value.sect_id) view.value = 'auth';
+      else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
+      else if (hasPet.value) view.value = 'map';
+    }
+
+    async function register() {
+      const { data, error } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      if (error) return alert(error.message);
+      await supabase.from('profiles').insert({ id: data.user.id, username: email.value.split('@')[0] });
+      refreshData();
+    }
+    async function login() {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+      if (error) return alert(error.message);
+      refreshData();
+    }
+    async function joinSect(sectId) {
+      const { error } = await supabase.rpc('create_character', { p_sect_id: sectId });
+      if (error) return alert(error.message);
+      refreshData();
+    }
+    async function selectStarter(petId) {
+      await supabase.rpc('select_starter', { p_pet_id: petId });
+      refreshData();
+    }
+
+    // 探索
+    async function openArea(area) {
+      const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
+      currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
+    }
+    async function explore(sceneId) {
+      const { data } = await supabase.rpc('explore_area', { p_scene_id: sceneId });
+      if (data.error) return alert(data.error);
+      energy.value = data.energy;
+      if (data.type === 'monster' || data.type === 'wild_pet') {
+        encounter.value = data.data;
+        activePet.value = myPets.value[0];
+        petHp.value = activePet.value.current_hp;
+        enemyHp.value = data.data.hp;
+        playerHp.value = 100 + (profile.value.level || 1) * 20;
+        battle.active = true;
+        battleLog.value = data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`;
+      }
+    }
+
+    // 战斗
+    async function battleAction(action, skillId = null) {
+      let monsterId = encounter.value.id;
+      if (encounter.value.type === 'wild_pet') monsterId = 1; // 占位
+      if (action === 'player_attack' || action === 'player_skill') {
+        const { data } = await supabase.rpc('battle_encounter', {
+          p_pet_id: activePet.value.id, p_monster_id: monsterId, p_player_skill_id: skillId
+        });
+        processBattleResult(data);
+      } else if (action === 'pet_attack') {
+        const { data } = await supabase.rpc('battle_encounter', {
+          p_pet_id: activePet.value.id, p_monster_id: monsterId, p_player_skill_id: null
+        });
+        processBattleResult(data);
+      } else if (action === 'catch') {
+        const { data } = await supabase.rpc('catch_wild_pet', { p_pet_id: activePet.value.id, p_wild_base_id: encounter.value.id });
+        if (data.caught) alert('捕获成功！');
+        else alert('捕获失败');
+        battle.active = false; refreshData();
+      }
+    }
+    function processBattleResult(data) {
+      battleLog.value = data.log[data.log.length-1]?.text || '';
+      petHp.value = data.pet_hp; playerHp.value = data.player_hp; enemyHp.value = 0;
+      if (data.win) {
+        setTimeout(() => { battle.active = false; refreshData(); }, 1200);
+      } else if (playerHp.value <= 0) {
+        alert('你被打败了...'); battle.active = false;
+      }
+    }
+
+    // 任务/世界BOSS/好友
+    async function getDailyQuests() { dailyQuests.value = await (await supabase.rpc('get_daily_quests')).data; }
+    async function submitQuest(qId) { await supabase.rpc('submit_quest', { p_quest_id: qId }); refreshData(); }
+    async function attackWorldBoss() {
+      const { data } = await supabase.rpc('attack_world_boss', { p_boss_id: 1 });
+      alert(`造成了 ${data.damage} 伤害！`);
+      refreshData();
+    }
+    async function addFriend() {
+      await supabase.rpc('add_friend', { p_friend_username: friendName.value });
+      refreshData();
+    }
+
+    // 实时订阅（世界BOSS血量、好友在线）
+    onMounted(() => {
+      refreshData();
+      supabase.from('base_pets_def').select('*').in('id',[1,2,3]).then(({data})=>starters.value=data);
+      
+      // 世界BOSS血量实时更新
+      supabase.channel('boss').on('postgres_changes', {event:'UPDATE', schema:'public', table:'world_bosses'}, (payload) => {
+        worldBoss.value = payload.new;
+      }).subscribe();
+      
+      // 好友在线状态
+      supabase.channel('friends').on('postgres_changes', {event:'UPDATE', schema:'public', table:'profiles'}, (payload) => {
+        const f = friends.value.find(f => f.username === payload.new.username);
+        if (f) f.online = payload.new.is_online;
+      }).subscribe();
+      
+      // 自身在线状态
+      window.addEventListener('beforeunload', () => {
+        supabase.from('profiles').update({ is_online: false }).eq('id', profile.value?.id);
+      });
+    });
+
+    return {
+      view, isLogin, email, password, username, silver, diamond, energy, profile, hasPet, starters, sects,
+      areas, currentScenes, currentAreaName, myPets, activePet, inventory,
+      encounter, battleLog, enemyHp, playerHp, petHp, battle, dailyQuests, worldBoss, friends, friendName,
+      playerSkills, enemyHpPercent, petHpPercent, playerHpPercent,
+      getMonsterName, refreshData, register, login, joinSect, selectStarter, openArea, explore, battleAction,
+      getDailyQuests, submitQuest, attackWorldBoss, addFriend
+    }
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
