@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 种族值修复版</title>
+  <title>梦幻宠物大冒险 · 种族值修复版2</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -372,7 +372,15 @@ createApp({
         profile.value = profRes.data; username.value = profRes.data.username;
         silver.value = profRes.data.silver; diamond.value = profRes.data.diamond; energy.value = profRes.data.energy;
       } else { await logout(); return; }
-      if (petRes.data) { myPets.value = petRes.data; hasPet.value = petRes.data.length > 0; }
+      if (petRes.data) {
+        // 扁平化 base_pet 数据
+        myPets.value = petRes.data.map(p => ({
+          ...p,
+          ...p.base_pet,
+          base_pet: p.base_pet
+        }));
+        hasPet.value = myPets.value.length > 0;
+      }
       if (itemRes.data) inventory.value = itemRes.data;
       if (areaRes.data) areas.value = areaRes.data;
       if (sectRes.data) sects.value = sectRes.data;
@@ -462,6 +470,7 @@ createApp({
       refreshData();
     }
     function openPetDetail(pet) {
+      // pet 已经是扁平化后的对象，可以直接使用
       detailPet.value = pet;
       showPetDetail.value = true;
     }
