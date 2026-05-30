@@ -20,6 +20,7 @@
     .bottom-nav button:active { background: #3a2415; }
     .btn { background: linear-gradient(180deg, #d4af37 0%, #b8860b 100%); border: 1px solid #8b6914; color: #2c1810; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin: 3px 0; }
     .btn.red { background: linear-gradient(180deg, #e74c3c, #c0392b); border-color: #8b0000; color: white; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 12px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     input { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; }
     .hp-bar { height: 6px; background: #555; border-radius: 3px; margin: 4px 0; }
@@ -40,13 +41,18 @@
   </div>
 
   <div class="main">
+    <!-- 登录/注册/拜师/选宠 -->
     <div v-if="view === 'auth'">
       <div class="card" v-if="!profile">
         <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
-        <input v-model="email" placeholder="英雄邮箱" type="email">
-        <input v-model="password" placeholder="密码" type="password">
-        <button class="btn" @click="isLogin ? login() : register()">{{ isLogin ? '登录' : '注册' }}</button>
-        <p style="text-align:center; cursor:pointer; color:#8b5a2b" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
+        <input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email">
+        <input v-model="password" placeholder="密码" type="password" autocomplete="current-password">
+        <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">
+          {{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}
+        </button>
+        <p style="text-align:center; cursor:pointer; color:#8b5a2b" @click="isLogin=!isLogin">
+          {{ isLogin ? '创建新角色' : '已有角色' }}
+        </p>
       </div>
       <div class="card" v-if="profile && !profile.sect_id">
         <h3>拜师学艺</h3>
@@ -62,12 +68,14 @@
       </div>
     </div>
 
+    <!-- 地图 -->
     <div v-if="view === 'map'">
       <div v-for="area in areas" :key="area.id" class="card" @click="openArea(area)">
         <strong>{{ area.name }}</strong> (Lv.{{ area.required_level }})
       </div>
     </div>
 
+    <!-- 场景 -->
     <div v-if="view === 'scene'">
       <button class="btn" @click="view='map'" style="width:auto">← 返回</button>
       <h3>{{ currentAreaName }}</h3>
@@ -76,6 +84,7 @@
       </div>
     </div>
 
+    <!-- 宠物列表 -->
     <div v-if="view === 'pets'">
       <h3>🐾 灵兽</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
@@ -87,6 +96,7 @@
       </div>
     </div>
 
+    <!-- 背包 -->
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
       <div v-for="item in inventory" :key="item.id" class="card">
@@ -94,6 +104,7 @@
       </div>
     </div>
 
+    <!-- 师门任务 -->
     <div v-if="view === 'quest'">
       <h3>📜 师门任务</h3>
       <button class="btn" @click="getDailyQuests">刷新任务</button>
@@ -103,6 +114,7 @@
       </div>
     </div>
 
+    <!-- 世界BOSS -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
@@ -112,6 +124,7 @@
       </div>
     </div>
 
+    <!-- 好友 -->
     <div v-if="view === 'friends'">
       <h3>👥 江湖好友</h3>
       <input v-model="friendName" placeholder="输入好友名字">
@@ -121,6 +134,7 @@
       </div>
     </div>
 
+    <!-- 战斗界面 -->
     <div v-if="battle.active" class="overlay">
       <div class="battle-box">
         <h3>{{ encounter.name }} Lv.{{ encounter.level || 1 }}</h3>
@@ -162,7 +176,7 @@ const { createApp, ref, computed, onMounted, reactive } = Vue;
 
 createApp({
   setup() {
-    // ========== 你的 Supabase 配置 ==========
+    // ========== 配置（必须替换为你自己的） ==========
     const supabase = window.supabase.createClient(
       'https://gjcxcexgendndemnuole.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
@@ -172,6 +186,7 @@ createApp({
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
+    const loading = ref(false); // 防重复提交
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]);
     const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -203,8 +218,8 @@ createApp({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       
-      try { await supabase.rpc('recover_energy'); } catch (e) { console.warn('recover_energy failed:', e); }
       try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile failed:', e); }
+      try { await supabase.rpc('recover_energy'); } catch (e) { console.warn('recover_energy failed:', e); }
 
       const [profRes, petRes, itemRes, areaRes, sectRes, questRes, bossRes, friendRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -221,7 +236,7 @@ createApp({
         profile.value = profRes.data; username.value = profRes.data.username;
         silver.value = profRes.data.silver; diamond.value = profRes.data.diamond; energy.value = profRes.data.energy;
       } else {
-        console.error('profiles still not found, logging out');
+        console.error('profiles not found, logging out');
         await logout();
         return;
       }
@@ -239,16 +254,22 @@ createApp({
     }
 
     async function login() {
+      if (loading.value) return;
+      loading.value = true;
       const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+      loading.value = false;
       if (error) { alert('登录失败：' + error.message); return; }
-      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile after login failed:', e); }
       refreshData();
     }
 
     async function register() {
+      if (loading.value) return;
+      loading.value = true;
       const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      loading.value = false;
       if (error) { alert('注册失败：' + error.message); return; }
-      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile after register failed:', e); }
+      // 注册后自动确保 profile
+      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn(e); }
       refreshData();
     }
 
@@ -347,6 +368,12 @@ createApp({
     }
 
     onMounted(() => {
+      // 清理旧 Service Worker（如果存在）
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(reg => reg.unregister());
+        });
+      }
       refreshData();
       supabase.from('base_pets_def').select('*').in('id',[1,2,3]).then(({data})=>starters.value=data);
       supabase.channel('boss').on('postgres_changes', {event:'UPDATE', schema:'public', table:'world_bosses'}, (payload) => {
@@ -362,7 +389,8 @@ createApp({
     });
 
     return {
-      view, isLogin, email, password, username, silver, diamond, energy, profile, hasPet, starters, sects,
+      view, isLogin, email, password, loading, username, silver, diamond, energy,
+      profile, hasPet, starters, sects,
       areas, currentScenes, currentAreaName, myPets, activePet, inventory,
       encounter, battleLog, enemyHp, playerHp, petHp, battle, dailyQuests, worldBoss, friends, friendName,
       playerSkills, enemyHpPercent, petHpPercent, playerHpPercent,
