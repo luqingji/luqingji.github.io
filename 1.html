@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 完整评级放生版</title>
+  <title>梦幻宠物大冒险 · 防刷BOSS版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <!-- 宠物详情弹窗（评级+放生） -->
+    <!-- 宠物详情弹窗 -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="card" style="width: 90%; max-height: 85%; overflow-y: auto;">
         <h3>{{ detailPet.nickname }}  Lv.{{ detailPet.level }}</h3>
@@ -193,13 +193,17 @@
       </div>
     </div>
 
-    <!-- 世界BOSS -->
+    <!-- 世界BOSS（防刷版） -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
-        <p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p>
-        <div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div>
-        <button class="btn red" @click="attackWorldBoss">攻击</button>
+        <p v-if="!worldBoss.active">妖风已被击败，等待下次刷新…</p>
+        <template v-else>
+          <p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div>
+          <button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button>
+          <small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small>
+        </template>
       </div>
     </div>
 
@@ -276,7 +280,6 @@ createApp({
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
     );
 
-    // ---------- 基础状态 ----------
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
@@ -289,17 +292,16 @@ createApp({
     const encounter = ref({});
     const battle = reactive({ active: false });
     const dailyQuests = ref([]);
-    const worldBoss = ref({ hp: 0, max_hp: 0 });
+    const worldBoss = ref({ hp: 0, max_hp: 0, active: true });
     const friends = ref([]);
     const friendName = ref('');
+    const worldBossAttackedToday = ref(false);
 
-    // ---------- UI 控制 ----------
     const showNicknameInput = ref(false);
     const newNickname = ref('');
     const showPetDetail = ref(false);
     const detailPet = ref(null);
 
-    // ---------- 战斗状态 ----------
     const showSkillPanel = ref(false);
     const battleBusy = ref(false);
     const catching = ref(false);
@@ -310,7 +312,6 @@ createApp({
     const playerHp = ref(100);
     const petHp = ref(0);
 
-    // ---------- 计算属性 ----------
     const playerSkills = computed(() => {
       if (!profile.value?.sect_id) return [];
       const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
@@ -331,7 +332,6 @@ createApp({
       return (profile.value.exp / (profile.value.level * 100)) * 100;
     });
 
-    // ---------- 工具函数 ----------
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
     function petSkillNames(pet) {
       const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
@@ -350,7 +350,6 @@ createApp({
       return grades[ivGrade(pet)] || '弱小';
     }
 
-    // ---------- 数据刷新 ----------
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
@@ -377,12 +376,23 @@ createApp({
       if (questRes.data) dailyQuests.value = questRes.data.quests || [];
       if (bossRes.data) worldBoss.value = bossRes.data;
       if (friendRes.data) friends.value = friendRes.data;
+      
+      // 检查今日是否攻击过
+      if (user) {
+        const { data: attackData } = await supabase.from('world_boss_attacks')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('boss_id', 1)
+          .eq('attack_date', new Date().toISOString().split('T')[0])
+          .maybeSingle();
+        worldBossAttackedToday.value = !!attackData;
+      }
+      
       if (profile.value && !profile.value.sect_id) view.value = 'auth';
       else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
       else if (hasPet.value) view.value = 'map';
     }
 
-    // ---------- 认证函数 ----------
     async function login() {
       if (loading.value) return;
       loading.value = true;
@@ -407,7 +417,6 @@ createApp({
       supabase.removeAllChannels();
     }
 
-    // ---------- 门派/初始宠/昵称/携带/放生 ----------
     async function joinSect(sectId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { alert('请先登录'); view.value = 'auth'; return; }
@@ -447,7 +456,6 @@ createApp({
       refreshData();
     }
 
-    // ---------- 探索/战斗 ----------
     async function openArea(area) {
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
@@ -513,7 +521,7 @@ createApp({
 
       clearTimeout(timeoutId);
       let monsterId = encounter.value.id;
-      if (encounter.value.type === 'wild_pet') monsterId = 1; // 模板
+      if (encounter.value.type === 'wild_pet') monsterId = 1;
       const currentHp = encounter.value.currentHp;
       const { data, error } = await supabase.rpc('battle_encounter', {
         p_pet_id: activePet.value.id,
@@ -557,24 +565,38 @@ createApp({
       });
     }
 
-    // ---------- 任务/BOSS/好友 ----------
     async function getDailyQuests() {
       const { data, error } = await supabase.rpc('get_daily_quests');
       if (error) { alert('获取任务失败'); return; }
       dailyQuests.value = data.quests || [];
     }
     async function submitQuest(qId) { await supabase.rpc('submit_quest', { p_quest_id: qId }); refreshData(); }
+
     async function attackWorldBoss() {
-      const { data } = await supabase.rpc('attack_world_boss', { p_boss_id: 1 });
-      alert(`造成了 ${data.damage} 伤害！`);
+      if (worldBossAttackedToday.value) {
+        alert('今天已经攻击过妖风了，明天再来吧！');
+        return;
+      }
+      const carriedPet = myPets.value.find(p => p.is_carried && p.current_hp > 0);
+      const petId = carriedPet ? carriedPet.id : null;
+      battleBusy.value = true;
+      const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: petId });
+      battleBusy.value = false;
+      if (error) { alert('攻击失败：' + error.message); return; }
+      if (data.error) { alert(data.error); return; }
+      alert(`造成了 ${data.damage} 伤害！${data.defeated ? '妖风已被击败！' : ''}`);
+      if (data.defeated) {
+        worldBoss.value.active = false;
+      }
+      worldBossAttackedToday.value = true;
       refreshData();
     }
+
     async function addFriend() {
       await supabase.rpc('add_friend', { p_friend_username: friendName.value });
       refreshData();
     }
 
-    // ---------- 生命周期 ----------
     onMounted(() => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
@@ -601,7 +623,7 @@ createApp({
       showNicknameInput, newNickname, showPetDetail, detailPet,
       showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
-      playerSkills, petSkills, playerExpPercent,
+      playerSkills, petSkills, playerExpPercent, worldBossAttackedToday,
       getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText,
       refreshData, login, register, logout, joinSect, selectStarter,
       saveNickname, setCarried, openPetDetail, releasePet,
