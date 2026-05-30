@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 安全版</title>
+  <title>梦幻宠物大冒险 · 最终版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -40,7 +40,6 @@
   </div>
 
   <div class="main">
-    <!-- 登录/注册/选门派/选初始宠 -->
     <div v-if="view === 'auth'">
       <div class="card" v-if="!profile">
         <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
@@ -63,14 +62,12 @@
       </div>
     </div>
 
-    <!-- 地图 -->
     <div v-if="view === 'map'">
       <div v-for="area in areas" :key="area.id" class="card" @click="openArea(area)">
         <strong>{{ area.name }}</strong> (Lv.{{ area.required_level }})
       </div>
     </div>
 
-    <!-- 场景探索 -->
     <div v-if="view === 'scene'">
       <button class="btn" @click="view='map'" style="width:auto">← 返回</button>
       <h3>{{ currentAreaName }}</h3>
@@ -79,7 +76,6 @@
       </div>
     </div>
 
-    <!-- 宠物列表 -->
     <div v-if="view === 'pets'">
       <h3>🐾 灵兽</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px">
@@ -91,7 +87,6 @@
       </div>
     </div>
 
-    <!-- 背包 -->
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
       <div v-for="item in inventory" :key="item.id" class="card">
@@ -99,7 +94,6 @@
       </div>
     </div>
 
-    <!-- 师门任务 -->
     <div v-if="view === 'quest'">
       <h3>📜 师门任务</h3>
       <button class="btn" @click="getDailyQuests">刷新任务</button>
@@ -109,7 +103,6 @@
       </div>
     </div>
 
-    <!-- 世界BOSS -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
@@ -119,7 +112,6 @@
       </div>
     </div>
 
-    <!-- 好友 -->
     <div v-if="view === 'friends'">
       <h3>👥 江湖好友</h3>
       <input v-model="friendName" placeholder="输入好友名字">
@@ -129,7 +121,6 @@
       </div>
     </div>
 
-    <!-- 战斗界面 -->
     <div v-if="battle.active" class="overlay">
       <div class="battle-box">
         <h3>{{ encounter.name }} Lv.{{ encounter.level || 1 }}</h3>
@@ -171,12 +162,13 @@ const { createApp, ref, computed, onMounted, reactive } = Vue;
 
 createApp({
   setup() {
+    // ========== 你的 Supabase 配置 ==========
     const supabase = window.supabase.createClient(
-      'https://siwacsnuminepetpxljh.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s'
+      'https://gjcxcexgendndemnuole.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
     );
 
-    // 状态变量
+    // 状态
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
@@ -192,14 +184,12 @@ createApp({
     const friends = ref([]);
     const friendName = ref('');
 
-    // 门派技能映射
     const playerSkills = computed(() => {
       if (!profile.value?.sect_id) return [];
       const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
       return map[profile.value.sect_id] || [];
     });
 
-    // 血量百分比计算
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
     const petHpPercent = computed(() => (petHp.value / (activePet.value?.base_hp || 1)) * 100);
     const playerHpPercent = computed(() => {
@@ -207,17 +197,12 @@ createApp({
       return (playerHp.value / maxHp) * 100;
     });
 
-    function getMonsterName(id) {
-      const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'};
-      return map[id] || '未知';
-    }
+    function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
 
-    // 刷新全局数据（带错误处理和 ensure_profile 强制修复）
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       
-      // 必须确保 profile 存在，否则后续 RPC 都会报 400
       try { await supabase.rpc('recover_energy'); } catch (e) { console.warn('recover_energy failed:', e); }
       try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile failed:', e); }
 
@@ -236,8 +221,7 @@ createApp({
         profile.value = profRes.data; username.value = profRes.data.username;
         silver.value = profRes.data.silver; diamond.value = profRes.data.diamond; energy.value = profRes.data.energy;
       } else {
-        // 极端情况：确保后仍无记录，可能是 auth 问题，跳回登录
-        console.error('profiles not found after ensure_profile, logging out');
+        console.error('profiles still not found, logging out');
         await logout();
         return;
       }
@@ -254,36 +238,20 @@ createApp({
       else if (hasPet.value) view.value = 'map';
     }
 
-    // 安全的登录/注册（必须验证错误）
     async function login() {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.value,
-        password: password.value
-      });
-      if (error) {
-        alert('登录失败：' + error.message);
-        return;
-      }
-      // 登录后尝试重建 profiles
+      const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+      if (error) { alert('登录失败：' + error.message); return; }
       try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile after login failed:', e); }
       refreshData();
     }
 
     async function register() {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.value,
-        password: password.value
-      });
-      if (error) {
-        alert('注册失败：' + error.message);
-        return;
-      }
-      // 注册后稍等确保触发器完成，然后强制创建 profiles
+      const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      if (error) { alert('注册失败：' + error.message); return; }
       try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile after register failed:', e); }
       refreshData();
     }
 
-    // 退出登录
     async function logout() {
       await supabase.auth.signOut();
       profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0;
@@ -292,7 +260,6 @@ createApp({
       supabase.removeAllChannels();
     }
 
-    // 加入门派（带登录检查）
     async function joinSect(sectId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { alert('请先登录'); view.value = 'auth'; return; }
@@ -302,14 +269,12 @@ createApp({
       refreshData();
     }
 
-    // 选择初始宠物
     async function selectStarter(petId) {
       const { error } = await supabase.rpc('select_starter', { p_pet_id: petId });
       if (error) { alert('选宠失败：' + error.message); return; }
       refreshData();
     }
 
-    // 地图探索
     async function openArea(area) {
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
@@ -331,27 +296,15 @@ createApp({
       }
     }
 
-    // 战斗操作（带完整错误处理）
     async function battleAction(action, skillId = null) {
       let monsterId = encounter.value.id;
       if (encounter.value.type === 'wild_pet') monsterId = 1;
-
-      const rpcParams = {
-        p_pet_id: activePet.value.id,
-        p_monster_id: monsterId,
-        p_player_skill_id: action === 'player_skill' ? skillId : null
-      };
-
       let rpcResult;
       if (action === 'catch') {
-        rpcResult = await supabase.rpc('catch_wild_pet', {
-          p_pet_id: activePet.value.id,
-          p_wild_base_id: encounter.value.id
-        });
+        rpcResult = await supabase.rpc('catch_wild_pet', { p_pet_id: activePet.value.id, p_wild_base_id: encounter.value.id });
       } else {
-        rpcResult = await supabase.rpc('battle_encounter', rpcParams);
+        rpcResult = await supabase.rpc('battle_encounter', { p_pet_id: activePet.value.id, p_monster_id: monsterId, p_player_skill_id: action === 'player_skill' ? skillId : null });
       }
-
       const { data, error } = rpcResult;
       if (error) { alert('操作出错：' + error.message); return; }
       if (!data) { alert('服务器未返回数据'); return; }
@@ -377,31 +330,22 @@ createApp({
       }
     }
 
-    // 师门任务
     async function getDailyQuests() {
       const { data, error } = await supabase.rpc('get_daily_quests');
       if (error) { alert('获取任务失败'); return; }
       dailyQuests.value = data.quests || [];
     }
-    async function submitQuest(qId) {
-      await supabase.rpc('submit_quest', { p_quest_id: qId });
-      refreshData();
-    }
-
-    // 世界BOSS
+    async function submitQuest(qId) { await supabase.rpc('submit_quest', { p_quest_id: qId }); refreshData(); }
     async function attackWorldBoss() {
       const { data } = await supabase.rpc('attack_world_boss', { p_boss_id: 1 });
       alert(`造成了 ${data.damage} 伤害！`);
       refreshData();
     }
-
-    // 好友
     async function addFriend() {
       await supabase.rpc('add_friend', { p_friend_username: friendName.value });
       refreshData();
     }
 
-    // 生命周期：初始化数据和实时订阅
     onMounted(() => {
       refreshData();
       supabase.from('base_pets_def').select('*').in('id',[1,2,3]).then(({data})=>starters.value=data);
