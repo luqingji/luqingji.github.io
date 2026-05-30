@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 防刷BOSS版</title>
+  <title>梦幻宠物大冒险 · 人性化体力版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -73,7 +73,7 @@
     </span>
     <span>💰 {{ silver }}</span>
     <span>💎 {{ diamond }}</span>
-    <span>⚡ {{ energy }}/10</span>
+    <span>⚡ {{ energy }}/{{ maxEnergy }}</span>
     <button @click="logout">退出</button>
   </div>
   <div style="background: #2c1810; padding: 2px 15px;">
@@ -193,7 +193,7 @@
       </div>
     </div>
 
-    <!-- 世界BOSS（防刷版） -->
+    <!-- 世界BOSS -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
@@ -331,6 +331,9 @@ createApp({
       if (!profile.value) return 0;
       return (profile.value.exp / (profile.value.level * 100)) * 100;
     });
+    const maxEnergy = computed(() => {
+      return profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1);
+    });
 
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
     function petSkillNames(pet) {
@@ -377,7 +380,6 @@ createApp({
       if (bossRes.data) worldBoss.value = bossRes.data;
       if (friendRes.data) friends.value = friendRes.data;
       
-      // 检查今日是否攻击过
       if (user) {
         const { data: attackData } = await supabase.from('world_boss_attacks')
           .select('*')
@@ -623,7 +625,7 @@ createApp({
       showNicknameInput, newNickname, showPetDetail, detailPet,
       showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
-      playerSkills, petSkills, playerExpPercent, worldBossAttackedToday,
+      playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText,
       refreshData, login, register, logout, joinSect, selectStarter,
       saveNickname, setCarried, openPetDetail, releasePet,
