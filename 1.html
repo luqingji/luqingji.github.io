@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 修复血量版</title>
+  <title>梦幻宠物大冒险 · 完整评级放生版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -31,6 +31,13 @@
     .carried-tag { background: var(--gold); color: #2c1810; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
     .nickname-edit { cursor: pointer; color: #f5d78c; text-decoration: underline; }
     .level-box { background: #8b5a2b; color: white; border-radius: 4px; padding: 0 4px; font-size: 12px; margin-left: 4px; }
+    .iv-bar { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+    .iv-fill { height: 4px; background: #e67e22; border-radius: 2px; }
+    .rating { font-weight: bold; padding: 2px 8px; border-radius: 10px; color: white; }
+    .rating-S { background: #f1c40f; color: #2c3e50; }
+    .rating-A { background: #e67e22; }
+    .rating-B { background: #3498db; }
+    .rating-C { background: #95a5a6; }
 
     .battle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: flex-end; z-index: 100; }
     .battle-enemy-area { text-align: center; padding: 15px 20px 5px; color: white; }
@@ -140,20 +147,31 @@
       </div>
     </div>
 
-    <!-- 宠物详情弹窗 -->
+    <!-- 宠物详情弹窗（评级+放生） -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
-      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+      <div class="card" style="width: 90%; max-height: 85%; overflow-y: auto;">
         <h3>{{ detailPet.nickname }}  Lv.{{ detailPet.level }}</h3>
         <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / (detailPet.base_hp + detailPet.iv_hp) * 100) + '%'}"></div></div>
         <p>HP: {{ detailPet.current_hp }} / {{ detailPet.base_hp + detailPet.iv_hp }}</p>
         <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
         <p>经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p>
         <hr>
-        <p><strong>种族值</strong> (HP/攻击/防御/速度): {{ detailPet.base_hp }}/{{ detailPet.base_atk }}/{{ detailPet.base_def }}/{{ detailPet.base_spd }}</p>
-        <p><strong>个体值</strong> (IV): {{ detailPet.iv_hp }}/{{ detailPet.iv_atk }}/{{ detailPet.iv_def }}/{{ detailPet.iv_spd }}</p>
-        <p><strong>努力值</strong> (EV): {{ detailPet.ev_hp || 0 }}/{{ detailPet.ev_atk || 0 }}/{{ detailPet.ev_def || 0 }}/{{ detailPet.ev_spd || 0 }}</p>
+        <p><strong>种族值</strong> (HP/攻击/防御/速度)</p>
+        <p>{{ detailPet.base_hp }} / {{ detailPet.base_atk }} / {{ detailPet.base_def }} / {{ detailPet.base_spd }}</p>
+        <p><strong>个体值</strong> (上限31)</p>
+        <div class="iv-bar"><span>HP:</span><div class="iv-fill" :style="{width: (detailPet.iv_hp/31*100)+'%'}"></div><span>{{ detailPet.iv_hp }}</span></div>
+        <div class="iv-bar"><span>攻击:</span><div class="iv-fill" :style="{width: (detailPet.iv_atk/31*100)+'%'}"></div><span>{{ detailPet.iv_atk }}</span></div>
+        <div class="iv-bar"><span>防御:</span><div class="iv-fill" :style="{width: (detailPet.iv_def/31*100)+'%'}"></div><span>{{ detailPet.iv_def }}</span></div>
+        <div class="iv-bar"><span>速度:</span><div class="iv-fill" :style="{width: (detailPet.iv_spd/31*100)+'%'}"></div><span>{{ detailPet.iv_spd }}</span></div>
+        <p>
+          <strong>个体值总和</strong>: {{ ivSum(detailPet) }} / 124
+          <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span>
+        </p>
+        <p><strong>努力值</strong> (EV, 单项上限252, 总和上限510)</p>
+        <p>HP:{{ detailPet.ev_hp || 0 }} 攻击:{{ detailPet.ev_atk || 0 }} 防御:{{ detailPet.ev_def || 0 }} 速度:{{ detailPet.ev_spd || 0 }}</p>
         <p><strong>技能</strong>: {{ petSkillNames(detailPet) }}</p>
-        <button class="btn red" @click="showPetDetail = false">关闭</button>
+        <button class="btn red" style="margin-top:8px" @click="releasePet(detailPet)">放生</button>
+        <button class="btn" @click="showPetDetail = false">关闭</button>
       </div>
     </div>
 
@@ -258,6 +276,7 @@ createApp({
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
     );
 
+    // ---------- 基础状态 ----------
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
@@ -274,11 +293,13 @@ createApp({
     const friends = ref([]);
     const friendName = ref('');
 
+    // ---------- UI 控制 ----------
     const showNicknameInput = ref(false);
     const newNickname = ref('');
     const showPetDetail = ref(false);
     const detailPet = ref(null);
 
+    // ---------- 战斗状态 ----------
     const showSkillPanel = ref(false);
     const battleBusy = ref(false);
     const catching = ref(false);
@@ -289,6 +310,7 @@ createApp({
     const playerHp = ref(100);
     const petHp = ref(0);
 
+    // ---------- 计算属性 ----------
     const playerSkills = computed(() => {
       if (!profile.value?.sect_id) return [];
       const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
@@ -309,12 +331,26 @@ createApp({
       return (profile.value.exp / (profile.value.level * 100)) * 100;
     });
 
+    // ---------- 工具函数 ----------
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
     function petSkillNames(pet) {
       const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
       return (pet.skills || []).map(id => map[id] || '?').join(',');
     }
+    function ivSum(pet) { return (pet.iv_hp||0)+(pet.iv_atk||0)+(pet.iv_def||0)+(pet.iv_spd||0); }
+    function ivGrade(pet) {
+      const sum = ivSum(pet);
+      if (sum >= 90) return 'S';
+      if (sum >= 70) return 'A';
+      if (sum >= 50) return 'B';
+      return 'C';
+    }
+    function ivGradeText(pet) {
+      const grades = { S: '传说', A: '优秀', B: '普通', C: '弱小' };
+      return grades[ivGrade(pet)] || '弱小';
+    }
 
+    // ---------- 数据刷新 ----------
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
@@ -346,6 +382,7 @@ createApp({
       else if (hasPet.value) view.value = 'map';
     }
 
+    // ---------- 认证函数 ----------
     async function login() {
       if (loading.value) return;
       loading.value = true;
@@ -369,6 +406,8 @@ createApp({
       view.value = 'auth';
       supabase.removeAllChannels();
     }
+
+    // ---------- 门派/初始宠/昵称/携带/放生 ----------
     async function joinSect(sectId) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { alert('请先登录'); view.value = 'auth'; return; }
@@ -399,6 +438,16 @@ createApp({
       detailPet.value = pet;
       showPetDetail.value = true;
     }
+    async function releasePet(pet) {
+      if (!confirm(`确定要放生 ${pet.nickname} 吗？此操作不可撤销。`)) return;
+      const { error } = await supabase.rpc('release_pet', { p_pet_id: pet.id });
+      if (error) return alert('放生失败：' + error.message);
+      alert('宠物已放生。');
+      showPetDetail.value = false;
+      refreshData();
+    }
+
+    // ---------- 探索/战斗 ----------
     async function openArea(area) {
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
@@ -410,11 +459,9 @@ createApp({
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
         encounter.value = data.data;
-        // 初始化怪物的当前血量和最大血量
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-
         const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
         activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
         if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
@@ -447,7 +494,6 @@ createApp({
       if (action === 'catch') {
         clearTimeout(timeoutId);
         catching.value = true;
-        // 传入野生宠物当前血量
         const { data, error } = await supabase.rpc('catch_wild_pet', {
           p_pet_id: activePet.value.id,
           p_wild_base_id: encounter.value.id,
@@ -466,16 +512,13 @@ createApp({
       }
 
       clearTimeout(timeoutId);
-      // 获取当前野生宠物或怪物的ID和血量
       let monsterId = encounter.value.id;
-      if (encounter.value.type === 'wild_pet') {
-        monsterId = 1; // 使用大海龟作为模板
-      }
+      if (encounter.value.type === 'wild_pet') monsterId = 1; // 模板
       const currentHp = encounter.value.currentHp;
       const { data, error } = await supabase.rpc('battle_encounter', {
         p_pet_id: activePet.value.id,
         p_monster_id: monsterId,
-        p_monster_current_hp: currentHp,   // 传入当前血量
+        p_monster_current_hp: currentHp,
         p_player_skill_id: action === 'player_skill' ? skillId : null,
         p_pet_skill_id: action === 'pet_skill' ? skillId : null
       });
@@ -486,7 +529,6 @@ createApp({
     function processBattleResult(data) {
       petHp.value = data.pet_hp;
       playerHp.value = data.player_hp;
-      // 更新怪物当前血量
       encounter.value.currentHp = data.monster_hp;
       enemyHp.value = data.monster_hp;
       if (data.log) {
@@ -515,6 +557,7 @@ createApp({
       });
     }
 
+    // ---------- 任务/BOSS/好友 ----------
     async function getDailyQuests() {
       const { data, error } = await supabase.rpc('get_daily_quests');
       if (error) { alert('获取任务失败'); return; }
@@ -531,6 +574,7 @@ createApp({
       refreshData();
     }
 
+    // ---------- 生命周期 ----------
     onMounted(() => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
@@ -558,9 +602,10 @@ createApp({
       showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent,
-      getMonsterName, petSkillNames, refreshData, login, register, logout, joinSect, selectStarter,
-      saveNickname, setCarried, openPetDetail, openArea, explore, battleAction,
-      getDailyQuests, submitQuest, attackWorldBoss, addFriend
+      getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText,
+      refreshData, login, register, logout, joinSect, selectStarter,
+      saveNickname, setCarried, openPetDetail, releasePet,
+      openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend
     }
   }
 }).mount('#app');
