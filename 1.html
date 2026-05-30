@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终版</title>
+  <title>梦幻宠物大冒险 · 最新版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; --jade: #2ecc71; }
+    :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: "STKaiti","楷体","PingFang SC",sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     #app { width: 420px; max-width: 100%; background: var(--bg); border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; height: 95vh; max-height: 800px; }
@@ -26,8 +26,13 @@
     .hp-bar { height: 6px; background: #555; border-radius: 3px; margin: 4px 0; }
     .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
-    .battle-box { background: #1a120b; border: 3px solid #8b5a2b; color: #f5d78c; padding: 15px; width: 90%; border-radius: 12px; }
+    .battle-box { background: #1a120b; border: 3px solid #8b5a2b; color: #f5d78c; padding: 15px; width: 90%; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
     .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 10px 0; }
+    .log-panel { background: #000; color: #f5d78c; padding: 8px; border-radius: 4px; margin: 8px 0; max-height: 60px; overflow-y: auto; }
+    .pokeball { width: 40px; height: 40px; background: red; border-radius: 50%; margin: 0 auto 10px; border: 3px solid black; position: relative; }
+    .pokeball::after { content: ''; position: absolute; top: 10px; left: 2px; right: 2px; height: 4px; background: black; }
+    .shake { animation: shake 0.3s; }
+    @keyframes shake { 0%{transform: rotate(0);} 25%{transform: rotate(-15deg);} 50%{transform: rotate(15deg);} 75%{transform: rotate(-10deg);} 100%{transform: rotate(0);} }
   </style>
 </head>
 <body>
@@ -41,18 +46,14 @@
   </div>
 
   <div class="main">
-    <!-- 登录/注册/拜师/选宠 -->
+    <!-- 认证/选门派/选宠 -->
     <div v-if="view === 'auth'">
       <div class="card" v-if="!profile">
         <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
         <input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email">
         <input v-model="password" placeholder="密码" type="password" autocomplete="current-password">
-        <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">
-          {{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}
-        </button>
-        <p style="text-align:center; cursor:pointer; color:#8b5a2b" @click="isLogin=!isLogin">
-          {{ isLogin ? '创建新角色' : '已有角色' }}
-        </p>
+        <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">{{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}</button>
+        <p style="text-align:center; cursor:pointer; color:#8b5a2b" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
       </div>
       <div class="card" v-if="profile && !profile.sect_id">
         <h3>拜师学艺</h3>
@@ -91,7 +92,7 @@
         <div v-for="p in myPets" :key="p.id" class="card">
           <strong>{{ p.nickname }}</strong> Lv.{{ p.level }}
           <div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/p.base_hp*100)+'%'}"></div></div>
-          <small>技能: {{ p.skills.join(',') }}</small>
+          <small>技能: {{ petSkillNames(p) }}</small>
         </div>
       </div>
     </div>
@@ -139,23 +140,44 @@
       <div class="battle-box">
         <h3>{{ encounter.name }} Lv.{{ encounter.level || 1 }}</h3>
         <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
-        <p style="margin:5px 0">{{ battleLog }}</p>
+        <div class="log-panel">
+          <p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p>
+        </div>
         <div style="display:flex; justify-content: space-between;">
           <div>
             <p>🧑 {{ username }}</p>
             <div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div>
+            <small>{{ playerHp }}/{{ playerMaxHp }}</small>
           </div>
-          <div>
-            <p>🐾 {{ activePet?.nickname }}</p>
+          <div v-if="activePet">
+            <p>🐾 {{ activePet.nickname }}</p>
             <div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div>
+            <small>{{ petHp }}/{{ petMaxHp }}</small>
           </div>
         </div>
-        <div class="skills-grid">
-          <button class="btn" @click="battleAction('player_attack')">🗡️ 普通攻击</button>
-          <button class="btn" @click="battleAction('pet_attack')">🐾 宠物攻击</button>
-          <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id)">✨ {{ skill.name }}</button>
-          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')">🎯 捕捉</button>
-          <button class="btn red" @click="battle.active=false; view='map'">🏃 逃跑</button>
+        <!-- 捕捉动画 -->
+        <div v-if="catching" style="text-align:center; margin:10px">
+          <div class="pokeball" :class="ballShakeClass"></div>
+          <p>{{ catchMessage }}</p>
+        </div>
+        <!-- 操作按钮（未捕捉时显示） -->
+        <div v-if="!catching">
+          <div class="skills-grid">
+            <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">🗡️ 攻击</button>
+            <button class="btn" @click="showSkillPanel = !showSkillPanel" :disabled="battleBusy">✨ 技能</button>
+            <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || catchBallCount <= 0">
+              🎯 捕捉 ({{ catchBallCount }})
+            </button>
+            <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
+          </div>
+          <!-- 技能选择面板 -->
+          <div v-if="showSkillPanel" style="background:white; color:black; padding:10px; border-radius:8px; margin-top:5px">
+            <p><strong>人物技能</strong></p>
+            <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">{{ skill.name }}</button>
+            <p><strong>宠物技能</strong></p>
+            <button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">{{ skill.name }}</button>
+            <button class="btn red" @click="showSkillPanel=false">取消</button>
+          </div>
         </div>
       </div>
     </div>
@@ -176,7 +198,6 @@ const { createApp, ref, computed, onMounted, reactive } = Vue;
 
 createApp({
   setup() {
-    // ========== 配置（必须替换为你自己的） ==========
     const supabase = window.supabase.createClient(
       'https://gjcxcexgendndemnuole.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ'
@@ -186,7 +207,7 @@ createApp({
     const view = ref('auth');
     const isLogin = ref(true);
     const email = ref(''); const password = ref('');
-    const loading = ref(false); // 防重复提交
+    const loading = ref(false);
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]);
     const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -199,27 +220,49 @@ createApp({
     const friends = ref([]);
     const friendName = ref('');
 
+    // 战斗扩展
+    const showSkillPanel = ref(false);
+    const battleBusy = ref(false);
+    const catching = ref(false);
+    const catchMessage = ref('');
+    const ballShakeClass = ref('');
+    const recentLogs = ref([]);
+
     const playerSkills = computed(() => {
       if (!profile.value?.sect_id) return [];
       const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] };
       return map[profile.value.sect_id] || [];
     });
 
-    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
-    const petHpPercent = computed(() => (petHp.value / (activePet.value?.base_hp || 1)) * 100);
-    const playerHpPercent = computed(() => {
-      let maxHp = 100 + (profile.value?.level || 1) * 20;
-      return (playerHp.value / maxHp) * 100;
+    const petSkills = computed(() => {
+      if (!activePet.value?.skills) return [];
+      const skillMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
+      return activePet.value.skills.map(id => ({ id, name: skillMap[id] || '未知' }));
     });
 
+    const catchBallCount = computed(() => {
+      const ball = inventory.value.find(i => i.item_id === 1);
+      return ball ? ball.quantity : 0;
+    });
+
+    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
+    const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20);
+    const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
+    const petMaxHp = computed(() => (activePet.value?.base_hp || 1) + (activePet.value?.iv_hp || 0));
+    const petHpPercent = computed(() => (petHp.value / petMaxHp.value) * 100);
+
     function getMonsterName(id) { const map = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return map[id] || '未知'; }
+    function petSkillNames(pet) {
+      const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
+      return (pet.skills || []).map(id => map[id] || '?').join(',');
+    }
 
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       
-      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn('ensure_profile failed:', e); }
-      try { await supabase.rpc('recover_energy'); } catch (e) { console.warn('recover_energy failed:', e); }
+      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn(e); }
+      try { await supabase.rpc('recover_energy'); } catch (e) { console.warn(e); }
 
       const [profRes, petRes, itemRes, areaRes, sectRes, questRes, bossRes, friendRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
@@ -235,11 +278,7 @@ createApp({
       if (profRes.data) {
         profile.value = profRes.data; username.value = profRes.data.username;
         silver.value = profRes.data.silver; diamond.value = profRes.data.diamond; energy.value = profRes.data.energy;
-      } else {
-        console.error('profiles not found, logging out');
-        await logout();
-        return;
-      }
+      } else { await logout(); return; }
       if (petRes.data) { myPets.value = petRes.data; hasPet.value = petRes.data.length > 0; }
       if (itemRes.data) inventory.value = itemRes.data;
       if (areaRes.data) areas.value = areaRes.data;
@@ -268,8 +307,6 @@ createApp({
       const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
       loading.value = false;
       if (error) { alert('注册失败：' + error.message); return; }
-      // 注册后自动确保 profile
-      try { await supabase.rpc('ensure_profile'); } catch (e) { console.warn(e); }
       refreshData();
     }
 
@@ -311,44 +348,97 @@ createApp({
         activePet.value = myPets.value[0];
         petHp.value = activePet.value.current_hp;
         enemyHp.value = data.data.hp;
-        playerHp.value = 100 + (profile.value.level || 1) * 20;
+        playerHp.value = playerMaxHp.value;
         battle.active = true;
+        recentLogs.value = [];
         battleLog.value = data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`;
+        recentLogs.value.push(battleLog.value);
       }
     }
 
     async function battleAction(action, skillId = null) {
-      let monsterId = encounter.value.id;
-      if (encounter.value.type === 'wild_pet') monsterId = 1;
-      let rpcResult;
-      if (action === 'catch') {
-        rpcResult = await supabase.rpc('catch_wild_pet', { p_pet_id: activePet.value.id, p_wild_base_id: encounter.value.id });
-      } else {
-        rpcResult = await supabase.rpc('battle_encounter', { p_pet_id: activePet.value.id, p_monster_id: monsterId, p_player_skill_id: action === 'player_skill' ? skillId : null });
-      }
-      const { data, error } = rpcResult;
-      if (error) { alert('操作出错：' + error.message); return; }
-      if (!data) { alert('服务器未返回数据'); return; }
-      if (action === 'catch') {
-        alert(data.caught ? '捕获成功！' : '捕获失败');
+      if (battleBusy.value) return;
+      battleBusy.value = true;
+      showSkillPanel.value = false;
+
+      if (action === 'run') {
+        alert('逃跑成功！战斗结束。');
         battle.active = false;
         refreshData();
+        battleBusy.value = false;
         return;
       }
+
+      if (action === 'catch') {
+        if (catchBallCount.value <= 0) { alert('没有捕捉球了！'); battleBusy.value = false; return; }
+        catching.value = true;
+        const { data, error } = await supabase.rpc('catch_wild_pet', {
+          p_pet_id: activePet.value.id,
+          p_wild_base_id: encounter.value.id
+        });
+        if (error) { alert('捕捉失败：' + error.message); catching.value = false; battleBusy.value = false; return; }
+        await shakeBall(3);
+        if (data.caught) {
+          catchMessage.value = '收服成功！';
+          setTimeout(() => {
+            catching.value = false;
+            battle.active = false;
+            refreshData();
+          }, 1500);
+        } else {
+          catchMessage.value = '挣脱了！';
+          setTimeout(() => {
+            catching.value = false;
+            battleBusy.value = false;
+          }, 1000);
+        }
+        return;
+      }
+
+      // 战斗 RPC
+      const { data, error } = await supabase.rpc('battle_encounter', {
+        p_pet_id: activePet.value.id,
+        p_monster_id: encounter.value.id,
+        p_player_skill_id: action === 'player_skill' ? skillId : null,
+        p_pet_skill_id: action === 'pet_skill' ? skillId : null
+      });
+      if (error) { alert('战斗出错：' + error.message); battleBusy.value = false; return; }
       processBattleResult(data);
+      battleBusy.value = false;
     }
 
     function processBattleResult(data) {
-      if (!data || !data.log) { alert('无效的战斗数据'); return; }
-      battleLog.value = data.log[data.log.length-1]?.text || '';
       petHp.value = data.pet_hp;
       playerHp.value = data.player_hp;
+      enemyHp.value = data.monster_hp;
+      if (data.log) {
+        data.log.forEach(msg => {
+          recentLogs.value.push(msg.text);
+        });
+        if (recentLogs.value.length > 3) recentLogs.value = recentLogs.value.slice(-3);
+      }
       if (data.win) {
-        setTimeout(() => { battle.active = false; refreshData(); }, 1200);
+        setTimeout(() => { battle.active = false; refreshData(); }, 1500);
       } else if (playerHp.value <= 0) {
         alert('你被打败了...');
         battle.active = false;
+        refreshData();
       }
+    }
+
+    function shakeBall(times) {
+      return new Promise(resolve => {
+        let count = 0;
+        const interval = setInterval(() => {
+          ballShakeClass.value = 'shake';
+          setTimeout(() => ballShakeClass.value = '', 300);
+          count++;
+          if (count >= times) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 500);
+      });
     }
 
     async function getDailyQuests() {
@@ -368,11 +458,8 @@ createApp({
     }
 
     onMounted(() => {
-      // 清理旧 Service Worker（如果存在）
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          registrations.forEach(reg => reg.unregister());
-        });
+        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
       }
       refreshData();
       supabase.from('base_pets_def').select('*').in('id',[1,2,3]).then(({data})=>starters.value=data);
@@ -393,8 +480,9 @@ createApp({
       profile, hasPet, starters, sects,
       areas, currentScenes, currentAreaName, myPets, activePet, inventory,
       encounter, battleLog, enemyHp, playerHp, petHp, battle, dailyQuests, worldBoss, friends, friendName,
-      playerSkills, enemyHpPercent, petHpPercent, playerHpPercent,
-      getMonsterName, refreshData, register, login, logout, joinSect, selectStarter, openArea, explore, battleAction,
+      playerSkills, petSkills, catchBallCount, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
+      enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
+      getMonsterName, petSkillNames, refreshData, register, login, logout, joinSect, selectStarter, openArea, explore, battleAction,
       getDailyQuests, submitQuest, attackWorldBoss, addFriend
     }
   }
