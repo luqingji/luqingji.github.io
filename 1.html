@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终版</title>
+  <title>梦幻宠物大冒险 · 最终完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -193,7 +193,7 @@
       </div>
     </div>
 
-    <!-- 世界BOSS（自动复活） -->
+    <!-- 世界BOSS -->
     <div v-if="view === 'boss'">
       <h3>👹 妖风</h3>
       <div class="card">
@@ -384,7 +384,6 @@ createApp({
       if (bossRes.data) worldBoss.value = bossRes.data;
       if (friendRes.data) friends.value = friendRes.data;
 
-      // 检查今日是否已攻击
       if (user) {
         const { data: attackData } = await supabase.from('world_boss_attacks')
           .select('*')
@@ -398,6 +397,23 @@ createApp({
       if (profile.value && !profile.value.sect_id) view.value = 'auth';
       else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
       else if (hasPet.value) view.value = 'map';
+    }
+
+    // 自动刷新体力
+    function startEnergySync() {
+      setInterval(async () => {
+        if (profile.value?.id) {
+          try {
+            const { data } = await supabase.rpc('recover_energy');
+            if (data && data.energy !== undefined) {
+              energy.value = data.energy;
+              if (data.max_energy) {
+                profile.value.max_energy = data.max_energy;
+              }
+            }
+          } catch (e) { /* 静默 */ }
+        }
+      }, 30000);
     }
 
     // ---------- 认证 ----------
@@ -626,18 +642,7 @@ createApp({
         if (profile.value?.id) supabase.from('profiles').update({ is_online: false }).eq('id', profile.value.id);
       });
 
-      // 每30秒同步一次体力
-      setInterval(async () => {
-        if (profile.value?.id) {
-          try {
-            const { data } = await supabase.rpc('recover_energy');
-            if (data) {
-              energy.value = data.energy;
-              Object.assign(profile.value, data);
-            }
-          } catch (e) { /* 静默 */ }
-        }
-      }, 30000);
+      startEnergySync();
     });
 
     return {
@@ -650,7 +655,7 @@ createApp({
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText,
-      refreshData, login, register, logout, joinSect, selectStarter,
+      refreshData, startEnergySync, login, register, logout, joinSect, selectStarter,
       saveNickname, setCarried, openPetDetail, releasePet,
       openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend
     }
