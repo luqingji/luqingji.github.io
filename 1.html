@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 等级经验版</title>
+  <title>梦幻宠物大冒险 · 修复血量版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -201,6 +201,7 @@
         <div class="enemy-name">{{ encounter.name }}</div>
         <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
         <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
+        <small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small>
       </div>
       <div class="battle-log-area">
         <p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p>
@@ -298,7 +299,7 @@ createApp({
       const skillMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'};
       return activePet.value.skills.map(id => ({ id, name: skillMap[id] || '未知' }));
     });
-    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.hp || 1)) * 100);
+    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
     const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20);
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
     const petMaxHp = computed(() => (activePet.value?.base_hp || 1) + (activePet.value?.iv_hp || 0));
@@ -409,11 +410,15 @@ createApp({
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
         encounter.value = data.data;
+        // 初始化怪物的当前血量和最大血量
+        encounter.value.currentHp = data.data.hp;
+        encounter.value.maxHp = data.data.hp;
+        enemyHp.value = data.data.hp;
+
         const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
         activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
         if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
         petHp.value = activePet.value.current_hp;
-        enemyHp.value = data.data.hp;
         playerHp.value = playerMaxHp.value;
         battleBusy.value = false;
         catching.value = false;
@@ -442,9 +447,11 @@ createApp({
       if (action === 'catch') {
         clearTimeout(timeoutId);
         catching.value = true;
+        // 传入野生宠物当前血量
         const { data, error } = await supabase.rpc('catch_wild_pet', {
           p_pet_id: activePet.value.id,
-          p_wild_base_id: encounter.value.id
+          p_wild_base_id: encounter.value.id,
+          p_wild_current_hp: encounter.value.currentHp
         });
         if (error) { alert('捕捉失败：' + error.message); catching.value = false; battleBusy.value = false; return; }
         await shakeBall(3);
@@ -459,10 +466,16 @@ createApp({
       }
 
       clearTimeout(timeoutId);
-      const monsterId = encounter.value.id;
+      // 获取当前野生宠物或怪物的ID和血量
+      let monsterId = encounter.value.id;
+      if (encounter.value.type === 'wild_pet') {
+        monsterId = 1; // 使用大海龟作为模板
+      }
+      const currentHp = encounter.value.currentHp;
       const { data, error } = await supabase.rpc('battle_encounter', {
         p_pet_id: activePet.value.id,
         p_monster_id: monsterId,
+        p_monster_current_hp: currentHp,   // 传入当前血量
         p_player_skill_id: action === 'player_skill' ? skillId : null,
         p_pet_skill_id: action === 'pet_skill' ? skillId : null
       });
@@ -473,6 +486,8 @@ createApp({
     function processBattleResult(data) {
       petHp.value = data.pet_hp;
       playerHp.value = data.player_hp;
+      // 更新怪物当前血量
+      encounter.value.currentHp = data.monster_hp;
       enemyHp.value = data.monster_hp;
       if (data.log) {
         data.log.forEach(msg => recentLogs.value.push(msg.text));
@@ -541,7 +556,7 @@ createApp({
       encounter, battle, dailyQuests, worldBoss, friends, friendName,
       showNicknameInput, newNickname, showPetDetail, detailPet,
       showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
-      enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, enemyHp, playerHp, petHp,
+      enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent,
       getMonsterName, petSkillNames, refreshData, login, register, logout, joinSect, selectStarter,
       saveNickname, setCarried, openPetDetail, openArea, explore, battleAction,
