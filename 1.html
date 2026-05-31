@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 大平衡版</title>
+  <title>梦幻宠物大冒险 · 大平衡2版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -343,7 +343,10 @@ createApp({
     });
 
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
-    const petSkills = computed(() => { if (!activePet.value?.skills) return []; const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return activePet.value.skills.map(id => ({ id, name: map[id] || '未知' })); });
+    // 技能名映射扩展
+    const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
+      11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
+    const petSkills = computed(() => { if (!activePet.value?.skills) return []; return activePet.value.skills.map(id => ({ id, name: skillNameMap[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
     const playerMaxHp = computed(() => {
       let bonus = 0;
@@ -380,7 +383,7 @@ createApp({
     // ---------- 工具函数 ----------
     function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精',7:'岩石傀儡',8:'矿洞蝙蝠',9:'晶岩巨人'}; return m[id] || '未知'; }
     function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
-    function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
+    function petSkillNames(p) { return (p.skills||[]).map(id => skillNameMap[id] || '?').join(','); }
     function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
     function ivGrade(p) { const s = ivSum(p); return s>=90?'S':s>=70?'A':s>=50?'B':'C'; }
     function ivGradeText(p) { return {S:'传说',A:'优秀',B:'普通',C:'弱小'}[ivGrade(p)]||'弱小'; }
@@ -537,7 +540,11 @@ createApp({
       if (data.error) { alert(data.error); return; }
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
-        if (data.type === 'wild_pet') data.data.level = 1;
+        if (data.type === 'wild_pet') {
+          // 野生宠物遭遇，存储 base_pet_id
+          data.data.base_pet_id = data.data.id;  // explore_area 返回的 data.data 可能直接是 base_pet_def
+          data.data.level = 1;
+        }
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
@@ -562,7 +569,7 @@ createApp({
     function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
     function cancelSkillPanel() { showSkillPanel.value = false; }
 
-    // ---------- 战斗（适配新公式） ----------
+    // ---------- 战斗（适配新公式，传递 p_wild_base_id） ----------
     async function battleAction(action, skillId = null) {
       if (battleBusy.value) return;
       battleBusy.value = true; showSkillPanel.value = false;
@@ -570,7 +577,11 @@ createApp({
       if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; }
       if (action === 'catch') {
         clearTimeout(t); catching.value = true;
-        const { data, error } = await supabase.rpc('catch_wild_pet',{p_pet_id:activePet.value.id,p_wild_base_id:encounter.value.id,p_wild_current_hp:encounter.value.currentHp});
+        const { data, error } = await supabase.rpc('catch_wild_pet',{
+          p_pet_id:activePet.value.id,
+          p_wild_base_id: encounter.value.base_pet_id,
+          p_wild_current_hp: encounter.value.currentHp
+        });
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
         await shakeBall(3);
         if (data.caught) { catchMessage.value = '收服成功！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500); }
@@ -579,8 +590,15 @@ createApp({
       }
       clearTimeout(t);
       let monsterId = encounter.value.id; let isWild = encounter.value.type === 'wild_pet';
-      if (isWild) monsterId = 1;
-      const rpcParams = { p_pet_id: activePet.value.id, p_monster_id: monsterId, p_monster_current_hp: encounter.value.currentHp, p_is_wild: isWild, p_enemy_name: encounter.value.name };
+      let wildBaseId = isWild ? encounter.value.base_pet_id : null;
+      const rpcParams = {
+        p_pet_id: activePet.value.id,
+        p_monster_id: isWild ? 1 : monsterId,
+        p_monster_current_hp: encounter.value.currentHp,
+        p_is_wild: isWild,
+        p_enemy_name: encounter.value.name,
+        p_wild_base_id: wildBaseId
+      };
       if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
       else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
       else if (action === 'pet_skill') { rpcParams.p_player_skill_id = null; rpcParams.p_pet_skill_id = skillId; }
