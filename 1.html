@@ -295,9 +295,7 @@
         </div>
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
-          <!-- ★ 修改点1：技能按钮不再因宠物阵亡而禁用，仅受战斗忙碌影响 -->
           <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
-          <!-- ★ 修改点2：捕捉按钮仍需宠物存活 -->
           <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive">🎯 捕捉</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
@@ -614,11 +612,31 @@ createApp({
       }
     }
 
-    // ---------- 组合技能 ----------
-    function openSkillPanel() { pendingPlayerSkill.value = null; pendingPetSkill.value = null; showSkillPanel.value = true; }
-    function selectPlayerSkill(skillId) { pendingPlayerSkill.value = skillId; checkAndExecute(); }
-    function selectPetSkill(skillId) { pendingPetSkill.value = skillId; checkAndExecute(); }
-    function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
+    // ---------- ★ 技能面板逻辑（宠物阵亡时直接释放人物技能并关闭） ----------
+    function openSkillPanel() {
+      pendingPlayerSkill.value = null;
+      pendingPetSkill.value = null;
+      showSkillPanel.value = true;
+    }
+    function selectPlayerSkill(skillId) {
+      pendingPlayerSkill.value = skillId;
+      if (!isPetAlive.value) {
+        showSkillPanel.value = false;
+        battleAction('player_skill', skillId);
+        return;
+      }
+      checkAndExecute();
+    }
+    function selectPetSkill(skillId) {
+      pendingPetSkill.value = skillId;
+      checkAndExecute();
+    }
+    function checkAndExecute() {
+      if (pendingPlayerSkill.value && pendingPetSkill.value) {
+        showSkillPanel.value = false;
+        battleAction('combined_skills');
+      }
+    }
     function cancelSkillPanel() { showSkillPanel.value = false; }
 
     // ---------- 战斗 ----------
@@ -666,9 +684,7 @@ createApp({
       if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
       if (data.pet_leveled_up) alert('你的宠物升级了！');
       if (data.player_leveled_up) alert('你升级了！');
-      if (data.pet_hp !== undefined && activePet.value) {
-        activePet.value.current_hp = data.pet_hp;
-      }
+      if (data.pet_hp !== undefined && activePet.value) { activePet.value.current_hp = data.pet_hp; }
       if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
       else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
     }
