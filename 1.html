@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 携带修复版</title>
+  <title>梦幻宠物大冒险 · 携带按钮优化版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -164,9 +164,9 @@
     </div>
     <!-- 场景 -->
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
-    <!-- 宠物列表 -->
-    <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small><button class="btn" style="font-size:11px; padding:2px 6px; margin-top:4px" @click.stop="setCarried(p.id)" :disabled="p.current_hp <= 0">设为携带</button></div></div></div>
-    <!-- 宠物详情面板 -->
+    <!-- 宠物列表（移除了“设为携带”按钮） -->
+    <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
+    <!-- 宠物详情面板（包含携带按钮） -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
         <div class="pet-detail-header">
@@ -577,7 +577,6 @@ createApp({
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        // 携带逻辑：优先使用携带且存活的宠物
         const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
         activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
         if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
@@ -654,7 +653,6 @@ createApp({
       if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
       if (data.pet_leveled_up) alert('你的宠物升级了！');
       if (data.player_leveled_up) alert('你升级了！');
-      // 立即更新宠物状态（血量、携带）
       if (data.pet_hp !== undefined && activePet.value) {
         activePet.value.current_hp = data.pet_hp;
         if (data.pet_hp <= 0) activePet.value.is_carried = false;
