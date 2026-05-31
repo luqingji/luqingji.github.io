@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终中文版</title>
+  <title>梦幻宠物大冒险 · 大平衡版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -183,19 +183,8 @@
         <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
         <p><span class="attr-label">经验:</span> {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p>
         <div class="pet-info-grid">
-          <div class="info-block">
-            <h4>实际属性</h4>
-            <p><span class="attr-label">攻击:</span> {{ petRealAtk(detailPet) }}</p>
-            <p><span class="attr-label">防御:</span> {{ petRealDef(detailPet) }}</p>
-            <p><span class="attr-label">速度:</span> {{ petRealSpd(detailPet) }}</p>
-          </div>
-          <div class="info-block">
-            <h4>种族值</h4>
-            <p><span class="attr-label">HP:</span> {{ detailPet.base_hp || 0 }}</p>
-            <p><span class="attr-label">攻击:</span> {{ detailPet.base_atk || 0 }}</p>
-            <p><span class="attr-label">防御:</span> {{ detailPet.base_def || 0 }}</p>
-            <p><span class="attr-label">速度:</span> {{ detailPet.base_spd || 0 }}</p>
-          </div>
+          <div class="info-block"><h4>实际属性</h4><p><span class="attr-label">攻击:</span> {{ petRealAtk(detailPet) }}</p><p><span class="attr-label">防御:</span> {{ petRealDef(detailPet) }}</p><p><span class="attr-label">速度:</span> {{ petRealSpd(detailPet) }}</p></div>
+          <div class="info-block"><h4>种族值</h4><p><span class="attr-label">HP:</span> {{ detailPet.base_hp || 0 }}</p><p><span class="attr-label">攻击:</span> {{ detailPet.base_atk || 0 }}</p><p><span class="attr-label">防御:</span> {{ detailPet.base_def || 0 }}</p><p><span class="attr-label">速度:</span> {{ detailPet.base_spd || 0 }}</p></div>
         </div>
         <h4>个体值</h4>
         <div class="iv-bar"><span class="attr-label">HP:</span><div class="iv-fill" :style="{width: ((detailPet.iv_hp||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_hp || 0 }}</span></div>
@@ -203,10 +192,8 @@
         <div class="iv-bar"><span class="attr-label">防御:</span><div class="iv-fill" :style="{width: ((detailPet.iv_def||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_def || 0 }}</span></div>
         <div class="iv-bar"><span class="attr-label">速度:</span><div class="iv-fill" :style="{width: ((detailPet.iv_spd||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_spd || 0 }}</span></div>
         <p><strong>个体值总和</strong>: {{ ivSum(detailPet) }} / 124 <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span></p>
-        <h4>努力值</h4>
-        <p><span class="attr-label">HP:</span> {{ detailPet.ev_hp || 0 }} <span class="attr-label">攻击:</span> {{ detailPet.ev_atk || 0 }} <span class="attr-label">防御:</span> {{ detailPet.ev_def || 0 }} <span class="attr-label">速度:</span> {{ detailPet.ev_spd || 0 }}</p>
-        <h4>技能</h4>
-        <p>{{ petSkillNames(detailPet) }}</p>
+        <h4>努力值</h4><p><span class="attr-label">HP:</span> {{ detailPet.ev_hp || 0 }} <span class="attr-label">攻击:</span> {{ detailPet.ev_atk || 0 }} <span class="attr-label">防御:</span> {{ detailPet.ev_def || 0 }} <span class="attr-label">速度:</span> {{ detailPet.ev_spd || 0 }}</p>
+        <h4>技能</h4><p>{{ petSkillNames(detailPet) }}</p>
         <div class="pet-actions">
           <button class="btn" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
           <button class="btn red" @click="releasePet(detailPet)">放生</button>
@@ -226,11 +213,7 @@
           <div class="char-stat-item"><span>耐力</span> {{ profile?.endurance || 5 }} <button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
           <div class="char-stat-item"><span>敏捷</span> {{ profile?.agility || 5 }} <button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
         </div>
-        <div class="char-real-stats">
-          <span>攻击: {{ playerRealAtk }}</span>
-          <span>防御: {{ playerRealDef }}</span>
-          <span>速度: {{ playerRealSpd }}</span>
-        </div>
+        <div class="char-real-stats"><span>攻击: {{ playerRealAtk }}</span><span>防御: {{ playerRealDef }}</span><span>速度: {{ playerRealSpd }}</span></div>
         <p>最大生命: {{ playerMaxHp }} | 银两: {{ silver }}</p>
         <h4>🛡️ 装备</h4>
         <div class="equip-grid">
@@ -242,16 +225,10 @@
         </div>
         <div v-if="selectedSlot" style="margin-top:6px; font-size:11px;">
           <p><strong>{{ slotNames[selectedSlot] }}</strong></p>
-          <div v-if="equippedItems[selectedSlot]">
-            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ qualityCN[equippedItems[selectedSlot].quality] }})</p>
-            <button class="btn red" style="font-size:11px;" @click="unequipItem(selectedSlot)">卸下</button>
-          </div>
+          <div v-if="equippedItems[selectedSlot]"><p>已装备: {{ equippedItems[selectedSlot].name }} ({{ qualityCN[equippedItems[selectedSlot].quality] }})</p><button class="btn red" style="font-size:11px;" @click="unequipItem(selectedSlot)">卸下</button></div>
           <div v-else><p>未装备</p></div>
           <h4>可选装备</h4>
-          <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:4px 6px; margin:3px 0; font-size:11px; cursor:pointer" @click="equipItem(eq)">
-            <p>{{ eq.name }} ({{ qualityCN[eq.quality] }})</p>
-            <small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small>
-          </div>
+          <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:4px 6px; margin:3px 0; font-size:11px; cursor:pointer" @click="equipItem(eq)"><p>{{ eq.name }} ({{ qualityCN[eq.quality] }})</p><small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small></div>
           <button class="btn" style="font-size:11px;" @click="selectedSlot = null">关闭</button>
         </div>
         <button class="btn red" style="margin-top:6px;" @click="showCharacterPanel = false">关闭</button>
@@ -260,22 +237,14 @@
     <!-- 背包 -->
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
-      <div>
-        <span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span>
-        <span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span>
-      </div>
-      <div v-if="inventoryTab === 'consumable'">
-        <div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div>
-      </div>
+      <div><span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span><span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span></div>
+      <div v-if="inventoryTab === 'consumable'"><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
-        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
-          <p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p>
-          <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
-        </div>
+        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;"><p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p><small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small></div>
       </div>
     </div>
-    <!-- 装备详情弹窗（固定大小+分解按钮） -->
+    <!-- 装备详情弹窗 -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -285,10 +254,7 @@
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
-        <div class="btn-area">
-          <button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button>
-          <button class="btn" @click="showEquipmentDetail = false">关闭</button>
-        </div>
+        <div class="btn-area"><button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button><button class="btn" @click="showEquipmentDetail = false">关闭</button></div>
       </div>
     </div>
     <!-- 师门任务 -->
@@ -300,12 +266,7 @@
     <!-- 战斗界面 -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
-        <div class="battle-enemy-area">
-          <div class="enemy-name" @click="showEnemyInfo = true">{{ encounter.name }}</div>
-          <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
-          <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
-          <small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small>
-        </div>
+        <div class="battle-enemy-area"><div class="enemy-name" @click="showEnemyInfo = true">{{ encounter.name }}</div><div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div><small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small></div>
         <div class="battle-log-area"><p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p></div>
         <div class="battle-ally-area">
           <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
@@ -367,7 +328,6 @@ createApp({
     const showEnemyInfo = ref(false);
     const pendingPlayerSkill = ref(null);
     const pendingPetSkill = ref(null);
-    // 品质中文映射
     const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
 
     // ---------- 计算属性 ----------
@@ -418,7 +378,7 @@ createApp({
     });
 
     // ---------- 工具函数 ----------
-    function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精'}; return m[id] || '未知'; }
+    function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精',7:'岩石傀儡',8:'矿洞蝙蝠',9:'晶岩巨人'}; return m[id] || '未知'; }
     function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
     function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
     function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
@@ -538,26 +498,20 @@ createApp({
         if (regNickname.value.trim() !== profileData.username) {
           await supabase.rpc('update_nickname', { p_nickname: regNickname.value.trim() });
         }
-        profile.value = profileData;
-        username.value = profileData.username;
-        startEnergySync();
-        startPetRecovery();
-        view.value = 'map';
+        profile.value = profileData; username.value = profileData.username;
+        startEnergySync(); startPetRecovery(); view.value = 'map';
       } else { alert('创建角色失败：' + (error?.message || '未知错误')); }
-      loading.value = false;
-      refreshData();
+      loading.value = false; refreshData();
     }
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
     async function register() {
       if (!regNickname.value.trim()) return alert('请填写昵称');
-      if (loading.value) return;
-      loading.value = true;
+      if (loading.value) return; loading.value = true;
       const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
       if (error) { alert('注册失败：' + error.message); loading.value = false; return; }
       try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {}
-      loading.value = false;
-      refreshData();
+      loading.value = false; refreshData();
     }
     async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; playerEquipment.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
 
@@ -571,10 +525,7 @@ createApp({
 
     // ---------- 地图与探索 ----------
     async function openArea(area) {
-      if ((profile.value?.level || 1) < area.required_level) {
-        alert(`需要达到 Lv.${area.required_level} 才能进入${area.name}`);
-        return;
-      }
+      if ((profile.value?.level || 1) < area.required_level) { alert(`需要达到 Lv.${area.required_level} 才能进入${area.name}`); return; }
       const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id);
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
     }
@@ -611,7 +562,7 @@ createApp({
     function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
     function cancelSkillPanel() { showSkillPanel.value = false; }
 
-    // ---------- 战斗 ----------
+    // ---------- 战斗（适配新公式） ----------
     async function battleAction(action, skillId = null) {
       if (battleBusy.value) return;
       battleBusy.value = true; showSkillPanel.value = false;
