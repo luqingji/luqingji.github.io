@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完整版</title>
+  <title>梦幻宠物大冒险 · 面板修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -58,7 +58,7 @@
     .ally-block .hp-bar { width: 100%; height: 6px; background: #555; border-radius: 3px; margin: 3px 0; }
     .ally-block .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
     .ally-block .hp-text { font-size: 11px; color: #ddd; }
-    .battle-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .battle-actions button { padding: 8px 4px; font-size: 13px; border-radius: 6px; font-weight: bold; }
     .catch-animation { text-align: center; }
     .pokeball { width: 40px; height: 40px; background: #e74c3c; border-radius: 50%; margin: 0 auto 10px; border: 3px solid #222; position: relative; }
@@ -70,6 +70,28 @@
     .skill-panel button { margin: 2px 0; padding: 5px; font-size: 13px; }
     .skill-selected { background: #d4af37; color: white; }
     .enemy-info-card { background: var(--bg); border: 2px solid var(--wood); border-radius: 8px; padding: 12px; color: #2c1810; max-width: 90%; }
+
+    /* 修复面板显示不全 */
+    .character-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 85vh; overflow-y: auto; }
+    .pet-detail-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 85vh; overflow-y: auto; }
+    .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .pet-detail-header h3 { display: flex; align-items: center; gap: 5px; }
+    .pet-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .pet-info-grid .info-block { background: rgba(255,255,240,0.8); padding: 8px; border-radius: 5px; }
+    .pet-info-grid .info-block p { margin: 2px 0; font-size: 13px; }
+    .pet-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .pet-actions button { flex: 1; }
+    .role-card { background: rgba(255,255,240,0.9); border: 2px solid #d4af37; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin: 10px 0; }
+    .role-card:hover { background: rgba(212, 175, 55, 0.1); }
+    .area-locked { opacity: 0.6; }
+    .inventory-tab { display: inline-block; padding: 4px 12px; margin-right: 5px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; }
+    .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
+    .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; position: relative; }
+    .equip-slot.equipped { background: #d4af37; }
+    .equip-slot .equip-name { position: absolute; bottom: -14px; left: 0; right: 0; font-size: 10px; color: #2c1810; font-weight: bold; background: rgba(255,255,240,0.9); border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 6px; background: rgba(255,255,240,0.5); border-radius: 5px; }
+    .stat-row span { font-weight: bold; }
+    .stat-row button { padding: 4px 12px; font-size: 14px; min-width: 40px; }
   </style>
 </head>
 <body>
@@ -295,12 +317,11 @@
           <button v-for="skill in petSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPetSkill === skill.id }" @click="selectPetSkill(skill.id)">🐾 {{ skill.name }}</button>
           <button class="btn red" @click="cancelSkillPanel">取消</button>
         </div>
-        <!-- 操作栏 -->
+        <!-- 操作栏（移除自动按钮） -->
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
           <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
           <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy">🎯 捕捉</button>
-          <button class="btn" @click="battleAction('pet_auto')" :disabled="battleBusy">🐾 自动</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
       </div>
@@ -328,6 +349,7 @@ const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
+    // ---------- 状态 ----------
     const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -345,7 +367,7 @@ createApp({
     const pendingPlayerSkill = ref(null);
     const pendingPetSkill = ref(null);
 
-    // 计算属性与工具函数（保持与之前版本一致）
+    // ---------- 计算属性 ----------
     const equippedItems = computed(() => {
       const eq = {};
       playerEquipment.value.filter(e => e.equipped).forEach(e => { eq[e.slot] = e.equipment_def; });
@@ -356,6 +378,7 @@ createApp({
       playerEquipment.value.filter(e => !e.equipped).forEach(e => { av[e.slot].push({ ...e.equipment_def, id: e.id }); });
       return av;
     });
+
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
     const petSkills = computed(() => { if (!activePet.value?.skills) return []; const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return activePet.value.skills.map(id => ({ id, name: map[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
@@ -371,6 +394,7 @@ createApp({
     const petHpPercent = computed(() => (petHp.value / (petMaxHp.value || 1)) * 100);
     const playerExpPercent = computed(() => { if (!profile.value) return 0; return (profile.value.exp / (profile.value.level * 100)) * 100; });
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
+
     const playerRealAtk = computed(() => {
       let base = (profile.value?.strength || 5) * 1.5;
       if (equippedItems.value.weapon) base += equippedItems.value.weapon.base_atk || 0;
@@ -390,6 +414,7 @@ createApp({
       return Math.floor(base);
     });
 
+    // ---------- 工具函数 ----------
     function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精'}; return m[id] || '未知'; }
     function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
     function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
@@ -401,7 +426,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 装备加载
+    // ---------- 装备操作 ----------
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
@@ -424,7 +449,7 @@ createApp({
       showEquipmentDetail.value = true;
     }
 
-    // 体力同步
+    // ---------- 体力同步 ----------
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -448,12 +473,14 @@ createApp({
     function startEnergySync() { syncEnergy(); energyTimer = setInterval(syncEnergy, 30000); }
     function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
 
+    // ---------- 初始化视图 ----------
     function initView() {
       if (!profile.value) view.value = 'auth';
       else if (!profile.value.sect_id) view.value = 'role_select';
       else view.value = 'role_select';
     }
 
+    // ---------- 数据刷新 ----------
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
@@ -475,6 +502,7 @@ createApp({
       await loadEquipment();
     }
 
+    // ---------- 认证流程 ----------
     function returnToRoleSelect() { stopEnergySync(); view.value = 'role_select'; }
     function enterGame() { if (profile.value?.sect_id) { startEnergySync(); view.value = 'map'; } }
     async function createCharacterAndEnter(sectId) {
@@ -508,6 +536,8 @@ createApp({
       refreshData();
     }
     async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; playerEquipment.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
+
+    // ---------- 角色操作 ----------
     async function joinSect(id) { const { data: { user } } = await supabase.auth.getUser(); if (!user) { alert('请先登录'); view.value = 'auth'; return; } const { data, error } = await supabase.rpc('create_character',{p_sect_id:id}); if (error) { alert('拜师失败：'+error.message); return; } if (data.error) { alert(data.error); return; } refreshData(); }
     async function selectStarter(id) { const { error } = await supabase.rpc('select_starter',{p_pet_id:id}); if (error) { alert('选宠失败：'+error.message); return; } refreshData(); }
     async function saveNickname() { if (!newNickname.value.trim()) return alert('昵称不能为空'); const { error } = await supabase.rpc('update_nickname',{p_nickname:newNickname.value.trim()}); if (error) return alert('修改失败：'+error.message); alert('昵称修改成功！'); showNicknameInput.value = false; refreshData(); }
@@ -515,6 +545,7 @@ createApp({
     function openPetDetail(p) { detailPet.value = p; showPetDetail.value = true; }
     async function releasePet(p) { if (!confirm(`确定要放生 ${p.nickname} 吗？`)) return; const { error } = await supabase.rpc('release_pet',{p_pet_id:p.id}); if (error) return alert('放生失败：'+error.message); alert('宠物已放生。'); showPetDetail.value = false; refreshData(); }
 
+    // ---------- 地图与探索 ----------
     async function openArea(area) {
       if ((profile.value?.level || 1) < area.required_level) {
         alert(`需要达到 Lv.${area.required_level} 才能进入${area.name}`);
@@ -531,7 +562,7 @@ createApp({
       if (data.error) { alert(data.error); return; }
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
-        if (data.type === 'wild_pet') data.data.level = 1;   // 野生宠物固定1级
+        if (data.type === 'wild_pet') data.data.level = 1;
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
@@ -548,7 +579,7 @@ createApp({
       }
     }
 
-    // 组合技能面板
+    // ---------- 组合技能面板 ----------
     function openSkillPanel() {
       pendingPlayerSkill.value = null;
       pendingPetSkill.value = null;
@@ -572,6 +603,7 @@ createApp({
       showSkillPanel.value = false;
     }
 
+    // ---------- 战斗 ----------
     async function battleAction(action, skillId = null) {
       if (battleBusy.value) return;
       battleBusy.value = true;
@@ -608,9 +640,10 @@ createApp({
       } else if (action === 'pet_skill') {
         rpcParams.p_player_skill_id = null;
         rpcParams.p_pet_skill_id = skillId;
-      } else if (action === 'pet_auto') {
+      } else {
+        // 普通攻击
         rpcParams.p_player_skill_id = null;
-        rpcParams.p_pet_skill_id = null; // 后端会处理宠物自动普攻
+        rpcParams.p_pet_skill_id = null;
       }
       const { data, error } = await supabase.rpc('battle_encounter', rpcParams);
       if (error) { alert('战斗出错：'+error.message); battleBusy.value = false; return; }
@@ -627,6 +660,8 @@ createApp({
       else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
     }
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
+
+    // ---------- 任务 / BOSS / 好友 ----------
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
     async function submitQuest(id) { await supabase.rpc('submit_quest',{p_quest_id:id}); refreshData(); }
     async function attackWorldBoss() {
@@ -645,6 +680,8 @@ createApp({
       refreshData();
     }
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
+
+    // ---------- 加点 ----------
     async function addStat(stat) {
       if (!profile.value?.potential_points) { alert('没有潜力点了！'); return; }
       const { data, error } = await supabase.rpc('add_stat', { p_stat: stat });
@@ -654,6 +691,7 @@ createApp({
       alert('加点成功！');
     }
 
+    // ---------- 生命周期 ----------
     onMounted(() => {
       if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
       refreshData().then(() => initView());
