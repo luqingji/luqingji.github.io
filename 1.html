@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完整版</title>
+  <title>梦幻宠物大冒险 · 战斗日志增强版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -39,7 +39,7 @@
     .rating-B { background: #3498db; }
     .rating-C { background: #95a5a6; }
 
-    /* 战斗界面优化（PC 居中卡片） */
+    /* 战斗界面：与主界面等宽，日志区扩大 */
     .battle-container {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -50,8 +50,8 @@
       z-index: 100;
     }
     .battle-card {
-      width: 95%;
-      max-width: 420px;
+      width: 420px;
+      max-width: 100%;
       background: #1a120b;
       border: 3px solid #8b5a2b;
       border-radius: 12px;
@@ -60,14 +60,25 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .battle-enemy-area { text-align: center; }
     .battle-enemy-area .enemy-name { font-size: 18px; font-weight: bold; color: #ffd700; }
     .battle-enemy-area .enemy-lv { font-size: 12px; color: #ccc; margin-bottom: 5px; }
     .battle-enemy-area .hp-bar { width: 180px; margin: 0 auto; height: 6px; background: #555; border-radius: 3px; }
     .battle-enemy-area .hp-fill { height: 100%; width: 100%; background: #e74c3c; transition: width 0.3s; }
-    .battle-log-area { background: rgba(0,0,0,0.6); padding: 8px; border-radius: 6px; max-height: 50px; overflow-y: auto; color: #f1c40f; font-size: 12px; }
-    .battle-log-area p { margin: 2px 0; }
+    .battle-log-area {
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 6px;
+      max-height: 120px;
+      overflow-y: auto;
+      color: #f1c40f;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .battle-log-area p { margin: 3px 0; }
     .battle-ally-area { display: flex; justify-content: space-around; font-size: 14px; }
     .ally-block { text-align: center; width: 45%; }
     .ally-block .name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
@@ -137,7 +148,7 @@
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
-    <!-- 战斗界面 -->
+    <!-- 战斗界面（优化版） -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
         <div class="battle-enemy-area">
@@ -221,7 +232,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 体力同步（前端计算）
+    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
