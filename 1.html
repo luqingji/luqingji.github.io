@@ -71,8 +71,9 @@
     .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 6px; background: rgba(255,255,240,0.5); border-radius: 5px; }
     .stat-row span { font-weight: bold; }
     .stat-row button { padding: 4px 12px; font-size: 14px; min-width: 40px; }
-    .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; }
-    .equip-slot.equipped { background: #d4af37; color: white; }
+    .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; position: relative; }
+    .equip-slot.equipped { background: #d4af37; }
+    .equip-slot .equip-name { position: absolute; bottom: -14px; left: 0; right: 0; font-size: 10px; color: #2c1810; font-weight: bold; background: rgba(255,255,240,0.9); border-radius: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .pet-detail-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 90vh; overflow-y: auto; }
     .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -86,6 +87,8 @@
     .role-card { background: rgba(255,255,240,0.9); border: 2px solid #d4af37; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin: 10px 0; }
     .role-card:hover { background: rgba(212, 175, 55, 0.1); }
     .area-locked { opacity: 0.6; }
+    .inventory-tab { display: inline-block; padding: 4px 12px; margin-right: 5px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; }
+    .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -212,7 +215,8 @@
         <h4>🛡️ 装备</h4>
         <div style="display: flex; flex-wrap: wrap;">
           <div v-for="slot in ['weapon','armor','necklace','ring','shoes','belt']" :key="slot" class="equip-slot" :class="{ equipped: equippedItems[slot] }" @click="selectSlot(slot)">
-            {{ slotNames[slot] }}<br><small v-if="equippedItems[slot]">{{ equippedItems[slot].name }}</small>
+            {{ slotNames[slot] }}
+            <div v-if="equippedItems[slot]" class="equip-name">{{ equippedItems[slot].name }}</div>
           </div>
         </div>
         <div v-if="selectedSlot" style="margin-top:10px; font-size:13px;">
@@ -234,7 +238,35 @@
         <button class="btn red" @click="showCharacterPanel = false">关闭</button>
       </div>
     </div>
-    <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
+    <div v-if="view === 'inventory'">
+      <h3>🎒 行囊</h3>
+      <div>
+        <span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span>
+        <span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span>
+      </div>
+      <div v-if="inventoryTab === 'consumable'">
+        <div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div>
+      </div>
+      <div v-if="inventoryTab === 'equipment'">
+        <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
+        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
+          <p><strong>{{ eq.equipment_def?.name }}</strong> ({{ eq.equipment_def?.quality }})</p>
+          <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
+        </div>
+      </div>
+    </div>
+    <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
+      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+        <h3>{{ detailEquipment.equipment_def?.name }}</h3>
+        <p><span class="attr-label">品质:</span> {{ detailEquipment.equipment_def?.quality }}</p>
+        <p><span class="attr-label">槽位:</span> {{ slotNames[detailEquipment.slot] }}</p>
+        <p><span class="attr-label">HP:</span> +{{ detailEquipment.equipment_def?.base_hp || 0 }}</p>
+        <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
+        <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
+        <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
+        <button class="btn red" @click="showEquipmentDetail = false">关闭</button>
+      </div>
+    </div>
     <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><p style="font-size:12px; color:#8b5a2b;">点击刷新领取今天的任务，打怪计数才会增加</p><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
@@ -272,6 +304,7 @@ const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
+    // 状态定义
     const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -282,7 +315,11 @@ createApp({
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
     const playerEquipment = ref([]); const selectedSlot = ref(null);
+    const inventoryTab = ref('consumable');
+    const showEquipmentDetail = ref(false); const detailEquipment = ref(null);
     const slotNames = { weapon: '武器', armor: '衣服', necklace: '项链', ring: '戒指', shoes: '鞋子', belt: '腰带' };
+
+    // 计算属性
     const equippedItems = computed(() => {
       const eq = {};
       playerEquipment.value.filter(e => e.equipped).forEach(e => { eq[e.slot] = e.equipment_def; });
@@ -310,6 +347,7 @@ createApp({
     const playerExpPercent = computed(() => { if (!profile.value) return 0; return (profile.value.exp / (profile.value.level * 100)) * 100; });
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
 
+    // 工具函数
     function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精'}; return m[id] || '未知'; }
     function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
     function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
@@ -321,6 +359,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
+    // 装备操作
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
@@ -338,7 +377,12 @@ createApp({
       const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
       if (eq) { await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id); loadEquipment(); }
     }
+    function openEquipmentDetail(eq) {
+      detailEquipment.value = eq;
+      showEquipmentDetail.value = true;
+    }
 
+    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -536,7 +580,7 @@ createApp({
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat, playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment, selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter, getSectName };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat, playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment, selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter, getSectName, inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail };
   }
 }).mount('#app');
 </script>
