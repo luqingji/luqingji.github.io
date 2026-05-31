@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 混合BOSS奖励版</title>
+  <title>梦幻宠物大冒险 · 最终完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -39,34 +39,56 @@
     .rating-B { background: #3498db; }
     .rating-C { background: #95a5a6; }
 
-    .battle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: flex-end; z-index: 100; }
-    .battle-enemy-area { text-align: center; padding: 15px 20px 5px; color: white; }
+    /* 战斗界面优化（PC 居中卡片） */
+    .battle-container {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+    .battle-card {
+      width: 95%;
+      max-width: 420px;
+      background: #1a120b;
+      border: 3px solid #8b5a2b;
+      border-radius: 12px;
+      color: #f5d78c;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .battle-enemy-area { text-align: center; }
     .battle-enemy-area .enemy-name { font-size: 18px; font-weight: bold; color: #ffd700; }
     .battle-enemy-area .enemy-lv { font-size: 12px; color: #ccc; margin-bottom: 5px; }
     .battle-enemy-area .hp-bar { width: 180px; margin: 0 auto; height: 6px; background: #555; border-radius: 3px; }
     .battle-enemy-area .hp-fill { height: 100%; width: 100%; background: #e74c3c; transition: width 0.3s; }
-    .battle-log-area { background: rgba(0,0,0,0.6); margin: 5px 15px; padding: 8px; border-radius: 6px; max-height: 50px; overflow-y: auto; color: #f1c40f; font-size: 12px; }
+    .battle-log-area { background: rgba(0,0,0,0.6); padding: 8px; border-radius: 6px; max-height: 50px; overflow-y: auto; color: #f1c40f; font-size: 12px; }
     .battle-log-area p { margin: 2px 0; }
-    .battle-ally-area { display: flex; justify-content: space-around; padding: 8px 15px; color: white; font-size: 14px; }
+    .battle-ally-area { display: flex; justify-content: space-around; font-size: 14px; }
     .ally-block { text-align: center; width: 45%; }
     .ally-block .name { font-size: 14px; font-weight: bold; margin-bottom: 2px; }
     .ally-block .hp-bar { width: 100%; height: 6px; background: #555; border-radius: 3px; margin: 3px 0; }
     .ally-block .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
     .ally-block .hp-text { font-size: 11px; color: #ddd; }
-    .battle-actions { background: #1a120b; border-top: 2px solid #8b5a2b; padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .battle-actions button { padding: 8px 4px; font-size: 13px; border-radius: 6px; font-weight: bold; }
-    .catch-animation { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white; }
+    .catch-animation { text-align: center; }
     .pokeball { width: 40px; height: 40px; background: #e74c3c; border-radius: 50%; margin: 0 auto 10px; border: 3px solid #222; position: relative; }
     .pokeball::after { content: ''; position: absolute; top: 12px; left: -2px; right: -2px; height: 4px; background: #222; }
     .shake { animation: shake 0.4s ease; }
     @keyframes shake { 0% { transform: rotate(0); } 25% { transform: rotate(-15deg); } 50% { transform: rotate(15deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0); } }
-    .skill-panel { background: rgba(255,255,240,0.95); border: 2px solid #d4af37; border-radius: 8px; padding: 8px; margin: 5px 10px; max-height: 180px; overflow-y: auto; }
+    .skill-panel { background: rgba(255,255,240,0.95); border: 2px solid #d4af37; border-radius: 8px; padding: 8px; max-height: 180px; overflow-y: auto; color: #2c1810; }
     .skill-panel h4 { margin: 4px 0; font-size: 13px; color: #8b5a2b; }
     .skill-panel button { margin: 2px 0; padding: 5px; font-size: 13px; }
   </style>
 </head>
 <body>
 <div id="app">
+  <!-- 顶部状态栏 -->
   <div class="top-bar">
     <span class="nickname-edit" @click="showNicknameInput = true">
       ⚔️ {{ username || '江湖小虾' }} <span class="level-box">Lv.{{ profile?.level || 1 }}</span>
@@ -110,13 +132,54 @@
     <!-- 背包 -->
     <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
     <!-- 师门任务 -->
-    <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
+    <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><p style="font-size:12px; color:#8b5a2b;">点击刷新领取今天的任务，打怪计数才会增加</p><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
     <!-- 世界BOSS -->
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
     <!-- 战斗界面 -->
-    <div v-if="battle.active" class="battle-container"><div class="battle-enemy-area"><div class="enemy-name">{{ encounter.name }}</div><div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div><small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small></div><div class="battle-log-area"><p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p></div><div class="battle-ally-area"><div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div><div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div></div><div v-if="catching" class="catch-animation"><div class="pokeball" :class="ballShakeClass"></div><p>{{ catchMessage }}</p></div><div v-if="showSkillPanel && !catching" class="skill-panel"><h4>人物技能</h4><button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">✨ {{ skill.name }}</button><h4>宠物技能</h4><button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">🐾 {{ skill.name }}</button><button class="btn red" @click="showSkillPanel=false">取消</button></div><div v-if="!catching" class="battle-actions"><button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button><button class="btn" @click="showSkillPanel = !showSkillPanel" :disabled="battleBusy">📜 技能</button><button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy">🎯 捕捉</button><button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button></div></div>
+    <div v-if="battle.active" class="battle-container">
+      <div class="battle-card">
+        <div class="battle-enemy-area">
+          <div class="enemy-name">{{ encounter.name }}</div>
+          <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
+          <small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small>
+        </div>
+        <div class="battle-log-area">
+          <p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p>
+        </div>
+        <div class="battle-ally-area">
+          <div class="ally-block">
+            <div class="name">🧑 {{ username }}</div>
+            <div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div>
+            <div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div>
+          </div>
+          <div class="ally-block" v-if="activePet">
+            <div class="name">🐾 {{ activePet.nickname }}</div>
+            <div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div>
+            <div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div>
+          </div>
+        </div>
+        <div v-if="catching" class="catch-animation">
+          <div class="pokeball" :class="ballShakeClass"></div>
+          <p>{{ catchMessage }}</p>
+        </div>
+        <div v-if="showSkillPanel && !catching" class="skill-panel">
+          <h4>人物技能</h4>
+          <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">✨ {{ skill.name }}</button>
+          <h4>宠物技能</h4>
+          <button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">🐾 {{ skill.name }}</button>
+          <button class="btn red" @click="showSkillPanel=false">取消</button>
+        </div>
+        <div v-if="!catching" class="battle-actions">
+          <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
+          <button class="btn" @click="showSkillPanel = !showSkillPanel" :disabled="battleBusy">📜 技能</button>
+          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy">🎯 捕捉</button>
+          <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="bottom-nav">
@@ -158,7 +221,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 体力同步
+    // 体力同步（前端计算）
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -278,8 +341,6 @@ createApp({
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
     async function submitQuest(id) { await supabase.rpc('submit_quest',{p_quest_id:id}); refreshData(); }
-    
-    // 攻击世界BOSS（使用新奖励机制）
     async function attackWorldBoss() {
       if (worldBossAttackedToday.value) { alert('今天已经攻击过妖风了'); return; }
       const carriedPet = myPets.value.find(p => p.is_carried && p.current_hp > 0);
@@ -289,17 +350,12 @@ createApp({
       battleBusy.value = false;
       if (error) { alert('攻击失败：' + error.message); return; }
       if (data.error) { alert(data.error); return; }
-      
       let msg = `造成了 ${data.damage} 伤害！获得 ${data.instant_reward} 银两。`;
-      if (data.defeated) {
-        msg += '\n妖风已被击败！排名奖励已发放。';
-        worldBoss.value.active = false;
-      }
+      if (data.defeated) { msg += '\n妖风已被击败！排名奖励已发放。'; worldBoss.value.active = false; }
       alert(msg);
       worldBossAttackedToday.value = true;
       refreshData();
     }
-    
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
 
     onMounted(() => {
