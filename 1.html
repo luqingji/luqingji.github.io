@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 装备系统版</title>
+  <title>梦幻宠物大冒险 · 宠物面板优化版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -71,10 +71,18 @@
     .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 6px; background: rgba(255,255,240,0.5); border-radius: 5px; }
     .stat-row span { font-weight: bold; }
     .stat-row button { padding: 4px 12px; font-size: 14px; min-width: 40px; }
-    /* 装备格子 */
     .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; }
     .equip-slot.equipped { background: #d4af37; color: white; }
-    .equip-info { font-size: 12px; }
+
+    /* 宠物详情面板（优化） */
+    .pet-detail-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 90vh; overflow-y: auto; }
+    .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .pet-detail-header h3 { display: flex; align-items: center; gap: 5px; }
+    .pet-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .pet-info-grid .info-block { background: rgba(255,255,240,0.8); padding: 8px; border-radius: 5px; }
+    .pet-info-grid .info-block p { margin: 2px 0; font-size: 13px; }
+    .pet-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .pet-actions button { flex: 1; }
   </style>
 </head>
 <body>
@@ -155,8 +163,55 @@
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small><button class="btn" style="font-size:12px; padding:2px 6px; margin-top:5px" @click.stop="setCarried(p.id)" :disabled="p.current_hp <= 0">设为携带</button></div></div></div>
-    <!-- 宠物详情弹窗（略） -->
-    <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false"><div class="card" style="width: 90%; max-height: 85%; overflow-y: auto;"><h3>{{ detailPet.nickname }}  Lv.{{ detailPet.level }}</h3><div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div><p>HP: {{ detailPet.current_hp }} / {{ petRealHp(detailPet) }}</p><div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div><p>经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p><hr><p><strong>实际属性</strong></p><p>攻击: {{ petRealAtk(detailPet) }} &nbsp; 防御: {{ petRealDef(detailPet) }} &nbsp; 速度: {{ petRealSpd(detailPet) }}</p><p><strong>种族值</strong> (HP/攻击/防御/速度)</p><p>{{ detailPet.base_hp || 0 }} / {{ detailPet.base_atk || 0 }} / {{ detailPet.base_def || 0 }} / {{ detailPet.base_spd || 0 }}</p><p><strong>个体值</strong> (上限31)</p><div class="iv-bar"><span>HP:</span><div class="iv-fill" :style="{width: ((detailPet.iv_hp||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_hp || 0 }}</span></div><div class="iv-bar"><span>攻击:</span><div class="iv-fill" :style="{width: ((detailPet.iv_atk||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_atk || 0 }}</span></div><div class="iv-bar"><span>防御:</span><div class="iv-fill" :style="{width: ((detailPet.iv_def||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_def || 0 }}</span></div><div class="iv-bar"><span>速度:</span><div class="iv-fill" :style="{width: ((detailPet.iv_spd||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_spd || 0 }}</span></div><p><strong>个体值总和</strong>: {{ ivSum(detailPet) }} / 124 <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span></p><p><strong>努力值</strong> (EV, 单项上限252, 总和上限510)</p><p>HP:{{ detailPet.ev_hp || 0 }} 攻击:{{ detailPet.ev_atk || 0 }} 防御:{{ detailPet.ev_def || 0 }} 速度:{{ detailPet.ev_spd || 0 }}</p><p><strong>技能</strong>: {{ petSkillNames(detailPet) }}</p><button class="btn red" style="margin-top:8px" @click="releasePet(detailPet)">放生</button><button class="btn" @click="showPetDetail = false">关闭</button></div></div>
+    <!-- 宠物详情面板（优化） -->
+    <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
+      <div class="pet-detail-panel">
+        <div class="pet-detail-header">
+          <h3>
+            {{ detailPet.nickname }} <span class="level-box">Lv.{{ detailPet.level }}</span>
+            <span v-if="detailPet.is_carried" class="carried-tag">携带中</span>
+          </h3>
+          <span style="background: #8b5a2b; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px;">{{ detailPet.element_primary || '?' }}</span>
+        </div>
+        <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div>
+        <p>HP: {{ detailPet.current_hp }} / {{ petRealHp(detailPet) }}</p>
+        <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
+        <p>经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p>
+        <div class="pet-info-grid">
+          <div class="info-block">
+            <h4>实际属性</h4>
+            <p>攻击: {{ petRealAtk(detailPet) }}</p>
+            <p>防御: {{ petRealDef(detailPet) }}</p>
+            <p>速度: {{ petRealSpd(detailPet) }}</p>
+          </div>
+          <div class="info-block">
+            <h4>种族值</h4>
+            <p>HP: {{ detailPet.base_hp || 0 }}</p>
+            <p>攻击: {{ detailPet.base_atk || 0 }}</p>
+            <p>防御: {{ detailPet.base_def || 0 }}</p>
+            <p>速度: {{ detailPet.base_spd || 0 }}</p>
+          </div>
+        </div>
+        <h4>个体值</h4>
+        <div class="iv-bar"><span>HP:</span><div class="iv-fill" :style="{width: ((detailPet.iv_hp||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_hp || 0 }}</span></div>
+        <div class="iv-bar"><span>攻击:</span><div class="iv-fill" :style="{width: ((detailPet.iv_atk||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_atk || 0 }}</span></div>
+        <div class="iv-bar"><span>防御:</span><div class="iv-fill" :style="{width: ((detailPet.iv_def||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_def || 0 }}</span></div>
+        <div class="iv-bar"><span>速度:</span><div class="iv-fill" :style="{width: ((detailPet.iv_spd||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_spd || 0 }}</span></div>
+        <p>
+          <strong>个体值总和</strong>: {{ ivSum(detailPet) }} / 124
+          <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span>
+        </p>
+        <h4>努力值</h4>
+        <p>HP:{{ detailPet.ev_hp || 0 }} 攻击:{{ detailPet.ev_atk || 0 }} 防御:{{ detailPet.ev_def || 0 }} 速度:{{ detailPet.ev_spd || 0 }}</p>
+        <h4>技能</h4>
+        <p>{{ petSkillNames(detailPet) }}</p>
+        <div class="pet-actions">
+          <button class="btn" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
+          <button class="btn red" @click="releasePet(detailPet)">放生</button>
+        </div>
+        <button class="btn" style="margin-top:8px;" @click="showPetDetail = false">关闭</button>
+      </div>
+    </div>
     <!-- 背包 -->
     <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
     <!-- 师门任务 -->
@@ -209,7 +264,7 @@ createApp({
     const showCharacterPanel = ref(false);
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
-    // 装备相关状态
+    // 装备状态
     const playerEquipment = ref([]);
     const selectedSlot = ref(null);
     const slotNames = { weapon: '武器', armor: '衣服', necklace: '项链', ring: '戒指', shoes: '鞋子', belt: '腰带' };
@@ -254,34 +309,26 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 装备操作
+    // 装备加载
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
       if (!error && data) playerEquipment.value = data;
     }
-    async function selectSlot(slot) {
-      selectedSlot.value = slot;
-    }
+    function selectSlot(slot) { selectedSlot.value = slot; }
     async function equipItem(eq) {
-      // 将该槽位所有已装备的卸下
       const currentEquipped = playerEquipment.value.find(e => e.slot === eq.slot && e.equipped);
-      if (currentEquipped) {
-        await supabase.from('player_equipment').update({ equipped: false }).eq('id', currentEquipped.id);
-      }
-      // 装备选中的
+      if (currentEquipped) await supabase.from('player_equipment').update({ equipped: false }).eq('id', currentEquipped.id);
       await supabase.from('player_equipment').update({ equipped: true }).eq('id', eq.id);
       loadEquipment();
       selectedSlot.value = null;
     }
     async function unequipItem(slot) {
       const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
-      if (eq) {
-        await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id);
-        loadEquipment();
-      }
+      if (eq) { await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id); loadEquipment(); }
     }
 
+    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -361,7 +408,7 @@ createApp({
         recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`);
       }
     }
-    async function battleAction(action, skillId = null) { /* 保持不变 */ 
+    async function battleAction(action, skillId = null) { 
       if (battleBusy.value) return;
       battleBusy.value = true;
       showSkillPanel.value = false;
