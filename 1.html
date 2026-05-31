@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 携带按钮优化版</title>
+  <title>梦幻宠物大冒险 · 最终中文版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -94,6 +94,11 @@
     .area-locked { opacity: 0.6; }
     .inventory-tab { display: inline-block; padding: 3px 10px; margin-right: 4px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
     .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
+
+    .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; color: #2c1810; }
+    .equip-detail-panel h3 { font-size: 18px; }
+    .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
+    .equip-detail-panel .btn-area button { flex: 1; }
   </style>
 </head>
 <body>
@@ -164,9 +169,9 @@
     </div>
     <!-- 场景 -->
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
-    <!-- 宠物列表（移除了“设为携带”按钮） -->
+    <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-    <!-- 宠物详情面板（包含携带按钮） -->
+    <!-- 宠物详情面板 -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
         <div class="pet-detail-header">
@@ -238,13 +243,13 @@
         <div v-if="selectedSlot" style="margin-top:6px; font-size:11px;">
           <p><strong>{{ slotNames[selectedSlot] }}</strong></p>
           <div v-if="equippedItems[selectedSlot]">
-            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ equippedItems[selectedSlot].quality }})</p>
+            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ qualityCN[equippedItems[selectedSlot].quality] }})</p>
             <button class="btn red" style="font-size:11px;" @click="unequipItem(selectedSlot)">卸下</button>
           </div>
           <div v-else><p>未装备</p></div>
           <h4>可选装备</h4>
           <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:4px 6px; margin:3px 0; font-size:11px; cursor:pointer" @click="equipItem(eq)">
-            <p>{{ eq.name }} ({{ eq.quality }})</p>
+            <p>{{ eq.name }} ({{ qualityCN[eq.quality] }})</p>
             <small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small>
           </div>
           <button class="btn" style="font-size:11px;" @click="selectedSlot = null">关闭</button>
@@ -265,22 +270,25 @@
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
         <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
-          <p><strong>{{ eq.equipment_def?.name }}</strong> ({{ eq.equipment_def?.quality }})</p>
+          <p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p>
           <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
         </div>
       </div>
     </div>
-    <!-- 装备详情弹窗 -->
+    <!-- 装备详情弹窗（固定大小+分解按钮） -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
-      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+      <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
-        <p><span class="attr-label">品质:</span> {{ detailEquipment.equipment_def?.quality }}</p>
+        <p><span class="attr-label">品质:</span> {{ qualityCN[detailEquipment.equipment_def?.quality] }}</p>
         <p><span class="attr-label">槽位:</span> {{ slotNames[detailEquipment.slot] }}</p>
         <p><span class="attr-label">HP:</span> +{{ detailEquipment.equipment_def?.base_hp || 0 }}</p>
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
-        <button class="btn red" @click="showEquipmentDetail = false">关闭</button>
+        <div class="btn-area">
+          <button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button>
+          <button class="btn" @click="showEquipmentDetail = false">关闭</button>
+        </div>
       </div>
     </div>
     <!-- 师门任务 -->
@@ -359,6 +367,8 @@ createApp({
     const showEnemyInfo = ref(false);
     const pendingPlayerSkill = ref(null);
     const pendingPetSkill = ref(null);
+    // 品质中文映射
+    const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
 
     // ---------- 计算属性 ----------
     const equippedItems = computed(() => {
@@ -438,6 +448,15 @@ createApp({
       if (eq) { await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id); loadEquipment(); }
     }
     function openEquipmentDetail(eq) { detailEquipment.value = eq; showEquipmentDetail.value = true; }
+    async function decomposeEquipment(equipmentId) {
+      if (!confirm('确定要分解这件装备吗？此操作不可恢复。')) return;
+      const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: equipmentId });
+      if (error) { alert('分解失败：' + error.message); return; }
+      if (data.error) { alert(data.error); return; }
+      alert('装备已分解。');
+      showEquipmentDetail.value = false;
+      await loadEquipment();
+    }
 
     // ---------- 体力同步 ----------
     async function syncEnergy() {
@@ -477,10 +496,7 @@ createApp({
         pet.current_hp = newHp;
       }
     }
-    function startPetRecovery() {
-      recoverPets();
-      setInterval(recoverPets, 30000);
-    }
+    function startPetRecovery() { recoverPets(); setInterval(recoverPets, 30000); }
 
     // ---------- 初始化视图 ----------
     function initView() {
@@ -527,9 +543,7 @@ createApp({
         startEnergySync();
         startPetRecovery();
         view.value = 'map';
-      } else {
-        alert('创建角色失败：' + (error?.message || '未知错误'));
-      }
+      } else { alert('创建角色失败：' + (error?.message || '未知错误')); }
       loading.value = false;
       refreshData();
     }
@@ -580,9 +594,7 @@ createApp({
         const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
         activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
         if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
-        if (carried && carried.id !== activePet.value.id) {
-          recentLogs.value.push('你的携带宠物已濒死，将派出其他宠物。');
-        }
+        if (carried && carried.id !== activePet.value.id) recentLogs.value.push('你的携带宠物已濒死，将派出其他宠物。');
         petHp.value = activePet.value.current_hp;
         playerHp.value = playerMaxHp.value;
         battleBusy.value = false; catching.value = false; showSkillPanel.value = false;
@@ -592,27 +604,17 @@ createApp({
       }
     }
 
-    // ---------- 组合技能面板 ----------
-    function openSkillPanel() {
-      pendingPlayerSkill.value = null;
-      pendingPetSkill.value = null;
-      showSkillPanel.value = true;
-    }
+    // ---------- 组合技能 ----------
+    function openSkillPanel() { pendingPlayerSkill.value = null; pendingPetSkill.value = null; showSkillPanel.value = true; }
     function selectPlayerSkill(skillId) { pendingPlayerSkill.value = skillId; checkAndExecute(); }
     function selectPetSkill(skillId) { pendingPetSkill.value = skillId; checkAndExecute(); }
-    function checkAndExecute() {
-      if (pendingPlayerSkill.value && pendingPetSkill.value) {
-        showSkillPanel.value = false;
-        battleAction('combined_skills');
-      }
-    }
+    function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
     function cancelSkillPanel() { showSkillPanel.value = false; }
 
     // ---------- 战斗 ----------
     async function battleAction(action, skillId = null) {
       if (battleBusy.value) return;
-      battleBusy.value = true;
-      showSkillPanel.value = false;
+      battleBusy.value = true; showSkillPanel.value = false;
       const t = setTimeout(() => { if (battleBusy.value) { battleBusy.value = false; catching.value = false; alert('操作超时，请重试'); } }, 5000);
       if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; }
       if (action === 'catch') {
@@ -625,27 +627,16 @@ createApp({
         return;
       }
       clearTimeout(t);
-      let monsterId = encounter.value.id;
-      let isWild = encounter.value.type === 'wild_pet';
+      let monsterId = encounter.value.id; let isWild = encounter.value.type === 'wild_pet';
       if (isWild) monsterId = 1;
-      const currentHp = encounter.value.currentHp;
-      const rpcParams = {
-        p_pet_id: activePet.value.id,
-        p_monster_id: monsterId,
-        p_monster_current_hp: currentHp,
-        p_is_wild: isWild,
-        p_enemy_name: encounter.value.name
-      };
-      if (action === 'combined_skills') {
-        rpcParams.p_player_skill_id = pendingPlayerSkill.value;
-        rpcParams.p_pet_skill_id = pendingPetSkill.value;
-      } else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
+      const rpcParams = { p_pet_id: activePet.value.id, p_monster_id: monsterId, p_monster_current_hp: encounter.value.currentHp, p_is_wild: isWild, p_enemy_name: encounter.value.name };
+      if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
+      else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
       else if (action === 'pet_skill') { rpcParams.p_player_skill_id = null; rpcParams.p_pet_skill_id = skillId; }
       else { rpcParams.p_player_skill_id = null; rpcParams.p_pet_skill_id = null; }
       const { data, error } = await supabase.rpc('battle_encounter', rpcParams);
       if (error) { alert('战斗出错：'+error.message); battleBusy.value = false; return; }
-      processBattleResult(data);
-      battleBusy.value = false;
+      processBattleResult(data); battleBusy.value = false;
     }
     function processBattleResult(data) {
       petHp.value = data.pet_hp; playerHp.value = data.player_hp;
@@ -653,10 +644,7 @@ createApp({
       if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
       if (data.pet_leveled_up) alert('你的宠物升级了！');
       if (data.player_leveled_up) alert('你升级了！');
-      if (data.pet_hp !== undefined && activePet.value) {
-        activePet.value.current_hp = data.pet_hp;
-        if (data.pet_hp <= 0) activePet.value.is_carried = false;
-      }
+      if (data.pet_hp !== undefined && activePet.value) { activePet.value.current_hp = data.pet_hp; if (data.pet_hp <= 0) activePet.value.is_carried = false; }
       if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
       else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
     }
@@ -676,20 +664,15 @@ createApp({
       if (data.error) { alert(data.error); return; }
       let msg = `造成了 ${data.damage} 伤害！获得 ${data.instant_reward} 银两。`;
       if (data.defeated) { msg += '\n妖风已被击败！排名奖励已发放。'; worldBoss.value.active = false; }
-      alert(msg);
-      worldBossAttackedToday.value = true;
-      refreshData();
+      alert(msg); worldBossAttackedToday.value = true; refreshData();
     }
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
-
-    // ---------- 加点 ----------
     async function addStat(stat) {
       if (!profile.value?.potential_points) { alert('没有潜力点了！'); return; }
       const { data, error } = await supabase.rpc('add_stat', { p_stat: stat });
       if (error) { alert('加点失败：' + error.message); return; }
       if (data.error) { alert(data.error); return; }
-      profile.value = data;
-      alert('加点成功！');
+      profile.value = data; alert('加点成功！');
     }
 
     // ---------- 生命周期 ----------
@@ -713,15 +696,16 @@ createApp({
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       playerRealAtk, playerRealDef, playerRealSpd,
+      qualityCN, slotNames,
       getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
       petRealHp, petRealAtk, petRealDef, petRealSpd,
       refreshData, syncEnergy, startEnergySync, stopEnergySync,
       login, register, logout, joinSect, selectStarter, saveNickname, setCarried,
       openPetDetail, releasePet, openArea, explore, battleAction,
       getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
-      playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment,
+      playerEquipment, selectedSlot, equippedItems, availableEquipment,
       selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter,
-      inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail,
+      inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
       showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel
     };
   }
