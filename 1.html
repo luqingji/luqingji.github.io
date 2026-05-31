@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 速度先后手版</title>
+  <title>梦幻宠物大冒险 · 完整修正版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -208,7 +208,7 @@
         <button class="btn" style="margin-top:6px;" @click="showPetDetail = false">关闭</button>
       </div>
     </div>
-    <!-- 人物属性面板（紧凑版） -->
+    <!-- 人物属性面板 -->
     <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
       <div class="character-panel">
         <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
@@ -344,7 +344,6 @@ createApp({
     const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
     const logContainer = ref(null);
     const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫'];
-
     const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
       11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
 
@@ -599,10 +598,14 @@ createApp({
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
-        activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
-        if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
-        if (carried && carried.id !== activePet.value.id) recentLogs.value.push('你的携带宠物已濒死，将派出其他宠物。');
+        // ★ 修正：强制使用玩家设定的携带宠物，即使HP为0；如果没有携带宠物，则取第一只存活的
+        let carried = myPets.value.find(p => p.is_carried);
+        if (carried) {
+          activePet.value = carried;
+        } else {
+          activePet.value = myPets.value.find(p => p.current_hp > 0);
+          if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
+        }
         petHp.value = activePet.value.current_hp;
         playerHp.value = playerMaxHp.value;
         battleBusy.value = false; catching.value = false; showSkillPanel.value = false;
@@ -612,7 +615,7 @@ createApp({
       }
     }
 
-    // ---------- ★ 技能面板逻辑（宠物阵亡时直接释放人物技能并关闭） ----------
+    // ---------- ★ 技能面板逻辑 ----------
     function openSkillPanel() {
       pendingPlayerSkill.value = null;
       pendingPetSkill.value = null;
@@ -695,8 +698,8 @@ createApp({
     async function submitQuest(id) { await supabase.rpc('submit_quest',{p_quest_id:id}); refreshData(); }
     async function attackWorldBoss() {
       if (worldBossAttackedToday.value) { alert('今天已经攻击过妖风了'); return; }
-      const carriedPet = myPets.value.find(p => p.is_carried && p.current_hp > 0);
-      const pid = carriedPet ? carriedPet.id : null;
+      const carriedPet = myPets.value.find(p => p.is_carried);
+      const pid = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null);
       battleBusy.value = true;
       const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: pid });
       battleBusy.value = false;
