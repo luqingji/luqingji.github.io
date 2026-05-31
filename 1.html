@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 完整修复版</title>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <title>梦幻宠物大冒险 · 最终完整版</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
     :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; }
@@ -88,7 +88,14 @@
     </div>
     <!-- 认证界面 -->
     <div v-if="view === 'auth'">
-      <div class="card" v-if="!profile"><h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3><input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email"><input v-model="password" placeholder="密码" type="password" autocomplete="current-password"><button class="btn" :disabled="loading" @click="isLogin ? login() : register()">{{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}</button><p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p></div>
+      <div class="card" v-if="!profile">
+        <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
+        <input v-if="!isLogin" v-model="regNickname" placeholder="英雄昵称（最多8字）" maxlength="8">
+        <input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email">
+        <input v-model="password" placeholder="密码" type="password" autocomplete="current-password">
+        <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">{{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}</button>
+        <p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
+      </div>
       <div class="card" v-if="profile && !profile.sect_id"><h3>拜师学艺</h3><div v-for="sect in sects" :key="sect.id" @click="joinSect(sect.id)" class="card" style="cursor:pointer"><strong>{{ sect.name }}</strong> - {{ sect.description }}</div></div>
       <div class="card" v-if="profile && profile.sect_id && !hasPet"><h3>选初始伙伴</h3><div v-for="p in starters" :key="p.id" @click="selectStarter(p.id)" class="card" style="cursor:pointer">{{ p.name }} ({{ p.element_primary }}) HP:{{ p.base_hp }}</div></div>
     </div>
@@ -122,7 +129,7 @@ const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
-    const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const loading = ref(false);
+    const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
     const myPets = ref([]); const activePet = ref(null); const inventory = ref([]); const encounter = ref({}); const battle = reactive({ active: false });
@@ -190,7 +197,17 @@ createApp({
     function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
-    async function register() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signUp({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('注册失败：'+error.message); return; } refreshData(); }
+    async function register() {
+      if (!regNickname.value.trim()) return alert('请填写昵称');
+      if (loading.value) return;
+      loading.value = true;
+      const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      if (error) { alert('注册失败：' + error.message); loading.value = false; return; }
+      // 注册后设置昵称
+      try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {}
+      loading.value = false;
+      refreshData();
+    }
     async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
     async function joinSect(id) { const { data: { user } } = await supabase.auth.getUser(); if (!user) { alert('请先登录'); view.value = 'auth'; return; } const { data, error } = await supabase.rpc('create_character',{p_sect_id:id}); if (error) { alert('拜师失败：'+error.message); return; } if (data.error) { alert(data.error); return; } refreshData(); }
     async function selectStarter(id) { const { error } = await supabase.rpc('select_starter',{p_pet_id:id}); if (error) { alert('选宠失败：'+error.message); return; } refreshData(); }
@@ -219,7 +236,7 @@ createApp({
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
   }
 }).mount('#app');
 </script>
