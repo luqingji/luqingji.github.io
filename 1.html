@@ -295,7 +295,9 @@
         </div>
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
-          <button class="btn" @click="openSkillPanel" :disabled="battleBusy || !isPetAlive">📜 技能</button>
+          <!-- ★ 修改点1：技能按钮不再因宠物阵亡而禁用，仅受战斗忙碌影响 -->
+          <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
+          <!-- ★ 修改点2：捕捉按钮仍需宠物存活 -->
           <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive">🎯 捕捉</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
@@ -345,7 +347,6 @@ createApp({
     const logContainer = ref(null);
     const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫'];
 
-    // 技能映射表（扩展）
     const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
       11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
 
@@ -667,7 +668,6 @@ createApp({
       if (data.player_leveled_up) alert('你升级了！');
       if (data.pet_hp !== undefined && activePet.value) {
         activePet.value.current_hp = data.pet_hp;
-        // ★ 不再修改 is_carried，保持玩家设定的携带状态
       }
       if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
       else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
