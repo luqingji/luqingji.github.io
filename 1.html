@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 宠物面板优化版</title>
+  <title>梦幻宠物大冒险 · 角色选择版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -74,7 +74,7 @@
     .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; }
     .equip-slot.equipped { background: #d4af37; color: white; }
 
-    /* 宠物详情面板（优化） */
+    /* 宠物详情面板 */
     .pet-detail-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 90vh; overflow-y: auto; }
     .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .pet-detail-header h3 { display: flex; align-items: center; gap: 5px; }
@@ -83,20 +83,25 @@
     .pet-info-grid .info-block p { margin: 2px 0; font-size: 13px; }
     .pet-actions { display: flex; gap: 8px; margin-top: 10px; }
     .pet-actions button { flex: 1; }
+
+    /* 角色选择界面 */
+    .role-card { background: rgba(255,255,240,0.9); border: 2px solid #d4af37; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; margin: 10px 0; }
+    .role-card:hover { background: rgba(212, 175, 55, 0.1); }
   </style>
 </head>
 <body>
 <div id="app">
   <div class="top-bar">
-    <span @click="showCharacterPanel = true">
+    <span @click="showCharacterPanel = true" v-if="view !== 'auth' && view !== 'role_select'">
       ⚔️ {{ username || '江湖小虾' }} <span class="level-box">Lv.{{ profile?.level || 1 }}</span>
     </span>
-    <span>💰 {{ silver }}</span>
-    <span>💎 {{ diamond }}</span>
-    <span>⚡ {{ energy }}/{{ maxEnergy }} <button @click="syncEnergy" style="background:none; border:none; color:#f5d78c; cursor:pointer; font-size:16px;">↻</button></span>
-    <button @click="logout">退出</button>
+    <span v-else>⚔️ 梦幻宠物大冒险</span>
+    <span v-if="view !== 'auth' && view !== 'role_select'">💰 {{ silver }}</span>
+    <span v-if="view !== 'auth' && view !== 'role_select'">💎 {{ diamond }}</span>
+    <span v-if="view !== 'auth' && view !== 'role_select'">⚡ {{ energy }}/{{ maxEnergy }} <button @click="syncEnergy" style="background:none; border:none; color:#f5d78c; cursor:pointer; font-size:16px;">↻</button></span>
+    <button @click="logout" v-if="view !== 'auth' && view !== 'role_select'">退出</button>
   </div>
-  <div style="background: #2c1810; padding: 2px 15px;">
+  <div style="background: #2c1810; padding: 2px 15px;" v-if="view !== 'auth' && view !== 'role_select'">
     <div class="exp-bar"><div class="exp-fill" :style="{width: playerExpPercent+'%'}"></div></div>
     <small style="color:#aaa; font-size:10px;">经验 {{ profile?.exp || 0 }}/{{ (profile?.level || 1) * 100 }}</small>
   </div>
@@ -106,47 +111,9 @@
     <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
       <div class="card" style="width: 80%"><h3>修改昵称</h3><input v-model="newNickname" placeholder="输入新昵称（最多10字）" maxlength="10"><button class="btn" @click="saveNickname">保存</button><button class="btn red" @click="showNicknameInput = false">取消</button></div>
     </div>
-    <!-- 人物属性面板（含装备） -->
-    <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
-      <div class="character-panel">
-        <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
-        <p>潜力点: <strong>{{ profile?.potential_points || 0 }}</strong></p>
-        <div class="stat-row"><span>体质: {{ profile?.constitution || 5 }}</span><button class="btn" @click="addStat('constitution')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>力量: {{ profile?.strength || 5 }}</span><button class="btn" @click="addStat('strength')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>魔力: {{ profile?.magic || 5 }}</span><button class="btn" @click="addStat('magic')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>耐力: {{ profile?.endurance || 5 }}</span><button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>敏捷: {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
-        <p>最大生命: {{ playerMaxHp }}</p>
-        <p>银两: {{ silver }} &nbsp; 钻石: {{ diamond }}</p>
-        <hr>
-        <h4>🛡️ 装备</h4>
-        <div style="display: flex; flex-wrap: wrap;">
-          <div v-for="slot in ['weapon','armor','necklace','ring','shoes','belt']" :key="slot" class="equip-slot" :class="{ equipped: equippedItems[slot] }" @click="selectSlot(slot)">
-            {{ slotNames[slot] }}<br><small v-if="equippedItems[slot]">{{ equippedItems[slot].name }}</small>
-          </div>
-        </div>
-        <div v-if="selectedSlot" style="margin-top:10px; font-size:13px;">
-          <p><strong>{{ slotNames[selectedSlot] }}</strong></p>
-          <div v-if="equippedItems[selectedSlot]">
-            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ equippedItems[selectedSlot].quality }})</p>
-            <button class="btn red" @click="unequipItem(selectedSlot)">卸下</button>
-          </div>
-          <div v-else>
-            <p>未装备</p>
-          </div>
-          <h4>可选装备</h4>
-          <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:8px; margin:5px 0; cursor:pointer" @click="equipItem(eq)">
-            <p>{{ eq.name }} ({{ eq.quality }})</p>
-            <small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small>
-          </div>
-          <button class="btn" @click="selectedSlot = null">关闭</button>
-        </div>
-        <button class="btn red" @click="showCharacterPanel = false">关闭</button>
-      </div>
-    </div>
-    <!-- 认证界面 -->
+    <!-- 登录/注册 -->
     <div v-if="view === 'auth'">
-      <div class="card" v-if="!profile">
+      <div class="card">
         <h3>{{ isLogin ? '登入江湖' : '初入江湖' }}</h3>
         <input v-if="!isLogin" v-model="regNickname" placeholder="英雄昵称（最多8字）" maxlength="8">
         <input v-model="email" placeholder="英雄邮箱" type="email" autocomplete="email">
@@ -154,8 +121,27 @@
         <button class="btn" :disabled="loading" @click="isLogin ? login() : register()">{{ loading ? '请稍候...' : (isLogin ? '登录' : '注册') }}</button>
         <p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
       </div>
-      <div class="card" v-if="profile && !profile.sect_id"><h3>拜师学艺</h3><div v-for="sect in sects" :key="sect.id" @click="joinSect(sect.id)" class="card" style="cursor:pointer"><strong>{{ sect.name }}</strong> - {{ sect.description }}</div></div>
-      <div class="card" v-if="profile && profile.sect_id && !hasPet"><h3>选初始伙伴</h3><div v-for="p in starters" :key="p.id" @click="selectStarter(p.id)" class="card" style="cursor:pointer">{{ p.name }} ({{ p.element_primary }}) HP:{{ p.base_hp }}</div></div>
+    </div>
+    <!-- 角色选择界面 -->
+    <div v-if="view === 'role_select'">
+      <div class="card" style="text-align:center;">
+        <h3>选择你的角色</h3>
+        <div v-if="profile && profile.sect_id" class="role-card" @click="enterGame">
+          <h4>⚔️ {{ profile.username }}</h4>
+          <p>等级: {{ profile.level }} | 门派: {{ getSectName(profile.sect_id) }}</p>
+          <p>银两: {{ profile.silver }}</p>
+          <p>点击进入游戏</p>
+        </div>
+        <div v-else class="card" style="text-align:left;">
+          <p>你还没有角色，请先创建：</p>
+          <input v-model="regNickname" placeholder="英雄昵称（最多8字）" maxlength="8">
+          <p>选择门派：</p>
+          <div v-for="sect in sects" :key="sect.id" @click="createCharacterAndEnter(sect.id)" class="btn" style="margin:5px 0;">
+            {{ sect.name }} - {{ sect.description }}
+          </div>
+        </div>
+      </div>
+      <button class="btn red" @click="logout">退出登录</button>
     </div>
     <!-- 地图 -->
     <div v-if="view === 'map'"><div v-for="area in areas" :key="area.id" class="card" @click="openArea(area)"><strong>{{ area.name }}</strong> (Lv.{{ area.required_level }})</div></div>
@@ -212,6 +198,44 @@
         <button class="btn" style="margin-top:8px;" @click="showPetDetail = false">关闭</button>
       </div>
     </div>
+    <!-- 人物属性面板（含装备） -->
+    <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
+      <div class="character-panel">
+        <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
+        <p>潜力点: <strong>{{ profile?.potential_points || 0 }}</strong></p>
+        <div class="stat-row"><span>体质: {{ profile?.constitution || 5 }}</span><button class="btn" @click="addStat('constitution')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>力量: {{ profile?.strength || 5 }}</span><button class="btn" @click="addStat('strength')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>魔力: {{ profile?.magic || 5 }}</span><button class="btn" @click="addStat('magic')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>耐力: {{ profile?.endurance || 5 }}</span><button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>敏捷: {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
+        <p>最大生命: {{ playerMaxHp }}</p>
+        <p>银两: {{ silver }} &nbsp; 钻石: {{ diamond }}</p>
+        <hr>
+        <h4>🛡️ 装备</h4>
+        <div style="display: flex; flex-wrap: wrap;">
+          <div v-for="slot in ['weapon','armor','necklace','ring','shoes','belt']" :key="slot" class="equip-slot" :class="{ equipped: equippedItems[slot] }" @click="selectSlot(slot)">
+            {{ slotNames[slot] }}<br><small v-if="equippedItems[slot]">{{ equippedItems[slot].name }}</small>
+          </div>
+        </div>
+        <div v-if="selectedSlot" style="margin-top:10px; font-size:13px;">
+          <p><strong>{{ slotNames[selectedSlot] }}</strong></p>
+          <div v-if="equippedItems[selectedSlot]">
+            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ equippedItems[selectedSlot].quality }})</p>
+            <button class="btn red" @click="unequipItem(selectedSlot)">卸下</button>
+          </div>
+          <div v-else>
+            <p>未装备</p>
+          </div>
+          <h4>可选装备</h4>
+          <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:8px; margin:5px 0; cursor:pointer" @click="equipItem(eq)">
+            <p>{{ eq.name }} ({{ eq.quality }})</p>
+            <small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small>
+          </div>
+          <button class="btn" @click="selectedSlot = null">关闭</button>
+        </div>
+        <button class="btn red" @click="showCharacterPanel = false">关闭</button>
+      </div>
+    </div>
     <!-- 背包 -->
     <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
     <!-- 师门任务 -->
@@ -245,7 +269,7 @@
     </div>
   </div>
 
-  <div class="bottom-nav">
+  <div class="bottom-nav" v-if="view !== 'auth' && view !== 'role_select'">
     <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
   </div>
 </div>
@@ -264,22 +288,16 @@ createApp({
     const showCharacterPanel = ref(false);
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
-    // 装备状态
-    const playerEquipment = ref([]);
-    const selectedSlot = ref(null);
+    const playerEquipment = ref([]); const selectedSlot = ref(null);
     const slotNames = { weapon: '武器', armor: '衣服', necklace: '项链', ring: '戒指', shoes: '鞋子', belt: '腰带' };
     const equippedItems = computed(() => {
       const eq = {};
-      playerEquipment.value.filter(e => e.equipped).forEach(e => {
-        eq[e.slot] = e.equipment_def;
-      });
+      playerEquipment.value.filter(e => e.equipped).forEach(e => { eq[e.slot] = e.equipment_def; });
       return eq;
     });
     const availableEquipment = computed(() => {
       const av = { weapon: [], armor: [], necklace: [], ring: [], shoes: [], belt: [] };
-      playerEquipment.value.filter(e => !e.equipped).forEach(e => {
-        av[e.slot].push({ ...e.equipment_def, id: e.id });
-      });
+      playerEquipment.value.filter(e => !e.equipped).forEach(e => { av[e.slot].push({ ...e.equipment_def, id: e.id }); });
       return av;
     });
 
@@ -300,6 +318,7 @@ createApp({
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
 
     function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精'}; return m[id] || '未知'; }
+    function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
     function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
     function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
     function ivGrade(p) { const s = ivSum(p); return s>=90?'S':s>=70?'A':s>=50?'B':'C'; }
@@ -309,7 +328,6 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 装备加载
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
@@ -328,7 +346,6 @@ createApp({
       if (eq) { await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id); loadEquipment(); }
     }
 
-    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -364,20 +381,71 @@ createApp({
         supabase.from('areas').select('*'), supabase.from('sects').select('*'),
         supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends')
       ]);
-      if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
-      else { await logout(); return; }
+      if (pr.data) {
+        profile.value = pr.data;
+        username.value = pr.data.username;
+        silver.value = pr.data.silver;
+        diamond.value = pr.data.diamond;
+        energy.value = pr.data.energy;
+      }
       if (pe.data) { myPets.value = pe.data.map(p=>({...p,...p.base_pet,base_pet:p.base_pet})); hasPet.value = myPets.value.length > 0; }
-      if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
-      if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
+      if (it.data) inventory.value = it.data;
+      if (ar.data) areas.value = ar.data;
+      if (se.data) sects.value = se.data;
+      if (qu.data) dailyQuests.value = qu.data.quests || [];
+      if (bo.data) worldBoss.value = bo.data;
+      if (fr.data) friends.value = fr.data;
       if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
       await loadEquipment();
-      if (profile.value && !profile.value.sect_id) view.value = 'auth';
-      else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
-      else if (hasPet.value) view.value = 'map';
+
+      // 新流程：登录后进入角色选择界面
+      if (profile.value && !profile.value.sect_id) {
+        view.value = 'role_select'; // 有记录但无门派，说明未完成创建
+      } else if (profile.value && profile.value.sect_id) {
+        view.value = 'role_select'; // 有完整角色，进入角色选择界面
+      } else {
+        view.value = 'auth'; // 无记录，重新登录
+      }
+    }
+
+    function enterGame() {
+      if (profile.value && profile.value.sect_id) {
+        view.value = 'map'; // 进入游戏主界面
+      }
+    }
+
+    async function createCharacterAndEnter(sectId) {
+      if (!regNickname.value.trim()) return alert('请填写昵称');
+      loading.value = true;
+      // 更新昵称和门派
+      const { data: profileData, error } = await supabase.rpc('create_character', { p_sect_id: sectId });
+      if (!error && profileData) {
+        // 如果昵称与当前不同，更新昵称
+        if (regNickname.value.trim() !== profileData.username) {
+          await supabase.rpc('update_nickname', { p_nickname: regNickname.value.trim() });
+        }
+        profile.value = profileData;
+        username.value = profileData.username;
+        view.value = 'map';
+      } else {
+        alert('创建角色失败：' + (error?.message || '未知错误'));
+      }
+      loading.value = false;
+      refreshData();
     }
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
-    async function register() { if (!regNickname.value.trim()) return alert('请填写昵称'); if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signUp({ email: email.value, password: password.value }); if (error) { alert('注册失败：' + error.message); loading.value = false; return; } try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {} loading.value = false; refreshData(); }
+    async function register() {
+      if (!regNickname.value.trim()) return alert('请填写昵称');
+      if (loading.value) return;
+      loading.value = true;
+      const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
+      if (error) { alert('注册失败：' + error.message); loading.value = false; return; }
+      // 注册后立即调用 ensure_profile 创建记录，但此时无门派
+      try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {}
+      loading.value = false;
+      refreshData();
+    }
     async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; playerEquipment.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
     async function joinSect(id) { const { data: { user } } = await supabase.auth.getUser(); if (!user) { alert('请先登录'); view.value = 'auth'; return; } const { data, error } = await supabase.rpc('create_character',{p_sect_id:id}); if (error) { alert('拜师失败：'+error.message); return; } if (data.error) { alert(data.error); return; } refreshData(); }
     async function selectStarter(id) { const { error } = await supabase.rpc('select_starter',{p_pet_id:id}); if (error) { alert('选宠失败：'+error.message); return; } refreshData(); }
@@ -482,11 +550,11 @@ createApp({
       supabase.channel('boss').on('postgres_changes',{event:'UPDATE',schema:'public',table:'world_bosses'},(payload)=>{ worldBoss.value = payload.new; }).subscribe();
       supabase.channel('friends').on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles'},(payload)=>{ const f = friends.value.find(f=>f.username===payload.new.username); if(f) f.online = payload.new.is_online; }).subscribe();
       window.addEventListener('beforeunload',()=>{ if(profile.value?.id) supabase.from('profiles').update({is_online:false}).eq('id',profile.value.id); });
-      startEnergySync();
+      if (view.value !== 'auth' && view.value !== 'role_select') startEnergySync();
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat, playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment, selectSlot, equipItem, unequipItem };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat, playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment, selectSlot, equipItem, unequipItem, enterGame, createCharacterAndEnter, getSectName };
   }
 }).mount('#app');
 </script>
