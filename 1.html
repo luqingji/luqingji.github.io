@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 体力修复最终版</title>
+  <title>梦幻宠物大冒险 · 完整修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -118,7 +118,7 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted, reactive } = Vue;
+const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
@@ -174,15 +174,24 @@ createApp({
       else if (hasPet.value) view.value = 'map';
     }
 
+    let energyTimer = null;
     async function syncEnergy() {
       if (!profile.value?.id) return;
-      try { const { data } = await supabase.rpc('recover_energy'); if (data) { energy.value = data.energy; if (data.max_energy) profile.value.max_energy = data.max_energy; } } catch(e) {}
+      try {
+        const { data, error } = await supabase.rpc('recover_energy');
+        if (error) { console.warn('体力同步失败:', error); return; }
+        if (data && data.energy !== undefined) {
+          energy.value = data.energy;
+          if (data.max_energy) profile.value = { ...profile.value, max_energy: data.max_energy };
+        }
+      } catch (e) { console.warn('体力同步异常:', e); }
     }
-    function startEnergySync() { syncEnergy(); setInterval(syncEnergy, 30000); }
+    function startEnergySync() { syncEnergy(); if (energyTimer) clearInterval(energyTimer); energyTimer = setInterval(syncEnergy, 30000); }
+    function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
     async function register() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signUp({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('注册失败：'+error.message); return; } refreshData(); }
-    async function logout() { await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
+    async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
     async function joinSect(id) { const { data: { user } } = await supabase.auth.getUser(); if (!user) { alert('请先登录'); view.value = 'auth'; return; } const { data, error } = await supabase.rpc('create_character',{p_sect_id:id}); if (error) { alert('拜师失败：'+error.message); return; } if (data.error) { alert(data.error); return; } refreshData(); }
     async function selectStarter(id) { const { error } = await supabase.rpc('select_starter',{p_pet_id:id}); if (error) { alert('选宠失败：'+error.message); return; } refreshData(); }
     async function saveNickname() { if (!newNickname.value.trim()) return alert('昵称不能为空'); const { error } = await supabase.rpc('update_nickname',{p_nickname:newNickname.value.trim()}); if (error) return alert('修改失败：'+error.message); alert('昵称修改成功！'); showNicknameInput.value = false; refreshData(); }
@@ -208,8 +217,9 @@ createApp({
       window.addEventListener('beforeunload',()=>{ if(profile.value?.id) supabase.from('profiles').update({is_online:false}).eq('id',profile.value.id); });
       startEnergySync();
     });
+    onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
+    return { view, isLogin, email, password, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
   }
 }).mount('#app');
 </script>
