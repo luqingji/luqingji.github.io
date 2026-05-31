@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完整版</title>
+  <title>梦幻宠物大冒险 · 最终容错版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -185,6 +185,7 @@ createApp({
     async function syncEnergy() {
       if (!profile.value?.id) return;
       try {
+        // 确保不传递任何额外参数
         const { data, error } = await supabase.rpc('recover_energy');
         if (error) { console.warn('体力同步失败:', error); return; }
         if (data && data.energy !== undefined) {
@@ -203,7 +204,6 @@ createApp({
       loading.value = true;
       const { error } = await supabase.auth.signUp({ email: email.value, password: password.value });
       if (error) { alert('注册失败：' + error.message); loading.value = false; return; }
-      // 注册后设置昵称
       try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {}
       loading.value = false;
       refreshData();
