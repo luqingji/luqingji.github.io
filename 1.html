@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 战斗固定高度版</title>
+  <title>梦幻宠物大冒险 · 大版本更新</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -12,7 +12,7 @@
     body { font-family: "STKaiti","楷体","PingFang SC",sans-serif; background: #1a1a1a; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
     #app { width: 420px; max-width: 100%; background: var(--bg); border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; height: 95vh; max-height: 800px; }
     .top-bar { background: linear-gradient(180deg, #2c1810 0%, #4a2c1a 100%); color: #f5d78c; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; border-bottom: 2px solid #8b5a2b; }
-    .top-bar span { display: flex; align-items: center; gap: 3px; }
+    .top-bar span { display: flex; align-items: center; gap: 3px; cursor: pointer; }
     .top-bar button { background: none; border: 1px solid #f5d78c; color: #f5d78c; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; }
     .main { flex: 1; overflow-y: auto; padding: 12px; }
     .bottom-nav { display: flex; background: #2c1810; border-top: 2px solid #8b5a2b; }
@@ -39,46 +39,15 @@
     .rating-B { background: #3498db; }
     .rating-C { background: #95a5a6; }
 
-    /* 战斗界面：固定高度，与主界面等高 */
-    .battle-container {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 100;
-    }
-    .battle-card {
-      width: 420px;
-      max-width: 100%;
-      height: 95vh;
-      max-height: 800px;
-      background: #1a120b;
-      border: 3px solid #8b5a2b;
-      border-radius: 12px;
-      color: #f5d78c;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    /* 战斗界面 */
+    .battle-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
+    .battle-card { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: #1a120b; border: 3px solid #8b5a2b; border-radius: 12px; color: #f5d78c; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
     .battle-enemy-area { text-align: center; }
     .battle-enemy-area .enemy-name { font-size: 18px; font-weight: bold; color: #ffd700; }
     .battle-enemy-area .enemy-lv { font-size: 12px; color: #ccc; margin-bottom: 5px; }
     .battle-enemy-area .hp-bar { width: 180px; margin: 0 auto; height: 6px; background: #555; border-radius: 3px; }
     .battle-enemy-area .hp-fill { height: 100%; width: 100%; background: #e74c3c; transition: width 0.3s; }
-    .battle-log-area {
-      flex: 1;
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
-      border-radius: 6px;
-      overflow-y: auto;
-      color: #f1c40f;
-      font-size: 13px;
-      line-height: 1.4;
-      min-height: 80px;
-    }
+    .battle-log-area { flex: 1; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 6px; overflow-y: auto; color: #f1c40f; font-size: 13px; line-height: 1.4; min-height: 80px; }
     .battle-log-area p { margin: 3px 0; }
     .battle-ally-area { display: flex; justify-content: space-around; font-size: 14px; }
     .ally-block { text-align: center; width: 45%; }
@@ -96,13 +65,16 @@
     .skill-panel { background: rgba(255,255,240,0.95); border: 2px solid #d4af37; border-radius: 8px; padding: 8px; max-height: 180px; overflow-y: auto; color: #2c1810; }
     .skill-panel h4 { margin: 4px 0; font-size: 13px; color: #8b5a2b; }
     .skill-panel button { margin: 2px 0; padding: 5px; font-size: 13px; }
+
+    /* 人物属性面板 */
+    .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
+    .stat-row button { padding: 2px 8px; font-size: 12px; }
   </style>
 </head>
 <body>
 <div id="app">
-  <!-- 顶部状态栏 -->
   <div class="top-bar">
-    <span class="nickname-edit" @click="showNicknameInput = true">
+    <span @click="showCharacterPanel = true">
       ⚔️ {{ username || '江湖小虾' }} <span class="level-box">Lv.{{ profile?.level || 1 }}</span>
     </span>
     <span>💰 {{ silver }}</span>
@@ -119,6 +91,21 @@
     <!-- 昵称修改弹窗 -->
     <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
       <div class="card" style="width: 80%"><h3>修改昵称</h3><input v-model="newNickname" placeholder="输入新昵称（最多10字）" maxlength="10"><button class="btn" @click="saveNickname">保存</button><button class="btn red" @click="showNicknameInput = false">取消</button></div>
+    </div>
+    <!-- 人物属性面板 -->
+    <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
+      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+        <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
+        <p>潜力点: <strong>{{ profile?.potential_points || 0 }}</strong></p>
+        <div class="stat-row"><span>体质 {{ profile?.constitution || 5 }}</span><button class="btn" @click="addStat('constitution')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>力量 {{ profile?.strength || 5 }}</span><button class="btn" @click="addStat('strength')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>魔力 {{ profile?.magic || 5 }}</span><button class="btn" @click="addStat('magic')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>耐力 {{ profile?.endurance || 5 }}</span><button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>敏捷 {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
+        <p>HP: {{ playerMaxHp }}</p>
+        <p>银两: {{ silver }}</p>
+        <button class="btn red" @click="showCharacterPanel = false">关闭</button>
+      </div>
     </div>
     <!-- 认证界面 -->
     <div v-if="view === 'auth'">
@@ -149,39 +136,19 @@
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
-    <!-- 战斗界面（固定高度） -->
+    <!-- 战斗界面 -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
-        <div class="battle-enemy-area">
-          <div class="enemy-name">{{ encounter.name }}</div>
-          <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
-          <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
-          <small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small>
-        </div>
-        <div class="battle-log-area">
-          <p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p>
-        </div>
+        <div class="battle-enemy-area"><div class="enemy-name">{{ encounter.name }}</div><div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div><small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small></div>
+        <div class="battle-log-area"><p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p></div>
         <div class="battle-ally-area">
-          <div class="ally-block">
-            <div class="name">🧑 {{ username }}</div>
-            <div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div>
-            <div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div>
-          </div>
-          <div class="ally-block" v-if="activePet">
-            <div class="name">🐾 {{ activePet.nickname }}</div>
-            <div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div>
-            <div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div>
-          </div>
+          <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
+          <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div>
         </div>
-        <div v-if="catching" class="catch-animation">
-          <div class="pokeball" :class="ballShakeClass"></div>
-          <p>{{ catchMessage }}</p>
-        </div>
+        <div v-if="catching" class="catch-animation"><div class="pokeball" :class="ballShakeClass"></div><p>{{ catchMessage }}</p></div>
         <div v-if="showSkillPanel && !catching" class="skill-panel">
-          <h4>人物技能</h4>
-          <button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">✨ {{ skill.name }}</button>
-          <h4>宠物技能</h4>
-          <button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">🐾 {{ skill.name }}</button>
+          <h4>人物技能</h4><button v-for="skill in playerSkills" :key="skill.id" class="btn" @click="battleAction('player_skill', skill.id); showSkillPanel=false">✨ {{ skill.name }}</button>
+          <h4>宠物技能</h4><button v-for="skill in petSkills" :key="skill.id" class="btn" @click="battleAction('pet_skill', skill.id); showSkillPanel=false">🐾 {{ skill.name }}</button>
           <button class="btn red" @click="showSkillPanel=false">取消</button>
         </div>
         <div v-if="!catching" class="battle-actions">
@@ -210,21 +177,22 @@ createApp({
     const myPets = ref([]); const activePet = ref(null); const inventory = ref([]); const encounter = ref({}); const battle = reactive({ active: false });
     const dailyQuests = ref([]); const worldBoss = ref({ hp: 0, max_hp: 10000, active: true, defeated_date: null }); const friends = ref([]); const friendName = ref(''); const worldBossAttackedToday = ref(false);
     const showNicknameInput = ref(false); const newNickname = ref(''); const showPetDetail = ref(false); const detailPet = ref(null);
+    const showCharacterPanel = ref(false);  // 人物属性面板
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
 
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
-    const petSkills = computed(() => { if (!activePet.value?.skills) return []; const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'}; return activePet.value.skills.map(id => ({ id, name: map[id] || '未知' })); });
+    const petSkills = computed(() => { if (!activePet.value?.skills) return []; const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return activePet.value.skills.map(id => ({ id, name: map[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
-    const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20);
+    const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5);
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
     const petMaxHp = computed(() => (activePet.value?.base_hp || 0) + (activePet.value?.iv_hp || 0));
     const petHpPercent = computed(() => (petHp.value / (petMaxHp.value || 1)) * 100);
     const playerExpPercent = computed(() => { if (!profile.value) return 0; return (profile.value.exp / (profile.value.level * 100)) * 100; });
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
 
-    function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫'}; return m[id] || '未知'; }
-    function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
+    function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精'}; return m[id] || '未知'; }
+    function petSkillNames(p) { const m = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return (p.skills||[]).map(id => m[id]||'?').join(','); }
     function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
     function ivGrade(p) { const s = ivSum(p); return s>=90?'S':s>=70?'A':s>=50?'B':'C'; }
     function ivGradeText(p) { return {S:'传说',A:'优秀',B:'普通',C:'弱小'}[ivGrade(p)]||'弱小'; }
@@ -233,6 +201,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
+    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -311,7 +280,7 @@ createApp({
         recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`);
       }
     }
-    async function battleAction(action, skillId = null) {
+    async function battleAction(action, skillId = null) { /* 保持不变 */ 
       if (battleBusy.value) return;
       battleBusy.value = true;
       showSkillPanel.value = false;
@@ -369,6 +338,16 @@ createApp({
     }
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
 
+    // 加点功能
+    async function addStat(stat) {
+      if (!profile.value?.potential_points) { alert('没有潜力点了！'); return; }
+      const { data, error } = await supabase.rpc('add_stat', { p_stat: stat });
+      if (error) { alert('加点失败：' + error.message); return; }
+      if (data.error) { alert(data.error); return; }
+      profile.value = data;
+      alert('加点成功！');
+    }
+
     onMounted(() => {
       if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
       refreshData();
@@ -380,7 +359,7 @@ createApp({
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat };
   }
 }).mount('#app');
 </script>
