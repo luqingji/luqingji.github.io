@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 终极修复版</title>
+  <title>梦幻宠物大冒险 · 无 RPC 体力终极版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -158,11 +158,51 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
+    // 核心体力同步（前端计算+直接更新profiles表）
+    async function syncEnergy() {
+      if (!profile.value?.id) return;
+      const now = new Date();
+      const lastUsed = new Date(profile.value.last_energy_used_at);
+      const minutesPassed = (now - lastUsed) / 60000;
+      const recovered = Math.floor(minutesPassed / 3);
+      const maxEng = maxEnergy.value;
+      let newEnergy = profile.value.energy + recovered;
+      
+      // 检查每日登录
+      const lastLogin = profile.value.last_login_date ? new Date(profile.value.last_login_date + 'T00:00:00') : null;
+      const today = new Date().toISOString().split('T')[0];
+      if (!lastLogin || lastLogin < new Date(today + 'T00:00:00')) {
+        newEnergy = maxEng;
+      }
+      
+      newEnergy = Math.min(newEnergy, maxEng);
+      
+      if (newEnergy !== profile.value.energy) {
+        energy.value = newEnergy;
+        const updateData = {
+          energy: newEnergy,
+          last_energy_used_at: now.toISOString(),
+          last_login_date: today
+        };
+        const { error } = await supabase.from('profiles').update(updateData).eq('id', profile.value.id);
+        if (!error) {
+          profile.value = { ...profile.value, ...updateData };
+        } else {
+          console.warn('体力更新失败:', error);
+        }
+      }
+    }
+
+    let energyTimer = null;
+    function startEnergySync() { syncEnergy(); energyTimer = setInterval(syncEnergy, 30000); }
+    function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
+
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       try { await supabase.rpc('ensure_profile'); } catch(e) {}
-      try { await supabase.rpc('refresh_energy'); } catch(e) {}
+      // 初始化时同步体力
+      await syncEnergy();
       const [pr, pe, it, ar, se, qu, bo, fr] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd)').eq('owner_id', user.id),
@@ -181,21 +221,6 @@ createApp({
       else if (hasPet.value) view.value = 'map';
     }
 
-    let energyTimer = null;
-    async function syncEnergy() {
-      if (!profile.value?.id) return;
-      try {
-        const { data, error } = await supabase.rpc('refresh_energy');
-        if (error) { console.warn('体力同步失败:', error.message); return; }
-        if (data && data.energy !== undefined) {
-          energy.value = data.energy;
-          if (data.max_energy) profile.value = { ...profile.value, max_energy: data.max_energy };
-        }
-      } catch (e) { console.warn('体力同步异常:', e); }
-    }
-    function startEnergySync() { syncEnergy(); if (energyTimer) clearInterval(energyTimer); energyTimer = setInterval(syncEnergy, 30000); }
-    function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
-
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
     async function register() { if (!regNickname.value.trim()) return alert('请填写昵称'); if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signUp({ email: email.value, password: password.value }); if (error) { alert('注册失败：' + error.message); loading.value = false; return; } try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {} loading.value = false; refreshData(); }
     async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
@@ -206,7 +231,28 @@ createApp({
     function openPetDetail(p) { detailPet.value = p; showPetDetail.value = true; }
     async function releasePet(p) { if (!confirm(`确定要放生 ${p.nickname} 吗？`)) return; const { error } = await supabase.rpc('release_pet',{p_pet_id:p.id}); if (error) return alert('放生失败：'+error.message); alert('宠物已放生。'); showPetDetail.value = false; refreshData(); }
     async function openArea(a) { const { data } = await supabase.from('scenes').select('*').eq('area_id',a.id); currentScenes.value = data; currentAreaName.value = a.name; view.value = 'scene'; }
-    async function explore(sceneId) { const { data, error } = await supabase.rpc('explore_area',{p_scene_id:sceneId}); if (error) { alert('探索失败：'+error.message); return; } if (data.error) { alert(data.error); return; } energy.value = data.energy; if (data.type === 'monster' || data.type === 'wild_pet') { encounter.value = data.data; encounter.value.currentHp = data.data.hp; encounter.value.maxHp = data.data.hp; enemyHp.value = data.data.hp; const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0); activePet.value = carried || myPets.value.find(p => p.current_hp > 0); if (!activePet.value) { alert('没有可以战斗的宠物！'); return; } petHp.value = activePet.value.current_hp; playerHp.value = playerMaxHp.value; battleBusy.value = false; catching.value = false; showSkillPanel.value = false; battle.active = true; recentLogs.value = []; recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`); } }
+    async function explore(sceneId) {
+      await syncEnergy(); // 探索前先同步体力
+      const { data, error } = await supabase.rpc('explore_area',{p_scene_id:sceneId});
+      if (error) { alert('探索失败：'+error.message); return; }
+      if (data.error) { alert(data.error); return; }
+      energy.value = data.energy;
+      if (data.type === 'monster' || data.type === 'wild_pet') {
+        encounter.value = data.data;
+        encounter.value.currentHp = data.data.hp;
+        encounter.value.maxHp = data.data.hp;
+        enemyHp.value = data.data.hp;
+        const carried = myPets.value.find(p => p.is_carried && p.current_hp > 0);
+        activePet.value = carried || myPets.value.find(p => p.current_hp > 0);
+        if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
+        petHp.value = activePet.value.current_hp;
+        playerHp.value = playerMaxHp.value;
+        battleBusy.value = false; catching.value = false; showSkillPanel.value = false;
+        battle.active = true;
+        recentLogs.value = [];
+        recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`);
+      }
+    }
     async function battleAction(action, skillId = null) { if (battleBusy.value) return; battleBusy.value = true; showSkillPanel.value = false; const t = setTimeout(() => { if (battleBusy.value) { battleBusy.value = false; catching.value = false; alert('操作超时，请重试'); } }, 5000); if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; } if (action === 'catch') { clearTimeout(t); catching.value = true; const { data, error } = await supabase.rpc('catch_wild_pet',{p_pet_id:activePet.value.id,p_wild_base_id:encounter.value.id,p_wild_current_hp:encounter.value.currentHp}); if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; } await shakeBall(3); if (data.caught) { catchMessage.value = '收服成功！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500); } else { catchMessage.value = '挣脱了！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1000); } return; } clearTimeout(t); let mid = encounter.value.id; if (encounter.value.type === 'wild_pet') mid = 1; const chp = encounter.value.currentHp; const { data, error } = await supabase.rpc('battle_encounter',{p_pet_id:activePet.value.id,p_monster_id:mid,p_monster_current_hp:chp,p_player_skill_id:action==='player_skill'?skillId:null,p_pet_skill_id:action==='pet_skill'?skillId:null}); if (error) { alert('战斗出错：'+error.message); battleBusy.value = false; return; } processBattleResult(data); battleBusy.value = false; }
     function processBattleResult(data) { petHp.value = data.pet_hp; playerHp.value = data.player_hp; encounter.value.currentHp = data.monster_hp; enemyHp.value = data.monster_hp; if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); } if (data.pet_leveled_up) alert('你的宠物升级了！'); if (data.player_leveled_up) alert('你升级了！'); if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); } else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); } }
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
