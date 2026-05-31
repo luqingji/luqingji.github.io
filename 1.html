@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 大平衡2版</title>
+  <title>梦幻宠物大冒险 · 速度先后手版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -49,7 +49,14 @@
     .battle-enemy-area .enemy-lv { font-size: 12px; color: #ccc; margin-bottom: 3px; }
     .battle-enemy-area .hp-bar { width: 160px; margin: 0 auto; }
     .battle-log-area { flex: 1; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 5px; overflow-y: auto; color: #f1c40f; font-size: 12px; line-height: 1.3; min-height: 60px; }
-    .battle-log-area p { margin: 2px 0; }
+    .battle-log-area .log-entry { display: flex; align-items: baseline; gap: 4px; margin: 2px 0; font-size: 12px; padding: 2px 4px; border-left: 3px solid transparent; }
+    .battle-log-area .log-entry.first { border-left-color: #f1c40f; background: rgba(241,196,15,0.1); font-weight: bold; }
+    .battle-log-area .log-entry.player .log-text { color: #f1c40f; }
+    .battle-log-area .log-entry.pet .log-text { color: #2ecc71; }
+    .battle-log-area .log-entry.enemy .log-text { color: #e74c3c; }
+    .battle-log-area .log-entry.info .log-text { color: #bdc3c7; }
+    .damage-num { font-weight: bold; font-size: 1.2em; color: #ff6b6b; }
+    .log-icon { min-width: 20px; text-align: center; }
     .battle-ally-area { display: flex; justify-content: space-around; font-size: 13px; }
     .ally-block { text-align: center; width: 45%; }
     .ally-block .name { font-size: 13px; font-weight: bold; margin-bottom: 1px; }
@@ -267,7 +274,12 @@
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
         <div class="battle-enemy-area"><div class="enemy-name" @click="showEnemyInfo = true">{{ encounter.name }}</div><div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div><small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small></div>
-        <div class="battle-log-area"><p v-for="(msg, idx) in recentLogs" :key="idx">{{ msg }}</p></div>
+        <div class="battle-log-area" ref="logContainer">
+          <div v-for="(msg, idx) in recentLogs" :key="idx" class="log-entry" :class="logEntryClass(msg)">
+            <span class="log-icon">{{ logEntryIcon(msg) }}</span>
+            <span class="log-text" v-html="formatLogMessage(msg)"></span>
+          </div>
+        </div>
         <div class="battle-ally-area">
           <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
           <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div>
@@ -276,14 +288,15 @@
         <div v-if="showSkillPanel && !catching" class="skill-panel">
           <h4>人物技能 <span v-if="pendingPlayerSkill">✅ 已选</span></h4>
           <button v-for="skill in playerSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPlayerSkill === skill.id }" @click="selectPlayerSkill(skill.id)">✨ {{ skill.name }}</button>
-          <h4>宠物技能 <span v-if="pendingPetSkill">✅ 已选</span></h4>
-          <button v-for="skill in petSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPetSkill === skill.id }" @click="selectPetSkill(skill.id)">🐾 {{ skill.name }}</button>
+          <h4 v-if="isPetAlive">宠物技能 <span v-if="pendingPetSkill">✅ 已选</span></h4>
+          <h4 v-else style="color:#e74c3c;">💔 宠物已阵亡，无法使用技能</h4>
+          <button v-for="skill in petSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPetSkill === skill.id }" @click="selectPetSkill(skill.id)" :disabled="!isPetAlive">🐾 {{ skill.name }}</button>
           <button class="btn red" @click="cancelSkillPanel">取消</button>
         </div>
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
-          <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
-          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy">🎯 捕捉</button>
+          <button class="btn" @click="openSkillPanel" :disabled="battleBusy || !isPetAlive">📜 技能</button>
+          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive">🎯 捕捉</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
       </div>
@@ -307,7 +320,7 @@
 </div>
 
 <script>
-const { createApp, ref, computed, onMounted, onUnmounted, reactive } = Vue;
+const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
@@ -329,6 +342,12 @@ createApp({
     const pendingPlayerSkill = ref(null);
     const pendingPetSkill = ref(null);
     const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
+    const logContainer = ref(null);
+    const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫'];
+
+    // 技能映射表（扩展）
+    const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
+      11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
 
     // ---------- 计算属性 ----------
     const equippedItems = computed(() => {
@@ -343,9 +362,6 @@ createApp({
     });
 
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
-    // 技能名映射扩展
-    const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
-      11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
     const petSkills = computed(() => { if (!activePet.value?.skills) return []; return activePet.value.skills.map(id => ({ id, name: skillNameMap[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
     const playerMaxHp = computed(() => {
@@ -360,6 +376,7 @@ createApp({
     const petHpPercent = computed(() => (petHp.value / (petMaxHp.value || 1)) * 100);
     const playerExpPercent = computed(() => { if (!profile.value) return 0; return (profile.value.exp / (profile.value.level * 100)) * 100; });
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
+    const isPetAlive = computed(() => petHp.value > 0);
 
     const playerRealAtk = computed(() => {
       let base = (profile.value?.strength || 5) * 1.5;
@@ -391,6 +408,41 @@ createApp({
     function petRealAtk(p) { return (p.base_atk||0)+(p.iv_atk||0)+Math.floor((p.ev_atk||0)/4); }
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
+
+    // 日志分类与格式化
+    function logEntryClass(msg) {
+      const t = msg.text || msg;
+      if (t.includes('【先手】')) return 'first';
+      if (t.includes('你使用了') || t.includes('你发动了攻击')) return 'player';
+      if (t.includes('攻击了你') || t.includes('对你造成')) return 'enemy';
+      if (activePet?.value?.nickname && (t.includes(activePet.value.nickname+'使用了') || t.includes(activePet.value.nickname+'攻击'))) return 'pet';
+      if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复')) return 'info';
+      return '';
+    }
+    function logEntryIcon(msg) {
+      const t = msg.text || msg;
+      if (t.includes('你')) return '🧑';
+      if (activePet?.value?.nickname && t.includes(activePet.value.nickname)) return '🐾';
+      if (enemyNames.some(name => t.includes(name))) return '👹';
+      if (t.includes('沉睡')) return '💤';
+      if (t.includes('回复')) return '🌿';
+      return '📢';
+    }
+    function formatLogMessage(msg) {
+      let t = msg.text || msg;
+      t = t.replace(/【先手】/g, '').replace(/【后手】/g, '');
+      t = t.replace(/造成(\d+)点伤害/g, '造成 <span class="damage-num">$1</span> 点伤害');
+      return t;
+    }
+
+    // 自动滚动日志
+    watch(recentLogs, () => {
+      nextTick(() => {
+        if (logContainer.value) {
+          logContainer.value.scrollTop = logContainer.value.scrollHeight;
+        }
+      });
+    }, { deep: false });
 
     // ---------- 装备操作 ----------
     async function loadEquipment() {
@@ -541,8 +593,7 @@ createApp({
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
         if (data.type === 'wild_pet') {
-          // 野生宠物遭遇，存储 base_pet_id
-          data.data.base_pet_id = data.data.id;  // explore_area 返回的 data.data 可能直接是 base_pet_def
+          data.data.base_pet_id = data.data.id;
           data.data.level = 1;
         }
         encounter.value = data.data;
@@ -569,7 +620,7 @@ createApp({
     function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
     function cancelSkillPanel() { showSkillPanel.value = false; }
 
-    // ---------- 战斗（适配新公式，传递 p_wild_base_id） ----------
+    // ---------- 战斗 ----------
     async function battleAction(action, skillId = null) {
       if (battleBusy.value) return;
       battleBusy.value = true; showSkillPanel.value = false;
@@ -583,6 +634,7 @@ createApp({
           p_wild_current_hp: encounter.value.currentHp
         });
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
+        if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; return; }
         await shakeBall(3);
         if (data.caught) { catchMessage.value = '收服成功！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500); }
         else { catchMessage.value = '挣脱了！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1000); }
@@ -613,7 +665,10 @@ createApp({
       if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
       if (data.pet_leveled_up) alert('你的宠物升级了！');
       if (data.player_leveled_up) alert('你升级了！');
-      if (data.pet_hp !== undefined && activePet.value) { activePet.value.current_hp = data.pet_hp; if (data.pet_hp <= 0) activePet.value.is_carried = false; }
+      if (data.pet_hp !== undefined && activePet.value) {
+        activePet.value.current_hp = data.pet_hp;
+        // ★ 不再修改 is_carried，保持玩家设定的携带状态
+      }
       if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
       else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
     }
@@ -665,7 +720,7 @@ createApp({
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       playerRealAtk, playerRealDef, playerRealSpd,
-      qualityCN, slotNames,
+      qualityCN, slotNames, isPetAlive,
       getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
       petRealHp, petRealAtk, petRealDef, petRealSpd,
       refreshData, syncEnergy, startEnergySync, stopEnergySync,
@@ -675,7 +730,8 @@ createApp({
       playerEquipment, selectedSlot, equippedItems, availableEquipment,
       selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter,
       inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
-      showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel
+      showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
+      logContainer, logEntryClass, logEntryIcon, formatLogMessage
     };
   }
 }).mount('#app');
