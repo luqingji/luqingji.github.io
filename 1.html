@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完整版</title>
+  <title>梦幻宠物大冒险 · 装备系统版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -71,6 +71,10 @@
     .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 6px; background: rgba(255,255,240,0.5); border-radius: 5px; }
     .stat-row span { font-weight: bold; }
     .stat-row button { padding: 4px 12px; font-size: 14px; min-width: 40px; }
+    /* 装备格子 */
+    .equip-slot { display: inline-block; width: 45px; height: 45px; background: #eee; border: 1px solid #8b5a2b; border-radius: 5px; margin: 2px; cursor: pointer; text-align: center; vertical-align: middle; line-height: 45px; font-size: 12px; }
+    .equip-slot.equipped { background: #d4af37; color: white; }
+    .equip-info { font-size: 12px; }
   </style>
 </head>
 <body>
@@ -94,7 +98,7 @@
     <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
       <div class="card" style="width: 80%"><h3>修改昵称</h3><input v-model="newNickname" placeholder="输入新昵称（最多10字）" maxlength="10"><button class="btn" @click="saveNickname">保存</button><button class="btn red" @click="showNicknameInput = false">取消</button></div>
     </div>
-    <!-- 人物属性面板（优化后） -->
+    <!-- 人物属性面板（含装备） -->
     <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
       <div class="character-panel">
         <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
@@ -106,6 +110,29 @@
         <div class="stat-row"><span>敏捷: {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
         <p>最大生命: {{ playerMaxHp }}</p>
         <p>银两: {{ silver }} &nbsp; 钻石: {{ diamond }}</p>
+        <hr>
+        <h4>🛡️ 装备</h4>
+        <div style="display: flex; flex-wrap: wrap;">
+          <div v-for="slot in ['weapon','armor','necklace','ring','shoes','belt']" :key="slot" class="equip-slot" :class="{ equipped: equippedItems[slot] }" @click="selectSlot(slot)">
+            {{ slotNames[slot] }}<br><small v-if="equippedItems[slot]">{{ equippedItems[slot].name }}</small>
+          </div>
+        </div>
+        <div v-if="selectedSlot" style="margin-top:10px; font-size:13px;">
+          <p><strong>{{ slotNames[selectedSlot] }}</strong></p>
+          <div v-if="equippedItems[selectedSlot]">
+            <p>已装备: {{ equippedItems[selectedSlot].name }} ({{ equippedItems[selectedSlot].quality }})</p>
+            <button class="btn red" @click="unequipItem(selectedSlot)">卸下</button>
+          </div>
+          <div v-else>
+            <p>未装备</p>
+          </div>
+          <h4>可选装备</h4>
+          <div v-for="eq in availableEquipment[selectedSlot]" :key="eq.id" class="card" style="padding:8px; margin:5px 0; cursor:pointer" @click="equipItem(eq)">
+            <p>{{ eq.name }} ({{ eq.quality }})</p>
+            <small>HP:{{ eq.base_hp }} 攻:{{ eq.base_atk }} 防:{{ eq.base_def }} 速:{{ eq.base_spd }}</small>
+          </div>
+          <button class="btn" @click="selectedSlot = null">关闭</button>
+        </div>
         <button class="btn red" @click="showCharacterPanel = false">关闭</button>
       </div>
     </div>
@@ -128,7 +155,7 @@
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small><button class="btn" style="font-size:12px; padding:2px 6px; margin-top:5px" @click.stop="setCarried(p.id)" :disabled="p.current_hp <= 0">设为携带</button></div></div></div>
-    <!-- 宠物详情弹窗 -->
+    <!-- 宠物详情弹窗（略） -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false"><div class="card" style="width: 90%; max-height: 85%; overflow-y: auto;"><h3>{{ detailPet.nickname }}  Lv.{{ detailPet.level }}</h3><div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div><p>HP: {{ detailPet.current_hp }} / {{ petRealHp(detailPet) }}</p><div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div><p>经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p><hr><p><strong>实际属性</strong></p><p>攻击: {{ petRealAtk(detailPet) }} &nbsp; 防御: {{ petRealDef(detailPet) }} &nbsp; 速度: {{ petRealSpd(detailPet) }}</p><p><strong>种族值</strong> (HP/攻击/防御/速度)</p><p>{{ detailPet.base_hp || 0 }} / {{ detailPet.base_atk || 0 }} / {{ detailPet.base_def || 0 }} / {{ detailPet.base_spd || 0 }}</p><p><strong>个体值</strong> (上限31)</p><div class="iv-bar"><span>HP:</span><div class="iv-fill" :style="{width: ((detailPet.iv_hp||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_hp || 0 }}</span></div><div class="iv-bar"><span>攻击:</span><div class="iv-fill" :style="{width: ((detailPet.iv_atk||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_atk || 0 }}</span></div><div class="iv-bar"><span>防御:</span><div class="iv-fill" :style="{width: ((detailPet.iv_def||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_def || 0 }}</span></div><div class="iv-bar"><span>速度:</span><div class="iv-fill" :style="{width: ((detailPet.iv_spd||0)/31*100)+'%'}"></div><span>{{ detailPet.iv_spd || 0 }}</span></div><p><strong>个体值总和</strong>: {{ ivSum(detailPet) }} / 124 <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span></p><p><strong>努力值</strong> (EV, 单项上限252, 总和上限510)</p><p>HP:{{ detailPet.ev_hp || 0 }} 攻击:{{ detailPet.ev_atk || 0 }} 防御:{{ detailPet.ev_def || 0 }} 速度:{{ detailPet.ev_spd || 0 }}</p><p><strong>技能</strong>: {{ petSkillNames(detailPet) }}</p><button class="btn red" style="margin-top:8px" @click="releasePet(detailPet)">放生</button><button class="btn" @click="showPetDetail = false">关闭</button></div></div>
     <!-- 背包 -->
     <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
@@ -182,11 +209,35 @@ createApp({
     const showCharacterPanel = ref(false);
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
+    // 装备相关状态
+    const playerEquipment = ref([]);
+    const selectedSlot = ref(null);
+    const slotNames = { weapon: '武器', armor: '衣服', necklace: '项链', ring: '戒指', shoes: '鞋子', belt: '腰带' };
+    const equippedItems = computed(() => {
+      const eq = {};
+      playerEquipment.value.filter(e => e.equipped).forEach(e => {
+        eq[e.slot] = e.equipment_def;
+      });
+      return eq;
+    });
+    const availableEquipment = computed(() => {
+      const av = { weapon: [], armor: [], necklace: [], ring: [], shoes: [], belt: [] };
+      playerEquipment.value.filter(e => !e.equipped).forEach(e => {
+        av[e.slot].push({ ...e.equipment_def, id: e.id });
+      });
+      return av;
+    });
 
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
     const petSkills = computed(() => { if (!activePet.value?.skills) return []; const map = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风'}; return activePet.value.skills.map(id => ({ id, name: map[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
-    const playerMaxHp = computed(() => 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5);
+    const playerMaxHp = computed(() => {
+      let bonus = 0;
+      if (equippedItems.value.armor) bonus += equippedItems.value.armor.base_hp || 0;
+      if (equippedItems.value.necklace) bonus += equippedItems.value.necklace.base_hp || 0;
+      if (equippedItems.value.belt) bonus += equippedItems.value.belt.base_hp || 0;
+      return 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5 + bonus;
+    });
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
     const petMaxHp = computed(() => (activePet.value?.base_hp || 0) + (activePet.value?.iv_hp || 0));
     const petHpPercent = computed(() => (petHp.value / (petMaxHp.value || 1)) * 100);
@@ -202,6 +253,34 @@ createApp({
     function petRealAtk(p) { return (p.base_atk||0)+(p.iv_atk||0)+Math.floor((p.ev_atk||0)/4); }
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
+
+    // 装备操作
+    async function loadEquipment() {
+      if (!profile.value?.id) return;
+      const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
+      if (!error && data) playerEquipment.value = data;
+    }
+    async function selectSlot(slot) {
+      selectedSlot.value = slot;
+    }
+    async function equipItem(eq) {
+      // 将该槽位所有已装备的卸下
+      const currentEquipped = playerEquipment.value.find(e => e.slot === eq.slot && e.equipped);
+      if (currentEquipped) {
+        await supabase.from('player_equipment').update({ equipped: false }).eq('id', currentEquipped.id);
+      }
+      // 装备选中的
+      await supabase.from('player_equipment').update({ equipped: true }).eq('id', eq.id);
+      loadEquipment();
+      selectedSlot.value = null;
+    }
+    async function unequipItem(slot) {
+      const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
+      if (eq) {
+        await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id);
+        loadEquipment();
+      }
+    }
 
     async function syncEnergy() {
       if (!profile.value?.id) return;
@@ -244,6 +323,7 @@ createApp({
       if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
       if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
       if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
+      await loadEquipment();
       if (profile.value && !profile.value.sect_id) view.value = 'auth';
       else if (profile.value?.sect_id && !hasPet.value) view.value = 'auth';
       else if (hasPet.value) view.value = 'map';
@@ -251,7 +331,7 @@ createApp({
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
     async function register() { if (!regNickname.value.trim()) return alert('请填写昵称'); if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signUp({ email: email.value, password: password.value }); if (error) { alert('注册失败：' + error.message); loading.value = false; return; } try { await supabase.rpc('ensure_profile', { p_username: regNickname.value.trim() }); } catch(e) {} loading.value = false; refreshData(); }
-    async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
+    async function logout() { stopEnergySync(); await supabase.auth.signOut(); profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0; hasPet.value = false; myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = []; playerEquipment.value = []; view.value = 'auth'; supabase.removeAllChannels(); }
     async function joinSect(id) { const { data: { user } } = await supabase.auth.getUser(); if (!user) { alert('请先登录'); view.value = 'auth'; return; } const { data, error } = await supabase.rpc('create_character',{p_sect_id:id}); if (error) { alert('拜师失败：'+error.message); return; } if (data.error) { alert(data.error); return; } refreshData(); }
     async function selectStarter(id) { const { error } = await supabase.rpc('select_starter',{p_pet_id:id}); if (error) { alert('选宠失败：'+error.message); return; } refreshData(); }
     async function saveNickname() { if (!newNickname.value.trim()) return alert('昵称不能为空'); const { error } = await supabase.rpc('update_nickname',{p_nickname:newNickname.value.trim()}); if (error) return alert('修改失败：'+error.message); alert('昵称修改成功！'); showNicknameInput.value = false; refreshData(); }
@@ -281,7 +361,7 @@ createApp({
         recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`);
       }
     }
-    async function battleAction(action, skillId = null) { 
+    async function battleAction(action, skillId = null) { /* 保持不变 */ 
       if (battleBusy.value) return;
       battleBusy.value = true;
       showSkillPanel.value = false;
@@ -359,7 +439,7 @@ createApp({
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat, playerEquipment, selectedSlot, slotNames, equippedItems, availableEquipment, selectSlot, equipItem, unequipItem };
   }
 }).mount('#app');
 </script>
