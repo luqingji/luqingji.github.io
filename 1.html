@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 大版本更新</title>
+  <title>梦幻宠物大冒险 · 最终完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -67,8 +67,10 @@
     .skill-panel button { margin: 2px 0; padding: 5px; font-size: 13px; }
 
     /* 人物属性面板 */
-    .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 5px 0; }
-    .stat-row button { padding: 2px 8px; font-size: 12px; }
+    .character-panel { width: 420px; max-width: 100%; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; color: #2c1810; max-height: 90vh; overflow-y: auto; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 6px; background: rgba(255,255,240,0.5); border-radius: 5px; }
+    .stat-row span { font-weight: bold; }
+    .stat-row button { padding: 4px 12px; font-size: 14px; min-width: 40px; }
   </style>
 </head>
 <body>
@@ -92,18 +94,18 @@
     <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
       <div class="card" style="width: 80%"><h3>修改昵称</h3><input v-model="newNickname" placeholder="输入新昵称（最多10字）" maxlength="10"><button class="btn" @click="saveNickname">保存</button><button class="btn red" @click="showNicknameInput = false">取消</button></div>
     </div>
-    <!-- 人物属性面板 -->
+    <!-- 人物属性面板（优化后） -->
     <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
-      <div class="card" style="width: 90%; max-height: 80%; overflow-y: auto;">
+      <div class="character-panel">
         <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
         <p>潜力点: <strong>{{ profile?.potential_points || 0 }}</strong></p>
-        <div class="stat-row"><span>体质 {{ profile?.constitution || 5 }}</span><button class="btn" @click="addStat('constitution')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>力量 {{ profile?.strength || 5 }}</span><button class="btn" @click="addStat('strength')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>魔力 {{ profile?.magic || 5 }}</span><button class="btn" @click="addStat('magic')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>耐力 {{ profile?.endurance || 5 }}</span><button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
-        <div class="stat-row"><span>敏捷 {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
-        <p>HP: {{ playerMaxHp }}</p>
-        <p>银两: {{ silver }}</p>
+        <div class="stat-row"><span>体质: {{ profile?.constitution || 5 }}</span><button class="btn" @click="addStat('constitution')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>力量: {{ profile?.strength || 5 }}</span><button class="btn" @click="addStat('strength')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>魔力: {{ profile?.magic || 5 }}</span><button class="btn" @click="addStat('magic')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>耐力: {{ profile?.endurance || 5 }}</span><button class="btn" @click="addStat('endurance')" :disabled="!profile?.potential_points">+</button></div>
+        <div class="stat-row"><span>敏捷: {{ profile?.agility || 5 }}</span><button class="btn" @click="addStat('agility')" :disabled="!profile?.potential_points">+</button></div>
+        <p>最大生命: {{ playerMaxHp }}</p>
+        <p>银两: {{ silver }} &nbsp; 钻石: {{ diamond }}</p>
         <button class="btn red" @click="showCharacterPanel = false">关闭</button>
       </div>
     </div>
@@ -177,7 +179,7 @@ createApp({
     const myPets = ref([]); const activePet = ref(null); const inventory = ref([]); const encounter = ref({}); const battle = reactive({ active: false });
     const dailyQuests = ref([]); const worldBoss = ref({ hp: 0, max_hp: 10000, active: true, defeated_date: null }); const friends = ref([]); const friendName = ref(''); const worldBossAttackedToday = ref(false);
     const showNicknameInput = ref(false); const newNickname = ref(''); const showPetDetail = ref(false); const detailPet = ref(null);
-    const showCharacterPanel = ref(false);  // 人物属性面板
+    const showCharacterPanel = ref(false);
     const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
     const enemyHp = ref(0); const playerHp = ref(100); const petHp = ref(0);
 
@@ -201,7 +203,6 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -280,7 +281,7 @@ createApp({
         recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`);
       }
     }
-    async function battleAction(action, skillId = null) { /* 保持不变 */ 
+    async function battleAction(action, skillId = null) { 
       if (battleBusy.value) return;
       battleBusy.value = true;
       showSkillPanel.value = false;
@@ -338,7 +339,6 @@ createApp({
     }
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
 
-    // 加点功能
     async function addStat(stat) {
       if (!profile.value?.potential_points) { alert('没有潜力点了！'); return; }
       const { data, error } = await supabase.rpc('add_stat', { p_stat: stat });
