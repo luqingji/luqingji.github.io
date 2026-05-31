@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终容错版</title>
+  <title>梦幻宠物大冒险 · 体力终结版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -63,6 +63,17 @@
     .skill-panel { background: rgba(255,255,240,0.95); border: 2px solid #d4af37; border-radius: 8px; padding: 8px; margin: 5px 10px; max-height: 180px; overflow-y: auto; }
     .skill-panel h4 { margin: 4px 0; font-size: 13px; color: #8b5a2b; }
     .skill-panel button { margin: 2px 0; padding: 5px; font-size: 13px; }
+    /* 手动刷新体力按钮样式 */
+    .energy-refresh-btn {
+      background: none;
+      border: 1px solid #f5d78c;
+      color: #f5d78c;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 5px;
+    }
   </style>
 </head>
 <body>
@@ -73,7 +84,7 @@
     </span>
     <span>💰 {{ silver }}</span>
     <span>💎 {{ diamond }}</span>
-    <span>⚡ {{ energy }}/{{ maxEnergy }}</span>
+    <span>⚡ {{ energy }}/{{ maxEnergy }} <button class="energy-refresh-btn" @click="manualSyncEnergy">↻</button></span>
     <button @click="logout">退出</button>
   </div>
   <div style="background: #2c1810; padding: 2px 15px;">
@@ -162,7 +173,7 @@ createApp({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       try { await supabase.rpc('ensure_profile'); } catch(e) {}
-      try { await supabase.rpc('recover_energy'); } catch(e) {}
+      // 不在 refreshData 中调用 recover_energy，改为手动触发
       const [pr, pe, it, ar, se, qu, bo, fr] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd)').eq('owner_id', user.id),
@@ -185,9 +196,9 @@ createApp({
     async function syncEnergy() {
       if (!profile.value?.id) return;
       try {
-        // 确保不传递任何额外参数
+        // 绝对不传参数
         const { data, error } = await supabase.rpc('recover_energy');
-        if (error) { console.warn('体力同步失败:', error); return; }
+        if (error) { console.warn('体力同步失败:', error.message); return; }
         if (data && data.energy !== undefined) {
           energy.value = data.energy;
           if (data.max_energy) profile.value = { ...profile.value, max_energy: data.max_energy };
@@ -196,6 +207,8 @@ createApp({
     }
     function startEnergySync() { syncEnergy(); if (energyTimer) clearInterval(energyTimer); energyTimer = setInterval(syncEnergy, 30000); }
     function stopEnergySync() { if (energyTimer) { clearInterval(energyTimer); energyTimer = null; } }
+    // 手动刷新体力
+    async function manualSyncEnergy() { await syncEnergy(); alert('体力已刷新'); }
 
     async function login() { if (loading.value) return; loading.value = true; const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value }); loading.value = false; if (error) { alert('登录失败：'+error.message); return; } refreshData(); }
     async function register() {
@@ -236,7 +249,7 @@ createApp({
     });
     onUnmounted(() => { stopEnergySync(); });
 
-    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
+    return { view, isLogin, email, password, regNickname, loading, username, silver, diamond, energy, profile, hasPet, starters, sects, areas, currentScenes, currentAreaName, myPets, activePet, inventory, encounter, battle, dailyQuests, worldBoss, friends, friendName, showNicknameInput, newNickname, showPetDetail, detailPet, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs, enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent, playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday, getMonsterName, petSkillNames, ivSum, ivGrade, ivGradeText, petRealHp, petRealAtk, petRealDef, petRealSpd, refreshData, syncEnergy, startEnergySync, stopEnergySync, manualSyncEnergy, login, register, logout, joinSect, selectStarter, saveNickname, setCarried, openPetDetail, releasePet, openArea, explore, battleAction, getDailyQuests, submitQuest, attackWorldBoss, addFriend };
   }
 }).mount('#app');
 </script>
