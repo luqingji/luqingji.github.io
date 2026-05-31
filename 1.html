@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终版</title>
+  <title>梦幻宠物大冒险 · 混合BOSS奖励版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -110,15 +110,7 @@
     <!-- 背包 -->
     <div v-if="view === 'inventory'"><h3>🎒 行囊</h3><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
     <!-- 师门任务 -->
-    <div v-if="view === 'quest'">
-      <h3>📜 师门任务</h3>
-      <button class="btn" @click="getDailyQuests">刷新任务</button>
-      <p style="font-size:12px; color:#8b5a2b;">点击刷新领取今天的任务，打怪计数才会增加</p>
-      <div v-for="q in dailyQuests" :key="q.id" class="card">
-        <p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p>
-        <button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button>
-      </div>
-    </div>
+    <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
     <!-- 世界BOSS -->
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
@@ -166,7 +158,7 @@ createApp({
     function petRealDef(p) { return (p.base_def||0)+(p.iv_def||0)+Math.floor((p.ev_def||0)/4); }
     function petRealSpd(p) { return (p.base_spd||0)+(p.iv_spd||0)+Math.floor((p.ev_spd||0)/4); }
 
-    // 体力同步（前端计算）
+    // 体力同步
     async function syncEnergy() {
       if (!profile.value?.id) return;
       const now = new Date();
@@ -263,7 +255,7 @@ createApp({
       clearTimeout(t);
       let monsterId = encounter.value.id;
       let isWild = encounter.value.type === 'wild_pet';
-      if (isWild) monsterId = 1; // 使用大海龟模板
+      if (isWild) monsterId = 1;
       const currentHp = encounter.value.currentHp;
       const { data, error } = await supabase.rpc('battle_encounter',{
         p_pet_id:activePet.value.id, p_monster_id:monsterId, p_monster_current_hp:currentHp,
@@ -286,7 +278,28 @@ createApp({
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
     async function submitQuest(id) { await supabase.rpc('submit_quest',{p_quest_id:id}); refreshData(); }
-    async function attackWorldBoss() { if (worldBossAttackedToday.value) { alert('今天已经攻击过妖风了'); return; } const carriedPet = myPets.value.find(p => p.is_carried && p.current_hp > 0); const pid = carriedPet ? carriedPet.id : null; battleBusy.value = true; const { data, error } = await supabase.rpc('attack_world_boss',{p_boss_id:1,p_pet_id:pid}); battleBusy.value = false; if (error) { alert('攻击失败：'+error.message); return; } if (data.error) { alert(data.error); return; } alert(`造成了 ${data.damage} 伤害！${data.defeated?'妖风已被击败！':''}`); if (data.defeated) worldBoss.value.active = false; worldBossAttackedToday.value = true; refreshData(); }
+    
+    // 攻击世界BOSS（使用新奖励机制）
+    async function attackWorldBoss() {
+      if (worldBossAttackedToday.value) { alert('今天已经攻击过妖风了'); return; }
+      const carriedPet = myPets.value.find(p => p.is_carried && p.current_hp > 0);
+      const pid = carriedPet ? carriedPet.id : null;
+      battleBusy.value = true;
+      const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: pid });
+      battleBusy.value = false;
+      if (error) { alert('攻击失败：' + error.message); return; }
+      if (data.error) { alert(data.error); return; }
+      
+      let msg = `造成了 ${data.damage} 伤害！获得 ${data.instant_reward} 银两。`;
+      if (data.defeated) {
+        msg += '\n妖风已被击败！排名奖励已发放。';
+        worldBoss.value.active = false;
+      }
+      alert(msg);
+      worldBossAttackedToday.value = true;
+      refreshData();
+    }
+    
     async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
 
     onMounted(() => {
