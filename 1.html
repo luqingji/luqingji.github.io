@@ -709,7 +709,7 @@ createApp({
         p_is_wild: isWild,
         p_enemy_name: encounter.value.name,
         p_wild_base_id: wildBaseId,
-        p_monster_level: encounter.value.monsterLevel || 1
+        p_monster_level: encounter.value.monsterLevel || 1,
         p_player_max_hp: playerMaxHp.value
       };
       if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
