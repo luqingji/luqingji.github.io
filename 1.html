@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 等级修复版</title>
+  <title>梦幻宠物大冒险 · 最终修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -82,90 +82,22 @@
 
     /* 简洁精致宠物面板 */
     .pet-detail-panel {
-      width: 380px;
-      max-width: 95%;
-      background: #fffbf0;
-      border: 2px solid var(--wood);
-      border-radius: 16px;
-      padding: 18px;
-      color: #2c1810;
-      max-height: 85vh;
-      overflow-y: auto;
-      font-size: 14px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      width: 380px; max-width: 95%; background: #fffbf0; border: 2px solid var(--wood);
+      border-radius: 16px; padding: 18px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
     }
-    .pet-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    .pet-name-level {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .pet-name {
-      font-size: 20px;
-      font-weight: bold;
-      color: #4a2c1a;
-    }
-    .element-badge {
-      background: var(--wood);
-      color: white;
-      padding: 2px 12px;
-      border-radius: 12px;
-      font-size: 13px;
-    }
-    .pet-attribute-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 10px 0;
-    }
-    .pet-attribute-table th,
-    .pet-attribute-table td {
-      padding: 6px 4px;
-      text-align: center;
-      font-size: 13px;
-    }
-    .pet-attribute-table th {
-      background: #f5e7d3;
-      color: #4a2c1a;
-      font-weight: bold;
-    }
-    .pet-attribute-table td {
-      border-bottom: 1px solid #eee;
-    }
-    .iv-mini-bar {
-      width: 60px;
-      height: 4px;
-      background: #ddd;
-      border-radius: 2px;
-      display: inline-block;
-      vertical-align: middle;
-      margin-left: 4px;
-    }
-    .iv-mini-fill {
-      height: 100%;
-      border-radius: 2px;
-      background: #e67e22;
-    }
-    .total-rating {
-      text-align: center;
-      margin: 8px 0;
-    }
-    .total-rating .badge {
-      background: var(--gold);
-      color: #2c1810;
-      font-weight: bold;
-      padding: 2px 14px;
-      border-radius: 16px;
-      font-size: 13px;
-    }
-    .skill-info {
-      margin: 10px 0;
-      font-size: 13px;
-    }
+    .pet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .pet-name-level { display: flex; align-items: center; gap: 8px; }
+    .pet-name { font-size: 20px; font-weight: bold; color: #4a2c1a; }
+    .element-badge { background: var(--wood); color: white; padding: 2px 12px; border-radius: 12px; font-size: 13px; }
+    .pet-attribute-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .pet-attribute-table th, .pet-attribute-table td { padding: 6px 4px; text-align: center; font-size: 13px; }
+    .pet-attribute-table th { background: #f5e7d3; color: #4a2c1a; font-weight: bold; }
+    .pet-attribute-table td { border-bottom: 1px solid #eee; }
+    .iv-mini-bar { width: 60px; height: 4px; background: #ddd; border-radius: 2px; display: inline-block; vertical-align: middle; margin-left: 4px; }
+    .iv-mini-fill { height: 100%; border-radius: 2px; background: #e67e22; }
+    .total-rating { text-align: center; margin: 8px 0; }
+    .total-rating .badge { background: var(--gold); color: #2c1810; font-weight: bold; padding: 2px 14px; border-radius: 16px; font-size: 13px; }
+    .skill-info { margin: 10px 0; font-size: 13px; }
 
     /* 醒目的背包标签 */
     .inventory-tab { display: inline-block; padding: 5px 16px; margin-right: 6px; background: #e0d6c2; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
@@ -254,7 +186,7 @@
         <span v-else> ✅</span>
       </div>
     </div>
-    <!-- 场景 -->
+    <!-- 场景（点击传递整个场景对象） -->
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3>
       <div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div>
     </div>
@@ -271,70 +203,25 @@
           </div>
           <span class="element-badge">{{ detailPet.element_primary || '?' }}</span>
         </div>
-
         <div style="margin:10px 0;">
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>HP</span><span>{{ detailPet.current_hp }}/{{ petRealHp(detailPet) }}</span>
-          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span>HP</span><span>{{ detailPet.current_hp }}/{{ petRealHp(detailPet) }}</span></div>
           <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div>
         </div>
         <div style="margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span>经验</span><span>{{ detailPet.exp }}/{{ detailPet.level * 100 }}</span>
-          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span>经验</span><span>{{ detailPet.exp }}/{{ detailPet.level * 100 }}</span></div>
           <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
         </div>
-
         <table class="pet-attribute-table">
-          <thead>
-            <tr>
-              <th>属性</th>
-              <th>种族</th>
-              <th>个体</th>
-              <th>努力</th>
-              <th>实际</th>
-            </tr>
-          </thead>
+          <thead><tr><th>属性</th><th>种族</th><th>个体</th><th>努力</th><th>实际</th></tr></thead>
           <tbody>
-            <tr>
-              <td>HP</td>
-              <td>{{ detailPet.base_hp }}</td>
-              <td>{{ detailPet.iv_hp }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_hp/31*100)+'%'}"></div></div></td>
-              <td>{{ detailPet.ev_hp || 0 }}</td>
-              <td><strong>{{ petRealHp(detailPet) }}</strong></td>
-            </tr>
-            <tr>
-              <td>攻击</td>
-              <td>{{ detailPet.base_atk }}</td>
-              <td>{{ detailPet.iv_atk }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_atk/31*100)+'%'}"></div></div></td>
-              <td>{{ detailPet.ev_atk || 0 }}</td>
-              <td><strong>{{ petRealAtk(detailPet) }}</strong></td>
-            </tr>
-            <tr>
-              <td>防御</td>
-              <td>{{ detailPet.base_def }}</td>
-              <td>{{ detailPet.iv_def }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_def/31*100)+'%'}"></div></div></td>
-              <td>{{ detailPet.ev_def || 0 }}</td>
-              <td><strong>{{ petRealDef(detailPet) }}</strong></td>
-            </tr>
-            <tr>
-              <td>速度</td>
-              <td>{{ detailPet.base_spd }}</td>
-              <td>{{ detailPet.iv_spd }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_spd/31*100)+'%'}"></div></div></td>
-              <td>{{ detailPet.ev_spd || 0 }}</td>
-              <td><strong>{{ petRealSpd(detailPet) }}</strong></td>
-            </tr>
+            <tr><td>HP</td><td>{{ detailPet.base_hp }}</td><td>{{ detailPet.iv_hp }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_hp/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_hp || 0 }}</td><td><strong>{{ petRealHp(detailPet) }}</strong></td></tr>
+            <tr><td>攻击</td><td>{{ detailPet.base_atk }}</td><td>{{ detailPet.iv_atk }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_atk/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_atk || 0 }}</td><td><strong>{{ petRealAtk(detailPet) }}</strong></td></tr>
+            <tr><td>防御</td><td>{{ detailPet.base_def }}</td><td>{{ detailPet.iv_def }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_def/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_def || 0 }}</td><td><strong>{{ petRealDef(detailPet) }}</strong></td></tr>
+            <tr><td>速度</td><td>{{ detailPet.base_spd }}</td><td>{{ detailPet.iv_spd }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_spd/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_spd || 0 }}</td><td><strong>{{ petRealSpd(detailPet) }}</strong></td></tr>
           </tbody>
         </table>
-
-        <div class="total-rating">
-          <span class="badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span>
-        </div>
-
-        <div class="skill-info">
-          <strong>技能：</strong>{{ petSkillNames(detailPet) }}
-        </div>
-
+        <div class="total-rating"><span class="badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span></div>
+        <div class="skill-info"><strong>技能：</strong>{{ petSkillNames(detailPet) }}</div>
         <div style="display:flex; gap:6px; margin-top:10px;">
           <button class="btn" style="flex:1;" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
           <button class="btn red" style="flex:1;" @click="releasePet(detailPet)">放生</button>
@@ -728,7 +615,7 @@ createApp({
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
     }
 
-    // ★ 修复等级问题：直接使用传入的 scene 对象获取等级
+    // ★ 最终版 explore：直接使用 scene 对象
     async function explore(scene) {
       await syncEnergy();
       const { data, error } = await supabase.rpc('explore_area',{p_scene_id: scene.id});
@@ -736,17 +623,16 @@ createApp({
       if (data.error) { alert(data.error); return; }
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
-        const sceneLevel = scene.level_min; // 直接从参数获取
-
+        const sceneLevel = scene.level_min;
         if (data.type === 'wild_pet') {
           data.data.base_pet_id = data.data.id;
-          data.data.level = sceneLevel;  // 野生宠物等级跟随场景
+          data.data.level = sceneLevel;
         }
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        encounter.value.monsterLevel = sceneLevel; // 关键：设置怪物等级
+        encounter.value.monsterLevel = sceneLevel;
 
         let carried = myPets.value.find(p => p.is_carried);
         if (carried) {
