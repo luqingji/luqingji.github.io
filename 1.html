@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 装备修复版</title>
+  <title>梦幻宠物大冒险 · 格子行囊</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -108,6 +108,18 @@
     .equip-detail-panel .btn-area button { flex: 1; }
 
     .auction-item { display: flex; align-items: center; justify-content: space-between; }
+
+    /* 行囊格子样式 */
+    .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .inventory-slot { background: rgba(255,255,240,0.8); border: 1px solid #8b5a2b; border-radius: 6px; padding: 6px; text-align: center; cursor: pointer; min-height: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.1s; }
+    .inventory-slot:hover { transform: scale(1.05); background: rgba(255,215,0,0.2); }
+    .inventory-slot .slot-icon { font-size: 24px; }
+    .inventory-slot .slot-name { font-size: 10px; margin-top: 2px; word-break: break-all; }
+    .inventory-slot .slot-qty { font-size: 9px; color: #8b5a2b; }
+    .inventory-slot .slot-quality { font-size: 8px; color: var(--red); }
+
+    .item-detail-panel { width: 300px; max-width: 90%; background: var(--bg); border-radius: 10px; border: 2px solid #d4af37; padding: 15px; color: #2c1810; }
+    .item-detail-panel h3 { font-size: 16px; margin-bottom: 6px; }
   </style>
 </head>
 <body>
@@ -243,26 +255,37 @@
         <button class="btn red" style="margin-top:6px;" @click="showCharacterPanel = false">关闭</button>
       </div>
     </div>
-    <!-- 背包 -->
+    <!-- 背包（格子布局） -->
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
-      <div><span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span><span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span></div>
+      <div>
+        <span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span>
+        <span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span>
+      </div>
+      <!-- 消耗品网格 -->
       <div v-if="inventoryTab === 'consumable'">
         <div v-if="inventory.length === 0" class="card">暂无消耗品</div>
-        <div v-for="item in inventory" :key="item.id" class="card">
-          {{ item.items_def?.name }} x{{ item.quantity }}
-          <span v-if="item.items_def?.description"> - {{ item.items_def.description }}</span>
+        <div v-else class="inventory-grid">
+          <div v-for="item in inventory" :key="item.id" class="inventory-slot" @click="openItemDetail(item)">
+            <div class="slot-icon">🧪</div>
+            <div class="slot-name">{{ item.items_def?.name }}</div>
+            <div class="slot-qty">x{{ item.quantity }}</div>
+          </div>
         </div>
       </div>
+      <!-- 装备网格 -->
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
-        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
-          <p><strong>{{ eq.equipment_def?.name || '未知装备' }}</strong> ({{ qualityCN[eq.equipment_def?.quality || 'white'] }})</p>
-          <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
+        <div v-else class="inventory-grid">
+          <div v-for="eq in playerEquipment" :key="eq.id" class="inventory-slot" @click="openEquipmentDetail(eq)">
+            <div class="slot-icon">⚔️</div>
+            <div class="slot-name">{{ eq.equipment_def?.name || '未知装备' }}</div>
+            <div class="slot-quality" v-if="eq.equipment_def?.quality">{{ qualityCN[eq.equipment_def.quality] }}</div>
+          </div>
         </div>
       </div>
     </div>
-    <!-- 装备详情弹窗 -->
+    <!-- 装备详情弹窗（保留） -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -273,6 +296,16 @@
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
         <div class="btn-area"><button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button><button class="btn" @click="showEquipmentDetail = false">关闭</button></div>
+      </div>
+    </div>
+    <!-- 消耗品详情弹窗（新增） -->
+    <div v-if="showItemDetail" class="overlay" @click.self="showItemDetail = false">
+      <div class="item-detail-panel">
+        <h3>{{ detailItem.items_def?.name }}</h3>
+        <p><span class="attr-label">类型:</span> 消耗品</p>
+        <p><span class="attr-label">描述:</span> {{ detailItem.items_def?.description || '暂无描述' }}</p>
+        <p><span class="attr-label">数量:</span> {{ detailItem.quantity }}</p>
+        <button class="btn" style="margin-top:10px;" @click="showItemDetail = false">关闭</button>
       </div>
     </div>
     <!-- 师门任务 -->
@@ -363,6 +396,7 @@ createApp({
     const playerEquipment = ref([]); const selectedSlot = ref(null);
     const inventoryTab = ref('consumable');
     const showEquipmentDetail = ref(false); const detailEquipment = ref(null);
+    const showItemDetail = ref(false); const detailItem = ref(null);
     const slotNames = { weapon: '武器', armor: '衣服', necklace: '项链', ring: '戒指', shoes: '鞋子', belt: '腰带' };
     const showEnemyInfo = ref(false);
     const pendingPlayerSkill = ref(null); const pendingPetSkill = ref(null);
@@ -473,14 +507,14 @@ createApp({
       refreshData();
     }
 
-    // ★ 核心修复：加载所有装备，不再过滤 equipped
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase
         .from('player_equipment')
-        .select('*, equipment_def(*)')
+        .select('*, equipment_def:equipment_id(*)')
         .eq('owner_id', profile.value.id);
       if (!error && data) playerEquipment.value = data;
+      else console.error('装备加载失败:', error);
     }
 
     function selectSlot(slot) { selectedSlot.value = slot; }
@@ -495,6 +529,7 @@ createApp({
       if (eq) { await supabase.from('player_equipment').update({ equipped: false }).eq('id', eq.id); loadEquipment(); }
     }
     function openEquipmentDetail(eq) { detailEquipment.value = eq; showEquipmentDetail.value = true; }
+    function openItemDetail(item) { detailItem.value = item; showItemDetail.value = true; }
     async function decomposeEquipment(id) {
       if (!confirm('确定分解？')) return;
       const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: id });
@@ -652,11 +687,7 @@ createApp({
       const t = setTimeout(() => { if (battleBusy.value) { battleBusy.value = false; catching.value = false; alert('操作超时，请重试'); } }, 5000);
       if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; }
       if (action === 'catch') {
-        if (ballCount.value <= 0) {
-          alert('捕捉球不足，请去拍卖行购买');
-          battleBusy.value = false;
-          return;
-        }
+        if (ballCount.value <= 0) { alert('捕捉球不足，请去拍卖行购买'); battleBusy.value = false; return; }
         clearTimeout(t);
         if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
           let damage = Math.floor(encounter.value.currentHp * 0.4);
@@ -762,6 +793,7 @@ createApp({
       playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       playerRealAtk, playerRealDef, playerRealSpd,
       qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
+      showItemDetail, detailItem, openItemDetail,
       getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
       petRealHp, petRealAtk, petRealDef, petRealSpd,
       refreshData, syncEnergy, startEnergySync, stopEnergySync,
