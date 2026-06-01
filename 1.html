@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终修复版</title>
+  <title>梦幻宠物大冒险 · 最终完美版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -114,8 +114,8 @@
     .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: #1a120b; border: 3px solid var(--gold); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; color: #f5e7d3; font-size: 14px; }
     .equip-detail-panel h3 { font-size: 20px; color: #ffd700; }
     .equip-detail-panel .attr-label { color: #c79a4c; font-weight: bold; }
-    .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
-    .equip-detail-panel .btn-area button { flex: 1; }
+    .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .equip-detail-panel .btn-area button { flex: 1; min-width: 60px; }
 
     .auction-item { display: flex; align-items: center; justify-content: space-between; }
   </style>
@@ -285,7 +285,7 @@
         </div>
       </div>
     </div>
-    <!-- 装备详情弹窗（高对比度） -->
+    <!-- 装备详情弹窗（带装备按钮） -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -295,7 +295,11 @@
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
-        <div class="btn-area"><button class="btn" @click="equipItem(detailEquipment)" :disabled="detailEquipment.equipped">装备</button><button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button><button class="btn" @click="showEquipmentDetail = false">关闭</button></div>
+        <div class="btn-area">
+          <button class="btn" @click="equipItem(detailEquipment); showEquipmentDetail = false" :disabled="detailEquipment.equipped">装备</button>
+          <button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button>
+          <button class="btn" @click="showEquipmentDetail = false">关闭</button>
+        </div>
       </div>
     </div>
     <!-- 师门任务 -->
@@ -503,7 +507,8 @@ createApp({
       const current = playerEquipment.value.find(e => e.slot === eq.slot && e.equipped);
       if (current) await supabase.from('player_equipment').update({ equipped: false }).eq('id', current.id);
       await supabase.from('player_equipment').update({ equipped: true }).eq('id', eq.id);
-      loadEquipment(); selectedSlot.value = null;
+      showEquipmentDetail.value = false;
+      await loadEquipment();
     }
     async function unequipItem(slot) {
       const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
@@ -615,7 +620,6 @@ createApp({
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
     }
 
-    // ★ 最终版 explore：直接使用 scene 对象
     async function explore(scene) {
       await syncEnergy();
       const { data, error } = await supabase.rpc('explore_area',{p_scene_id: scene.id});
