@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 动态掉率版</title>
+  <title>梦幻宠物大冒险 · 最终整合版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -101,7 +101,6 @@
     .area-locked { opacity: 0.6; }
     .inventory-tab { display: inline-block; padding: 3px 10px; margin-right: 4px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
     .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
-
     .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; color: #2c1810; }
     .equip-detail-panel h3 { font-size: 18px; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
@@ -455,7 +454,8 @@ createApp({
       if (error) return alert('分解失败');
       if (data.error) { alert(data.error); return; }
       alert('分解成功，获得 ' + data.silver_reward + ' 银两');
-      showEquipmentDetail.value = false; loadEquipment(); refreshData();
+      showEquipmentDetail.value = false;
+      refreshData();
     }
 
     async function syncEnergy() {
@@ -560,16 +560,18 @@ createApp({
       if (data.error) { alert(data.error); return; }
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
+        const currentScene = currentScenes.value.find(s => s.id === sceneId);
+        const sceneLevel = currentScene ? currentScene.level_min : 1;
+
         if (data.type === 'wild_pet') {
           data.data.base_pet_id = data.data.id;
-          data.data.level = 1;
+          data.data.level = sceneLevel;  // 野生宠物等级跟随场景
         }
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        const scene = currentScenes.value.find(s => s.id === sceneId);
-        encounter.value.monsterLevel = scene ? scene.level_min : 1;
+        encounter.value.monsterLevel = sceneLevel;
 
         let carried = myPets.value.find(p => p.is_carried);
         if (carried) {
@@ -605,9 +607,10 @@ createApp({
       if (action === 'catch') {
         clearTimeout(t); catching.value = true;
         const { data, error } = await supabase.rpc('catch_wild_pet',{
-          p_pet_id:activePet.value.id,
+          p_pet_id: activePet.value.id,
           p_wild_base_id: encounter.value.base_pet_id,
-          p_wild_current_hp: encounter.value.currentHp
+          p_wild_current_hp: encounter.value.currentHp,
+          p_scene_level: encounter.value.monsterLevel || 1
         });
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
         if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; return; }
