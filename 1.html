@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 词缀生效版</title>
+  <title>梦幻宠物大冒险 · 词缀完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -439,11 +439,15 @@ createApp({
     const petSkills = computed(() => { if (!activePet.value?.skills) return []; return activePet.value.skills.map(id => ({ id, name: skillNameMap[id] || '未知' })); });
     const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
     const playerMaxHp = computed(() => {
-      let bonus = 0;
-      if (equippedItems.value.armor) bonus += equippedItems.value.armor.base_hp || 0;
-      if (equippedItems.value.necklace) bonus += equippedItems.value.necklace.base_hp || 0;
-      if (equippedItems.value.belt) bonus += equippedItems.value.belt.base_hp || 0;
-      return 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5 + bonus;
+      let base = 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5;
+      if (equippedItems.value.armor) base += equippedItems.value.armor.base_hp || 0;
+      if (equippedItems.value.necklace) base += equippedItems.value.necklace.base_hp || 0;
+      if (equippedItems.value.belt) base += equippedItems.value.belt.base_hp || 0;
+      let hpMult = 1.0;
+      for (const affix of equippedAffixes.value) {
+        if (affix.id === 'hp_pct') hpMult += affix.value / 100;
+      }
+      return Math.floor(base * hpMult);
     });
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
     const petMaxHp = computed(() => (activePet.value?.base_hp || 0) + (activePet.value?.iv_hp || 0));
@@ -487,7 +491,7 @@ createApp({
       if (t.includes('你使用了') || t.includes('你发动了攻击') || t.includes('你发动了一次弱击')) return 'player';
       if (t.includes('攻击了你') || t.includes('对你造成')) return 'enemy';
       if (activePet?.value?.nickname && (t.includes(activePet.value.nickname+'使用了') || t.includes(activePet.value.nickname+'攻击'))) return 'pet';
-      if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备') || t.includes('【装备词缀】')) return 'info';
+      if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备') || t.includes('【装备词缀】') || t.includes('灼伤') || t.includes('冰冻') || t.includes('闪避') || t.includes('荆棘')) return 'info';
       return '';
     }
     function logEntryIcon(msg) {
@@ -499,6 +503,10 @@ createApp({
       if (t.includes('回复')) return '🌿';
       if (t.includes('获得装备')) return '🎁';
       if (t.includes('【装备词缀】')) return '✨';
+      if (t.includes('灼伤')) return '🔥';
+      if (t.includes('冰冻')) return '❄️';
+      if (t.includes('闪避')) return '✨';
+      if (t.includes('荆棘')) return '🌿';
       return '📢';
     }
     function formatLogMessage(msg) {
@@ -756,9 +764,12 @@ createApp({
       }
       encounter.value.currentHp = data.monster_hp;
       enemyHp.value = Math.max(0, data.monster_hp);
-      // ★ 直接使用后端返回的加成后血量
       if (data.player_hp !== undefined) {
         playerHp.value = Math.max(0, data.player_hp);
+        // ★ 同步词缀加成后的最大生命值
+        if (data.player_max_hp !== undefined) {
+          playerMaxHp.value = data.player_max_hp;
+        }
       }
       if (data.log) {
         data.log.forEach(m => recentLogs.value.push(m.text));
