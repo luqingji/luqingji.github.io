@@ -532,7 +532,8 @@ createApp({
     function openItemDetail(item) { detailItem.value = item; showItemDetail.value = true; }
     async function decomposeEquipment(id) {
   if (!confirm('确定分解？')) return;
-  const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: Number(id) });
+  // 直接传递原始 id（字符串 UUID），不要用 Number()
+  const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: id });
   if (error) {
     alert('分解失败：' + error.message);
     return;
