@@ -506,12 +506,12 @@ createApp({
       alert('购买成功！');
       refreshData();
     }
-
+    
     async function loadEquipment() {
       if (!profile.value?.id) return;
       const { data, error } = await supabase
         .from('player_equipment')
-        .select('*, equipment_def:equipment_id(*)')
+        .select('id, owner_id, equipped, slot, equipment_def:equipment_id(id, name, quality, base_hp, base_atk, base_def, base_spd, slot)')
         .eq('owner_id', profile.value.id);
       if (!error && data) playerEquipment.value = data;
       else console.error('装备加载失败:', error);
