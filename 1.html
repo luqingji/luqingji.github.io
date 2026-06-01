@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终简洁版</title>
+  <title>梦幻宠物大冒险 · 最终完美版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -33,6 +33,8 @@
     .carried-tag { background: var(--gold); color: #2c1810; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 3px; }
     .nickname-edit { cursor: pointer; color: #f5d78c; text-decoration: underline; }
     .level-box { background: #8b5a2b; color: white; border-radius: 3px; padding: 0 4px; font-size: 11px; margin-left: 3px; }
+    .iv-bar { display: flex; align-items: center; gap: 3px; font-size: 11px; }
+    .iv-fill { height: 3px; background: #e67e22; border-radius: 2px; }
     .rating { font-weight: bold; padding: 1px 5px; border-radius: 8px; color: white; font-size: 11px; }
     .rating-S { background: #f1c40f; color: #2c3e50; }
     .rating-A { background: #e67e22; }
@@ -86,27 +88,24 @@
     .equip-slot-compact .slot-name { font-size: 10px; }
     .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* 简化宠物面板：白底卡片，信息集中 */
-    .pet-detail-panel {
-      width: 400px; max-width: 95%; background: #fffbf0; border: 2px solid #8b5a2b; border-radius: 12px;
-      padding: 16px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 13px;
-    }
-    .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .pet-detail-header h3 { font-size: 18px; display: flex; align-items: center; gap: 6px; }
-    .pet-stat-table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 13px; }
-    .pet-stat-table th, .pet-stat-table td { padding: 4px 8px; text-align: center; border-bottom: 1px solid #e0d5c0; }
-    .pet-stat-table th { background: #f5ecd7; font-weight: bold; }
-    .iv-bar-simple { display: flex; align-items: center; gap: 4px; }
-    .iv-fill-simple { height: 4px; background: #e67e22; border-radius: 2px; transition: width 0.3s; }
-    .iv-value { font-size: 11px; min-width: 24px; text-align: right; }
+    /* 精致宠物面板 */
+    .pet-detail-panel { width: 380px; max-width: 95%; background: linear-gradient(145deg, rgba(40,30,20,0.9), rgba(20,15,10,0.95)); backdrop-filter: blur(12px); border: 2px solid #c79a4c; border-radius: 24px; padding: 20px; color: #f5e7d3; max-height: 85vh; overflow-y: auto; font-size: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); }
+    .pet-avatar { width: 80px; height: 80px; background: radial-gradient(circle, #2e1f0e, #1a1005); border-radius: 50%; border: 3px solid #d4af37; display: flex; align-items: center; justify-content: center; font-size: 36px; margin-right: 15px; box-shadow: 0 0 15px rgba(212,175,55,0.5); }
+    .pet-attribute-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .pet-attribute-label { width: 70px; font-weight: bold; color: #c79a4c; }
+    .pet-bar-bg { flex: 1; height: 6px; background: #3a2e1e; border-radius: 3px; margin: 0 10px; }
+    .pet-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #f1c40f, #e67e22); }
+    .iv-dot { width: 6px; height: 6px; border-radius: 50%; background: #555; margin: 0 1px; }
+    .iv-dot.filled { background: #e67e22; box-shadow: 0 0 6px #e67e22; }
+    .rating-badge { background: #f1c40f; color: #2c1810; font-weight: bold; padding: 2px 12px; border-radius: 20px; font-size: 13px; }
 
-    .inventory-tab { display: inline-block; padding: 3px 10px; margin-right: 4px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
-    .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
+    /* 背包装备网格 */
+    .equip-grid-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .equip-card-mini { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 6px; padding: 4px; text-align: center; font-size: 10px; position: relative; cursor: pointer; }
+    .equip-card-mini.equipped-mark { background: #d4af37; color: #2c1810; font-weight: bold; }
+    .equip-card-mini .equip-icon { font-size: 20px; display: block; }
+    .equipped-badge { position: absolute; top: 2px; right: 2px; background: #c0392b; color: white; font-size: 8px; padding: 1px 4px; border-radius: 4px; }
 
-    .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; color: #2c1810; }
-    .equip-detail-panel h3 { font-size: 18px; }
-    .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
-    .equip-detail-panel .btn-area button { flex: 1; }
     .auction-item { display: flex; align-items: center; justify-content: space-between; }
   </style>
 </head>
@@ -180,28 +179,56 @@
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-    <!-- 宠物详情面板（简洁版） -->
+    <!-- 宠物详情面板（精致版 + 努力值） -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
-        <div class="pet-detail-header">
-          <h3>{{ detailPet.nickname }} <span class="level-box">Lv.{{ detailPet.level }}</span><span v-if="detailPet.is_carried" class="carried-tag">携带中</span></h3>
-          <span style="background: #8b5a2b; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px;">{{ detailPet.element_primary || '?' }}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="display:flex; align-items:center;">
+            <div class="pet-avatar">🐾</div>
+            <div>
+              <h3 style="background:linear-gradient(to right,#f7d774,#b8860b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-size:20px; margin:0;">{{ detailPet.nickname }}</h3>
+              <span class="level-box" style="font-size:13px; padding:2px 12px;">Lv.{{ detailPet.level }}</span>
+              <span v-if="detailPet.is_carried" class="carried-tag">携带中</span>
+            </div>
+          </div>
+          <span style="background:#8b5a2b; color:white; padding:2px 12px; border-radius:12px; font-size:13px;">{{ detailPet.element_primary || '?' }}</span>
         </div>
-        <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div>
-        <p style="font-size:12px;">HP: {{ detailPet.current_hp }} / {{ petRealHp(detailPet) }}</p>
-        <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
-        <p style="font-size:12px;">经验: {{ detailPet.exp }} / {{ detailPet.level * 100 }}</p>
-
-        <table class="pet-stat-table">
-          <tr><th></th><th>种族值</th><th>个体值</th></tr>
-          <tr><td>HP</td><td>{{ detailPet.base_hp }}</td><td><div class="iv-bar-simple"><div class="iv-fill-simple" :style="{width: (detailPet.iv_hp/31*100)+'%', background: '#e67e22'}"></div><span class="iv-value">{{ detailPet.iv_hp }}</span></div></td></tr>
-          <tr><td>攻击</td><td>{{ detailPet.base_atk }}</td><td><div class="iv-bar-simple"><div class="iv-fill-simple" :style="{width: (detailPet.iv_atk/31*100)+'%', background: '#e74c3c'}"></div><span class="iv-value">{{ detailPet.iv_atk }}</span></div></td></tr>
-          <tr><td>防御</td><td>{{ detailPet.base_def }}</td><td><div class="iv-bar-simple"><div class="iv-fill-simple" :style="{width: (detailPet.iv_def/31*100)+'%', background: '#3498db'}"></div><span class="iv-value">{{ detailPet.iv_def }}</span></div></td></tr>
-          <tr><td>速度</td><td>{{ detailPet.base_spd }}</td><td><div class="iv-bar-simple"><div class="iv-fill-simple" :style="{width: (detailPet.iv_spd/31*100)+'%', background: '#2ecc71'}"></div><span class="iv-value">{{ detailPet.iv_spd }}</span></div></td></tr>
-        </table>
-        <p style="margin:8px 0;"><span class="attr-label">总和</span> <strong>{{ ivSum(detailPet) }}</strong> / 124 <span :class="'rating rating-' + ivGrade(detailPet)">{{ ivGradeText(detailPet) }}</span></p>
-        <p><span class="attr-label">技能</span> {{ petSkillNames(detailPet) }}</p>
-        <div class="pet-actions" style="display:flex; gap:8px; margin-top:10px;">
+        <div class="pet-attribute-row">
+          <span class="pet-attribute-label">HP</span>
+          <div class="pet-bar-bg"><div class="pet-bar-fill" :style="{width: (detailPet.current_hp / petRealHp(detailPet) * 100) + '%'}"></div></div>
+          <span style="font-size:12px;">{{ detailPet.current_hp }}/{{ petRealHp(detailPet) }}</span>
+        </div>
+        <div style="margin:8px 0 12px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;"><span>经验</span><span>{{ detailPet.exp }}/{{ detailPet.level * 100 }}</span></div>
+          <div class="pet-bar-bg" style="height:4px;"><div class="pet-bar-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:6px 0;">
+          <div style="background:rgba(255,255,240,0.8); padding:6px; border-radius:4px;">
+            <h4>种族值</h4>
+            <p><span class="attr-label">HP:</span> {{ detailPet.base_hp }}</p>
+            <p><span class="attr-label">攻击:</span> {{ detailPet.base_atk }}</p>
+            <p><span class="attr-label">防御:</span> {{ detailPet.base_def }}</p>
+            <p><span class="attr-label">速度:</span> {{ detailPet.base_spd }}</p>
+          </div>
+          <div style="background:rgba(255,255,240,0.8); padding:6px; border-radius:4px;">
+            <h4>个体值</h4>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><span style="width:30px; font-size:12px;">HP</span><div style="display:flex; flex:1; margin:0 6px;"><div v-for="n in 31" :key="n" class="iv-dot" :class="{filled: n <= detailPet.iv_hp}"></div></div><span style="font-size:12px; width:20px;">{{ detailPet.iv_hp }}</span></div>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><span style="width:30px; font-size:12px;">攻击</span><div style="display:flex; flex:1; margin:0 6px;"><div v-for="n in 31" :key="n" class="iv-dot" :class="{filled: n <= detailPet.iv_atk}"></div></div><span style="font-size:12px; width:20px;">{{ detailPet.iv_atk }}</span></div>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><span style="width:30px; font-size:12px;">防御</span><div style="display:flex; flex:1; margin:0 6px;"><div v-for="n in 31" :key="n" class="iv-dot" :class="{filled: n <= detailPet.iv_def}"></div></div><span style="font-size:12px; width:20px;">{{ detailPet.iv_def }}</span></div>
+            <div style="display:flex; align-items:center; margin-bottom:4px;"><span style="width:30px; font-size:12px;">速度</span><div style="display:flex; flex:1; margin:0 6px;"><div v-for="n in 31" :key="n" class="iv-dot" :class="{filled: n <= detailPet.iv_spd}"></div></div><span style="font-size:12px; width:20px;">{{ detailPet.iv_spd }}</span></div>
+          </div>
+        </div>
+        <!-- 努力值 -->
+        <div style="background:rgba(255,255,240,0.8); padding:6px; border-radius:4px; margin-bottom:6px;">
+          <h4>努力值</h4>
+          <p><span class="attr-label">HP:</span> {{ detailPet.ev_hp || 0 }}</p>
+          <p><span class="attr-label">攻击:</span> {{ detailPet.ev_atk || 0 }}</p>
+          <p><span class="attr-label">防御:</span> {{ detailPet.ev_def || 0 }}</p>
+          <p><span class="attr-label">速度:</span> {{ detailPet.ev_spd || 0 }}</p>
+        </div>
+        <div style="text-align:center; margin:10px 0;"><span class="rating-badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span></div>
+        <div style="margin-top:12px;"><p><strong>技能：</strong>{{ petSkillNames(detailPet) }}</p></div>
+        <div style="display:flex; gap:6px; margin-top:8px;">
           <button class="btn" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
           <button class="btn red" @click="releasePet(detailPet)">放生</button>
         </div>
@@ -241,7 +268,7 @@
         <button class="btn red" style="margin-top:6px;" @click="showCharacterPanel = false">关闭</button>
       </div>
     </div>
-    <!-- 背包 -->
+    <!-- 背包（消耗品 + 装备网格） -->
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
       <div><span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span><span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span></div>
@@ -251,9 +278,13 @@
       </div>
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
-        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
-          <p><strong>{{ eq.equipment_def?.name || '未知装备' }}</strong> ({{ qualityCN[eq.equipment_def?.quality || 'white'] }})</p>
-          <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
+        <div class="equip-grid-mini">
+          <div v-for="eq in playerEquipment" :key="eq.id" class="equip-card-mini" :class="{ 'equipped-mark': eq.equipped }" @click="openEquipmentDetail(eq)">
+            <span class="equipped-badge" v-if="eq.equipped">E</span>
+            <span class="equip-icon">⚔️</span>
+            <div>{{ eq.equipment_def?.name || '?' }}</div>
+            <small style="color:#666;">{{ qualityCN[eq.equipment_def?.quality] }}</small>
+          </div>
         </div>
       </div>
     </div>
@@ -333,7 +364,6 @@
     <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='auction'">🏪</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
   </div>
 </div>
-
 <script>
 const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 createApp({
@@ -641,7 +671,7 @@ createApp({
       if (action === 'catch') {
         if (ballCount.value <= 0) { alert('捕捉球不足，请去拍卖行购买'); battleBusy.value = false; return; }
         clearTimeout(t);
-        // 弱击逻辑（不消耗体力）
+        // 弱击逻辑
         if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
           let damage = Math.floor(encounter.value.currentHp * 0.4);
           if (damage < 1) damage = 1;
