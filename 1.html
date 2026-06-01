@@ -295,7 +295,7 @@
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
-        <div class="btn-area"><button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button><button class="btn" @click="showEquipmentDetail = false">关闭</button></div>
+        <div class="btn-area"><button class="btn" @click="equipItem(detailEquipment)" :disabled="detailEquipment.equipped">装备</button><button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button><button class="btn" @click="showEquipmentDetail = false">关闭</button></div>
       </div>
     </div>
     <!-- 师门任务 -->
