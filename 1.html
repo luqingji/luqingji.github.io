@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 弱击捕捉版</title>
+  <title>梦幻宠物大冒险 · 捕捉优化版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -101,6 +101,7 @@
     .area-locked { opacity: 0.6; }
     .inventory-tab { display: inline-block; padding: 3px 10px; margin-right: 4px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
     .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
+
     .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; color: #2c1810; }
     .equip-detail-panel h3 { font-size: 18px; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
@@ -627,8 +628,14 @@ createApp({
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
         if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; return; }
         await shakeBall(3);
-        if (data.caught) { catchMessage.value = '收服成功！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500); }
-        else { catchMessage.value = '挣脱了！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1000); }
+        if (data.caught) {
+          catchMessage.value = '收服成功！';
+          setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500);
+        } else {
+          catchMessage.value = '挣脱了！';
+          // 捕捉失败，只清除动画，不关闭战斗界面
+          setTimeout(() => { catching.value = false; battleBusy.value = false; }, 1000);
+        }
         return;
       }
       clearTimeout(t);
