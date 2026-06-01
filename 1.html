@@ -626,8 +626,8 @@ createApp({
         const sceneLevel = scene.level_min;
         if (data.type === 'wild_pet') {
           data.data.base_pet_id = data.data.id;
-          data.data.level = sceneLevel;
         }
+        data.data.level = sceneLevel;
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
