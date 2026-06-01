@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 捕捉优化版</title>
+  <title>梦幻宠物大冒险 · 捕捉球拍卖行</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -106,6 +106,8 @@
     .equip-detail-panel h3 { font-size: 18px; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
     .equip-detail-panel .btn-area button { flex: 1; }
+
+    .auction-item { display: flex; align-items: center; justify-content: space-between; }
   </style>
 </head>
 <body>
@@ -245,7 +247,13 @@
     <div v-if="view === 'inventory'">
       <h3>🎒 行囊</h3>
       <div><span class="inventory-tab" :class="{ active: inventoryTab === 'consumable' }" @click="inventoryTab = 'consumable'">消耗品</span><span class="inventory-tab" :class="{ active: inventoryTab === 'equipment' }" @click="inventoryTab = 'equipment'">装备</span></div>
-      <div v-if="inventoryTab === 'consumable'"><div v-for="item in inventory" :key="item.id" class="card">{{ item.items_def?.name }} x{{ item.quantity }}</div></div>
+      <div v-if="inventoryTab === 'consumable'">
+        <div v-if="inventory.length === 0" class="card">暂无消耗品</div>
+        <div v-for="item in inventory" :key="item.id" class="card">
+          {{ item.items_def?.name }} x{{ item.quantity }}
+          <span v-if="item.items_def?.description"> - {{ item.items_def.description }}</span>
+        </div>
+      </div>
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
         <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;"><p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p><small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small></div>
@@ -270,6 +278,21 @@
     <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
+    <!-- 拍卖行 -->
+    <div v-if="view === 'auction'">
+      <h3>🏪 拍卖行</h3>
+      <div class="card auction-item" v-for="item in auctionItems" :key="item.id">
+        <div>
+          <strong>{{ item.name }}</strong>
+          <div style="font-size:12px;">{{ item.description }}</div>
+        </div>
+        <div style="text-align:right;">
+          <div>💰 {{ item.price }} 银两</div>
+          <button class="btn" @click="buyItem(item.id)">购买</button>
+        </div>
+      </div>
+      <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
+    </div>
     <!-- 战斗界面 -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
@@ -296,7 +319,7 @@
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
           <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
-          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive">🎯 捕捉</button>
+          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive || ballCount === 0">🎯 捕捉 ({{ ballCount }})</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
       </div>
@@ -315,7 +338,7 @@
   </div>
 
   <div class="bottom-nav" v-if="view !== 'auth' && view !== 'role_select'">
-    <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
+    <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='auction'">🏪</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
   </div>
 </div>
 
@@ -345,6 +368,17 @@ createApp({
     const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫','棘刺藤蔓','熔岩蜥蜴','岩浆龟','冰狼','冰魔像','深渊守卫','暗影祭司'];
     const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
       11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
+
+    // 拍卖行物品列表（可从数据库查询，这里简单写死）
+    const auctionItems = ref([
+      { id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }
+    ]);
+
+    // 计算捕捉球数量
+    const ballCount = computed(() => {
+      const ball = inventory.value.find(i => i.item_id === 1);
+      return ball ? ball.quantity : 0;
+    });
 
     const equippedItems = computed(() => {
       const eq = {};
@@ -431,6 +465,16 @@ createApp({
     watch(recentLogs, () => {
       nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; });
     }, { deep: false });
+
+    // 购买物品
+    async function buyItem(itemId) {
+      if (!confirm('确定购买吗？')) return;
+      const { data, error } = await supabase.rpc('buy_item', { p_item_id: itemId, p_quantity: 1 });
+      if (error) return alert('购买失败: ' + error.message);
+      if (data.error) return alert(data.error);
+      alert('购买成功！');
+      refreshData();
+    }
 
     async function loadEquipment() {
       if (!profile.value?.id) return;
@@ -606,9 +650,14 @@ createApp({
       const t = setTimeout(() => { if (battleBusy.value) { battleBusy.value = false; catching.value = false; alert('操作超时，请重试'); } }, 5000);
       if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; }
       if (action === 'catch') {
+        if (ballCount.value <= 0) {
+          alert('捕捉球不足，请去拍卖行购买');
+          battleBusy.value = false;
+          return;
+        }
         clearTimeout(t);
 
-        // ★ 弱击逻辑：若怪物血量高于30%，先压低血量
+        // 弱击逻辑
         if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
           let damage = Math.floor(encounter.value.currentHp * 0.4);
           if (damage < 1) damage = 1;
@@ -626,15 +675,14 @@ createApp({
           p_scene_level: encounter.value.monsterLevel || 1
         });
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
-        if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; return; }
+        if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; refreshData(); return; }
         await shakeBall(3);
         if (data.caught) {
           catchMessage.value = '收服成功！';
           setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500);
         } else {
           catchMessage.value = '挣脱了！';
-          // 捕捉失败，只清除动画，不关闭战斗界面
-          setTimeout(() => { catching.value = false; battleBusy.value = false; }, 1000);
+          setTimeout(() => { catching.value = false; battleBusy.value = false; refreshData(); }, 1000);
         }
         return;
       }
@@ -714,12 +762,12 @@ createApp({
       enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
       playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
       playerRealAtk, playerRealDef, playerRealSpd,
-      qualityCN, slotNames, isPetAlive,
+      qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
       getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
       petRealHp, petRealAtk, petRealDef, petRealSpd,
       refreshData, syncEnergy, startEnergySync, stopEnergySync,
       login, register, logout, joinSect, selectStarter, saveNickname, setCarried,
-      openPetDetail, releasePet, openArea, explore, battleAction,
+      openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
       getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
       playerEquipment, selectedSlot, equippedItems, availableEquipment,
       selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter,
