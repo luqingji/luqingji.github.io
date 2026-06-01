@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终整合版</title>
+  <title>梦幻宠物大冒险 · 弱击捕捉版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -404,7 +404,7 @@ createApp({
     function logEntryClass(msg) {
       const t = msg.text || msg;
       if (t.includes('【先手】')) return 'first';
-      if (t.includes('你使用了') || t.includes('你发动了攻击')) return 'player';
+      if (t.includes('你使用了') || t.includes('你发动了攻击') || t.includes('你发动了一次弱击')) return 'player';
       if (t.includes('攻击了你') || t.includes('对你造成')) return 'enemy';
       if (activePet?.value?.nickname && (t.includes(activePet.value.nickname+'使用了') || t.includes(activePet.value.nickname+'攻击'))) return 'pet';
       if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备')) return 'info';
@@ -565,7 +565,7 @@ createApp({
 
         if (data.type === 'wild_pet') {
           data.data.base_pet_id = data.data.id;
-          data.data.level = sceneLevel;  // 野生宠物等级跟随场景
+          data.data.level = sceneLevel;
         }
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
@@ -605,7 +605,19 @@ createApp({
       const t = setTimeout(() => { if (battleBusy.value) { battleBusy.value = false; catching.value = false; alert('操作超时，请重试'); } }, 5000);
       if (action === 'run') { clearTimeout(t); alert('逃跑成功！'); battle.active = false; refreshData(); battleBusy.value = false; return; }
       if (action === 'catch') {
-        clearTimeout(t); catching.value = true;
+        clearTimeout(t);
+
+        // ★ 弱击逻辑：若怪物血量高于30%，先压低血量
+        if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
+          let damage = Math.floor(encounter.value.currentHp * 0.4);
+          if (damage < 1) damage = 1;
+          encounter.value.currentHp -= damage;
+          enemyHp.value = encounter.value.currentHp;
+          recentLogs.value.push('⚡ 你发动了一次弱击，消耗了 ' + damage + ' 点体力');
+          if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
+        }
+
+        catching.value = true;
         const { data, error } = await supabase.rpc('catch_wild_pet',{
           p_pet_id: activePet.value.id,
           p_wild_base_id: encounter.value.base_pet_id,
