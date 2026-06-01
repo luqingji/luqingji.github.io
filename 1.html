@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 简约精致版</title>
+  <title>梦幻宠物大冒险 · 等级修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -80,7 +80,7 @@
     .equip-slot-compact .slot-name { font-size: 10px; }
     .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* === 简洁精致宠物面板 === */
+    /* 简洁精致宠物面板 */
     .pet-detail-panel {
       width: 380px;
       max-width: 95%;
@@ -255,7 +255,9 @@
       </div>
     </div>
     <!-- 场景 -->
-    <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene.id)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
+    <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3>
+      <div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div>
+    </div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
     <!-- 宠物详情面板（简约精致版） -->
@@ -270,7 +272,6 @@
           <span class="element-badge">{{ detailPet.element_primary || '?' }}</span>
         </div>
 
-        <!-- HP与经验 -->
         <div style="margin:10px 0;">
           <div style="display:flex; justify-content:space-between; font-size:12px;">
             <span>HP</span><span>{{ detailPet.current_hp }}/{{ petRealHp(detailPet) }}</span>
@@ -284,7 +285,6 @@
           <div class="exp-bar"><div class="exp-fill" :style="{width: (detailPet.exp / (detailPet.level * 100) * 100) + '%'}"></div></div>
         </div>
 
-        <!-- 属性表 -->
         <table class="pet-attribute-table">
           <thead>
             <tr>
@@ -327,17 +327,14 @@
           </tbody>
         </table>
 
-        <!-- 个体总评 -->
         <div class="total-rating">
           <span class="badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span>
         </div>
 
-        <!-- 技能 -->
         <div class="skill-info">
           <strong>技能：</strong>{{ petSkillNames(detailPet) }}
         </div>
 
-        <!-- 操作按钮 -->
         <div style="display:flex; gap:6px; margin-top:10px;">
           <button class="btn" style="flex:1;" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
           <button class="btn red" style="flex:1;" @click="releasePet(detailPet)">放生</button>
@@ -731,25 +728,25 @@ createApp({
       currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene';
     }
 
-    async function explore(sceneId) {
+    // ★ 修复等级问题：直接使用传入的 scene 对象获取等级
+    async function explore(scene) {
       await syncEnergy();
-      const { data, error } = await supabase.rpc('explore_area',{p_scene_id:sceneId});
+      const { data, error } = await supabase.rpc('explore_area',{p_scene_id: scene.id});
       if (error) { alert('探索失败：'+error.message); return; }
       if (data.error) { alert(data.error); return; }
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
-        const currentScene = currentScenes.value.find(s => s.id === sceneId);
-        const sceneLevel = currentScene ? currentScene.level_min : 1;
+        const sceneLevel = scene.level_min; // 直接从参数获取
 
         if (data.type === 'wild_pet') {
           data.data.base_pet_id = data.data.id;
-          data.data.level = sceneLevel;
+          data.data.level = sceneLevel;  // 野生宠物等级跟随场景
         }
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        encounter.value.monsterLevel = sceneLevel;
+        encounter.value.monsterLevel = sceneLevel; // 关键：设置怪物等级
 
         let carried = myPets.value.find(p => p.is_carried);
         if (carried) {
@@ -785,7 +782,6 @@ createApp({
       if (action === 'catch') {
         if (ballCount.value <= 0) { alert('捕捉球不足，请去拍卖行购买'); battleBusy.value = false; return; }
         clearTimeout(t);
-        // 弱击逻辑
         if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
           let damage = Math.floor(encounter.value.currentHp * 0.4);
           if (damage < 1) damage = 1;
