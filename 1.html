@@ -115,15 +115,7 @@
     .equip-detail-panel .btn-area button { flex: 1; min-width: 60px; }
 
     /* 词缀标签 */
-    .affix-tag {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      margin: 2px;
-      font-size: 11px;
-      font-weight: bold;
-      border: 1px solid;
-    }
+    .affix-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; margin: 2px; font-size: 11px; font-weight: bold; border: 1px solid; }
     .affix-normal { border-color: #bdc3c7; color: #bdc3c7; }
     .affix-rare { border-color: #3498db; color: #3498db; }
     .affix-epic { border-color: #9b59b6; color: #9b59b6; }
@@ -421,7 +413,7 @@ createApp({
       return ball ? ball.quantity : 0;
     });
 
-    // ★ 获取当前已穿戴装备的所有词缀数组
+    // 获取当前已穿戴装备的所有词缀数组
     const equippedAffixes = computed(() => {
       const affixes = [];
       for (const slot of ['weapon','armor','necklace','ring','shoes','belt']) {
@@ -495,7 +487,7 @@ createApp({
       if (t.includes('你使用了') || t.includes('你发动了攻击') || t.includes('你发动了一次弱击')) return 'player';
       if (t.includes('攻击了你') || t.includes('对你造成')) return 'enemy';
       if (activePet?.value?.nickname && (t.includes(activePet.value.nickname+'使用了') || t.includes(activePet.value.nickname+'攻击'))) return 'pet';
-      if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备')) return 'info';
+      if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备') || t.includes('【装备词缀】')) return 'info';
       return '';
     }
     function logEntryIcon(msg) {
@@ -506,6 +498,7 @@ createApp({
       if (t.includes('沉睡')) return '💤';
       if (t.includes('回复')) return '🌿';
       if (t.includes('获得装备')) return '🎁';
+      if (t.includes('【装备词缀】')) return '✨';
       return '📢';
     }
     function formatLogMessage(msg) {
@@ -746,7 +739,7 @@ createApp({
         p_wild_base_id: wildBaseId,
         p_monster_level: encounter.value.monsterLevel || 1,
         p_player_max_hp: playerMaxHp.value,
-        p_player_affixes: equippedAffixes.value    // ★ 传递当前穿戴装备的词缀数组
+        p_player_affixes: equippedAffixes.value
       };
       if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
       else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
@@ -763,16 +756,9 @@ createApp({
       }
       encounter.value.currentHp = data.monster_hp;
       enemyHp.value = Math.max(0, data.monster_hp);
-      if (data.log && Array.isArray(data.log)) {
-        let totalDamage = 0;
-        data.log.forEach(msg => {
-          const text = msg.text || '';
-          const match = text.match(/(?:攻击了你|对你造成)(?:.*?)(\d+)点伤害/);
-          if (match) totalDamage += parseInt(match[1], 10);
-        });
-        playerHp.value = Math.max(0, playerHp.value - totalDamage);
-      } else {
-        playerHp.value = Math.max(0, playerHp.value);
+      // ★ 直接使用后端返回的加成后血量
+      if (data.player_hp !== undefined) {
+        playerHp.value = Math.max(0, data.player_hp);
       }
       if (data.log) {
         data.log.forEach(m => recentLogs.value.push(m.text));
