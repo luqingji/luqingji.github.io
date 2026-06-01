@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完美版</title>
+  <title>梦幻宠物大冒险 · 词缀系统 v1.0</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -116,6 +116,21 @@
     .equip-detail-panel .attr-label { color: #c79a4c; font-weight: bold; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
     .equip-detail-panel .btn-area button { flex: 1; min-width: 60px; }
+
+    /* 词缀标签 */
+    .affix-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin: 2px;
+      font-size: 11px;
+      font-weight: bold;
+      border: 1px solid;
+    }
+    .affix-normal { border-color: #bdc3c7; color: #bdc3c7; }
+    .affix-rare { border-color: #3498db; color: #3498db; }
+    .affix-epic { border-color: #9b59b6; color: #9b59b6; }
+    .affix-legendary { border-color: #f1c40f; color: #f1c40f; }
 
     .auction-item { display: flex; align-items: center; justify-content: space-between; }
   </style>
@@ -285,7 +300,7 @@
         </div>
       </div>
     </div>
-    <!-- 装备详情弹窗（带装备按钮） -->
+    <!-- 装备详情弹窗（带装备按钮 + 词缀） -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -295,6 +310,17 @@
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
+        <!-- 词缀展示 -->
+        <div v-if="detailEquipment.affixes && detailEquipment.affixes.length > 0" style="margin-top: 8px;">
+          <p class="attr-label" style="color:#c79a4c; margin-bottom:4px;">词缀：</p>
+          <div style="display: flex; flex-wrap: wrap;">
+            <span v-for="(affix, idx) in detailEquipment.affixes" :key="idx"
+                  class="affix-tag"
+                  :class="'affix-' + affix.quality">
+              {{ affix.name }}
+            </span>
+          </div>
+        </div>
         <div class="btn-area">
           <button class="btn" @click="equipItem(detailEquipment); showEquipmentDetail = false" :disabled="detailEquipment.equipped">装备</button>
           <button class="btn red" @click="decomposeEquipment(detailEquipment.id)" :disabled="detailEquipment.equipped">分解</button>
@@ -405,7 +431,7 @@ createApp({
     });
     const availableEquipment = computed(() => {
       const av = { weapon: [], armor: [], necklace: [], ring: [], shoes: [], belt: [] };
-      playerEquipment.value.filter(e => !e.equipped).forEach(e => { av[e.slot].push({ ...e.equipment_def, id: e.id }); });
+      playerEquipment.value.filter(e => !e.equipped).forEach(e => { av[e.slot].push({ ...e.equipment_def, id: e.id, affixes: e.affixes }); });
       return av;
     });
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
@@ -721,53 +747,37 @@ createApp({
       processBattleResult(data); battleBusy.value = false;
     }
     function processBattleResult(data) {
-  // 宠物血量
-  if (data.pet_hp !== undefined) {
-    petHp.value = Math.max(0, data.pet_hp);
-    if (activePet.value) activePet.value.current_hp = petHp.value;
-  }
-  
-  // 怪物血量
-  encounter.value.currentHp = data.monster_hp;
-  enemyHp.value = Math.max(0, data.monster_hp);
-  
-  // 玩家血量：通过日志计算自身受到的伤害
-  if (data.log && Array.isArray(data.log)) {
-    let totalDamage = 0;
-    data.log.forEach(msg => {
-      const text = msg.text || '';
-      // 匹配“对你造成XX点伤害”或“攻击了你，造成XX点伤害”
-      const match = text.match(/(?:攻击了你|对你造成)(?:.*?)(\d+)点伤害/);
-      if (match) {
-        totalDamage += parseInt(match[1], 10);
+      if (data.pet_hp !== undefined) {
+        petHp.value = Math.max(0, data.pet_hp);
+        if (activePet.value) activePet.value.current_hp = petHp.value;
       }
-    });
-    // 从当前血量扣除总伤害（当前血量已在战斗开始时设为最大生命值）
-    playerHp.value = Math.max(0, playerHp.value - totalDamage);
-  } else {
-    // 如果没有日志，保持原血量
-    playerHp.value = Math.max(0, playerHp.value);
-  }
-  
-  // 处理日志显示
-  if (data.log) {
-    data.log.forEach(m => recentLogs.value.push(m.text));
-    if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
-  }
-  
-  // 升级提示
-  if (data.pet_leveled_up) alert('你的宠物升级了！');
-  if (data.player_leveled_up) alert('你升级了！');
-  
-  // 战斗结束
-  if (data.win) {
-    setTimeout(() => { battle.active = false; refreshData(); }, 1500);
-  } else if (playerHp.value <= 0) {
-    alert('你被打败了...');
-    battle.active = false;
-    refreshData();
-  }
-}
+      encounter.value.currentHp = data.monster_hp;
+      enemyHp.value = Math.max(0, data.monster_hp);
+      if (data.log && Array.isArray(data.log)) {
+        let totalDamage = 0;
+        data.log.forEach(msg => {
+          const text = msg.text || '';
+          const match = text.match(/(?:攻击了你|对你造成)(?:.*?)(\d+)点伤害/);
+          if (match) totalDamage += parseInt(match[1], 10);
+        });
+        playerHp.value = Math.max(0, playerHp.value - totalDamage);
+      } else {
+        playerHp.value = Math.max(0, playerHp.value);
+      }
+      if (data.log) {
+        data.log.forEach(m => recentLogs.value.push(m.text));
+        if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
+      }
+      if (data.pet_leveled_up) alert('你的宠物升级了！');
+      if (data.player_leveled_up) alert('你升级了！');
+      if (data.win) {
+        setTimeout(() => { battle.active = false; refreshData(); }, 1500);
+      } else if (playerHp.value <= 0) {
+        alert('你被打败了...');
+        battle.active = false;
+        refreshData();
+      }
+    }
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
 
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
