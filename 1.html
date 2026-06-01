@@ -531,14 +531,20 @@ createApp({
     function openEquipmentDetail(eq) { detailEquipment.value = eq; showEquipmentDetail.value = true; }
     function openItemDetail(item) { detailItem.value = item; showItemDetail.value = true; }
     async function decomposeEquipment(id) {
-      if (!confirm('确定分解？')) return;
-      const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: id });
-      if (error) return alert('分解失败');
-      if (data.error) { alert(data.error); return; }
-      alert('分解成功，获得 ' + data.silver_reward + ' 银两');
-      showEquipmentDetail.value = false;
-      refreshData();
-    }
+  if (!confirm('确定分解？')) return;
+  const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: Number(id) });
+  if (error) {
+    alert('分解失败：' + error.message);
+    return;
+  }
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+  alert('分解成功，获得 ' + data.silver_reward + ' 银两');
+  showEquipmentDetail.value = false;
+  refreshData();
+}
 
     async function syncEnergy() {
       if (!profile.value?.id) return;
