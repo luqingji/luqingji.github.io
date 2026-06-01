@@ -721,15 +721,53 @@ createApp({
       processBattleResult(data); battleBusy.value = false;
     }
     function processBattleResult(data) {
-      petHp.value = data.pet_hp; playerHp.value = data.player_hp;
-      encounter.value.currentHp = data.monster_hp; enemyHp.value = data.monster_hp;
-      if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
-      if (data.pet_leveled_up) alert('你的宠物升级了！');
-      if (data.player_leveled_up) alert('你升级了！');
-      if (data.pet_hp !== undefined && activePet.value) { activePet.value.current_hp = data.pet_hp; }
-      if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
-      else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
-    }
+  // 宠物血量
+  if (data.pet_hp !== undefined) {
+    petHp.value = Math.max(0, data.pet_hp);
+    if (activePet.value) activePet.value.current_hp = petHp.value;
+  }
+  
+  // 怪物血量
+  encounter.value.currentHp = data.monster_hp;
+  enemyHp.value = Math.max(0, data.monster_hp);
+  
+  // 玩家血量：通过日志计算自身受到的伤害
+  if (data.log && Array.isArray(data.log)) {
+    let totalDamage = 0;
+    data.log.forEach(msg => {
+      const text = msg.text || '';
+      // 匹配“对你造成XX点伤害”或“攻击了你，造成XX点伤害”
+      const match = text.match(/(?:攻击了你|对你造成)(?:.*?)(\d+)点伤害/);
+      if (match) {
+        totalDamage += parseInt(match[1], 10);
+      }
+    });
+    // 从当前血量扣除总伤害（当前血量已在战斗开始时设为最大生命值）
+    playerHp.value = Math.max(0, playerHp.value - totalDamage);
+  } else {
+    // 如果没有日志，保持原血量
+    playerHp.value = Math.max(0, playerHp.value);
+  }
+  
+  // 处理日志显示
+  if (data.log) {
+    data.log.forEach(m => recentLogs.value.push(m.text));
+    if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
+  }
+  
+  // 升级提示
+  if (data.pet_leveled_up) alert('你的宠物升级了！');
+  if (data.player_leveled_up) alert('你升级了！');
+  
+  // 战斗结束
+  if (data.win) {
+    setTimeout(() => { battle.active = false; refreshData(); }, 1500);
+  } else if (playerHp.value <= 0) {
+    alert('你被打败了...');
+    battle.active = false;
+    refreshData();
+  }
+}
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
 
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
