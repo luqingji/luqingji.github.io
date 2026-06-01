@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 词缀系统 v1.0</title>
+  <title>梦幻宠物大冒险 · 词缀生效版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -81,10 +81,7 @@
     .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* 简洁精致宠物面板 */
-    .pet-detail-panel {
-      width: 380px; max-width: 95%; background: #fffbf0; border: 2px solid var(--wood);
-      border-radius: 16px; padding: 18px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-    }
+    .pet-detail-panel { width: 380px; max-width: 95%; background: #fffbf0; border: 2px solid var(--wood); border-radius: 16px; padding: 18px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
     .pet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .pet-name-level { display: flex; align-items: center; gap: 8px; }
     .pet-name { font-size: 20px; font-weight: bold; color: #4a2c1a; }
@@ -424,6 +421,18 @@ createApp({
       return ball ? ball.quantity : 0;
     });
 
+    // ★ 获取当前已穿戴装备的所有词缀数组
+    const equippedAffixes = computed(() => {
+      const affixes = [];
+      for (const slot of ['weapon','armor','necklace','ring','shoes','belt']) {
+        const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
+        if (eq && eq.affixes && Array.isArray(eq.affixes)) {
+          affixes.push(...eq.affixes);
+        }
+      }
+      return affixes;
+    });
+
     const equippedItems = computed(() => {
       const eq = {};
       playerEquipment.value.filter(e => e.equipped).forEach(e => { eq[e.slot] = e.equipment_def; });
@@ -736,7 +745,8 @@ createApp({
         p_enemy_name: encounter.value.name,
         p_wild_base_id: wildBaseId,
         p_monster_level: encounter.value.monsterLevel || 1,
-        p_player_max_hp: playerMaxHp.value
+        p_player_max_hp: playerMaxHp.value,
+        p_player_affixes: equippedAffixes.value    // ★ 传递当前穿戴装备的词缀数组
       };
       if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
       else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
