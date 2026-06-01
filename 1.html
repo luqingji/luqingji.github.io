@@ -355,7 +355,7 @@
         <div v-if="!catching" class="battle-actions">
           <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
           <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
-          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || !isPetAlive || ballCount === 0">🎯 捕捉 ({{ ballCount }})</button>
+          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || ballCount === 0">🎯 捕捉 ({{ ballCount }})</button>
           <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
         </div>
       </div>
