@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 捕捉球拍卖行</title>
+  <title>梦幻宠物大冒险 · 装备修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -256,7 +256,10 @@
       </div>
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
-        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;"><p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p><small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small></div>
+        <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;">
+          <p><strong>{{ eq.equipment_def?.name || '未知装备' }}</strong> ({{ qualityCN[eq.equipment_def?.quality || 'white'] }})</p>
+          <small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small>
+        </div>
       </div>
     </div>
     <!-- 装备详情弹窗 -->
@@ -369,12 +372,7 @@ createApp({
     const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',
       11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
 
-    // 拍卖行物品列表（可从数据库查询，这里简单写死）
-    const auctionItems = ref([
-      { id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }
-    ]);
-
-    // 计算捕捉球数量
+    const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
     const ballCount = computed(() => {
       const ball = inventory.value.find(i => i.item_id === 1);
       return ball ? ball.quantity : 0;
@@ -466,7 +464,6 @@ createApp({
       nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; });
     }, { deep: false });
 
-    // 购买物品
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
       const { data, error } = await supabase.rpc('buy_item', { p_item_id: itemId, p_quantity: 1 });
@@ -476,11 +473,16 @@ createApp({
       refreshData();
     }
 
+    // ★ 核心修复：加载所有装备，不再过滤 equipped
     async function loadEquipment() {
       if (!profile.value?.id) return;
-      const { data, error } = await supabase.from('player_equipment').select('*, equipment_def(*)').eq('owner_id', profile.value.id);
+      const { data, error } = await supabase
+        .from('player_equipment')
+        .select('*, equipment_def(*)')
+        .eq('owner_id', profile.value.id);
       if (!error && data) playerEquipment.value = data;
     }
+
     function selectSlot(slot) { selectedSlot.value = slot; }
     async function equipItem(eq) {
       const current = playerEquipment.value.find(e => e.slot === eq.slot && e.equipped);
@@ -656,8 +658,6 @@ createApp({
           return;
         }
         clearTimeout(t);
-
-        // 弱击逻辑
         if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
           let damage = Math.floor(encounter.value.currentHp * 0.4);
           if (damage < 1) damage = 1;
@@ -666,7 +666,6 @@ createApp({
           recentLogs.value.push('⚡ 你发动了一次弱击，消耗了 ' + damage + ' 点体力');
           if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
         }
-
         catching.value = true;
         const { data, error } = await supabase.rpc('catch_wild_pet',{
           p_pet_id: activePet.value.id,
