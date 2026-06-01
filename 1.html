@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 掉落优化版</title>
+  <title>梦幻宠物大冒险 · 动态掉率版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -74,6 +74,7 @@
     .skill-panel button { margin: 1px 0; padding: 3px 6px; font-size: 11px; }
     .skill-selected { background: #d4af37; color: white; }
     .enemy-info-card { background: var(--bg); border: 2px solid var(--wood); border-radius: 8px; padding: 10px; color: #2c1810; max-width: 90%; font-size: 13px; }
+
     .character-panel { width: 400px; max-width: 95%; background: var(--bg); border-radius: 10px; border: 2px solid #8b5a2b; padding: 10px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 13px; }
     .character-panel h3 { font-size: 16px; margin-bottom: 6px; }
     .char-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 8px; }
@@ -86,6 +87,7 @@
     .equip-slot-compact.equipped { background: #d4af37; color: #2c1810; font-weight: bold; }
     .equip-slot-compact .slot-name { font-size: 10px; }
     .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     .pet-detail-panel { width: 400px; max-width: 95%; background: var(--bg); border-radius: 10px; border: 2px solid #8b5a2b; padding: 10px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 13px; }
     .pet-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .pet-detail-header h3 { font-size: 16px; display: flex; align-items: center; gap: 4px; }
@@ -99,6 +101,7 @@
     .area-locked { opacity: 0.6; }
     .inventory-tab { display: inline-block; padding: 3px 10px; margin-right: 4px; background: #eee; border-radius: 4px 4px 0 0; cursor: pointer; font-size: 12px; }
     .inventory-tab.active { background: var(--gold); color: #2c1810; font-weight: bold; }
+
     .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: var(--bg); border-radius: 12px; border: 3px solid #8b5a2b; padding: 15px; display: flex; flex-direction: column; gap: 10px; color: #2c1810; }
     .equip-detail-panel h3 { font-size: 18px; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; }
@@ -125,6 +128,7 @@
     <div class="exp-bar"><div class="exp-fill" :style="{width: playerExpPercent+'%'}"></div></div>
     <small style="color:#aaa; font-size:10px;">经验 {{ profile?.exp || 0 }}/{{ (profile?.level || 1) * 100 }}</small>
   </div>
+
   <div class="main">
     <!-- 昵称修改弹窗 -->
     <div v-if="showNicknameInput" class="overlay" @click.self="showNicknameInput = false">
@@ -141,7 +145,7 @@
         <p style="text-align:center; cursor:pointer; color:#8b5a2b; margin-top:5px" @click="isLogin=!isLogin">{{ isLogin ? '创建新角色' : '已有角色' }}</p>
       </div>
     </div>
-    <!-- 角色选择 -->
+    <!-- 角色选择界面 -->
     <div v-if="view === 'role_select'">
       <div class="card" style="text-align:center;">
         <h3>选择你的角色</h3>
@@ -162,7 +166,7 @@
       </div>
       <button class="btn red" @click="logout">退出登录</button>
     </div>
-    <!-- 地图 -->
+    <!-- 地图（含等级限制） -->
     <div v-if="view === 'map'">
       <div v-for="area in areas" :key="area.id" class="card" :class="{ 'area-locked': (profile?.level || 1) < area.required_level }" @click="openArea(area)">
         <strong>{{ area.name }}</strong> (需要 Lv.{{ area.required_level }})
@@ -204,7 +208,7 @@
         <button class="btn" style="margin-top:6px;" @click="showPetDetail = false">关闭</button>
       </div>
     </div>
-    <!-- 人物属性 -->
+    <!-- 人物属性面板 -->
     <div v-if="showCharacterPanel" class="overlay" @click.self="showCharacterPanel = false">
       <div class="character-panel">
         <h3>⚔️ {{ username }}  Lv.{{ profile?.level || 1 }}</h3>
@@ -247,7 +251,7 @@
         <div v-for="eq in playerEquipment" :key="eq.id" class="card" @click="openEquipmentDetail(eq)" style="cursor:pointer;"><p><strong>{{ eq.equipment_def?.name }}</strong> ({{ qualityCN[eq.equipment_def?.quality] }})</p><small>槽位: {{ slotNames[eq.slot] }} | HP:{{ eq.equipment_def?.base_hp }} 攻:{{ eq.equipment_def?.base_atk }} 防:{{ eq.equipment_def?.base_def }} 速:{{ eq.equipment_def?.base_spd }}</small></div>
       </div>
     </div>
-    <!-- 装备详情 -->
+    <!-- 装备详情弹窗 -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -309,6 +313,7 @@
       </div>
     </div>
   </div>
+
   <div class="bottom-nav" v-if="view !== 'auth' && view !== 'role_select'">
     <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
   </div>
@@ -448,7 +453,9 @@ createApp({
       if (!confirm('确定分解？')) return;
       const { data, error } = await supabase.rpc('decompose_equipment', { p_equipment_id: id });
       if (error) return alert('分解失败');
-      alert('分解成功'); showEquipmentDetail.value = false; loadEquipment();
+      if (data.error) { alert(data.error); return; }
+      alert('分解成功，获得 ' + data.silver_reward + ' 银两');
+      showEquipmentDetail.value = false; loadEquipment(); refreshData();
     }
 
     async function syncEnergy() {
@@ -561,7 +568,6 @@ createApp({
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
-        // ★ 存储场景等级用于掉落
         const scene = currentScenes.value.find(s => s.id === sceneId);
         encounter.value.monsterLevel = scene ? scene.level_min : 1;
 
@@ -620,7 +626,7 @@ createApp({
         p_is_wild: isWild,
         p_enemy_name: encounter.value.name,
         p_wild_base_id: wildBaseId,
-        p_monster_level: encounter.value.monsterLevel || 1    // ★ 传递怪物等级
+        p_monster_level: encounter.value.monsterLevel || 1
       };
       if (action === 'combined_skills') { rpcParams.p_player_skill_id = pendingPlayerSkill.value; rpcParams.p_pet_skill_id = pendingPetSkill.value; }
       else if (action === 'player_skill') { rpcParams.p_player_skill_id = skillId; rpcParams.p_pet_skill_id = null; }
