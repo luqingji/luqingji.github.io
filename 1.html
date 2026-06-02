@@ -1021,6 +1021,7 @@ createApp({
           p_player_skills: playerSkills.value.map(s => s.id),
           p_player_affixes: equippedAffixes.value
         };
+        console.log('爬塔请求参数:', JSON.stringify(rpcParams, null, 2));
         const { data, error } = await supabase.rpc('tower_battle', rpcParams);
         if (error) throw error;
 
