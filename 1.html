@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 属性重构版</title>
+  <title>梦幻宠物大冒险 · 最终修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -26,8 +26,8 @@
     .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .area-locked { opacity: 0.6; pointer-events: none; filter: grayscale(0.5); }
     input { width: 100%; padding: 6px 8px; margin: 3px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; font-size: 13px; }
-    .hp-bar { height: 5px; background: #555; border-radius: 3px; margin: 3px 0; }
-    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; }
+    .hp-bar { height: 5px; background: #555; border-radius: 3px; margin: 3px 0; width: 100%; overflow: hidden; } /* 防止溢出 */
+    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; max-width: 100%; } /* 最大宽度限制 */
     .exp-bar { height: 4px; background: #555; border-radius: 2px; margin: 2px 0; }
     .exp-fill { height: 100%; width: 100%; background: #3498db; transition: width 0.3s; }
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 200; }
@@ -55,7 +55,7 @@
     .ally-block .name { font-size: 13px; font-weight: bold; margin-bottom: 1px; }
     .ally-block .hp-bar { width: 100%; }
     .ally-block .hp-text { font-size: 10px; color: #ddd; }
-    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: auto; }
     .battle-actions button { padding: 6px 4px; font-size: 12px; }
     .catch-animation { text-align: center; }
     .pokeball { width: 36px; height: 36px; background: #e74c3c; border-radius: 50%; margin: 0 auto 8px; border: 2px solid #222; position: relative; }
@@ -203,7 +203,10 @@
       <div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div>
     </div>
     <!-- 宠物列表 -->
-    <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp / calcPetStats(p).hp * 100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
+    <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span>
+      <!-- 血量条：限制最大宽度 -->
+      <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (p.current_hp / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
+      <small>技能: {{ petSkillNames(p) }}</small></div></div></div>
     <!-- 宠物详情面板 -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
@@ -217,7 +220,7 @@
         </div>
         <div style="margin:10px 0;">
           <div style="display:flex; justify-content:space-between; font-size:12px;"><span>HP</span><span>{{ detailPet.current_hp }}/{{ calcPetStats(detailPet).hp }}</span></div>
-          <div class="hp-bar"><div class="hp-fill" :style="{width: (detailPet.current_hp / calcPetStats(detailPet).hp * 100) + '%'}"></div></div>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (detailPet.current_hp / (calcPetStats(detailPet).hp || 1)) * 100) + '%'}"></div></div>
         </div>
         <div style="margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; font-size:12px;"><span>经验</span><span>{{ detailPet.exp }}/{{ detailPet.level * 100 }}</span></div>
@@ -344,7 +347,7 @@
     <!-- 师门任务 -->
     <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><p style="font-size:12px; color:#8b5a2b;">点击刷新领取今天的任务，打怪计数才会增加</p><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
     <!-- 世界BOSS -->
-    <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: (worldBoss.hp/worldBoss.max_hp*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
+    <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (worldBoss.hp/worldBoss.max_hp)*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
     <!-- 好友 -->
     <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
     <!-- 拍卖行 -->
@@ -467,14 +470,13 @@ createApp({
     const showLeaderboard = ref(false);
     const toast = reactive({ show: false, message: '' });
 
-    // ---------- 全新属性计算公式 (30级宠物血量>150) ----------
+    // 核心属性计算（保证30级血量>150）
     function calcPetStats(p) {
       if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
-      // 优先使用后端已计算好的字段（如果存在）
       if (p.max_hp !== undefined && p.atk !== undefined) {
-        return { hp: p.max_hp, atk: p.atk, def: p.def, spd: p.spd };
+        return { hp: Math.max(1, p.max_hp), atk: p.atk, def: p.def, spd: p.spd };
       }
-      const level = p.level || 1;
+      const level = Math.max(1, p.level || 1);
       const baseHp = p.base_hp || 0;
       const baseAtk = p.base_atk || 0;
       const baseDef = p.base_def || 0;
@@ -488,12 +490,10 @@ createApp({
       const evDef = p.ev_def || 0;
       const evSpd = p.ev_spd || 0;
 
-      // 强化版公式：HP = (种族*3 + 个体*2 + 努力/2) * 等级 / 40 + 等级 + 20
-      const hp = Math.floor((baseHp * 3 + ivHp * 2 + Math.floor(evHp / 2)) * level / 40) + level + 20;
-      // 攻击、防御、速度 = (种族*2.5 + 个体*1.5 + 努力/2) * 等级 / 40 + 5
-      const atk = Math.floor((baseAtk * 2.5 + ivAtk * 1.5 + Math.floor(evAtk / 2)) * level / 40) + 5;
-      const def = Math.floor((baseDef * 2.5 + ivDef * 1.5 + Math.floor(evDef / 2)) * level / 40) + 5;
-      const spd = Math.floor((baseSpd * 2.5 + ivSpd * 1.5 + Math.floor(evSpd / 2)) * level / 40) + 5;
+      const hp = Math.max(1, Math.floor((baseHp * 3 + ivHp * 2 + Math.floor(evHp / 2)) * level / 40) + level + 20);
+      const atk = Math.max(1, Math.floor((baseAtk * 2.5 + ivAtk * 1.5 + Math.floor(evAtk / 2)) * level / 40) + 5);
+      const def = Math.max(1, Math.floor((baseDef * 2.5 + ivDef * 1.5 + Math.floor(evDef / 2)) * level / 40) + 5);
+      const spd = Math.max(1, Math.floor((baseSpd * 2.5 + ivSpd * 1.5 + Math.floor(evSpd / 2)) * level / 40) + 5);
       return { hp, atk, def, spd };
     }
 
@@ -518,7 +518,7 @@ createApp({
     });
     const playerSkills = computed(() => { if (!profile.value?.sect_id) return []; const map = { 1: [{id:101,name:'横扫千军'},{id:102,name:'后发制人'}], 2: [{id:201,name:'催眠符'},{id:202,name:'失心符'}], 3: [{id:301,name:'龙卷雨击'},{id:302,name:'龙腾'}] }; return map[profile.value.sect_id] || []; });
     const petSkills = computed(() => { if (!activePet.value?.skills) return []; return activePet.value.skills.map(id => ({ id, name: skillNameMap[id] || '未知' })); });
-    const enemyHpPercent = computed(() => (enemyHp.value / (encounter.value?.maxHp || 1)) * 100);
+    const enemyHpPercent = computed(() => Math.min(100, (enemyHp.value / (encounter.value?.maxHp || 1)) * 100));
     const playerMaxHp = computed(() => {
       let base = 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5;
       if (equippedItems.value.armor) base += equippedItems.value.armor.base_hp || 0;
@@ -528,10 +528,10 @@ createApp({
       for (const affix of equippedAffixes.value) { if (affix.id === 'hp_pct') hpMult += affix.value / 100; }
       return Math.floor(base * hpMult);
     });
-    const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
+    const playerHpPercent = computed(() => Math.min(100, (playerHp.value / playerMaxHp.value) * 100));
     const petMaxHp = computed(() => activePet.value ? calcPetStats(activePet.value).hp : 1);
-    const petHpPercent = computed(() => (petHp.value / (petMaxHp.value || 1)) * 100);
-    const playerExpPercent = computed(() => { if (!profile.value) return 0; return (profile.value.exp / (profile.value.level * 100)) * 100; });
+    const petHpPercent = computed(() => Math.min(100, (petHp.value / (petMaxHp.value || 1)) * 100));
+    const playerExpPercent = computed(() => Math.min(100, (!profile.value ? 0 : (profile.value.exp / (profile.value.level * 100)) * 100)));
     const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
     const isPetAlive = computed(() => petHp.value > 0);
     const playerRealAtk = computed(() => {
@@ -565,7 +565,6 @@ createApp({
     function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
     function ivGrade(p) { const s = ivSum(p); return s>=90?'S':s>=70?'A':s>=50?'B':'C'; }
     function ivGradeText(p) { return {S:'传说',A:'优秀',B:'普通',C:'弱小'}[ivGrade(p)]||'弱小'; }
-    // 移除旧的petRealHp等函数，所有地方统一使用calcPetStats
 
     function logEntryClass(msg) {
       const t = msg.text || msg;
@@ -966,7 +965,7 @@ createApp({
       playerRealAtk, playerRealDef, playerRealSpd,
       qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
       getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
-      calcPetStats, // 暴露给模板使用
+      calcPetStats,
       refreshData, syncEnergy, startEnergySync, stopEnergySync,
       login, register, logout, saveNickname, setCarried,
       openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
