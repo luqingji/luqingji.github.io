@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 进塔即读进度</title>
+    <title>梦幻宠物大冒险 · 即时进度版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -468,6 +468,7 @@
         <button @click="view='pets'">🐾</button>
         <button @click="view='inventory'">🎒</button>
         <button @click="view='auction'">🏪</button>
+        <!-- ★ 点击塔按钮时，立即加载最新进度 ★ -->
         <button @click="view='tower'; loadTowerProgress()">🏰</button>
         <button @click="view='quest'">📜</button>
         <button @click="view='boss'">👹</button>
@@ -746,7 +747,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // ★ 从数据库加载最新爬塔进度
+        // ★ 从数据库读取塔进度（被点击塔按钮时调用）
         async function loadTowerProgress() {
             if (!profile.value?.id) return;
             const { data, error } = await supabase
@@ -761,7 +762,6 @@ createApp({
             }
         }
 
-        // ★ 全局数据刷新（保留对塔进度的同步，但避免覆盖刚加载的值）
         async function refreshData() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { view.value = 'auth'; return; }
@@ -789,7 +789,6 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            // 如果数据库有塔进度，则更新；否则保留当前（可能是刚挑战成功后的值）
             if (tower.data) {
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
