@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 数据同步修复</title>
+  <title>梦幻宠物大冒险 · 数据同步权威版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -478,7 +478,6 @@
     <button @click="view='pets'">🐾</button>
     <button @click="view='inventory'">🎒</button>
     <button @click="view='auction'">🏪</button>
-    <!-- 不再调用 loadTowerProgress，避免覆盖正确层数 -->
     <button @click="view='tower'">🏰</button>
     <button @click="view='quest'">📜</button>
     <button @click="view='boss'">👹</button>
@@ -521,7 +520,6 @@ createApp({
     const showLeaderboard = ref(false);
     const toast = reactive({ show: false, message: '' });
 
-    // 宠物属性计算（新公式）
     function calcPetStats(p) {
       if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
       if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -548,7 +546,6 @@ createApp({
       return { hp, atk, def, spd };
     }
 
-    // 爬塔难度系数与怪物预估
     const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
     const estimatedMonsterStats = computed(() => {
       const floor = towerProgress.value.current_floor || 1;
@@ -581,7 +578,6 @@ createApp({
     const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
     const canChallenge = computed(() => powerRatio.value >= 70);
 
-    // 其他计算属性
     const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
     const equippedAffixes = computed(() => {
       const affixes = [];
@@ -758,20 +754,27 @@ createApp({
 
     function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
+    // ★ 权威数据刷新：每次调用都会从数据库拉取最新的塔进度，并覆盖本地状态 ★
     async function refreshData() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { view.value = 'auth'; return; }
       try { await supabase.rpc('ensure_profile'); } catch(e) {}
       await syncEnergy();
-      const [pr, pe, it, ar, se, qu, bo, fr] = await Promise.all([
+      const [pr, pe, it, ar, se, qu, bo, fr, tower] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd, passive_effect)').eq('owner_id', user.id),
         supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
         supabase.from('areas').select('*'), supabase.from('sects').select('*'),
-        supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends')
+        supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends'),
+        supabase.from('user_tower_progress').select('*').eq('user_id', user.id).maybeSingle()  // 拉取爬塔进度
       ]);
-      if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
-      else { await logout(); return; }
+      if (pr.data) {
+        profile.value = pr.data;
+        username.value = pr.data.username;
+        silver.value = pr.data.silver;
+        diamond.value = pr.data.diamond;
+        energy.value = pr.data.energy;
+      } else { await logout(); return; }
       if (pe.data) {
         myPets.value = pe.data.map(p => ({
           ...p, ...p.base_pet, base_pet: p.base_pet,
@@ -784,6 +787,17 @@ createApp({
       if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
       if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
       if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
+      // ★ 更新爬塔进度（数据库中的最新值） ★
+      if (tower.data) {
+        towerProgress.value = {
+          current_floor: tower.data.current_floor || 1,
+          max_floor: tower.data.max_floor || 1,
+          season_name: towerProgress.value.season_name // 保留赛季名称
+        };
+      } else {
+        // 如果没有记录，保持默认1层（用户尚未挑战过）
+        towerProgress.value = { current_floor: 1, max_floor: 1, season_name: towerProgress.value.season_name };
+      }
       await loadEquipment();
     }
 
@@ -958,12 +972,7 @@ createApp({
       profile.value = data; showToast('加点成功！');
     }
 
-    // 只在应用启动时从数据库加载一次进度
-    async function loadTowerProgress() {
-      const { data, error } = await supabase.rpc('get_tower_progress');
-      if (!error && data) towerProgress.value = data;
-    }
-
+    async function loadTowerProgress() { /* 不再需要，由 refreshData 统一处理 */ }
     async function loadLeaderboard() {
       const { data, error } = await supabase.rpc('get_tower_leaderboard');
       if (!error && data) leaderboard.value = data;
@@ -982,14 +991,13 @@ createApp({
       }, 1000);
     }
 
-    // 最终爬塔双打（修复数据同步）
+    // ★ 爬塔战斗（成功后依赖 refreshData 同步最新进度和银两） ★
     async function startTowerBattle() {
       playerHp.value = playerMaxHp.value;
       if (activePet.value) {
         activePet.value.current_hp = petMaxHp.value;
         petHp.value = petMaxHp.value;
       }
-
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
         if (alivePet) {
@@ -1000,7 +1008,6 @@ createApp({
           } else { return; }
         } else { showToast('所有宠物都已阵亡，无法继续挑战！'); return; }
       }
-
       towerBusy.value = true;
       try {
         const petStats = calcPetStats(activePet.value);
@@ -1020,7 +1027,6 @@ createApp({
           p_player_skills: playerSkills.value.map(s => s.id),
           p_player_affixes: equippedAffixes.value
         };
-
         const { data, error } = await supabase.rpc('tower_battle', rpcParams);
         if (error) throw error;
 
@@ -1031,14 +1037,9 @@ createApp({
         if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
 
         if (data.win) {
-          // 直接更新层数，不再依赖 loadTowerProgress
-          towerProgress.value.current_floor = data.new_floor;
-          if (data.new_floor > towerProgress.value.max_floor) {
-            towerProgress.value.max_floor = data.new_floor;
-          }
-          // 刷新其他数据（银两、物品等），但不会影响塔进度
+          // 后端已经更新了 user_tower_progress 和 profiles.silver，现在从数据库刷新最新状态
           await refreshData();
-          showToast('挑战成功！已进入第 ' + data.new_floor + ' 层');
+          showToast('挑战成功！已进入第 ' + towerProgress.value.current_floor + ' 层');
           if (data.silver_reward) showToast('获得银两：' + data.silver_reward);
         } else {
           showToast('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
@@ -1063,8 +1064,6 @@ createApp({
           navigator.sendBeacon(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.value.id}`, JSON.stringify({ is_online: false }));
         }
       });
-      // 只在页面启动时加载一次塔进度
-      loadTowerProgress();
     });
     onUnmounted(() => { stopEnergySync(); stopPetRecovery(); if (cooldownTimer) clearInterval(cooldownTimer); });
 
@@ -1090,7 +1089,7 @@ createApp({
       inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
       showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
       logContainer, logEntryClass, logEntryIcon, formatLogMessage,
-      towerProgress, towerBusy, loadTowerProgress, startTowerBattle,
+      towerProgress, towerBusy, loadTowerProgress: () => {}, startTowerBattle, // loadTowerProgress 已废弃，留空函数避免报错
       leaderboard, showLeaderboard, loadLeaderboard, toast
     };
   }
