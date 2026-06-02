@@ -792,7 +792,7 @@ createApp({
         towerProgress.value = {
           current_floor: tower.data.current_floor || 1,
           max_floor: tower.data.max_floor || 1,
-          season_name: towerProgress.value.season_name // 保留赛季名称
+          season_name: tower.data.season_name || 'S1·试炼之塔'
         };
       } else {
         // 如果没有记录，保持默认1层（用户尚未挑战过）
