@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 终极版（爬塔双打）</title>
+  <title>梦幻宠物大冒险 · 终极完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -363,13 +363,12 @@
       </div>
       <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
     </div>
-    <!-- 爬塔界面（双打参数传递） -->
+    <!-- 爬塔界面（完整战力展示） -->
     <div v-if="view === 'tower'">
       <h3>🏰 无尽爬塔 · {{ towerProgress.season_name }}</h3>
       <div class="tower-card">
         <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
         <p>最高记录：{{ towerProgress.max_floor }}</p>
-        <!-- 玩家当前属性展示 -->
         <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
           <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
@@ -383,7 +382,6 @@
             <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
           </div>
         </div>
-        <!-- 怪物强度预估 -->
         <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
           <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">📊 第 {{ towerProgress.current_floor }} 层怪物预估 (系数 {{ towerDiff.toFixed(2) }})</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
@@ -393,7 +391,6 @@
             <span>💨 速度：{{ estimatedMonsterStats.spd }}</span>
           </div>
         </div>
-        <!-- 战力对比 -->
         <div class="power-indicator">
           <div style="display: flex; justify-content: space-between; font-size: 11px;">
             <span>👥 组合战力：{{ playerAndPetPower }}</span>
@@ -420,7 +417,7 @@
         </div>
       </div>
     </div>
-    <!-- 战斗界面（无变化） -->
+    <!-- 战斗界面 -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
         <div class="battle-enemy-area">
@@ -517,7 +514,7 @@ createApp({
     const showLeaderboard = ref(false);
     const toast = reactive({ show: false, message: '' });
 
-    // 新公式宠物属性计算
+    // ---------- 宠物属性计算（新公式）----------
     function calcPetStats(p) {
       if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
       if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -544,7 +541,7 @@ createApp({
       return { hp, atk, def, spd };
     }
 
-    // 爬塔怪物预览相关
+    // ---------- 爬塔难度系数与怪物预估 ----------
     const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
     const estimatedMonsterStats = computed(() => {
       const floor = towerProgress.value.current_floor || 1;
@@ -564,7 +561,6 @@ createApp({
       };
     });
 
-    // 战力计算（角色+宠物）
     const playerAndPetPower = computed(() => {
       const petStats = activePet.value ? calcPetStats(activePet.value) : { hp:0, atk:0, def:0, spd:0 };
       const playerPart = playerMaxHp.value + playerRealAtk.value * 2 + playerRealDef.value * 1.5 + playerRealSpd.value * 1.5;
@@ -578,7 +574,7 @@ createApp({
     const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
     const canChallenge = computed(() => powerRatio.value >= 70);
 
-    // 其他计算属性
+    // ---------- 其他计算属性 ----------
     const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
     const equippedAffixes = computed(() => {
       const affixes = [];
@@ -636,8 +632,7 @@ createApp({
     });
 
     function showToast(msg, duration = 2500) {
-      toast.message = msg;
-      toast.show = true;
+      toast.message = msg; toast.show = true;
       setTimeout(() => { toast.show = false; }, duration);
     }
 
@@ -662,14 +657,7 @@ createApp({
       if (t.includes('你')) return '🧑';
       if (activePet?.value?.nickname && t.includes(activePet.value.nickname)) return '🐾';
       if (enemyNames.some(name => t.includes(name))) return '👹';
-      if (t.includes('沉睡')) return '💤';
-      if (t.includes('回复')) return '🌿';
-      if (t.includes('获得装备')) return '🎁';
-      if (t.includes('【装备词缀】')) return '✨';
-      if (t.includes('灼伤')) return '🔥';
-      if (t.includes('冰冻')) return '❄️';
-      if (t.includes('闪避')) return '✨';
-      if (t.includes('荆棘')) return '🌿';
+      if (t.includes('沉睡')) return '💤'; if (t.includes('回复')) return '🌿'; if (t.includes('获得装备')) return '🎁'; if (t.includes('【装备词缀】')) return '✨'; if (t.includes('灼伤')) return '🔥'; if (t.includes('冰冻')) return '❄️'; if (t.includes('闪避')) return '✨'; if (t.includes('荆棘')) return '🌿';
       return '📢';
     }
     function formatLogMessage(msg) {
@@ -681,6 +669,7 @@ createApp({
 
     watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
+    // ---------- 完整函数实现 ----------
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
       loading.value = true;
@@ -816,8 +805,7 @@ createApp({
       loading.value = false; refreshData();
     }
     async function logout() {
-      stopEnergySync();
-      stopPetRecovery();
+      stopEnergySync(); stopPetRecovery();
       await supabase.auth.signOut();
       profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0;
       myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = [];
@@ -964,17 +952,10 @@ createApp({
       profile.value = data; showToast('加点成功！');
     }
 
-    async function loadTowerProgress() {
-      const { data, error } = await supabase.rpc('get_tower_progress');
-      if (!error && data) towerProgress.value = data;
-    }
+    async function loadTowerProgress() { const { data, error } = await supabase.rpc('get_tower_progress'); if (!error && data) towerProgress.value = data; }
+    async function loadLeaderboard() { const { data, error } = await supabase.rpc('get_tower_leaderboard'); if (!error && data) leaderboard.value = data; }
 
-    async function loadLeaderboard() {
-      const { data, error } = await supabase.rpc('get_tower_leaderboard');
-      if (!error && data) leaderboard.value = data;
-    }
-
-    // ---------- 核心改动：爬塔函数传递角色+宠物完整属性 ----------
+    // ---------- 爬塔双打 ----------
     async function startTowerBattle() {
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
