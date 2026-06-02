@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 被动天赋版</title>
+  <title>梦幻宠物大冒险 · 最终修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -648,7 +648,10 @@ createApp({
       if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
       else { await logout(); return; }
       if (pe.data) {
-        myPets.value = pe.data.map(p=>({...p, base_pet:{...p.base_pet, passive_effect:p.base_pet?.passive_effect}}));
+        myPets.value = pe.data.map(p => ({
+          ...p, ...p.base_pet, base_pet: p.base_pet,
+          passive_effect: p.base_pet?.passive_effect
+        }));
         const carriedPet = myPets.value.find(p => p.is_carried);
         if (carriedPet) activePet.value = carriedPet;
         else if (myPets.value.length > 0) activePet.value = myPets.value[0];
@@ -850,33 +853,39 @@ createApp({
         } else { alert('所有宠物都已阵亡，无法继续挑战！'); return; }
       }
       towerBusy.value = true;
-      const { data, error } = await supabase.rpc('tower_battle', {
-        p_pet_id: activePet.value.id,
-        p_player_max_hp: playerMaxHp.value,
-        p_player_affixes: equippedAffixes.value
-      });
-      towerBusy.value = false;
-      if (error) { alert('爬塔出错：'+error.message); return; }
-      if (data.win) {
-        petHp.value = Math.max(0, data.pet_hp);
-        playerHp.value = Math.max(0, data.player_hp);
-        enemyHp.value = data.monster_hp;
-        recentLogs.value = [];
-        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
-        if (data.new_floor) {
-          towerProgress.value.current_floor = data.new_floor;
-          if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
+      try {
+        const { data, error } = await supabase.rpc('tower_battle', {
+          p_pet_id: activePet.value.id,
+          p_player_max_hp: playerMaxHp.value,
+          p_player_affixes: equippedAffixes.value
+        });
+        if (error) throw error;
+        if (data.win) {
+          petHp.value = Math.max(0, data.pet_hp);
+          playerHp.value = Math.max(0, data.player_hp);
+          enemyHp.value = data.monster_hp;
+          recentLogs.value = [];
+          if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+          if (data.new_floor) {
+            towerProgress.value.current_floor = data.new_floor;
+            if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
+          }
+          if (data.extra_reward) alert(data.extra_reward);
+          if (data.silver_reward) alert('获得银两：' + data.silver_reward);
+        } else {
+          alert('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
+          petHp.value = Math.max(0, data.pet_hp);
+          playerHp.value = Math.max(0, data.player_hp);
+          recentLogs.value = [];
+          if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
         }
-        if (data.extra_reward) alert(data.extra_reward);
-        if (data.silver_reward) alert('获得银两：' + data.silver_reward);
-      } else {
-        alert('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
-        petHp.value = Math.max(0, data.pet_hp);
-        playerHp.value = Math.max(0, data.player_hp);
-        recentLogs.value = [];
-        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+        await refreshData();
+      } catch (e) {
+        alert('爬塔出错：' + e.message);
+        console.error(e);
+      } finally {
+        towerBusy.value = false;
       }
-      await refreshData();
     }
 
     onMounted(() => {
