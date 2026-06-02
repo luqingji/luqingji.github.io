@@ -801,36 +801,52 @@ createApp({
     }
 
     async function startTowerBattle() {
-      if (!activePet.value || activePet.value.current_hp <= 0) { alert('没有可战斗的宠物！'); return; }
-      towerBusy.value = true;
-      const { data, error } = await supabase.rpc('tower_battle', {
-        p_pet_id: activePet.value.id,
-        p_player_max_hp: playerMaxHp.value,
-        p_player_affixes: equippedAffixes.value
-      });
-      towerBusy.value = false;
-      if (error) { alert('爬塔出错：'+error.message); return; }
-      if (data.win) {
-        petHp.value = Math.max(0, data.pet_hp);
-        playerHp.value = Math.max(0, data.player_hp);
-        enemyHp.value = data.monster_hp;
-        recentLogs.value = [];
-        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
-        if (data.new_floor) {
-          towerProgress.value.current_floor = data.new_floor;
-          if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
-        }
-        if (data.extra_reward) alert(data.extra_reward);
-        if (data.silver_reward) alert('获得银两：' + data.silver_reward);
+  // 检查携带宠物是否存活
+  if (!activePet.value || activePet.value.current_hp <= 0) {
+    // 寻找其他存活宠物
+    const alivePet = myPets.value.find(p => p.current_hp > 0);
+    if (alivePet) {
+      if (confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)) {
+        activePet.value = alivePet;
       } else {
-        alert('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
-        petHp.value = Math.max(0, data.pet_hp);
-        playerHp.value = Math.max(0, data.player_hp);
-        recentLogs.value = [];
-        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+        return; // 玩家选择不更换
       }
-      await refreshData();
+    } else {
+      alert('所有宠物都已阵亡，无法继续挑战！');
+      return;
     }
+  }
+  
+  towerBusy.value = true;
+  const { data, error } = await supabase.rpc('tower_battle', {
+    p_pet_id: activePet.value.id,
+    p_player_max_hp: playerMaxHp.value,
+    p_player_affixes: equippedAffixes.value
+  });
+  towerBusy.value = false;
+  if (error) { alert('爬塔出错：'+error.message); return; }
+  
+  if (data.win) {
+    petHp.value = Math.max(0, data.pet_hp);
+    playerHp.value = Math.max(0, data.player_hp);
+    enemyHp.value = data.monster_hp;
+    recentLogs.value = [];
+    if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+    if (data.new_floor) {
+      towerProgress.value.current_floor = data.new_floor;
+      if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
+    }
+    if (data.extra_reward) alert(data.extra_reward);
+    if (data.silver_reward) alert('获得银两：' + data.silver_reward);
+  } else {
+    alert('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
+    petHp.value = Math.max(0, data.pet_hp);
+    playerHp.value = Math.max(0, data.player_hp);
+    recentLogs.value = [];
+    if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+  }
+  await refreshData();
+}
 
     onMounted(() => {
       if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
