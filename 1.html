@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终修复版</title>
+  <title>梦幻宠物大冒险 · 战斗布局修复</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -26,8 +26,8 @@
     .card { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 10px; margin-bottom: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     .area-locked { opacity: 0.6; pointer-events: none; filter: grayscale(0.5); }
     input { width: 100%; padding: 6px 8px; margin: 3px 0; border: 1px solid #ccc; border-radius: 4px; background: #fffbf0; font-size: 13px; }
-    .hp-bar { height: 5px; background: #555; border-radius: 3px; margin: 3px 0; width: 100%; overflow: hidden; } /* 防止溢出 */
-    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; max-width: 100%; } /* 最大宽度限制 */
+    .hp-bar { height: 5px; background: #555; border-radius: 3px; margin: 3px 0; width: 100%; overflow: hidden; }
+    .hp-fill { height: 100%; width: 100%; background: #27ae60; transition: width 0.3s; max-width: 100%; }
     .exp-bar { height: 4px; background: #555; border-radius: 2px; margin: 2px 0; }
     .exp-fill { height: 100%; width: 100%; background: #3498db; transition: width 0.3s; }
     .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 200; }
@@ -41,7 +41,7 @@
     .battle-enemy-area .enemy-name { font-size: 18px; font-weight: bold; color: #ffd700; cursor: pointer; text-decoration: underline; }
     .battle-enemy-area .enemy-lv { font-size: 12px; color: #ccc; margin-bottom: 3px; }
     .battle-enemy-area .hp-bar { width: 160px; margin: 0 auto; }
-    .battle-log-area { flex: 1; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 5px; overflow-y: auto; color: #f1c40f; font-size: 12px; line-height: 1.3; min-height: 60px; max-height: 200px; }
+    .battle-log-area { flex: 1; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 5px; overflow-y: auto; color: #f1c40f; font-size: 12px; line-height: 1.3; min-height: 60px; }
     .battle-log-area .log-entry { display: flex; align-items: baseline; gap: 4px; margin: 2px 0; font-size: 12px; padding: 2px 4px; border-left: 3px solid transparent; }
     .battle-log-area .log-entry.first { border-left-color: #f1c40f; background: rgba(241,196,15,0.1); font-weight: bold; }
     .battle-log-area .log-entry.player .log-text { color: #f1c40f; }
@@ -50,12 +50,13 @@
     .battle-log-area .log-entry.info .log-text { color: #bdc3c7; }
     .damage-num { font-weight: bold; font-size: 1.2em; color: #ff6b6b; }
     .log-icon { min-width: 20px; text-align: center; }
+    .battle-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 8px; } /* 新容器：自动贴底 */
     .battle-ally-area { display: flex; justify-content: space-around; font-size: 13px; }
     .ally-block { text-align: center; width: 45%; }
     .ally-block .name { font-size: 13px; font-weight: bold; margin-bottom: 1px; }
     .ally-block .hp-bar { width: 100%; }
     .ally-block .hp-text { font-size: 10px; color: #ddd; }
-    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: auto; }
+    .battle-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .battle-actions button { padding: 6px 4px; font-size: 12px; }
     .catch-animation { text-align: center; }
     .pokeball { width: 36px; height: 36px; background: #e74c3c; border-radius: 50%; margin: 0 auto 8px; border: 2px solid #222; position: relative; }
@@ -204,7 +205,6 @@
     </div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span>
-      <!-- 血量条：限制最大宽度 -->
       <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (p.current_hp / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
       <small>技能: {{ petSkillNames(p) }}</small></div></div></div>
     <!-- 宠物详情面板 -->
@@ -380,34 +380,42 @@
         </div>
       </div>
     </div>
-    <!-- 战斗界面 -->
+    <!-- 战斗界面（结构重组） -->
     <div v-if="battle.active" class="battle-container">
       <div class="battle-card">
-        <div class="battle-enemy-area"><div class="enemy-name" @click="showEnemyInfo = true">{{ encounter.name }}</div><div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div><small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small></div>
+        <div class="battle-enemy-area">
+          <div class="enemy-name" @click="showEnemyInfo = true">{{ encounter.name }}</div>
+          <div class="enemy-lv">Lv.{{ encounter.level || 1 }}</div>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: enemyHpPercent+'%'}"></div></div>
+          <small style="color:#aaa">{{ enemyHp }}/{{ encounter.maxHp }}</small>
+        </div>
         <div class="battle-log-area" ref="logContainer">
           <div v-for="(msg, idx) in recentLogs" :key="idx" class="log-entry" :class="logEntryClass(msg)">
             <span class="log-icon">{{ logEntryIcon(msg) }}</span>
             <span class="log-text" v-html="formatLogMessage(msg)"></span>
           </div>
         </div>
-        <div class="battle-ally-area">
-          <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
-          <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div>
-        </div>
-        <div v-if="catching" class="catch-animation"><div class="pokeball" :class="ballShakeClass"></div><p>{{ catchMessage }}</p></div>
-        <div v-if="showSkillPanel && !catching" class="skill-panel">
-          <h4>人物技能 <span v-if="pendingPlayerSkill">✅ 已选</span></h4>
-          <button v-for="skill in playerSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPlayerSkill === skill.id }" @click="selectPlayerSkill(skill.id)">✨ {{ skill.name }}</button>
-          <h4 v-if="isPetAlive">宠物技能 <span v-if="pendingPetSkill">✅ 已选</span></h4>
-          <h4 v-else style="color:#e74c3c;">💔 宠物已阵亡，无法使用技能</h4>
-          <button v-for="skill in petSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPetSkill === skill.id }" @click="selectPetSkill(skill.id)" :disabled="!isPetAlive">🐾 {{ skill.name }}</button>
-          <button class="btn red" @click="cancelSkillPanel">取消</button>
-        </div>
-        <div v-if="!catching" class="battle-actions">
-          <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
-          <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
-          <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || ballCount === 0">🎯 捕捉 ({{ ballCount }})</button>
-          <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
+        <!-- 底部容器：盟友区、捕捉动画、技能面板、操作按钮 -->
+        <div class="battle-bottom">
+          <div class="battle-ally-area">
+            <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
+            <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div>
+          </div>
+          <div v-if="catching" class="catch-animation"><div class="pokeball" :class="ballShakeClass"></div><p>{{ catchMessage }}</p></div>
+          <div v-if="showSkillPanel && !catching" class="skill-panel">
+            <h4>人物技能 <span v-if="pendingPlayerSkill">✅ 已选</span></h4>
+            <button v-for="skill in playerSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPlayerSkill === skill.id }" @click="selectPlayerSkill(skill.id)">✨ {{ skill.name }}</button>
+            <h4 v-if="isPetAlive">宠物技能 <span v-if="pendingPetSkill">✅ 已选</span></h4>
+            <h4 v-else style="color:#e74c3c;">💔 宠物已阵亡，无法使用技能</h4>
+            <button v-for="skill in petSkills" :key="skill.id" class="btn" :class="{ 'skill-selected': pendingPetSkill === skill.id }" @click="selectPetSkill(skill.id)" :disabled="!isPetAlive">🐾 {{ skill.name }}</button>
+            <button class="btn red" @click="cancelSkillPanel">取消</button>
+          </div>
+          <div v-if="!catching" class="battle-actions">
+            <button class="btn" @click="battleAction('attack')" :disabled="battleBusy">⚔️ 攻击</button>
+            <button class="btn" @click="openSkillPanel" :disabled="battleBusy">📜 技能</button>
+            <button v-if="encounter.type==='wild_pet'" class="btn" @click="battleAction('catch')" :disabled="battleBusy || ballCount === 0">🎯 捕捉 ({{ ballCount }})</button>
+            <button class="btn red" @click="battleAction('run')" :disabled="battleBusy">🏃 逃跑</button>
+          </div>
         </div>
       </div>
     </div>
@@ -470,7 +478,6 @@ createApp({
     const showLeaderboard = ref(false);
     const toast = reactive({ show: false, message: '' });
 
-    // 核心属性计算（保证30级血量>150）
     function calcPetStats(p) {
       if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
       if (p.max_hp !== undefined && p.atk !== undefined) {
