@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 进度同步修复版</title>
+  <title>梦幻宠物大冒险 · 最终完全版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -363,7 +363,7 @@
       </div>
       <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
     </div>
-    <!-- 爬塔界面（含冷却、满血、进度同步修复） -->
+    <!-- 爬塔界面 -->
     <div v-if="view === 'tower'">
       <h3>🏰 无尽爬塔 · {{ towerProgress.season_name }}</h3>
       <div class="tower-card">
@@ -968,7 +968,6 @@ createApp({
       if (!error && data) leaderboard.value = data;
     }
 
-    // ---------- 冷却计时器 ----------
     let cooldownTimer = null;
     function startCooldown(seconds = 10) {
       towerCooldown.value = seconds;
@@ -982,16 +981,14 @@ createApp({
       }, 1000);
     }
 
-    // ---------- 爬塔双打（满血 + 进度强制同步）----------
+    // ---------- 爬塔双打（最终版本：直接使用返回数据更新界面和银币）----------
     async function startTowerBattle() {
-      // 满血
       playerHp.value = playerMaxHp.value;
       if (activePet.value) {
         activePet.value.current_hp = petMaxHp.value;
         petHp.value = petMaxHp.value;
       }
 
-      // 检查宠物
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
         if (alivePet) {
@@ -1028,7 +1025,7 @@ createApp({
         if (error) throw error;
         console.log('爬塔返回数据:', data);
 
-        // 战斗后血量更新
+        // 更新血量
         petHp.value = Math.max(0, data.pet_hp);
         playerHp.value = Math.max(0, data.player_hp);
         enemyHp.value = data.monster_hp;
@@ -1036,9 +1033,14 @@ createApp({
         if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
 
         if (data.win) {
-          // 强制从数据库重新拉取进度，并覆盖本地状态
-          await loadTowerProgress();
-          showToast('挑战成功！进入第 ' + towerProgress.value.current_floor + ' 层');
+          // 直接更新界面层数
+          towerProgress.value.current_floor = data.new_floor;
+          if (data.new_floor > towerProgress.value.max_floor) {
+            towerProgress.value.max_floor = data.new_floor;
+          }
+          // 处理银币奖励：刷新全部数据以获取最新银两
+          await refreshData(); // 这会更新 silver.value
+          showToast('挑战成功！已进入第 ' + data.new_floor + ' 层');
           if (data.extra_reward) showToast(data.extra_reward);
           if (data.silver_reward) showToast('获得银两：' + data.silver_reward);
         } else {
@@ -1046,7 +1048,6 @@ createApp({
         }
 
         startCooldown(10);
-        await refreshData();
       } catch (e) {
         showToast('爬塔出错：' + e.message);
         console.error(e);
