@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 最终完美版</title>
+  <title>梦幻宠物大冒险 · 被动天赋版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -198,7 +198,7 @@
     </div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-    <!-- 宠物详情面板 -->
+    <!-- 宠物详情面板（含被动） -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
         <div class="pet-header">
@@ -228,6 +228,21 @@
         </table>
         <div class="total-rating"><span class="badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span></div>
         <div class="skill-info"><strong>技能：</strong>{{ petSkillNames(detailPet) }}</div>
+        <!-- 被动天赋显示 -->
+        <div class="skill-info" v-if="detailPet.passive_effect">
+          <strong>被动天赋：</strong>
+          <span v-if="detailPet.passive_effect.type === 'burn'">🔥 攻击有 {{ detailPet.passive_effect.chance }}% 概率灼伤目标</span>
+          <span v-else-if="detailPet.passive_effect.type === 'spd_down'">⚡ 攻击有 {{ detailPet.passive_effect.chance }}% 概率降低目标速度</span>
+          <span v-else-if="detailPet.passive_effect.type === 'poison'">☠️ 攻击有 {{ detailPet.passive_effect.chance }}% 概率使目标中毒</span>
+          <span v-else-if="detailPet.passive_effect.type === 'dmg_boost'">⚡ 速度高于对手时，普攻伤害 +{{ detailPet.passive_effect.value }}%</span>
+          <span v-else-if="detailPet.passive_effect.type === 'def_up_self'">🛡️ 攻击有 {{ detailPet.passive_effect.chance }}% 概率提升自身防御</span>
+          <span v-else-if="detailPet.passive_effect.type === 'fear'">💀 攻击有 {{ detailPet.passive_effect.chance }}% 概率使目标恐惧</span>
+          <span v-else-if="detailPet.passive_effect.type === 'heal_self'">🌿 攻击回复自身 {{ detailPet.passive_effect.value }}% 最大HP</span>
+          <span v-else-if="detailPet.passive_effect.type === 'freeze'">❄️ 攻击有 {{ detailPet.passive_effect.chance }}% 概率冰冻目标</span>
+          <span v-else-if="detailPet.passive_effect.type === 'atk_up_self'">💪 攻击有 {{ detailPet.passive_effect.chance }}% 概率提升攻击</span>
+          <span v-else-if="detailPet.passive_effect.type === 'dodge_self'">🌀 攻击有 {{ detailPet.passive_effect.chance }}% 概率进入闪避</span>
+          <span v-else>{{ detailPet.passive_effect.type }}</span>
+        </div>
         <div style="display:flex; gap:6px; margin-top:10px;">
           <button class="btn" style="flex:1;" @click="setCarried(detailPet.id); showPetDetail = false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
           <button class="btn red" style="flex:1;" @click="releasePet(detailPet)">放生</button>
@@ -343,6 +358,18 @@
         <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
         <p>最高记录：{{ towerProgress.max_floor }}</p>
         <button class="btn" @click="startTowerBattle" :disabled="towerBusy">挑战第 {{ towerProgress.current_floor }} 层</button>
+        <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
+          {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
+        </button>
+      </div>
+      <div v-if="showLeaderboard" class="card" style="margin-top:12px;">
+        <h4>🏆 赛季排行榜</h4>
+        <div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
+        <div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
+          <span>{{ item.rank }}. {{ item.username }}</span>
+          <span>Lv.{{ item.max_floor }}</span>
+          <span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span>
+        </div>
       </div>
     </div>
     <!-- 战斗界面 -->
@@ -400,13 +427,13 @@
     <button @click="view='friends'">👥</button>
   </div>
 </div>
+
 <script>
 const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 createApp({
   setup() {
     const supabase = window.supabase.createClient('https://gjcxcexgendndemnuole.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ');
 
-    // 状态
     const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
     const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
     const hasPet = ref(false); const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -429,8 +456,9 @@ createApp({
     const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
     const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: '' });
     const towerBusy = ref(false);
+    const leaderboard = ref([]);
+    const showLeaderboard = ref(false);
 
-    // 计算属性
     const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
     const equippedAffixes = computed(() => {
       const affixes = [];
@@ -487,7 +515,6 @@ createApp({
       return Math.floor(base);
     });
 
-    // 工具函数
     function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精',7:'岩石傀儡',8:'矿洞蝙蝠',9:'晶岩巨人',10:'棘刺藤蔓',11:'熔岩蜥蜴',12:'岩浆龟',13:'冰狼',14:'冰魔像',15:'深渊守卫',16:'暗影祭司'}; return m[id] || '未知'; }
     function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
     function petSkillNames(p) { return (p.skills||[]).map(id => skillNameMap[id] || '?').join(','); }
@@ -532,7 +559,6 @@ createApp({
 
     watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-    // 业务逻辑
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
       const { data, error } = await supabase.rpc('buy_item', { p_item_id: itemId, p_quantity: 1 });
@@ -614,7 +640,7 @@ createApp({
       await syncEnergy();
       const [pr, pe, it, ar, se, qu, bo, fr] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
-        supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd)').eq('owner_id', user.id),
+        supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd, passive_effect)').eq('owner_id', user.id),
         supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
         supabase.from('areas').select('*'), supabase.from('sects').select('*'),
         supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends')
@@ -622,14 +648,10 @@ createApp({
       if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
       else { await logout(); return; }
       if (pe.data) {
-        myPets.value = pe.data.map(p=>({...p,...p.base_pet,base_pet:p.base_pet}));
-        // ★ 同步 activePet（携带宠物优先）
+        myPets.value = pe.data.map(p=>({...p, base_pet:{...p.base_pet, passive_effect:p.base_pet?.passive_effect}}));
         const carriedPet = myPets.value.find(p => p.is_carried);
-        if (carriedPet) {
-          activePet.value = carriedPet;
-        } else if (myPets.value.length > 0) {
-          activePet.value = myPets.value[0];
-        }
+        if (carriedPet) activePet.value = carriedPet;
+        else if (myPets.value.length > 0) activePet.value = myPets.value[0];
       }
       if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
       if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
@@ -813,20 +835,19 @@ createApp({
       if (!error && data) towerProgress.value = data;
     }
 
-    // ★ 修正后的爬塔函数（提示换宠）
+    async function loadLeaderboard() {
+      const { data, error } = await supabase.rpc('get_tower_leaderboard');
+      if (!error && data) leaderboard.value = data;
+    }
+
     async function startTowerBattle() {
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
         if (alivePet) {
           if (confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)) {
             activePet.value = alivePet;
-          } else {
-            return;
-          }
-        } else {
-          alert('所有宠物都已阵亡，无法继续挑战！');
-          return;
-        }
+          } else { return; }
+        } else { alert('所有宠物都已阵亡，无法继续挑战！'); return; }
       }
       towerBusy.value = true;
       const { data, error } = await supabase.rpc('tower_battle', {
@@ -891,7 +912,8 @@ createApp({
       inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
       showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
       logContainer, logEntryClass, logEntryIcon, formatLogMessage,
-      towerProgress, towerBusy, loadTowerProgress, startTowerBattle
+      towerProgress, towerBusy, loadTowerProgress, startTowerBattle,
+      leaderboard, showLeaderboard, loadLeaderboard
     };
   }
 }).mount('#app');
