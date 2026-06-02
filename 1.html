@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 完全修复版</title>
+    <title>梦幻宠物大冒险 · 登录进度修复</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -510,7 +510,6 @@ createApp({
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
 
-        // 宠物属性计算
         function calcPetStats(p) {
             if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
             if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -537,7 +536,6 @@ createApp({
             return { hp, atk, def, spd };
         }
 
-        // 爬塔计算属性
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -746,7 +744,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // ★ 数据刷新（塔进度只在成功读取时更新）
+        // ★ 数据刷新（如果数据库读取失败，保留已有进度）
         async function refreshData() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) { view.value = 'auth'; return; }
@@ -774,11 +772,22 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            // 仅当数据库有记录时才更新塔进度
+            // 当成功读取到塔进度时更新，否则保留原有进度
             if (tower.data) {
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
                 towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
+            } else {
+                // 如果本地进度已经是有效的（大于1），说明之前挑战成功过，保留；否则维持第1层（新玩家）
+                if (towerProgress.value.current_floor <= 1) {
+                    // 最后尝试一次 RPC
+                    const { data: rpcData } = await supabase.rpc('get_tower_progress');
+                    if (rpcData && rpcData.current_floor) {
+                        towerProgress.value.current_floor = rpcData.current_floor;
+                        towerProgress.value.max_floor = rpcData.max_floor || rpcData.current_floor;
+                        towerProgress.value.season_name = rpcData.season_name || 'S1·试炼之塔';
+                    }
+                }
             }
             await loadEquipment();
         }
@@ -954,7 +963,7 @@ createApp({
             profile.value = data; showToast('加点成功！');
         }
 
-        async function loadTowerProgress() {} // 保留空函数防止报错
+        async function loadTowerProgress() {} // 保留空函数
         async function loadLeaderboard() {
             const { data, error } = await supabase.rpc('get_tower_leaderboard');
             if (!error && data) leaderboard.value = data;
@@ -1005,7 +1014,7 @@ createApp({
                 if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
 
                 if (data.win) {
-                    // 直接更新本地进度
+                    // 更新本地进度
                     towerProgress.value.current_floor = data.new_floor;
                     if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
                     // 刷新银两等其他数据
