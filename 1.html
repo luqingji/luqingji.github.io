@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 冷却修复版</title>
+  <title>梦幻宠物大冒险 · 进度同步修复版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -363,7 +363,7 @@
       </div>
       <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
     </div>
-    <!-- 爬塔界面 (含冷却倒计时) -->
+    <!-- 爬塔界面（含冷却、满血、进度同步修复） -->
     <div v-if="view === 'tower'">
       <h3>🏰 无尽爬塔 · {{ towerProgress.season_name }}</h3>
       <div class="tower-card">
@@ -402,7 +402,6 @@
           <p v-if="!canChallenge" style="color: #e74c3c; font-size: 11px; margin-top: 4px;">⚠️ 组合战力可能不足，建议提升后再挑战</p>
           <p v-else style="color: #2ecc71; font-size: 11px; margin-top: 4px;">✅ 战力充足，可以一战！</p>
         </div>
-        <!-- 冷却状态显示 -->
         <div v-if="towerCooldown > 0" style="color: #f39c12; font-size: 12px; margin: 6px 0;">
           ⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战
         </div>
@@ -516,12 +515,12 @@ createApp({
     const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
     const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: '' });
     const towerBusy = ref(false);
-    const towerCooldown = ref(0); // 冷却秒数
+    const towerCooldown = ref(0);
     const leaderboard = ref([]);
     const showLeaderboard = ref(false);
     const toast = reactive({ show: false, message: '' });
 
-    // 宠物属性计算（新公式）
+    // ---------- 宠物属性计算（新公式）----------
     function calcPetStats(p) {
       if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
       if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -548,7 +547,7 @@ createApp({
       return { hp, atk, def, spd };
     }
 
-    // 爬塔难度系数与怪物预估
+    // ---------- 爬塔难度系数与怪物预估 ----------
     const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
     const estimatedMonsterStats = computed(() => {
       const floor = towerProgress.value.current_floor || 1;
@@ -581,6 +580,7 @@ createApp({
     const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
     const canChallenge = computed(() => powerRatio.value >= 70);
 
+    // ---------- 其他计算属性 ----------
     const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
     const equippedAffixes = computed(() => {
       const affixes = [];
@@ -675,7 +675,7 @@ createApp({
 
     watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-    // 数据交互函数
+    // ---------- 数据交互函数 ----------
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
       loading.value = true;
@@ -962,12 +962,13 @@ createApp({
       const { data, error } = await supabase.rpc('get_tower_progress');
       if (!error && data) towerProgress.value = data;
     }
+
     async function loadLeaderboard() {
       const { data, error } = await supabase.rpc('get_tower_leaderboard');
       if (!error && data) leaderboard.value = data;
     }
 
-    // 冷却计时器
+    // ---------- 冷却计时器 ----------
     let cooldownTimer = null;
     function startCooldown(seconds = 10) {
       towerCooldown.value = seconds;
@@ -981,16 +982,16 @@ createApp({
       }, 1000);
     }
 
-    // 爬塔双打（满血进塔 + 冷却）
+    // ---------- 爬塔双打（满血 + 进度强制同步）----------
     async function startTowerBattle() {
-      // 1. 角色和宠物满血
+      // 满血
       playerHp.value = playerMaxHp.value;
       if (activePet.value) {
         activePet.value.current_hp = petMaxHp.value;
         petHp.value = petMaxHp.value;
       }
 
-      // 2. 检查携带宠物
+      // 检查宠物
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
         if (alivePet) {
@@ -1022,31 +1023,29 @@ createApp({
           p_player_affixes: equippedAffixes.value
         };
         console.log('爬塔请求参数:', JSON.stringify(rpcParams, null, 2));
+
         const { data, error } = await supabase.rpc('tower_battle', rpcParams);
         if (error) throw error;
+        console.log('爬塔返回数据:', data);
+
+        // 战斗后血量更新
+        petHp.value = Math.max(0, data.pet_hp);
+        playerHp.value = Math.max(0, data.player_hp);
+        enemyHp.value = data.monster_hp;
+        recentLogs.value = [];
+        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
 
         if (data.win) {
-          petHp.value = Math.max(0, data.pet_hp);
-          playerHp.value = Math.max(0, data.player_hp);
-          enemyHp.value = data.monster_hp;
-          recentLogs.value = [];
-          if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
-          if (data.new_floor) {
-            towerProgress.value.current_floor = data.new_floor;
-            if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
-          }
+          // 强制从数据库重新拉取进度，并覆盖本地状态
+          await loadTowerProgress();
+          showToast('挑战成功！进入第 ' + towerProgress.value.current_floor + ' 层');
           if (data.extra_reward) showToast(data.extra_reward);
           if (data.silver_reward) showToast('获得银两：' + data.silver_reward);
-          // 成功后强制重新拉取塔进度，确保数据同步
-          await loadTowerProgress();
         } else {
           showToast('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
-          petHp.value = Math.max(0, data.pet_hp);
-          playerHp.value = Math.max(0, data.player_hp);
-          recentLogs.value = [];
-          if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
         }
-        startCooldown(10); // 启动10秒冷却
+
+        startCooldown(10);
         await refreshData();
       } catch (e) {
         showToast('爬塔出错：' + e.message);
