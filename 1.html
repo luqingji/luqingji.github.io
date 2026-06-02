@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 终极完整版</title>
+  <title>梦幻宠物大冒险 · 最终完整版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -363,7 +363,7 @@
       </div>
       <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
     </div>
-    <!-- 爬塔界面（完整战力展示） -->
+    <!-- 爬塔界面 -->
     <div v-if="view === 'tower'">
       <h3>🏰 无尽爬塔 · {{ towerProgress.season_name }}</h3>
       <div class="tower-card">
@@ -372,11 +372,11 @@
         <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
           <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
-            <span>❤️ 角色HP：{{ playerMaxHp }}</span>
+            <span>❤️ 角色HP：{{ playerHp }}/{{ playerMaxHp }}</span>
             <span>⚔️ 攻击：{{ playerRealAtk }}</span>
             <span>🛡️ 防御：{{ playerRealDef }}</span>
             <span>💨 速度：{{ playerRealSpd }}</span>
-            <span v-if="activePet">🐾 宠物HP：{{ petMaxHp }}</span>
+            <span v-if="activePet">🐾 宠物HP：{{ petHp }}/{{ petMaxHp }}</span>
             <span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span>
             <span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span>
             <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
@@ -669,7 +669,7 @@ createApp({
 
     watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-    // ---------- 完整函数实现 ----------
+    // ---------- 数据交互函数 ----------
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
       loading.value = true;
@@ -955,17 +955,27 @@ createApp({
     async function loadTowerProgress() { const { data, error } = await supabase.rpc('get_tower_progress'); if (!error && data) towerProgress.value = data; }
     async function loadLeaderboard() { const { data, error } = await supabase.rpc('get_tower_leaderboard'); if (!error && data) leaderboard.value = data; }
 
-    // ---------- 爬塔双打 ----------
+    // ---------- 爬塔双打（满血进塔）----------
     async function startTowerBattle() {
+      // 1. 角色和宠物满血
+      playerHp.value = playerMaxHp.value;
+      if (activePet.value) {
+        activePet.value.current_hp = petMaxHp.value;
+        petHp.value = petMaxHp.value;
+      }
+
+      // 2. 检查携带宠物是否存活
       if (!activePet.value || activePet.value.current_hp <= 0) {
         const alivePet = myPets.value.find(p => p.current_hp > 0);
         if (alivePet) {
           if (confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)) {
             activePet.value = alivePet;
-            if (activePet.value.current_hp <= 0) { showToast('所选宠物生命值不足！'); return; }
+            activePet.value.current_hp = calcPetStats(activePet.value).hp; // 换宠也满血
+            petHp.value = activePet.value.current_hp;
           } else { return; }
         } else { showToast('所有宠物都已阵亡，无法继续挑战！'); return; }
       }
+
       towerBusy.value = true;
       try {
         const petStats = calcPetStats(activePet.value);
@@ -987,6 +997,8 @@ createApp({
         };
         const { data, error } = await supabase.rpc('tower_battle', rpcParams);
         if (error) throw error;
+
+        // 更新数据
         if (data.win) {
           petHp.value = Math.max(0, data.pet_hp);
           playerHp.value = Math.max(0, data.player_hp);
