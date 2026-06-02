@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>梦幻宠物大冒险 · 词缀完整版</title>
+  <title>梦幻宠物大冒险 · 爬塔赛季版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
@@ -80,7 +80,6 @@
     .equip-slot-compact .slot-name { font-size: 10px; }
     .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* 简洁精致宠物面板 */
     .pet-detail-panel { width: 380px; max-width: 95%; background: #fffbf0; border: 2px solid var(--wood); border-radius: 16px; padding: 18px; color: #2c1810; max-height: 85vh; overflow-y: auto; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); }
     .pet-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
     .pet-name-level { display: flex; align-items: center; gap: 8px; }
@@ -96,25 +95,27 @@
     .total-rating .badge { background: var(--gold); color: #2c1810; font-weight: bold; padding: 2px 14px; border-radius: 16px; font-size: 13px; }
     .skill-info { margin: 10px 0; font-size: 13px; }
 
-    /* 醒目的背包标签 */
     .inventory-tab { display: inline-block; padding: 5px 16px; margin-right: 6px; background: #e0d6c2; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; }
     .inventory-tab.active { background: var(--gold); color: #2c1810; }
 
-    /* 背包装备网格 */
     .equip-grid-mini { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
     .equip-card-mini { background: rgba(255,255,240,0.9); border: 1px solid #d4af37; border-radius: 6px; padding: 4px; text-align: center; font-size: 10px; position: relative; cursor: pointer; }
     .equip-card-mini.equipped-mark { background: #d4af37; color: #2c1810; font-weight: bold; }
+    .equip-card-mini.quality-white { border-color: #bdc3c7; }
+    .equip-card-mini.quality-green { border-color: #2ecc71; }
+    .equip-card-mini.quality-blue { border-color: #3498db; }
+    .equip-card-mini.quality-purple { border-color: #9b59b6; }
+    .equip-card-mini.quality-orange { border-color: #f1c40f; animation: glow 1.5s ease-in-out infinite alternate; }
+    @keyframes glow { from { box-shadow: 0 0 5px #f1c40f; } to { box-shadow: 0 0 15px #f1c40f; } }
     .equip-card-mini .equip-icon { font-size: 20px; display: block; }
     .equipped-badge { position: absolute; top: 2px; right: 2px; background: #c0392b; color: white; font-size: 8px; padding: 1px 4px; border-radius: 4px; }
 
-    /* 高对比度装备弹窗 */
     .equip-detail-panel { width: 420px; max-width: 100%; height: 95vh; max-height: 800px; background: #1a120b; border: 3px solid var(--gold); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; color: #f5e7d3; font-size: 14px; }
     .equip-detail-panel h3 { font-size: 20px; color: #ffd700; }
     .equip-detail-panel .attr-label { color: #c79a4c; font-weight: bold; }
     .equip-detail-panel .btn-area { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
     .equip-detail-panel .btn-area button { flex: 1; min-width: 60px; }
 
-    /* 词缀标签 */
     .affix-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; margin: 2px; font-size: 11px; font-weight: bold; border: 1px solid; }
     .affix-normal { border-color: #bdc3c7; color: #bdc3c7; }
     .affix-rare { border-color: #3498db; color: #3498db; }
@@ -122,6 +123,7 @@
     .affix-legendary { border-color: #f1c40f; color: #f1c40f; }
 
     .auction-item { display: flex; align-items: center; justify-content: space-between; }
+    .tower-card { text-align: center; padding: 20px; background: linear-gradient(145deg, #1a1a2e, #16213e); color: #f5d78c; border-radius: 16px; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -190,13 +192,13 @@
         <span v-else> ✅</span>
       </div>
     </div>
-    <!-- 场景（点击传递整个场景对象） -->
+    <!-- 场景 -->
     <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3>
       <div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div>
     </div>
     <!-- 宠物列表 -->
     <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span><div class="hp-bar"><div class="hp-fill" :style="{width: (p.current_hp/(p.base_hp + p.iv_hp)*100)+'%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-    <!-- 宠物详情面板（简约精致版） -->
+    <!-- 宠物详情面板 -->
     <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
       <div class="pet-detail-panel">
         <div class="pet-header">
@@ -280,7 +282,10 @@
       <div v-if="inventoryTab === 'equipment'">
         <div v-if="playerEquipment.length === 0" class="card">暂无装备</div>
         <div class="equip-grid-mini">
-          <div v-for="eq in playerEquipment" :key="eq.id" class="equip-card-mini" :class="{ 'equipped-mark': eq.equipped }" @click="openEquipmentDetail(eq)">
+          <div v-for="eq in playerEquipment" :key="eq.id"
+               class="equip-card-mini"
+               :class="[ 'quality-' + (eq.equipment_def?.quality || 'white'), { 'equipped-mark': eq.equipped } ]"
+               @click="openEquipmentDetail(eq)">
             <span class="equipped-badge" v-if="eq.equipped">E</span>
             <span class="equip-icon">⚔️</span>
             <div>{{ eq.equipment_def?.name || '?' }}</div>
@@ -289,7 +294,7 @@
         </div>
       </div>
     </div>
-    <!-- 装备详情弹窗（带装备按钮 + 词缀） -->
+    <!-- 装备详情弹窗 -->
     <div v-if="showEquipmentDetail" class="overlay" @click.self="showEquipmentDetail = false">
       <div class="equip-detail-panel">
         <h3>{{ detailEquipment.equipment_def?.name }}</h3>
@@ -299,7 +304,6 @@
         <p><span class="attr-label">攻击:</span> +{{ detailEquipment.equipment_def?.base_atk || 0 }}</p>
         <p><span class="attr-label">防御:</span> +{{ detailEquipment.equipment_def?.base_def || 0 }}</p>
         <p><span class="attr-label">速度:</span> +{{ detailEquipment.equipment_def?.base_spd || 0 }}</p>
-        <!-- 词缀展示 -->
         <div v-if="detailEquipment.affixes && detailEquipment.affixes.length > 0" style="margin-top: 8px;">
           <p class="attr-label" style="color:#c79a4c; margin-bottom:4px;">词缀：</p>
           <div style="display: flex; flex-wrap: wrap;">
@@ -331,6 +335,15 @@
         <div style="text-align:right;"><div>💰 {{ item.price }} 银两</div><button class="btn" @click="buyItem(item.id)">购买</button></div>
       </div>
       <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
+    </div>
+    <!-- 爬塔界面 -->
+    <div v-if="view === 'tower'">
+      <h3>🏰 无尽爬塔 · {{ towerProgress.season_name }}</h3>
+      <div class="tower-card">
+        <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
+        <p>最高记录：{{ towerProgress.max_floor }}</p>
+        <button class="btn" @click="startTowerBattle" :disabled="towerBusy">挑战第 {{ towerProgress.current_floor }} 层</button>
+      </div>
     </div>
     <!-- 战斗界面 -->
     <div v-if="battle.active" class="battle-container">
@@ -377,10 +390,16 @@
   </div>
 
   <div class="bottom-nav" v-if="view !== 'auth' && view !== 'role_select'">
-    <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='auction'">🏪</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
+    <button @click="view='map'">🌍</button>
+    <button @click="view='pets'">🐾</button>
+    <button @click="view='inventory'">🎒</button>
+    <button @click="view='auction'">🏪</button>
+    <button @click="view='tower'; loadTowerProgress()">🏰</button>
+    <button @click="view='quest'">📜</button>
+    <button @click="view='boss'">👹</button>
+    <button @click="view='friends'">👥</button>
   </div>
 </div>
-
 <script>
 const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 createApp({
@@ -406,25 +425,19 @@ createApp({
     const logContainer = ref(null);
     const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫','棘刺藤蔓','熔岩蜥蜴','岩浆龟','冰狼','冰魔像','深渊守卫','暗影祭司'];
     const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
-
     const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
-    const ballCount = computed(() => {
-      const ball = inventory.value.find(i => i.item_id === 1);
-      return ball ? ball.quantity : 0;
-    });
+    const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: '' });
+    const towerBusy = ref(false);
 
-    // 获取当前已穿戴装备的所有词缀数组
+    const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
     const equippedAffixes = computed(() => {
       const affixes = [];
       for (const slot of ['weapon','armor','necklace','ring','shoes','belt']) {
         const eq = playerEquipment.value.find(e => e.slot === slot && e.equipped);
-        if (eq && eq.affixes && Array.isArray(eq.affixes)) {
-          affixes.push(...eq.affixes);
-        }
+        if (eq && eq.affixes && Array.isArray(eq.affixes)) affixes.push(...eq.affixes);
       }
       return affixes;
     });
-
     const equippedItems = computed(() => {
       const eq = {};
       playerEquipment.value.filter(e => e.equipped).forEach(e => { eq[e.slot] = e.equipment_def; });
@@ -444,9 +457,7 @@ createApp({
       if (equippedItems.value.necklace) base += equippedItems.value.necklace.base_hp || 0;
       if (equippedItems.value.belt) base += equippedItems.value.belt.base_hp || 0;
       let hpMult = 1.0;
-      for (const affix of equippedAffixes.value) {
-        if (affix.id === 'hp_pct') hpMult += affix.value / 100;
-      }
+      for (const affix of equippedAffixes.value) { if (affix.id === 'hp_pct') hpMult += affix.value / 100; }
       return Math.floor(base * hpMult);
     });
     const playerHpPercent = computed(() => (playerHp.value / playerMaxHp.value) * 100);
@@ -516,9 +527,7 @@ createApp({
       return t;
     }
 
-    watch(recentLogs, () => {
-      nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; });
-    }, { deep: false });
+    watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
     async function buyItem(itemId) {
       if (!confirm('确定购买吗？')) return;
@@ -531,10 +540,7 @@ createApp({
 
     async function loadEquipment() {
       if (!profile.value?.id) return;
-      const { data, error } = await supabase
-        .from('player_equipment')
-        .select('*, equipment_def:equipment_id(*)')
-        .eq('owner_id', profile.value.id);
+      const { data, error } = await supabase.from('player_equipment').select('*, equipment_def:equipment_id(*)').eq('owner_id', profile.value.id);
       if (!error && data) playerEquipment.value = data;
     }
 
@@ -664,20 +670,16 @@ createApp({
       energy.value = data.energy;
       if (data.type === 'monster' || data.type === 'wild_pet') {
         const sceneLevel = scene.level_min;
-        if (data.type === 'wild_pet') {
-          data.data.base_pet_id = data.data.id;
-        }
+        if (data.type === 'wild_pet') { data.data.base_pet_id = data.data.id; }
         data.data.level = sceneLevel;
         encounter.value = data.data;
         encounter.value.currentHp = data.data.hp;
         encounter.value.maxHp = data.data.hp;
         enemyHp.value = data.data.hp;
         encounter.value.monsterLevel = sceneLevel;
-
         let carried = myPets.value.find(p => p.is_carried);
-        if (carried) {
-          activePet.value = carried;
-        } else {
+        if (carried) { activePet.value = carried; }
+        else {
           activePet.value = myPets.value.find(p => p.current_hp > 0);
           if (!activePet.value) { alert('没有可以战斗的宠物！'); return; }
         }
@@ -726,13 +728,8 @@ createApp({
         if (error) { alert('捕捉失败：'+error.message); catching.value = false; battleBusy.value = false; return; }
         if (data.error) { alert(data.error); catching.value = false; battleBusy.value = false; refreshData(); return; }
         await shakeBall(3);
-        if (data.caught) {
-          catchMessage.value = '收服成功！';
-          setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500);
-        } else {
-          catchMessage.value = '挣脱了！';
-          setTimeout(() => { catching.value = false; battleBusy.value = false; refreshData(); }, 1000);
-        }
+        if (data.caught) { catchMessage.value = '收服成功！'; setTimeout(() => { catching.value = false; battle.active = false; refreshData(); }, 1500); }
+        else { catchMessage.value = '挣脱了！'; setTimeout(() => { catching.value = false; battleBusy.value = false; refreshData(); }, 1000); }
         return;
       }
       clearTimeout(t);
@@ -757,34 +754,21 @@ createApp({
       if (error) { alert('战斗出错：'+error.message); battleBusy.value = false; return; }
       processBattleResult(data); battleBusy.value = false;
     }
+
     function processBattleResult(data) {
-      if (data.pet_hp !== undefined) {
-        petHp.value = Math.max(0, data.pet_hp);
-        if (activePet.value) activePet.value.current_hp = petHp.value;
-      }
-      encounter.value.currentHp = data.monster_hp;
-      enemyHp.value = Math.max(0, data.monster_hp);
+      if (data.pet_hp !== undefined) { petHp.value = Math.max(0, data.pet_hp); if (activePet.value) activePet.value.current_hp = petHp.value; }
+      encounter.value.currentHp = data.monster_hp; enemyHp.value = Math.max(0, data.monster_hp);
       if (data.player_hp !== undefined) {
         playerHp.value = Math.max(0, data.player_hp);
-        // ★ 同步词缀加成后的最大生命值
-        if (data.player_max_hp !== undefined) {
-          playerMaxHp.value = data.player_max_hp;
-        }
+        if (data.player_max_hp !== undefined) playerMaxHp.value = data.player_max_hp;
       }
-      if (data.log) {
-        data.log.forEach(m => recentLogs.value.push(m.text));
-        if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4);
-      }
+      if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); if (recentLogs.value.length > 4) recentLogs.value = recentLogs.value.slice(-4); }
       if (data.pet_leveled_up) alert('你的宠物升级了！');
       if (data.player_leveled_up) alert('你升级了！');
-      if (data.win) {
-        setTimeout(() => { battle.active = false; refreshData(); }, 1500);
-      } else if (playerHp.value <= 0) {
-        alert('你被打败了...');
-        battle.active = false;
-        refreshData();
-      }
+      if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
+      else if (playerHp.value <= 0) { alert('你被打败了...'); battle.active = false; refreshData(); }
     }
+
     function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
 
     async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
@@ -811,6 +795,43 @@ createApp({
       profile.value = data; alert('加点成功！');
     }
 
+    async function loadTowerProgress() {
+      const { data, error } = await supabase.rpc('get_tower_progress');
+      if (!error && data) towerProgress.value = data;
+    }
+
+    async function startTowerBattle() {
+      if (!activePet.value || activePet.value.current_hp <= 0) { alert('没有可战斗的宠物！'); return; }
+      towerBusy.value = true;
+      const { data, error } = await supabase.rpc('tower_battle', {
+        p_pet_id: activePet.value.id,
+        p_player_max_hp: playerMaxHp.value,
+        p_player_affixes: equippedAffixes.value
+      });
+      towerBusy.value = false;
+      if (error) { alert('爬塔出错：'+error.message); return; }
+      if (data.win) {
+        petHp.value = Math.max(0, data.pet_hp);
+        playerHp.value = Math.max(0, data.player_hp);
+        enemyHp.value = data.monster_hp;
+        recentLogs.value = [];
+        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+        if (data.new_floor) {
+          towerProgress.value.current_floor = data.new_floor;
+          if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
+        }
+        if (data.extra_reward) alert(data.extra_reward);
+        if (data.silver_reward) alert('获得银两：' + data.silver_reward);
+      } else {
+        alert('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
+        petHp.value = Math.max(0, data.pet_hp);
+        playerHp.value = Math.max(0, data.player_hp);
+        recentLogs.value = [];
+        if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
+      }
+      await refreshData();
+    }
+
     onMounted(() => {
       if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
       refreshData().then(() => initView());
@@ -818,6 +839,7 @@ createApp({
       supabase.channel('boss').on('postgres_changes',{event:'UPDATE',schema:'public',table:'world_bosses'},(payload)=>{ worldBoss.value = payload.new; }).subscribe();
       supabase.channel('friends').on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles'},(payload)=>{ const f = friends.value.find(f=>f.username===payload.new.username); if(f) f.online = payload.new.is_online; }).subscribe();
       window.addEventListener('beforeunload',()=>{ if(profile.value?.id) supabase.from('profiles').update({is_online:false}).eq('id',profile.value.id); });
+      loadTowerProgress();
     });
     onUnmounted(() => { stopEnergySync(); });
 
@@ -842,7 +864,8 @@ createApp({
       selectSlot, equipItem, unequipItem, returnToRoleSelect, enterGame, createCharacterAndEnter,
       inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
       showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
-      logContainer, logEntryClass, logEntryIcon, formatLogMessage
+      logContainer, logEntryClass, logEntryIcon, formatLogMessage,
+      towerProgress, towerBusy, loadTowerProgress, startTowerBattle
     };
   }
 }).mount('#app');
