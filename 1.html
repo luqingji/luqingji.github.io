@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 最终同步版</title>
+    <title>梦幻宠物大冒险 · 稳定终极版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <!-- 备用 CDN：如果 unpkg 不稳定，可替换为下面这行 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; }
@@ -483,6 +485,13 @@ createApp({
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // 检测 auth 是否可用，如果不可用则提示并重试
+        if (!supabase.auth) {
+            console.error('Supabase auth 未加载，请检查网络并刷新页面');
+            showToast('网络错误，请刷新重试');
+            // 可尝试重新创建客户端（但一般不会自动修复）
+        }
+
         const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
         const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
         const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
@@ -664,6 +673,30 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
+        // ★★★ 核心修复：监听 view 进入爬塔页面时拉取数据库进度 ★★★
+        watch(view, async (newView) => {
+            if (newView === 'tower' && supabase.auth) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const user = session?.user;
+                    if (user) {
+                        const { data, error } = await supabase
+                            .from('user_tower_progress')
+                            .select('*')
+                            .eq('user_id', user.id)
+                            .maybeSingle();
+                        if (!error && data) {
+                            towerProgress.value.current_floor = data.current_floor || 1;
+                            towerProgress.value.max_floor = data.max_floor || 1;
+                            towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+                        }
+                    }
+                } catch (e) {
+                    console.error('拉取塔进度失败', e);
+                }
+            }
+        });
+
         async function buyItem(itemId) {
             if (!confirm('确定购买吗？')) return;
             loading.value = true;
@@ -746,9 +779,11 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // ★ 核心：refreshData 使用 getUser 获取用户ID，确保塔进度在登录后立即可用
+        // 登录时拉取所有数据（包括塔进度）
         async function refreshData() {
-            const { data: { user } } = await supabase.auth.getUser();
+            if (!supabase.auth) return;
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
             if (!user) { view.value = 'auth'; return; }
             try { await supabase.rpc('ensure_profile'); } catch(e) {}
             await syncEnergy();
@@ -774,7 +809,7 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            // 塔进度：只要数据库有记录就更新
+            // 塔进度
             if (tower.data) {
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
