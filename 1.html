@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 排行版修复</title>
+    <title>梦幻宠物大冒险 · 血量修复版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -198,7 +198,7 @@
         </div>
         <!-- 宠物列表 -->
         <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span>
-            <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (p.current_hp / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
+            <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (Math.min(p.current_hp, calcPetStats(p).hp) / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
             <small>技能: {{ petSkillNames(p) }}</small></div></div></div>
         <!-- 宠物详情面板 -->
         <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
@@ -212,8 +212,8 @@
                     <span class="element-badge">{{ detailPet.element_primary || '?' }}</span>
                 </div>
                 <div style="margin:10px 0;">
-                    <div style="display:flex; justify-content:space-between; font-size:12px;"><span>HP</span><span>{{ detailPet.current_hp }}/{{ calcPetStats(detailPet).hp }}</span></div>
-                    <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (detailPet.current_hp / (calcPetStats(detailPet).hp || 1)) * 100) + '%'}"></div></div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px;"><span>HP</span><span>{{ Math.min(detailPet.current_hp, calcPetStats(detailPet).hp) }}/{{ calcPetStats(detailPet).hp }}</span></div>
+                    <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (Math.min(detailPet.current_hp, calcPetStats(detailPet).hp) / (calcPetStats(detailPet).hp || 1)) * 100) + '%'}"></div></div>
                 </div>
                 <div style="margin-bottom:12px;">
                     <div style="display:flex; justify-content:space-between; font-size:12px;"><span>经验</span><span>{{ detailPet.exp }}/{{ detailPet.level * 100 }}</span></div>
@@ -367,7 +367,7 @@
                             <span>⚔️ 攻击：{{ playerRealAtk }}</span>
                             <span>🛡️ 防御：{{ playerRealDef }}</span>
                             <span>💨 速度：{{ playerRealSpd }}</span>
-                            <span v-if="activePet">🐾 宠物HP：{{ petHp }}/{{ petMaxHp }}</span>
+                            <span v-if="activePet">🐾 宠物HP：{{ Math.min(activePet.current_hp, petMaxHp) }}/{{ petMaxHp }}</span>
                             <span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span>
                             <span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span>
                             <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
@@ -433,7 +433,7 @@
                 <div class="battle-bottom">
                     <div class="battle-ally-area">
                         <div class="ally-block"><div class="name">🧑 {{ username }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: playerHpPercent+'%'}"></div></div><div class="hp-text">{{ playerHp }}/{{ playerMaxHp }}</div></div>
-                        <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ petHp }}/{{ petMaxHp }}</div></div>
+                        <div class="ally-block" v-if="activePet"><div class="name">🐾 {{ activePet.nickname }}</div><div class="hp-bar"><div class="hp-fill" :style="{width: petHpPercent+'%'}"></div></div><div class="hp-text">{{ Math.min(petHp, petMaxHp) }}/{{ petMaxHp }}</div></div>
                     </div>
                     <div v-if="catching" class="catch-animation"><div class="pokeball" :class="ballShakeClass"></div><p>{{ catchMessage }}</p></div>
                     <div v-if="showSkillPanel && !catching" class="skill-panel">
@@ -605,7 +605,7 @@ createApp({
         });
         const playerHpPercent = computed(() => Math.min(100, (playerHp.value / playerMaxHp.value) * 100));
         const petMaxHp = computed(() => activePet.value ? calcPetStats(activePet.value).hp : 1);
-        const petHpPercent = computed(() => Math.min(100, (petHp.value / (petMaxHp.value || 1)) * 100));
+        const petHpPercent = computed(() => Math.min(100, (Math.min(petHp.value, petMaxHp.value) / (petMaxHp.value || 1)) * 100));
         const playerExpPercent = computed(() => Math.min(100, (!profile.value ? 0 : (profile.value.exp / (profile.value.level * 100)) * 100)));
         const maxEnergy = computed(() => profile.value?.max_energy || (20 + (profile.value?.level || 1) - 1));
         const isPetAlive = computed(() => petHp.value > 0);
@@ -763,7 +763,7 @@ createApp({
                 const maxHp = calcPetStats(p).hp;
                 if (p.current_hp < maxHp) {
                     const heal = Math.min(maxHp - p.current_hp, Math.ceil(maxHp * 0.05));
-                    p.current_hp += heal;
+                    p.current_hp = Math.min(p.current_hp + heal, maxHp); // 防止超过最大值
                     await supabase.from('pets').update({ current_hp: p.current_hp }).eq('id', p.id);
                 }
             }
@@ -1004,13 +1004,13 @@ createApp({
         async function startTowerBattle() {
             await syncTowerProgress();
             playerHp.value = playerMaxHp.value;
-            if (activePet.value) { activePet.value.current_hp = petMaxHp.value; petHp.value = petMaxHp.value; }
+            if (activePet.value) { activePet.value.current_hp = Math.min(activePet.value.current_hp, petMaxHp.value); petHp.value = activePet.value.current_hp; }
             if (!activePet.value || activePet.value.current_hp <= 0) {
                 const alivePet = myPets.value.find(p => p.current_hp > 0);
                 if (alivePet) {
                     if (confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)) {
                         activePet.value = alivePet;
-                        activePet.value.current_hp = calcPetStats(activePet.value).hp;
+                        activePet.value.current_hp = Math.min(activePet.value.current_hp, calcPetStats(activePet.value).hp);
                         petHp.value = activePet.value.current_hp;
                     } else { return; }
                 } else { showToast('所有宠物都已阵亡，无法继续挑战！'); return; }
