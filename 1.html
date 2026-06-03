@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 同步修正</title>
+    <title>梦幻宠物大冒险 · 最终稳定版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -755,53 +755,62 @@ createApp({
 
         // ★ 从数据库读取塔进度（不依赖 profile）
         async function loadTowerProgress() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const { data, error } = await supabase
-                .from('user_tower_progress')
-                .select('*')
-                .eq('user_id', user.id)
-                .maybeSingle();
-            if (!error && data) {
-                towerProgress.value.current_floor = data.current_floor || 1;
-                towerProgress.value.max_floor = data.max_floor || 1;
-                towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data, error } = await supabase
+                    .from('user_tower_progress')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (!error && data) {
+                    towerProgress.value.current_floor = data.current_floor || 1;
+                    towerProgress.value.max_floor = data.max_floor || 1;
+                    towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+                }
+            } catch (e) {
+                console.error('加载塔进度失败:', e);
             }
         }
 
         async function refreshData() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { view.value = 'auth'; return; }
-            try { await supabase.rpc('ensure_profile'); } catch(e) {}
-            await syncEnergy();
-            const [pr, pe, it, ar, se, qu, bo, fr, tower] = await Promise.all([
-                supabase.from('profiles').select('*').eq('id', user.id).single(),
-                supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd, passive_effect)').eq('owner_id', user.id),
-                supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
-                supabase.from('areas').select('*'), supabase.from('sects').select('*'),
-                supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends'),
-                supabase.from('user_tower_progress').select('*').eq('user_id', user.id).maybeSingle()
-            ]);
-            if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
-            else { await logout(); return; }
-            if (pe.data) {
-                myPets.value = pe.data.map(p => ({
-                    ...p, ...p.base_pet, base_pet: p.base_pet,
-                    passive_effect: p.base_pet?.passive_effect
-                }));
-                const carriedPet = myPets.value.find(p => p.is_carried);
-                if (carriedPet) activePet.value = carriedPet;
-                else if (myPets.value.length > 0) activePet.value = myPets.value[0];
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) { view.value = 'auth'; return; }
+                try { await supabase.rpc('ensure_profile'); } catch(e) {}
+                await syncEnergy();
+                const [pr, pe, it, ar, se, qu, bo, fr, tower] = await Promise.all([
+                    supabase.from('profiles').select('*').eq('id', user.id).single(),
+                    supabase.from('pets').select('*, base_pet:base_pet_id(base_hp, base_atk, base_def, base_spd, passive_effect)').eq('owner_id', user.id),
+                    supabase.from('user_items').select('*, items_def:item_id(*)').eq('owner_id', user.id),
+                    supabase.from('areas').select('*'), supabase.from('sects').select('*'),
+                    supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends'),
+                    supabase.from('user_tower_progress').select('*').eq('user_id', user.id).maybeSingle()
+                ]);
+                if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
+                else { await logout(); return; }
+                if (pe.data) {
+                    myPets.value = pe.data.map(p => ({
+                        ...p, ...p.base_pet, base_pet: p.base_pet,
+                        passive_effect: p.base_pet?.passive_effect
+                    }));
+                    const carriedPet = myPets.value.find(p => p.is_carried);
+                    if (carriedPet) activePet.value = carriedPet;
+                    else if (myPets.value.length > 0) activePet.value = myPets.value[0];
+                }
+                if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
+                if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
+                if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
+                // 只有在成功读取到塔进度时才更新，否则保留原值
+                if (tower.data) {
+                    towerProgress.value.current_floor = tower.data.current_floor || 1;
+                    towerProgress.value.max_floor = tower.data.max_floor || 1;
+                    towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
+                }
+                await loadEquipment();
+            } catch (e) {
+                console.error('刷新数据失败:', e);
             }
-            if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
-            if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
-            if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            if (tower.data) {
-                towerProgress.value.current_floor = tower.data.current_floor || 1;
-                towerProgress.value.max_floor = tower.data.max_floor || 1;
-                towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
-            }
-            await loadEquipment();
         }
 
         function returnToRoleSelect() { stopEnergySync(); stopPetRecovery(); view.value = 'role_select'; }
@@ -833,6 +842,7 @@ createApp({
             profile.value = null; username.value = ''; silver.value = 0; diamond.value = 0; energy.value = 0;
             myPets.value = []; inventory.value = []; dailyQuests.value = []; friends.value = [];
             playerEquipment.value = [];
+            // 仅在退出时重置塔进度
             towerProgress.value = { current_floor: 1, max_floor: 1, season_name: '' };
             leaderboard.value = [];
             view.value = 'auth';
