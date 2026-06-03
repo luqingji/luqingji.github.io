@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 入口修复版</title>
+    <title>梦幻宠物大冒险 · 统一入口版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -357,18 +357,15 @@
         </div>
         <!-- 爬塔界面 -->
         <div v-if="view === 'tower'">
-            <!-- 入口状态 -->
-            <div v-if="towerState === 'entrance'" class="tower-entrance">
-                <div class="door-icon">🚪</div>
-                <h2 style="color: #8b5a2b; margin-bottom: 20px;">无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h2>
-                <button class="btn btn-enter" @click="enterTower" :disabled="towerLoading">进入试炼</button>
-            </div>
-            <!-- 激活状态 -->
-            <div v-if="towerState === 'active'">
-                <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
-                <div class="tower-card">
-                    <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
-                    <p>最高记录：{{ towerProgress.max_floor }}</p>
+            <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
+            <div class="tower-card">
+                <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
+                <p>最高记录：{{ towerProgress.max_floor }}</p>
+                <!-- 如果尚未激活（未点击进入试炼），显示进入按钮；否则显示完整数据 -->
+                <div v-if="!towerActive">
+                    <button class="btn btn-enter" @click="enterTower" :disabled="towerLoading">进入试炼</button>
+                </div>
+                <template v-else>
                     <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
                         <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
@@ -409,18 +406,18 @@
                     <button class="btn" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0">
                         {{ towerCooldown > 0 ? `冷却中 ${towerCooldown}s` : `挑战第 ${towerProgress.current_floor} 层` }}
                     </button>
-                    <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
-                        {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
-                    </button>
-                </div>
-                <div v-if="showLeaderboard" class="card" style="margin-top:12px;">
-                    <h4>🏆 赛季排行榜</h4>
-                    <div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
-                    <div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
-                        <span>{{ item.rank }}. {{ item.username }}</span>
-                        <span>Lv.{{ item.max_floor }}</span>
-                        <span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span>
-                    </div>
+                </template>
+                <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
+                    {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
+                </button>
+            </div>
+            <div v-if="showLeaderboard" class="card" style="margin-top:12px;">
+                <h4>🏆 赛季排行榜</h4>
+                <div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
+                <div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
+                    <span>{{ item.rank }}. {{ item.username }}</span>
+                    <span>Lv.{{ item.max_floor }}</span>
+                    <span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span>
                 </div>
             </div>
         </div>
@@ -480,7 +477,7 @@
         <button @click="view='pets'">🐾</button>
         <button @click="view='inventory'">🎒</button>
         <button @click="view='auction'">🏪</button>
-        <button @click="view='tower'; towerState='entrance'">🏰</button>
+        <button @click="view='tower'">🏰</button>
         <button @click="view='quest'">📜</button>
         <button @click="view='boss'">👹</button>
         <button @click="view='friends'">👥</button>
@@ -516,10 +513,10 @@ createApp({
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
         const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
-        const towerState = ref('entrance');
+        const towerActive = ref(false);  // 是否已激活（已点击进入试炼）
         const towerBusy = ref(false);
         const towerCooldown = ref(0);
-        const towerLoading = ref(false); // 进入加载状态
+        const towerLoading = ref(false);
         const leaderboard = ref([]);
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
@@ -678,7 +675,7 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // ★ 进入试炼：从数据库拉取进度并切换到激活界面
+        // ★ 进入试炼：从数据库加载进度，与挑战共用同一个数据源
         async function enterTower() {
             towerLoading.value = true;
             try {
@@ -698,10 +695,10 @@ createApp({
                     towerProgress.value.max_floor = data.max_floor || 1;
                     towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
                 } else {
-                    // 如果数据库没有记录，保持默认第1层，但允许挑战
+                    // 如果数据库没有记录，保持默认第1层，首次挑战会自动创建
                     showToast('首次进入，当前为第1层');
                 }
-                towerState.value = 'active';
+                towerActive.value = true; // 激活完整面板
             } catch (e) {
                 console.error('进入试炼失败', e);
                 showToast('加载失败，请稍后重试');
@@ -792,7 +789,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // 登录时拉取所有数据（包括塔进度）
+        // 登录时拉取所有数据（包括塔进度），但不自动激活面板
         async function refreshData() {
             if (!supabase.auth) return;
             const { data: { session } } = await supabase.auth.getSession();
@@ -822,8 +819,8 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
+            // 静默更新塔进度，但不强制显示面板
             if (tower.data) {
-                // 后台静默更新塔进度，但不强制切换状态
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
                 towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
@@ -862,7 +859,7 @@ createApp({
             playerEquipment.value = [];
             towerProgress.value = { current_floor: 1, max_floor: 1, season_name: '' };
             leaderboard.value = [];
-            towerState.value = 'entrance';
+            towerActive.value = false;
             view.value = 'auth';
             supabase.removeAllChannels();
         }
@@ -1097,7 +1094,7 @@ createApp({
             qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
             getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
             calcPetStats, towerDiff, estimatedMonsterStats, playerAndPetPower, monsterPower, powerRatio, canChallenge,
-            towerCooldown, towerState, towerLoading, enterTower, refreshData, syncEnergy, startEnergySync, stopEnergySync,
+            towerCooldown, towerActive, towerLoading, enterTower, refreshData, syncEnergy, startEnergySync, stopEnergySync,
             login, register, logout, saveNickname, setCarried,
             openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
             getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
