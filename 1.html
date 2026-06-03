@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 终极简化版</title>
+    <title>梦幻宠物大冒险 · 终极挑战版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -123,8 +123,6 @@
         .power-indicator { font-size: 12px; margin: 8px 0; }
         .power-bar-bg { width: 100%; height: 6px; background: #555; border-radius: 3px; overflow: hidden; }
         .power-bar-fill { height: 100%; transition: width 0.3s; }
-        .door-screen { text-align: center; padding: 50px 20px; }
-        .door-screen .door-icon { font-size: 80px; }
     </style>
 </head>
 <body>
@@ -354,20 +352,56 @@
             </div>
             <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
         </div>
-        <!-- 爬塔界面（统一入口） -->
+        <!-- 爬塔界面：只有一个挑战按钮，功能完整 -->
         <div v-if="view === 'tower'">
-            <!-- 始终显示门界面，门界面内只有一个挑战按钮，其层数来自数据库 -->
-            <div class="door-screen">
-                <div class="door-icon">🚪</div>
-                <h2 style="color: #8b5a2b; margin: 20px 0;">无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h2>
-                <!-- 加载层数时显示加载中，否则显示挑战按钮 -->
-                <button v-if="towerLoading" class="btn" disabled>加载中...</button>
-                <button v-else class="btn btn-enter" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0">
-                    挑战第 {{ towerProgress.current_floor }} 层
+            <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
+            <div class="tower-card">
+                <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
+                <p>最高记录：{{ towerProgress.max_floor }}</p>
+                <div v-if="!towerReady" style="color:#aaa; padding:20px;">正在获取最新进度...</div>
+                <template v-if="towerReady">
+                    <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
+                        <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+                            <span>❤️ 角色HP：{{ playerHp }}/{{ playerMaxHp }}</span>
+                            <span>⚔️ 攻击：{{ playerRealAtk }}</span>
+                            <span>🛡️ 防御：{{ playerRealDef }}</span>
+                            <span>💨 速度：{{ playerRealSpd }}</span>
+                            <span v-if="activePet">🐾 宠物HP：{{ petHp }}/{{ petMaxHp }}</span>
+                            <span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span>
+                            <span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span>
+                            <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
+                        <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">📊 第 {{ towerProgress.current_floor }} 层怪物预估 (系数 {{ towerDiff.toFixed(2) }})</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+                            <span>❤️ HP：{{ estimatedMonsterStats.hp }}</span>
+                            <span>⚔️ 攻击：{{ estimatedMonsterStats.atk }}</span>
+                            <span>🛡️ 防御：{{ estimatedMonsterStats.def }}</span>
+                            <span>💨 速度：{{ estimatedMonsterStats.spd }}</span>
+                        </div>
+                    </div>
+                    <div class="power-indicator">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                            <span>👥 组合战力：{{ playerAndPetPower }}</span>
+                            <span>👹 怪物战力：{{ monsterPower }}</span>
+                        </div>
+                        <div class="power-bar-bg">
+                            <div class="power-bar-fill" :style="{ width: powerRatio + '%', background: powerRatio >= 100 ? '#27ae60' : powerRatio >= 70 ? '#f39c12' : '#e74c3c' }"></div>
+                        </div>
+                        <p v-if="!canChallenge" style="color: #e74c3c; font-size: 11px; margin-top: 4px;">⚠️ 组合战力可能不足，建议提升后再挑战</p>
+                        <p v-else style="color: #2ecc71; font-size: 11px; margin-top: 4px;">✅ 战力充足，可以一战！</p>
+                    </div>
+                    <div style="min-height: 20px; margin: 6px 0;">
+                        <span v-if="towerCooldown > 0" style="color: #f39c12; font-size: 12px;">⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战</span>
+                        <span v-else style="visibility: hidden; font-size: 12px;">占位</span>
+                    </div>
+                </template>
+                <button class="btn" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0 || !towerReady">
+                    {{ towerCooldown > 0 ? `冷却中 ${towerCooldown}s` : `挑战第 ${towerProgress.current_floor} 层` }}
                 </button>
-                <div style="margin-top: 15px; font-size: 12px; color: #8b5a2b;">当前最高记录：{{ towerProgress.max_floor }}</div>
-                <div v-if="towerCooldown > 0" style="margin-top: 10px; color: #f39c12; font-size: 12px;">⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战</div>
-                <button class="btn" style="margin-top:20px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
+                <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
                     {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
                 </button>
             </div>
@@ -475,7 +509,7 @@ createApp({
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
         const towerBusy = ref(false);
         const towerCooldown = ref(0);
-        const towerLoading = ref(true);  // 门界面初始加载中
+        const towerReady = ref(false); // 是否完成数据加载
         const leaderboard = ref([]);
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
@@ -506,6 +540,39 @@ createApp({
             const spd = Math.max(1, Math.floor((baseSpd * 2.5 + ivSpd * 1.5 + Math.floor(evSpd / 2)) * level / 40) + 5);
             return { hp, atk, def, spd };
         }
+
+        // 爬塔计算属性
+        const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
+        const estimatedMonsterStats = computed(() => {
+            const floor = towerProgress.value.current_floor || 1;
+            const diff = towerDiff.value;
+            const baseHp = 30, baseAtk = 20, baseDef = 18, baseSpd = 15;
+            const iv = 15;
+            const level = 12 + floor * 2;
+            const rawHp = Math.floor((baseHp * 3 + iv * 2) * level / 40) + level + 20;
+            const rawAtk = Math.floor((baseAtk * 2.5 + iv * 1.5) * level / 40) + 5;
+            const rawDef = Math.floor((baseDef * 2.5 + iv * 1.5) * level / 40) + 5;
+            const rawSpd = Math.floor((baseSpd * 2.5 + iv * 1.5) * level / 40) + 5;
+            return {
+                hp: Math.floor(rawHp * diff),
+                atk: Math.floor(rawAtk * diff),
+                def: Math.floor(rawDef * diff),
+                spd: Math.floor(rawSpd * diff)
+            };
+        });
+
+        const playerAndPetPower = computed(() => {
+            const petStats = activePet.value ? calcPetStats(activePet.value) : { hp:0, atk:0, def:0, spd:0 };
+            const playerPart = playerMaxHp.value + playerRealAtk.value * 2 + playerRealDef.value * 1.5 + playerRealSpd.value * 1.5;
+            const petPart = petStats.hp + petStats.atk * 2 + petStats.def * 1.5 + petStats.spd * 1.5;
+            return Math.floor(playerPart + petPart);
+        });
+        const monsterPower = computed(() => {
+            const ms = estimatedMonsterStats.value;
+            return Math.floor(ms.hp + ms.atk * 2 + ms.def * 1.5 + ms.spd * 1.5);
+        });
+        const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
+        const canChallenge = computed(() => powerRatio.value >= 70);
 
         const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
         const equippedAffixes = computed(() => {
@@ -601,32 +668,23 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // ★ 进入爬塔页面时自动从数据库加载层数
-        watch(view, async (newView) => {
-            if (newView === 'tower') {
-                towerLoading.value = true;
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const user = session?.user;
-                    if (user) {
-                        const { data, error } = await supabase
-                            .from('user_tower_progress')
-                            .select('*')
-                            .eq('user_id', user.id)
-                            .maybeSingle();
-                        if (!error && data) {
-                            towerProgress.value.current_floor = data.current_floor || 1;
-                            towerProgress.value.max_floor = data.max_floor || 1;
-                            towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
-                        }
-                    }
-                } catch (e) {
-                    console.error('加载塔进度失败', e);
-                } finally {
-                    towerLoading.value = false;
-                }
+        // ★ 从数据库同步爬塔进度
+        async function syncTowerProgress() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+            if (!user) return;
+            const { data, error } = await supabase
+                .from('user_tower_progress')
+                .select('*')
+                .eq('user_id', user.id)
+                .maybeSingle();
+            if (!error && data) {
+                towerProgress.value.current_floor = data.current_floor || 1;
+                towerProgress.value.max_floor = data.max_floor || 1;
+                towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
             }
-        });
+            towerReady.value = true;
+        }
 
         async function buyItem(itemId) {
             if (!confirm('确定购买吗？')) return;
@@ -710,6 +768,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
+        // 登录时拉取所有数据
         async function refreshData() {
             if (!supabase.auth) return;
             const { data: { session } } = await supabase.auth.getSession();
@@ -744,6 +803,7 @@ createApp({
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
                 towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
             }
+            towerReady.value = true;
             await loadEquipment();
         }
 
@@ -778,6 +838,7 @@ createApp({
             playerEquipment.value = [];
             towerProgress.value = { current_floor: 1, max_floor: 1, season_name: '' };
             leaderboard.value = [];
+            towerReady.value = false;
             view.value = 'auth';
             supabase.removeAllChannels();
         }
@@ -936,7 +997,9 @@ createApp({
             }, 1000);
         }
 
+        // ★ 挑战按钮：先同步进度再战斗
         async function startTowerBattle() {
+            await syncTowerProgress(); // 确保使用最新层数
             playerHp.value = playerMaxHp.value;
             if (activePet.value) { activePet.value.current_hp = petMaxHp.value; petHp.value = petMaxHp.value; }
             if (!activePet.value || activePet.value.current_hp <= 0) {
@@ -1011,7 +1074,8 @@ createApp({
             playerRealAtk, playerRealDef, playerRealSpd,
             qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
             getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
-            calcPetStats, towerLoading, towerCooldown, refreshData, syncEnergy, startEnergySync, stopEnergySync,
+            calcPetStats, towerDiff, estimatedMonsterStats, playerAndPetPower, monsterPower, powerRatio, canChallenge,
+            towerCooldown, towerReady, startTowerBattle, refreshData, syncEnergy, startEnergySync, stopEnergySync,
             login, register, logout, saveNickname, setCarried,
             openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
             getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
@@ -1020,7 +1084,7 @@ createApp({
             inventoryTab, showEquipmentDetail, detailEquipment, openEquipmentDetail, decomposeEquipment,
             showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
             logContainer, logEntryClass, logEntryIcon, formatLogMessage,
-            towerProgress, towerBusy, startTowerBattle,
+            towerProgress, towerBusy, loadTowerProgress: () => {}, syncTowerProgress,
             leaderboard, showLeaderboard, loadLeaderboard, toast
         };
     }
