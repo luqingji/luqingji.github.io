@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 终极挑战版</title>
+    <title>梦幻宠物大冒险 · 权限修复版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -352,7 +352,7 @@
             </div>
             <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
         </div>
-        <!-- 爬塔界面：只有一个挑战按钮，功能完整 -->
+        <!-- 爬塔界面 -->
         <div v-if="view === 'tower'">
             <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
             <div class="tower-card">
@@ -509,12 +509,11 @@ createApp({
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
         const towerBusy = ref(false);
         const towerCooldown = ref(0);
-        const towerReady = ref(false); // 是否完成数据加载
+        const towerReady = ref(false);
         const leaderboard = ref([]);
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
 
-        // 宠物属性计算
         function calcPetStats(p) {
             if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
             if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -541,7 +540,6 @@ createApp({
             return { hp, atk, def, spd };
         }
 
-        // 爬塔计算属性
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -668,22 +666,29 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // ★ 从数据库同步爬塔进度
         async function syncTowerProgress() {
-            const { data: { session } } = await supabase.auth.getSession();
-            const user = session?.user;
-            if (!user) return;
-            const { data, error } = await supabase
-                .from('user_tower_progress')
-                .select('*')
-                .eq('user_id', user.id)
-                .maybeSingle();
-            if (!error && data) {
-                towerProgress.value.current_floor = data.current_floor || 1;
-                towerProgress.value.max_floor = data.max_floor || 1;
-                towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
+                if (!user) return;
+                const { data, error } = await supabase
+                    .from('user_tower_progress')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (error) {
+                    console.error('读取爬塔进度失败:', error);
+                    return;
+                }
+                if (data) {
+                    towerProgress.value.current_floor = data.current_floor || 1;
+                    towerProgress.value.max_floor = data.max_floor || 1;
+                    towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+                }
+                towerReady.value = true;
+            } catch (e) {
+                console.error('syncTowerProgress 异常:', e);
             }
-            towerReady.value = true;
         }
 
         async function buyItem(itemId) {
@@ -768,7 +773,6 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // 登录时拉取所有数据
         async function refreshData() {
             if (!supabase.auth) return;
             const { data: { session } } = await supabase.auth.getSession();
@@ -997,9 +1001,8 @@ createApp({
             }, 1000);
         }
 
-        // ★ 挑战按钮：先同步进度再战斗
         async function startTowerBattle() {
-            await syncTowerProgress(); // 确保使用最新层数
+            await syncTowerProgress();
             playerHp.value = playerMaxHp.value;
             if (activePet.value) { activePet.value.current_hp = petMaxHp.value; petHp.value = petMaxHp.value; }
             if (!activePet.value || activePet.value.current_hp <= 0) {
