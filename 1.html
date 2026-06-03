@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 终极完整版</title>
+    <title>梦幻宠物大冒险 · 弱击修复版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -542,7 +542,7 @@ createApp({
             return { hp, atk, def, spd };
         }
 
-        // 爬塔难度系数与怪物预估（使用新种族值）
+        // 爬塔难度系数与怪物预估
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -575,7 +575,6 @@ createApp({
         const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
         const canChallenge = computed(() => powerRatio.value >= 70);
 
-        // 其他计算属性
         const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
         const equippedAffixes = computed(() => {
             const affixes = [];
@@ -670,7 +669,6 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // 数据库同步塔进度
         async function syncTowerProgress() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -899,6 +897,14 @@ createApp({
             if (action === 'catch') {
                 if (ballCount.value <= 0) { showToast('捕捉球不足，请去拍卖行购买'); battleBusy.value = false; return; }
                 clearTimeout(t);
+                // ★★★ 恢复弱击逻辑 ★★★
+                if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
+                    let damage = Math.floor(encounter.value.currentHp * 0.4);
+                    if (damage < 1) damage = 1;
+                    encounter.value.currentHp -= damage;
+                    enemyHp.value = encounter.value.currentHp;
+                    recentLogs.value.push('⚡ 你发动了一次弱击，对怪物造成 ' + damage + ' 点伤害');
+                }
                 catching.value = true;
                 const { data, error } = await supabase.rpc('catch_wild_pet',{
                     p_pet_id: activePet.value.id,
