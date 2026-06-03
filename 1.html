@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 血量修复版</title>
+    <title>梦幻宠物大冒险 · 世界扩展版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -184,10 +184,11 @@
             </div>
             <button class="btn red" @click="logout">退出登录</button>
         </div>
-        <!-- 地图 -->
+        <!-- 地图（带简介） -->
         <div v-if="view === 'map'">
             <div v-for="area in areas" :key="area.id" class="card" :class="{ 'area-locked': (profile?.level || 1) < area.required_level }" @click="openArea(area)">
                 <strong>{{ area.name }}</strong> (需要 Lv.{{ area.required_level }})
+                <p style="font-size:11px; color:#8b5a2b; margin-top:4px;">{{ area.description || '暂无简介' }}</p>
                 <span v-if="(profile?.level || 1) < area.required_level" style="color: var(--red);"> 🔒 等级不足</span>
                 <span v-else> ✅</span>
             </div>
@@ -200,7 +201,7 @@
         <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span>
             <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (Math.min(p.current_hp, calcPetStats(p).hp) / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
             <small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-        <!-- 宠物详情面板 -->
+        <!-- 宠物详情面板（包含努力值） -->
         <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
             <div class="pet-detail-panel">
                 <div class="pet-header">
@@ -222,10 +223,10 @@
                 <table class="pet-attribute-table">
                     <thead><tr><th>属性</th><th>种族</th><th>个体</th><th>努力</th><th>实际</th></tr></thead>
                     <tbody>
-                        <tr><td>HP</td><td>{{ detailPet.base_hp }}</td><td>{{ detailPet.iv_hp }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_hp/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_hp || 0 }}</td><td><strong>{{ calcPetStats(detailPet).hp }}</strong></td></tr>
-                        <tr><td>攻击</td><td>{{ detailPet.base_atk }}</td><td>{{ detailPet.iv_atk }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_atk/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_atk || 0 }}</td><td><strong>{{ calcPetStats(detailPet).atk }}</strong></td></tr>
-                        <tr><td>防御</td><td>{{ detailPet.base_def }}</td><td>{{ detailPet.iv_def }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_def/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_def || 0 }}</td><td><strong>{{ calcPetStats(detailPet).def }}</strong></td></tr>
-                        <tr><td>速度</td><td>{{ detailPet.base_spd }}</td><td>{{ detailPet.iv_spd }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_spd/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_spd || 0 }}</td><td><strong>{{ calcPetStats(detailPet).spd }}</strong></td></tr>
+                        <tr><td>HP</td><td>{{ detailPet.base_hp }}</td><td>{{ detailPet.iv_hp }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_hp/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_hp || 0 }}/255</td><td><strong>{{ calcPetStats(detailPet).hp }}</strong></td></tr>
+                        <tr><td>攻击</td><td>{{ detailPet.base_atk }}</td><td>{{ detailPet.iv_atk }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_atk/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_atk || 0 }}/255</td><td><strong>{{ calcPetStats(detailPet).atk }}</strong></td></tr>
+                        <tr><td>防御</td><td>{{ detailPet.base_def }}</td><td>{{ detailPet.iv_def }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_def/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_def || 0 }}/255</td><td><strong>{{ calcPetStats(detailPet).def }}</strong></td></tr>
+                        <tr><td>速度</td><td>{{ detailPet.base_spd }}</td><td>{{ detailPet.iv_spd }}<div class="iv-mini-bar"><div class="iv-mini-fill" :style="{width: (detailPet.iv_spd/31*100)+'%'}"></div></div></td><td>{{ detailPet.ev_spd || 0 }}/255</td><td><strong>{{ calcPetStats(detailPet).spd }}</strong></td></tr>
                     </tbody>
                 </table>
                 <div class="total-rating"><span class="badge">{{ ivGradeText(detailPet) }} (总和{{ ivSum(detailPet) }})</span></div>
@@ -503,7 +504,7 @@ createApp({
         const pendingPlayerSkill = ref(null); const pendingPetSkill = ref(null);
         const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
         const logContainer = ref(null);
-        const enemyNames = ['千年树精','晶岩巨人','岩石傀儡','矿洞蝙蝠','毒刺藤','荆棘兽','大海龟','巨蛙','海毛虫','棘刺藤蔓','熔岩蜥蜴','岩浆龟','冰狼','冰魔像','深渊守卫','暗影祭司'];
+        const enemyNames = ['小海龟','巨蛙','海毛虫','丛林蜂','毒刺藤','石甲虫','矿洞蝙蝠','岩石傀儡','晶岩巨人','熔岩蜥蜴','火焰鸟','霜狼','冰魔像','深渊守卫','暗影祭司','荆棘兽','千年树精','棘刺藤蔓','岩浆龟','冰原象','暗影蝠','风暴鹰'];
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
         const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
@@ -544,7 +545,7 @@ createApp({
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
             const diff = towerDiff.value;
-            const baseHp = 30, baseAtk = 20, baseDef = 18, baseSpd = 15;
+            const baseHp = 50, baseAtk = 35, baseDef = 30, baseSpd = 25;
             const iv = 15;
             const level = 12 + floor * 2;
             const rawHp = Math.floor((baseHp * 3 + iv * 2) * level / 40) + level + 20;
@@ -633,7 +634,7 @@ createApp({
             setTimeout(() => { toast.show = false; }, duration);
         }
 
-        function getMonsterName(id) { const m = {1:'大海龟',2:'巨蛙',3:'海毛虫',4:'荆棘兽',5:'毒刺藤',6:'千年树精',7:'岩石傀儡',8:'矿洞蝙蝠',9:'晶岩巨人',10:'棘刺藤蔓',11:'熔岩蜥蜴',12:'岩浆龟',13:'冰狼',14:'冰魔像',15:'深渊守卫',16:'暗影祭司'}; return m[id] || '未知'; }
+        function getMonsterName(id) { const m = {1:'小海龟',2:'巨蛙',3:'海毛虫',4:'丛林蜂',5:'毒刺藤',6:'石甲虫',7:'矿洞蝙蝠',8:'岩石傀儡',9:'晶岩巨人',10:'熔岩蜥蜴',11:'火焰鸟',12:'霜狼',13:'冰魔像',14:'深渊守卫',15:'暗影祭司',16:'荆棘兽',17:'千年树精',18:'棘刺藤蔓',19:'岩浆龟',20:'冰原象',21:'暗影蝠',22:'风暴鹰'}; return m[id] || '未知'; }
         function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
         function petSkillNames(p) { return (p.skills||[]).map(id => skillNameMap[id] || '?').join(','); }
         function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
@@ -646,7 +647,7 @@ createApp({
             if (t.includes('你使用了') || t.includes('你发动了攻击') || t.includes('你发动了一次弱击')) return 'player';
             if (t.includes('攻击了你') || t.includes('对你造成')) return 'enemy';
             if (activePet?.value?.nickname && (t.includes(activePet.value.nickname+'使用了') || t.includes(activePet.value.nickname+'攻击'))) return 'pet';
-            if (t.includes('战胜了') || t.includes('逃跑') || t.includes('沉睡') || t.includes('回复') || t.includes('获得装备') || t.includes('【装备词缀】') || t.includes('灼伤') || t.includes('冰冻') || t.includes('闪避') || t.includes('荆棘')) return 'info';
+            if (t.includes('战胜了') || t.includes('逃跑') || t.includes('努力') || t.includes('回复') || t.includes('获得装备') || t.includes('【装备词缀】') || t.includes('灼伤') || t.includes('冰冻') || t.includes('闪避') || t.includes('荆棘')) return 'info';
             return '';
         }
         function logEntryIcon(msg) {
@@ -654,7 +655,9 @@ createApp({
             if (t.includes('你')) return '🧑';
             if (activePet?.value?.nickname && t.includes(activePet.value.nickname)) return '🐾';
             if (enemyNames.some(name => t.includes(name))) return '👹';
-            if (t.includes('沉睡')) return '💤'; if (t.includes('回复')) return '🌿'; if (t.includes('获得装备')) return '🎁'; if (t.includes('【装备词缀】')) return '✨'; if (t.includes('灼伤')) return '🔥'; if (t.includes('冰冻')) return '❄️'; if (t.includes('闪避')) return '✨'; if (t.includes('荆棘')) return '🌿';
+            if (t.includes('努力')) return '💪';
+            if (t.includes('回复')) return '🌿';
+            if (t.includes('获得装备')) return '🎁';
             return '📢';
         }
         function formatLogMessage(msg) {
@@ -676,19 +679,14 @@ createApp({
                     .select('*')
                     .eq('user_id', user.id)
                     .maybeSingle();
-                if (error) {
-                    console.error('读取爬塔进度失败:', error);
-                    return;
-                }
+                if (error) { console.error('读取爬塔进度失败:', error); return; }
                 if (data) {
                     towerProgress.value.current_floor = data.current_floor || 1;
                     towerProgress.value.max_floor = data.max_floor || 1;
                     towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
                 }
                 towerReady.value = true;
-            } catch (e) {
-                console.error('syncTowerProgress 异常:', e);
-            }
+            } catch (e) { console.error('syncTowerProgress 异常:', e); }
         }
 
         async function buyItem(itemId) {
@@ -763,7 +761,7 @@ createApp({
                 const maxHp = calcPetStats(p).hp;
                 if (p.current_hp < maxHp) {
                     const heal = Math.min(maxHp - p.current_hp, Math.ceil(maxHp * 0.05));
-                    p.current_hp = Math.min(p.current_hp + heal, maxHp); // 防止超过最大值
+                    p.current_hp = Math.min(p.current_hp + heal, maxHp);
                     await supabase.from('pets').update({ current_hp: p.current_hp }).eq('id', p.id);
                 }
             }
@@ -791,10 +789,7 @@ createApp({
             if (pr.data) { profile.value = pr.data; username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; }
             else { await logout(); return; }
             if (pe.data) {
-                myPets.value = pe.data.map(p => ({
-                    ...p, ...p.base_pet, base_pet: p.base_pet,
-                    passive_effect: p.base_pet?.passive_effect
-                }));
+                myPets.value = pe.data.map(p => ({ ...p, ...p.base_pet, base_pet: p.base_pet, passive_effect: p.base_pet?.passive_effect }));
                 const carriedPet = myPets.value.find(p => p.is_carried);
                 if (carriedPet) activePet.value = carriedPet;
                 else if (myPets.value.length > 0) activePet.value = myPets.value[0];
@@ -951,6 +946,15 @@ createApp({
                 if (data.player_max_hp !== undefined) playerMaxHp.value = data.player_max_hp;
             }
             if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); }
+            // 努力值获取日志
+            if (data.ev_hp || data.ev_atk || data.ev_def || data.ev_spd) {
+                let evText = '宠物获得了 ';
+                if (data.ev_hp) evText += `+${data.ev_hp} HP努力 `;
+                if (data.ev_atk) evText += `+${data.ev_atk} 攻击努力 `;
+                if (data.ev_def) evText += `+${data.ev_def} 防御努力 `;
+                if (data.ev_spd) evText += `+${data.ev_spd} 速度努力 `;
+                recentLogs.value.push(evText);
+            }
             if (data.pet_leveled_up) showToast('你的宠物升级了！');
             if (data.player_leveled_up) showToast('你升级了！');
             if (data.win) { setTimeout(() => { battle.active = false; refreshData(); }, 1500); }
@@ -994,10 +998,7 @@ createApp({
             if (cooldownTimer) clearInterval(cooldownTimer);
             cooldownTimer = setInterval(() => {
                 towerCooldown.value--;
-                if (towerCooldown.value <= 0) {
-                    clearInterval(cooldownTimer);
-                    cooldownTimer = null;
-                }
+                if (towerCooldown.value <= 0) { clearInterval(cooldownTimer); cooldownTimer = null; }
             }, 1000);
         }
 
@@ -1043,12 +1044,8 @@ createApp({
                     showToast('挑战失败！停留在第 ' + towerProgress.value.current_floor + ' 层');
                 }
                 startCooldown(10);
-            } catch (e) {
-                showToast('爬塔出错：' + e.message);
-                console.error(e);
-            } finally {
-                towerBusy.value = false;
-            }
+            } catch (e) { showToast('爬塔出错：' + e.message); console.error(e); }
+            finally { towerBusy.value = false; }
         }
 
         onMounted(() => {
@@ -1058,9 +1055,7 @@ createApp({
             supabase.channel('boss').on('postgres_changes',{event:'UPDATE',schema:'public',table:'world_bosses'},(payload)=>{ worldBoss.value = payload.new; }).subscribe();
             supabase.channel('friends').on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles'},(payload)=>{ const f = friends.value.find(f=>f.username===payload.new.username); if(f) f.online = payload.new.is_online; }).subscribe();
             window.addEventListener('beforeunload', () => {
-                if (profile.value?.id) {
-                    navigator.sendBeacon(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.value.id}`, JSON.stringify({ is_online: false }));
-                }
+                if (profile.value?.id) { navigator.sendBeacon(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.value.id}`, JSON.stringify({ is_online: false })); }
             });
         });
         onUnmounted(() => { stopEnergySync(); stopPetRecovery(); if (cooldownTimer) clearInterval(cooldownTimer); });
