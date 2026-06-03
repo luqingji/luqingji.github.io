@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 世界扩展版</title>
+    <title>梦幻宠物大冒险 · 终极完整版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -201,7 +201,7 @@
         <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><strong>{{ p.nickname }}</strong> Lv.{{ p.level }}<span v-if="p.is_carried" class="carried-tag">携带中</span>
             <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (Math.min(p.current_hp, calcPetStats(p).hp) / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div>
             <small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-        <!-- 宠物详情面板（包含努力值） -->
+        <!-- 宠物详情面板（含努力值） -->
         <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
             <div class="pet-detail-panel">
                 <div class="pet-header">
@@ -504,7 +504,7 @@ createApp({
         const pendingPlayerSkill = ref(null); const pendingPetSkill = ref(null);
         const qualityCN = { white: '普通', green: '优秀', blue: '精良', purple: '史诗', orange: '传说' };
         const logContainer = ref(null);
-        const enemyNames = ['小海龟','巨蛙','海毛虫','丛林蜂','毒刺藤','石甲虫','矿洞蝙蝠','岩石傀儡','晶岩巨人','熔岩蜥蜴','火焰鸟','霜狼','冰魔像','深渊守卫','暗影祭司','荆棘兽','千年树精','棘刺藤蔓','岩浆龟','冰原象','暗影蝠','风暴鹰'];
+        const enemyNames = ['小海龟','巨蛙','海毛虫','丛林蜂','毒刺藤','石甲虫','矿洞蝙蝠','岩石傀儡','晶岩巨人','熔岩蜥蜴','火焰鸟','霜狼','冰魔像','深渊守卫','暗影祭司','荆棘兽','千年树精','棘刺藤蔓','岩浆龟','冰原象','暗影蝠','风暴鹰','大海龟','巨钳蟹','毒蘑菇','熔岩兽','冰晶鸟','暗影狼','岩石龟','风暴龙'];
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
         const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
@@ -515,6 +515,7 @@ createApp({
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
 
+        // 宠物属性计算
         function calcPetStats(p) {
             if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
             if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -541,6 +542,7 @@ createApp({
             return { hp, atk, def, spd };
         }
 
+        // 爬塔难度系数与怪物预估（使用新种族值）
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -573,6 +575,7 @@ createApp({
         const powerRatio = computed(() => Math.min(200, Math.floor((playerAndPetPower.value / (monsterPower.value || 1)) * 100)));
         const canChallenge = computed(() => powerRatio.value >= 70);
 
+        // 其他计算属性
         const ballCount = computed(() => { const ball = inventory.value.find(i => i.item_id === 1); return ball ? ball.quantity : 0; });
         const equippedAffixes = computed(() => {
             const affixes = [];
@@ -629,12 +632,12 @@ createApp({
             return Math.floor(base);
         });
 
-        function showToast(msg, duration = 2500) {
-            toast.message = msg; toast.show = true;
-            setTimeout(() => { toast.show = false; }, duration);
-        }
+        function showToast(msg, duration = 2500) { toast.message = msg; toast.show = true; setTimeout(() => { toast.show = false; }, duration); }
 
-        function getMonsterName(id) { const m = {1:'小海龟',2:'巨蛙',3:'海毛虫',4:'丛林蜂',5:'毒刺藤',6:'石甲虫',7:'矿洞蝙蝠',8:'岩石傀儡',9:'晶岩巨人',10:'熔岩蜥蜴',11:'火焰鸟',12:'霜狼',13:'冰魔像',14:'深渊守卫',15:'暗影祭司',16:'荆棘兽',17:'千年树精',18:'棘刺藤蔓',19:'岩浆龟',20:'冰原象',21:'暗影蝠',22:'风暴鹰'}; return m[id] || '未知'; }
+        function getMonsterName(id) {
+            const m = {1:'小海龟',2:'巨蛙',3:'海毛虫',4:'丛林蜂',5:'毒刺藤',6:'石甲虫',7:'矿洞蝙蝠',8:'岩石傀儡',9:'晶岩巨人',10:'熔岩蜥蜴',11:'火焰鸟',12:'霜狼',13:'冰魔像',14:'深渊守卫',15:'暗影祭司',16:'荆棘兽',17:'千年树精',18:'棘刺藤蔓',19:'岩浆龟',20:'冰原象',21:'暗影蝠',22:'风暴鹰',23:'大海龟',24:'巨钳蟹',25:'毒蘑菇',26:'熔岩兽',27:'冰晶鸟',28:'暗影狼',29:'岩石龟',30:'风暴龙'};
+            return m[id] || '未知';
+        }
         function getSectName(id) { const m = {1:'大唐官府',2:'方寸山',3:'龙宫'}; return m[id] || '未知'; }
         function petSkillNames(p) { return (p.skills||[]).map(id => skillNameMap[id] || '?').join(','); }
         function ivSum(p) { return (p.iv_hp||0)+(p.iv_atk||0)+(p.iv_def||0)+(p.iv_spd||0); }
@@ -655,9 +658,7 @@ createApp({
             if (t.includes('你')) return '🧑';
             if (activePet?.value?.nickname && t.includes(activePet.value.nickname)) return '🐾';
             if (enemyNames.some(name => t.includes(name))) return '👹';
-            if (t.includes('努力')) return '💪';
-            if (t.includes('回复')) return '🌿';
-            if (t.includes('获得装备')) return '🎁';
+            if (t.includes('努力')) return '💪'; if (t.includes('回复')) return '🌿'; if (t.includes('获得装备')) return '🎁';
             return '📢';
         }
         function formatLogMessage(msg) {
@@ -669,6 +670,7 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
+        // 数据库同步塔进度
         async function syncTowerProgress() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -884,11 +886,7 @@ createApp({
         }
 
         function openSkillPanel() { pendingPlayerSkill.value = null; pendingPetSkill.value = null; showSkillPanel.value = true; }
-        function selectPlayerSkill(skillId) {
-            pendingPlayerSkill.value = skillId;
-            if (!isPetAlive.value) { showSkillPanel.value = false; battleAction('player_skill', skillId); return; }
-            checkAndExecute();
-        }
+        function selectPlayerSkill(skillId) { pendingPlayerSkill.value = skillId; if (!isPetAlive.value) { showSkillPanel.value = false; battleAction('player_skill', skillId); return; } checkAndExecute(); }
         function selectPetSkill(skillId) { pendingPetSkill.value = skillId; checkAndExecute(); }
         function checkAndExecute() { if (pendingPlayerSkill.value && pendingPetSkill.value) { showSkillPanel.value = false; battleAction('combined_skills'); } }
         function cancelSkillPanel() { showSkillPanel.value = false; }
@@ -941,12 +939,9 @@ createApp({
         function processBattleResult(data) {
             if (data.pet_hp !== undefined) { petHp.value = Math.max(0, data.pet_hp); if (activePet.value) activePet.value.current_hp = petHp.value; }
             encounter.value.currentHp = data.monster_hp; enemyHp.value = Math.max(0, data.monster_hp);
-            if (data.player_hp !== undefined) {
-                playerHp.value = Math.max(0, data.player_hp);
-                if (data.player_max_hp !== undefined) playerMaxHp.value = data.player_max_hp;
-            }
+            if (data.player_hp !== undefined) { playerHp.value = Math.max(0, data.player_hp); if (data.player_max_hp !== undefined) playerMaxHp.value = data.player_max_hp; }
             if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); }
-            // 努力值获取日志
+            // 努力值获取提示
             if (data.ev_hp || data.ev_atk || data.ev_def || data.ev_spd) {
                 let evText = '宠物获得了 ';
                 if (data.ev_hp) evText += `+${data.ev_hp} HP努力 `;
@@ -996,10 +991,7 @@ createApp({
         function startCooldown(seconds = 10) {
             towerCooldown.value = seconds;
             if (cooldownTimer) clearInterval(cooldownTimer);
-            cooldownTimer = setInterval(() => {
-                towerCooldown.value--;
-                if (towerCooldown.value <= 0) { clearInterval(cooldownTimer); cooldownTimer = null; }
-            }, 1000);
+            cooldownTimer = setInterval(() => { towerCooldown.value--; if (towerCooldown.value <= 0) { clearInterval(cooldownTimer); cooldownTimer = null; } }, 1000);
         }
 
         async function startTowerBattle() {
@@ -1029,11 +1021,9 @@ createApp({
                 };
                 const { data, error } = await supabase.rpc('tower_battle', rpcParams);
                 if (error) throw error;
-
                 petHp.value = Math.max(0, data.pet_hp); playerHp.value = Math.max(0, data.player_hp);
                 enemyHp.value = data.monster_hp; recentLogs.value = [];
                 if (data.log) data.log.forEach(m => recentLogs.value.push(m.text));
-
                 if (data.win) {
                     towerProgress.value.current_floor = data.new_floor;
                     if (data.new_floor > towerProgress.value.max_floor) towerProgress.value.max_floor = data.new_floor;
@@ -1054,9 +1044,7 @@ createApp({
             supabase.from('base_pets_def').select('*').in('id',[1,2,3]).then(({data})=>starters.value=data);
             supabase.channel('boss').on('postgres_changes',{event:'UPDATE',schema:'public',table:'world_bosses'},(payload)=>{ worldBoss.value = payload.new; }).subscribe();
             supabase.channel('friends').on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles'},(payload)=>{ const f = friends.value.find(f=>f.username===payload.new.username); if(f) f.online = payload.new.is_online; }).subscribe();
-            window.addEventListener('beforeunload', () => {
-                if (profile.value?.id) { navigator.sendBeacon(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.value.id}`, JSON.stringify({ is_online: false })); }
-            });
+            window.addEventListener('beforeunload', () => { if (profile.value?.id) { navigator.sendBeacon(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.value.id}`, JSON.stringify({ is_online: false })); } });
         });
         onUnmounted(() => { stopEnergySync(); stopPetRecovery(); if (cooldownTimer) clearInterval(cooldownTimer); });
 
