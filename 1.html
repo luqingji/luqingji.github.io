@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 进度即时修复</title>
+    <title>梦幻宠物大冒险 · 同步修正</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -468,8 +468,7 @@
         <button @click="view='pets'">🐾</button>
         <button @click="view='inventory'">🎒</button>
         <button @click="view='auction'">🏪</button>
-        <!-- ★ 点击时立即加载数据库进度 ★ -->
-        <button @click="view='tower'; loadTowerProgress()">🏰</button>
+        <button @click="view='tower'">🏰</button>
         <button @click="view='quest'">📜</button>
         <button @click="view='boss'">👹</button>
         <button @click="view='friends'">👥</button>
@@ -665,6 +664,13 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
+        // ★ 监听 view 变化，自动加载塔进度
+        watch(view, (newView) => {
+            if (newView === 'tower') {
+                loadTowerProgress();
+            }
+        });
+
         async function buyItem(itemId) {
             if (!confirm('确定购买吗？')) return;
             loading.value = true;
@@ -747,7 +753,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // ★ 修复：通过 auth.getUser() 获取用户ID，不依赖 profile 加载状态 ★
+        // ★ 从数据库读取塔进度（不依赖 profile）
         async function loadTowerProgress() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
