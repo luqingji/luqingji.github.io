@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 稳定终极版</title>
+    <title>梦幻宠物大冒险 · 入口版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <!-- 备用 CDN：如果 unpkg 不稳定，可替换为下面这行 -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #faf3e0; --gold: #c79a4c; --red: #c0392b; --wood: #8b5a2b; }
@@ -125,6 +123,10 @@
         .power-indicator { font-size: 12px; margin: 8px 0; }
         .power-bar-bg { width: 100%; height: 6px; background: #555; border-radius: 3px; overflow: hidden; }
         .power-bar-fill { height: 100%; transition: width 0.3s; }
+        /* 入口门样式 */
+        .tower-entrance { text-align: center; padding: 40px 20px; }
+        .tower-entrance .door-icon { font-size: 80px; margin-bottom: 20px; }
+        .tower-entrance .btn-enter { font-size: 22px; padding: 12px 40px; }
     </style>
 </head>
 <body>
@@ -354,63 +356,72 @@
             </div>
             <p style="margin-top:10px; font-size:12px;">当前银两：{{ silver }}</p>
         </div>
-        <!-- 爬塔界面 -->
+        <!-- 爬塔界面（入口 + 激活状态） -->
         <div v-if="view === 'tower'">
-            <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
-            <div class="tower-card">
-                <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
-                <p>最高记录：{{ towerProgress.max_floor }}</p>
-                <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
-                    <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
-                        <span>❤️ 角色HP：{{ playerHp }}/{{ playerMaxHp }}</span>
-                        <span>⚔️ 攻击：{{ playerRealAtk }}</span>
-                        <span>🛡️ 防御：{{ playerRealDef }}</span>
-                        <span>💨 速度：{{ playerRealSpd }}</span>
-                        <span v-if="activePet">🐾 宠物HP：{{ petHp }}/{{ petMaxHp }}</span>
-                        <span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span>
-                        <span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span>
-                        <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
-                    </div>
-                </div>
-                <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
-                    <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">📊 第 {{ towerProgress.current_floor }} 层怪物预估 (系数 {{ towerDiff.toFixed(2) }})</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
-                        <span>❤️ HP：{{ estimatedMonsterStats.hp }}</span>
-                        <span>⚔️ 攻击：{{ estimatedMonsterStats.atk }}</span>
-                        <span>🛡️ 防御：{{ estimatedMonsterStats.def }}</span>
-                        <span>💨 速度：{{ estimatedMonsterStats.spd }}</span>
-                    </div>
-                </div>
-                <div class="power-indicator">
-                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                        <span>👥 组合战力：{{ playerAndPetPower }}</span>
-                        <span>👹 怪物战力：{{ monsterPower }}</span>
-                    </div>
-                    <div class="power-bar-bg">
-                        <div class="power-bar-fill" :style="{ width: powerRatio + '%', background: powerRatio >= 100 ? '#27ae60' : powerRatio >= 70 ? '#f39c12' : '#e74c3c' }"></div>
-                    </div>
-                    <p v-if="!canChallenge" style="color: #e74c3c; font-size: 11px; margin-top: 4px;">⚠️ 组合战力可能不足，建议提升后再挑战</p>
-                    <p v-else style="color: #2ecc71; font-size: 11px; margin-top: 4px;">✅ 战力充足，可以一战！</p>
-                </div>
-                <div style="min-height: 20px; margin: 6px 0;">
-                    <span v-if="towerCooldown > 0" style="color: #f39c12; font-size: 12px;">⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战</span>
-                    <span v-else style="visibility: hidden; font-size: 12px;">占位</span>
-                </div>
-                <button class="btn" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0">
-                    {{ towerCooldown > 0 ? `冷却中 ${towerCooldown}s` : `挑战第 ${towerProgress.current_floor} 层` }}
-                </button>
-                <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
-                    {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
-                </button>
+            <!-- 入口状态：显示门和进入按钮 -->
+            <div v-if="towerState === 'entrance'" class="tower-entrance">
+                <div class="door-icon">🚪</div>
+                <h2 style="color: #8b5a2b; margin-bottom: 20px;">无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h2>
+                <button class="btn btn-enter" @click="enterTower">进入试炼</button>
             </div>
-            <div v-if="showLeaderboard" class="card" style="margin-top:12px;">
-                <h4>🏆 赛季排行榜</h4>
-                <div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
-                <div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
-                    <span>{{ item.rank }}. {{ item.username }}</span>
-                    <span>Lv.{{ item.max_floor }}</span>
-                    <span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span>
+            <!-- 激活状态：显示完整爬塔面板 -->
+            <div v-if="towerState === 'active'">
+                <h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3>
+                <div class="tower-card">
+                    <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
+                    <p>最高记录：{{ towerProgress.max_floor }}</p>
+                    <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
+                        <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+                            <span>❤️ 角色HP：{{ playerHp }}/{{ playerMaxHp }}</span>
+                            <span>⚔️ 攻击：{{ playerRealAtk }}</span>
+                            <span>🛡️ 防御：{{ playerRealDef }}</span>
+                            <span>💨 速度：{{ playerRealSpd }}</span>
+                            <span v-if="activePet">🐾 宠物HP：{{ petHp }}/{{ petMaxHp }}</span>
+                            <span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span>
+                            <span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span>
+                            <span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
+                        <p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">📊 第 {{ towerProgress.current_floor }} 层怪物预估 (系数 {{ towerDiff.toFixed(2) }})</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+                            <span>❤️ HP：{{ estimatedMonsterStats.hp }}</span>
+                            <span>⚔️ 攻击：{{ estimatedMonsterStats.atk }}</span>
+                            <span>🛡️ 防御：{{ estimatedMonsterStats.def }}</span>
+                            <span>💨 速度：{{ estimatedMonsterStats.spd }}</span>
+                        </div>
+                    </div>
+                    <div class="power-indicator">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                            <span>👥 组合战力：{{ playerAndPetPower }}</span>
+                            <span>👹 怪物战力：{{ monsterPower }}</span>
+                        </div>
+                        <div class="power-bar-bg">
+                            <div class="power-bar-fill" :style="{ width: powerRatio + '%', background: powerRatio >= 100 ? '#27ae60' : powerRatio >= 70 ? '#f39c12' : '#e74c3c' }"></div>
+                        </div>
+                        <p v-if="!canChallenge" style="color: #e74c3c; font-size: 11px; margin-top: 4px;">⚠️ 组合战力可能不足，建议提升后再挑战</p>
+                        <p v-else style="color: #2ecc71; font-size: 11px; margin-top: 4px;">✅ 战力充足，可以一战！</p>
+                    </div>
+                    <div style="min-height: 20px; margin: 6px 0;">
+                        <span v-if="towerCooldown > 0" style="color: #f39c12; font-size: 12px;">⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战</span>
+                        <span v-else style="visibility: hidden; font-size: 12px;">占位</span>
+                    </div>
+                    <button class="btn" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0">
+                        {{ towerCooldown > 0 ? `冷却中 ${towerCooldown}s` : `挑战第 ${towerProgress.current_floor} 层` }}
+                    </button>
+                    <button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">
+                        {{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}
+                    </button>
+                </div>
+                <div v-if="showLeaderboard" class="card" style="margin-top:12px;">
+                    <h4>🏆 赛季排行榜</h4>
+                    <div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
+                    <div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
+                        <span>{{ item.rank }}. {{ item.username }}</span>
+                        <span>Lv.{{ item.max_floor }}</span>
+                        <span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -470,7 +481,8 @@
         <button @click="view='pets'">🐾</button>
         <button @click="view='inventory'">🎒</button>
         <button @click="view='auction'">🏪</button>
-        <button @click="view='tower'">🏰</button>
+        <!-- 点击时切换到入口状态 -->
+        <button @click="view='tower'; towerState='entrance'">🏰</button>
         <button @click="view='quest'">📜</button>
         <button @click="view='boss'">👹</button>
         <button @click="view='friends'">👥</button>
@@ -484,13 +496,6 @@ createApp({
         const supabaseUrl = 'https://gjcxcexgendndemnuole.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdqY3hjZXhnZW5kbmRlbW51b2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMzc0OTUsImV4cCI6MjA5NTcxMzQ5NX0.9_fFEQEurHXA1o9dTsMG4jFlgYCVXVhXWBbIQ8UvGKQ';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-        // 检测 auth 是否可用，如果不可用则提示并重试
-        if (!supabase.auth) {
-            console.error('Supabase auth 未加载，请检查网络并刷新页面');
-            showToast('网络错误，请刷新重试');
-            // 可尝试重新创建客户端（但一般不会自动修复）
-        }
 
         const view = ref('auth'); const isLogin = ref(true); const email = ref(''); const password = ref(''); const regNickname = ref(''); const loading = ref(false);
         const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
@@ -513,6 +518,7 @@ createApp({
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
         const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
+        const towerState = ref('entrance'); // 'entrance' 或 'active'
         const towerBusy = ref(false);
         const towerCooldown = ref(0);
         const leaderboard = ref([]);
@@ -673,29 +679,24 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // ★★★ 核心修复：监听 view 进入爬塔页面时拉取数据库进度 ★★★
-        watch(view, async (newView) => {
-            if (newView === 'tower' && supabase.auth) {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    const user = session?.user;
-                    if (user) {
-                        const { data, error } = await supabase
-                            .from('user_tower_progress')
-                            .select('*')
-                            .eq('user_id', user.id)
-                            .maybeSingle();
-                        if (!error && data) {
-                            towerProgress.value.current_floor = data.current_floor || 1;
-                            towerProgress.value.max_floor = data.max_floor || 1;
-                            towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
-                        }
-                    }
-                } catch (e) {
-                    console.error('拉取塔进度失败', e);
+        // ★ 进入试炼：从数据库加载进度并切换为激活状态
+        async function enterTower() {
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+            if (user) {
+                const { data, error } = await supabase
+                    .from('user_tower_progress')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .maybeSingle();
+                if (!error && data) {
+                    towerProgress.value.current_floor = data.current_floor || 1;
+                    towerProgress.value.max_floor = data.max_floor || 1;
+                    towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
                 }
             }
-        });
+            towerState.value = 'active';
+        }
 
         async function buyItem(itemId) {
             if (!confirm('确定购买吗？')) return;
@@ -809,11 +810,10 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            // 塔进度
+            // 塔进度：这里我们不主动更新 towerProgress，因为入口状态会阻止显示旧数据
+            // 但可以将它存下来，以备 enterTower 时可能还没加载完成
             if (tower.data) {
-                towerProgress.value.current_floor = tower.data.current_floor || 1;
-                towerProgress.value.max_floor = tower.data.max_floor || 1;
-                towerProgress.value.season_name = tower.data.season_name || 'S1·试炼之塔';
+                // 可以选择不更新，完全依赖 enterTower 的加载
             }
             await loadEquipment();
         }
@@ -849,6 +849,7 @@ createApp({
             playerEquipment.value = [];
             towerProgress.value = { current_floor: 1, max_floor: 1, season_name: '' };
             leaderboard.value = [];
+            towerState.value = 'entrance';
             view.value = 'auth';
             supabase.removeAllChannels();
         }
@@ -1083,7 +1084,7 @@ createApp({
             qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
             getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
             calcPetStats, towerDiff, estimatedMonsterStats, playerAndPetPower, monsterPower, powerRatio, canChallenge,
-            towerCooldown, refreshData, syncEnergy, startEnergySync, stopEnergySync,
+            towerCooldown, towerState, enterTower, refreshData, syncEnergy, startEnergySync, stopEnergySync,
             login, register, logout, saveNickname, setCarried,
             openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
             getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
