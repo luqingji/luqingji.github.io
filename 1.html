@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 统一入口版</title>
+    <title>梦幻宠物大冒险 · 最终修复</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -361,9 +361,8 @@
             <div class="tower-card">
                 <p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p>
                 <p>最高记录：{{ towerProgress.max_floor }}</p>
-                <!-- 如果尚未激活（未点击进入试炼），显示进入按钮；否则显示完整数据 -->
                 <div v-if="!towerActive">
-                    <button class="btn btn-enter" @click="enterTower" :disabled="towerLoading">进入试炼</button>
+                    <button class="btn btn-enter" @click="enterTower">进入试炼</button>
                 </div>
                 <template v-else>
                     <div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;">
@@ -513,15 +512,13 @@ createApp({
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
         const auctionItems = ref([{ id: 1, name: '捕捉球', description: '用于捕捉野生宠物', price: 100 }]);
         const towerProgress = ref({ current_floor: 1, max_floor: 1, season_name: 'S1·试炼之塔' });
-        const towerActive = ref(false);  // 是否已激活（已点击进入试炼）
+        const towerActive = ref(false);
         const towerBusy = ref(false);
         const towerCooldown = ref(0);
-        const towerLoading = ref(false);
         const leaderboard = ref([]);
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
 
-        // 宠物属性计算
         function calcPetStats(p) {
             if (!p) return { hp: 1, atk: 1, def: 1, spd: 1 };
             if (p.max_hp !== undefined && p.atk !== undefined) {
@@ -548,7 +545,6 @@ createApp({
             return { hp, atk, def, spd };
         }
 
-        // 爬塔计算属性
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -675,36 +671,26 @@ createApp({
 
         watch(recentLogs, () => { nextTick(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }); }, { deep: false });
 
-        // ★ 进入试炼：从数据库加载进度，与挑战共用同一个数据源
+        // ★ 进入试炼：直接使用已登录用户ID拉取数据
         async function enterTower() {
-            towerLoading.value = true;
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const user = session?.user;
-                if (!user) {
-                    showToast('请先登录');
-                    return;
-                }
-                const { data, error } = await supabase
-                    .from('user_tower_progress')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                if (!error && data) {
-                    towerProgress.value.current_floor = data.current_floor || 1;
-                    towerProgress.value.max_floor = data.max_floor || 1;
-                    towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
-                } else {
-                    // 如果数据库没有记录，保持默认第1层，首次挑战会自动创建
-                    showToast('首次进入，当前为第1层');
-                }
-                towerActive.value = true; // 激活完整面板
-            } catch (e) {
-                console.error('进入试炼失败', e);
-                showToast('加载失败，请稍后重试');
-            } finally {
-                towerLoading.value = false;
+            const userId = profile.value?.id;
+            if (!userId) {
+                showToast('请先登录');
+                return;
             }
+            const { data, error } = await supabase
+                .from('user_tower_progress')
+                .select('*')
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (!error && data) {
+                towerProgress.value.current_floor = data.current_floor || 1;
+                towerProgress.value.max_floor = data.max_floor || 1;
+                towerProgress.value.season_name = data.season_name || 'S1·试炼之塔';
+            } else {
+                showToast('首次进入，当前为第1层');
+            }
+            towerActive.value = true;
         }
 
         async function buyItem(itemId) {
@@ -789,7 +775,7 @@ createApp({
 
         function initView() { if (!profile.value) view.value = 'auth'; else if (!profile.value.sect_id) view.value = 'role_select'; else view.value = 'role_select'; }
 
-        // 登录时拉取所有数据（包括塔进度），但不自动激活面板
+        // 刷新数据（登录后使用）
         async function refreshData() {
             if (!supabase.auth) return;
             const { data: { session } } = await supabase.auth.getSession();
@@ -819,7 +805,6 @@ createApp({
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
             if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
-            // 静默更新塔进度，但不强制显示面板
             if (tower.data) {
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
@@ -1094,7 +1079,7 @@ createApp({
             qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
             getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
             calcPetStats, towerDiff, estimatedMonsterStats, playerAndPetPower, monsterPower, powerRatio, canChallenge,
-            towerCooldown, towerActive, towerLoading, enterTower, refreshData, syncEnergy, startEnergySync, stopEnergySync,
+            towerCooldown, towerActive, enterTower, refreshData, syncEnergy, startEnergySync, stopEnergySync,
             login, register, logout, saveNickname, setCarried,
             openPetDetail, releasePet, openArea, explore, battleAction, buyItem,
             getDailyQuests, submitQuest, attackWorldBoss, addFriend, addStat,
