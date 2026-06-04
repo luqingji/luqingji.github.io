@@ -119,6 +119,11 @@
         .plot-card .plot-actions { margin-top: 5px; display: flex; gap: 3px; justify-content: center; }
         .seed-shop-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,240,220,0.9); border: 1px solid #d4af37; border-radius: 8px; padding: 8px 12px; margin-bottom: 6px; }
         .feed-select { display: flex; flex-direction: column; gap: 10px; }
+        .equip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 6px 0; }
+        .equip-slot-compact { background: #eee; border: 1px solid #8b5a2b; border-radius: 4px; padding: 4px; text-align: center; cursor: pointer; font-size: 11px; min-height: 40px; display: flex; flex-direction: column; justify-content: center; }
+        .equip-slot-compact.equipped { background: #d4af37; color: #2c1810; font-weight: bold; }
+        .equip-slot-compact .slot-name { font-size: 10px; }
+        .equip-slot-compact .equip-name { font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
@@ -456,8 +461,7 @@ createApp({
         // ==================== 地图与探索 ====================
         async function openArea(area) { if ((profile.value?.level || 1) < area.required_level) { showToast(`需要达到 Lv.${area.required_level} 才能进入${area.name}`); return; } const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id); currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene'; }
         async function explore(scene) { await syncEnergy(); const { data, error } = await supabase.rpc('explore_area',{p_scene_id: scene.id}); if (error) { showToast('探索失败：'+error.message); return; } if (data.error) { showToast(data.error); return; } energy.value = data.energy; if (data.type === 'monster' || data.type === 'wild_pet') { const sceneLevel = scene.level_min; if (data.type === 'wild_pet') { data.data.base_pet_id = data.data.id; } data.data.level = sceneLevel; encounter.value = data.data; encounter.value.currentHp = data.data.hp; encounter.value.maxHp = data.data.hp; enemyHp.value = data.data.hp; encounter.value.monsterLevel = sceneLevel; let carried = myPets.value.find(p => p.is_carried); if (carried) { activePet.value = carried; } else { activePet.value = myPets.value.find(p => p.current_hp > 0); if (!activePet.value) { showToast('没有可以战斗的宠物！'); return; } } petHp.value = activePet.value.current_hp; playerHp.value = playerMaxHp.value; battleBusy.value = false; catching.value = false; showSkillPanel.value = false; battle.active = true; recentLogs.value = []; recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`); } }
-
-        // ==================== 战斗系统 ====================
+                // ==================== 战斗系统 ====================
         function openSkillPanel() { pendingPlayerSkill.value = null; pendingPetSkill.value = null; showSkillPanel.value = true; }
         function selectPlayerSkill(skillId) { pendingPlayerSkill.value = skillId; if (!isPetAlive.value) { showSkillPanel.value = false; battleAction('player_skill', skillId); return; } checkAndExecute(); }
         function selectPetSkill(skillId) { pendingPetSkill.value = skillId; checkAndExecute(); }
