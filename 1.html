@@ -426,6 +426,7 @@ createApp({
             await loadFarm().catch(() => {});
             await loadSeeds().catch(() => {});
             loadOwnedSeeds();
+            console.log('seedsList 当前值:', JSON.stringify(seedsList.value));
         }
         async function loadEquipment() { if (profile.value?.id) { const { data } = await supabase.from('player_equipment').select('*, equipment_def:equipment_id(*)').eq('owner_id', profile.value.id); if (data) playerEquipment.value = data; } }
         async function loadSeeds() { const { data } = await supabase.from('seeds_def').select('*').order('id'); if (data) seedsList.value = data.filter(s => s.cost > 0); }
