@@ -216,7 +216,7 @@
         <!-- 爬塔 -->
         <div v-if="view === 'tower'"><h3>🏰 无尽爬塔 · {{ towerProgress.season_name || 'S1·试炼之塔' }}</h3><div class="tower-card"><p>当前层数：<strong>{{ towerProgress.current_floor }}</strong></p><p>最高记录：{{ towerProgress.max_floor }}</p><div v-if="!towerReady" style="color:#aaa; padding:20px;">正在获取最新进度...</div><template v-if="towerReady"><div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;"><p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">⚔️ 你的综合战力</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;"><span>❤️ 角色HP：{{ playerHp }}/{{ playerMaxHp }}</span><span>⚔️ 攻击：{{ playerRealAtk }}</span><span>🛡️ 防御：{{ playerRealDef }}</span><span>💨 速度：{{ playerRealSpd }}</span><span v-if="activePet">🐾 宠物HP：{{ Math.min(activePet.current_hp, petMaxHp) }}/{{ petMaxHp }}</span><span v-if="activePet">⚔️ 宠攻：{{ calcPetStats(activePet).atk }}</span><span v-if="activePet">🛡️ 宠防：{{ calcPetStats(activePet).def }}</span><span v-if="activePet">💨 宠速：{{ calcPetStats(activePet).spd }}</span></div></div><div style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; margin: 10px 0; text-align: left;"><p style="font-size:12px; color: #f5d78c; margin-bottom: 6px;">📊 第 {{ towerProgress.current_floor }} 层怪物预估 (系数 {{ towerDiff.toFixed(2) }})</p><div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;"><span>❤️ HP：{{ estimatedMonsterStats.hp }}</span><span>⚔️ 攻击：{{ estimatedMonsterStats.atk }}</span><span>🛡️ 防御：{{ estimatedMonsterStats.def }}</span><span>💨 速度：{{ estimatedMonsterStats.spd }}</span></div></div><div class="power-indicator"><div style="display: flex; justify-content: space-between; font-size: 11px;"><span>👥 组合战力：{{ playerAndPetPower }}</span><span>👹 怪物战力：{{ monsterPower }}</span></div><div class="power-bar-bg"><div class="power-bar-fill" :style="{ width: powerRatio + '%', background: powerRatio >= 100 ? '#27ae60' : powerRatio >= 70 ? '#f39c12' : '#e74c3c' }"></div></div><p v-if="!canChallenge" style="color: #e74c3c; font-size: 11px; margin-top: 4px;">⚠️ 组合战力可能不足，建议提升后再挑战</p><p v-else style="color: #2ecc71; font-size: 11px; margin-top: 4px;">✅ 战力充足，可以一战！</p></div><div style="min-height: 20px; margin: 6px 0;"><span v-if="towerCooldown > 0" style="color: #f39c12; font-size: 12px;">⏳ 冷却中... {{ towerCooldown }} 秒后可再次挑战</span><span v-else style="visibility: hidden; font-size: 12px;">占位</span></div></template><button class="btn" @click="startTowerBattle" :disabled="towerBusy || towerCooldown > 0 || !towerReady">{{ towerCooldown > 0 ? `冷却中 ${towerCooldown}s` : `挑战第 ${towerProgress.current_floor} 层` }}</button><button class="btn" style="margin-top:8px;" @click="showLeaderboard = !showLeaderboard; if(showLeaderboard) loadLeaderboard()">{{ showLeaderboard ? '隐藏排行榜' : '🏆 排行榜' }}</button></div><div v-if="showLeaderboard" class="card" style="margin-top:12px;"><h4>🏆 赛季排行榜</h4><div v-if="leaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div><div v-for="item in leaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;"><span>{{ item.rank }}. {{ item.username }}</span><span>Lv.{{ item.max_floor }}</span><span style="font-size:12px; color:#999;">{{ item.achieved_at }}</span></div></div></div>
         <!-- 灵种铺 -->
-        <div v-if="view === 'shop'"><h3>🏯 灵种铺 <small style="font-size:12px; color:#8b5a2b;">以功德兑换灵种</small></h3><p style="font-size:12px; margin-bottom:10px;">师门功德凝聚于此，换取灵种，播于仙圃，结出灵果。</p><p>种子数量: {{ seedsList.length }}</p><div class="seed-shop-item" v-for="seed in seedsList" :key="seed.id"><div><strong>{{ seed.name }}</strong><div style="font-size:11px; color:#6b5a3a;">产出：{{ getItemName(seed.output_item_id) }} ({{ seed.output_min }}-{{ seed.output_max }}颗)</div></div><button class="btn" @click="buySeed(seed.id)" :disabled="merit < seed.cost">🪷{{ seed.cost }}</button></div><p style="font-size:11px; color:#8b5a2b;">当前功德：{{ merit }}</p></div>
+        <div v-if="view === 'shop'"><h3>🏯 灵种铺 <small style="font-size:12px; color:#8b5a2b;">以功德兑换灵种</small></h3><p style="font-size:12px; margin-bottom:10px;">师门功德凝聚于此，换取灵种，播于仙圃，结出灵果。</p><div class="seed-shop-item" v-for="seed in seedsList" :key="seed.id"><div><strong>{{ seed.name }}</strong><div style="font-size:11px; color:#6b5a3a;">产出：{{ getItemName(seed.output_item_id) }} ({{ seed.output_min }}-{{ seed.output_max }}颗)</div></div><button class="btn" @click="buySeed(seed.id)" :disabled="merit < seed.cost">🪷{{ seed.cost }}</button></div><p style="font-size:11px; color:#8b5a2b;">当前功德：{{ merit }}</p></div>
         <!-- 仙圃 -->
         <div v-if="view === 'farm'">
             <h3>🏡 仙圃 <small style="font-size:12px;">灵兽耕耘之地</small></h3>
@@ -270,6 +270,7 @@
         <button @click="view='map'">🌍</button><button @click="view='pets'">🐾</button><button @click="view='inventory'">🎒</button><button @click="view='shop'">🏯</button><button @click="view='farm'">🏡</button><button @click="view='auction'">🏪</button><button @click="view='tower'">🏰</button><button @click="view='quest'">📜</button><button @click="view='boss'">👹</button><button @click="view='friends'">👥</button>
     </div>
 </div>
+
 <script>
 const { createApp, ref, computed, onMounted, onUnmounted, reactive, watch, nextTick } = Vue;
 createApp({
@@ -426,17 +427,9 @@ createApp({
             await loadFarm().catch(() => {});
             await loadSeeds().catch(() => {});
             loadOwnedSeeds();
-            console.log('seedsList 当前值:', JSON.stringify(seedsList.value));
         }
         async function loadEquipment() { if (profile.value?.id) { const { data } = await supabase.from('player_equipment').select('*, equipment_def:equipment_id(*)').eq('owner_id', profile.value.id); if (data) playerEquipment.value = data; } }
-        async function loadSeeds() { 
-  const { data } = await supabase.from('seeds_def').select('*').order('id'); 
-  console.log('loadSeeds 查询结果:', data);
-  if (data) {
-    seedsList.value = data.filter(s => s.cost > 0);
-    console.log('赋值后 seedsList.value:', JSON.stringify(seedsList.value));
-  }
-}
+        async function loadSeeds() { const { data } = await supabase.from('seeds_def').select('*').order('id'); if (data) seedsList.value = data.filter(s => s.cost > 0); }
         async function loadFarm() { const { data } = await supabase.rpc('get_farm_plots'); if (data) farmPlots.value = data; }
         function loadOwnedSeeds() { ownedSeeds.value = inventory.value.filter(item => item.item_id >= 201 && item.item_id <= 205); }
         async function fetchBossStats() { const { data } = await supabase.rpc('get_today_boss_stats'); if (data && !data.error) { worldBossStats.attacks_today = data.attacks_today; worldBossStats.total_damage_today = data.total_damage_today; } }
@@ -469,7 +462,8 @@ createApp({
         // ==================== 地图与探索 ====================
         async function openArea(area) { if ((profile.value?.level || 1) < area.required_level) { showToast(`需要达到 Lv.${area.required_level} 才能进入${area.name}`); return; } const { data } = await supabase.from('scenes').select('*').eq('area_id', area.id); currentScenes.value = data; currentAreaName.value = area.name; view.value = 'scene'; }
         async function explore(scene) { await syncEnergy(); const { data, error } = await supabase.rpc('explore_area',{p_scene_id: scene.id}); if (error) { showToast('探索失败：'+error.message); return; } if (data.error) { showToast(data.error); return; } energy.value = data.energy; if (data.type === 'monster' || data.type === 'wild_pet') { const sceneLevel = scene.level_min; if (data.type === 'wild_pet') { data.data.base_pet_id = data.data.id; } data.data.level = sceneLevel; encounter.value = data.data; encounter.value.currentHp = data.data.hp; encounter.value.maxHp = data.data.hp; enemyHp.value = data.data.hp; encounter.value.monsterLevel = sceneLevel; let carried = myPets.value.find(p => p.is_carried); if (carried) { activePet.value = carried; } else { activePet.value = myPets.value.find(p => p.current_hp > 0); if (!activePet.value) { showToast('没有可以战斗的宠物！'); return; } } petHp.value = activePet.value.current_hp; playerHp.value = playerMaxHp.value; battleBusy.value = false; catching.value = false; showSkillPanel.value = false; battle.active = true; recentLogs.value = []; recentLogs.value.push(data.type === 'monster' ? `${data.data.name}出现了！` : `野生的${data.data.name}出现了！`); } }
-                // ==================== 战斗系统 ====================
+
+        // ==================== 战斗系统 ====================
         function openSkillPanel() { pendingPlayerSkill.value = null; pendingPetSkill.value = null; showSkillPanel.value = true; }
         function selectPlayerSkill(skillId) { pendingPlayerSkill.value = skillId; if (!isPetAlive.value) { showSkillPanel.value = false; battleAction('player_skill', skillId); return; } checkAndExecute(); }
         function selectPetSkill(skillId) { pendingPetSkill.value = skillId; checkAndExecute(); }
