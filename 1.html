@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>梦幻宠物大冒险 · 弱击修复版</title>
+    <title>梦幻宠物大冒险 · 世界BOSS改版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -340,8 +340,38 @@
         </div>
         <!-- 师门任务 -->
         <div v-if="view === 'quest'"><h3>📜 师门任务</h3><button class="btn" @click="getDailyQuests">刷新任务</button><p style="font-size:12px; color:#8b5a2b;">点击刷新领取今天的任务，打怪计数才会增加</p><div v-for="q in dailyQuests" :key="q.id" class="card"><p>目标: {{ getMonsterName(q.target_monster_id) }} ({{ q.current_count }}/{{ q.target_count }})</p><button class="btn" @click="submitQuest(q.id)" :disabled="q.completed || q.current_count < q.target_count">提交</button></div></div>
-        <!-- 世界BOSS -->
-        <div v-if="view === 'boss'"><h3>👹 妖风</h3><div class="card"><p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p><template v-else><p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p><div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (worldBoss.hp/worldBoss.max_hp)*100)+'%'}"></div></div><button class="btn red" @click="attackWorldBoss" :disabled="battleBusy || worldBossAttackedToday">攻击</button><small v-if="worldBossAttackedToday" style="color:#aaa">今日已攻击</small></template></div></div>
+        
+        <!-- 世界BOSS（新版） -->
+        <div v-if="view === 'boss'">
+            <h3>👹 妖风</h3>
+            <div class="card">
+                <p v-if="!worldBoss.active">妖风已被击败，将于明日0点复活</p>
+                <template v-else>
+                    <p>血量: {{ worldBoss.hp }}/{{ worldBoss.max_hp }}</p>
+                    <div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (worldBoss.hp/worldBoss.max_hp)*100)+'%'}"></div></div>
+                    <p style="margin-top:8px;">
+                        今日已攻击 <strong>{{ worldBossStats.attacks_today }}/{{ worldBossStats.max_attacks }}</strong> 次
+                        | 总伤害 <strong>{{ worldBossStats.total_damage_today }}</strong>
+                    </p>
+                    <button class="btn red" @click="attackWorldBoss"
+                            :disabled="battleBusy || worldBossStats.attacks_today >= 10 || !worldBoss.active">
+                        ⚔️ 攻击（体力 -5）
+                    </button>
+                </template>
+            </div>
+            <button class="btn" @click="showBossLeaderboard = !showBossLeaderboard; if(showBossLeaderboard) fetchBossLeaderboard()">
+                {{ showBossLeaderboard ? '隐藏排行榜' : '🏆 伤害排名' }}
+            </button>
+            <div v-if="showBossLeaderboard" class="card" style="margin-top:12px;">
+                <h4>🏆 今日伤害排名</h4>
+                <div v-if="bossLeaderboard.length === 0" style="text-align:center; color:#999;">暂无数据</div>
+                <div v-for="item in bossLeaderboard" :key="item.username" style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #eee;">
+                    <span>{{ item.rank }}. {{ item.username }}</span>
+                    <span>伤害 {{ item.total_damage }}</span>
+                </div>
+            </div>
+        </div>
+
         <!-- 好友 -->
         <div v-if="view === 'friends'"><h3>👥 江湖好友</h3><input v-model="friendName" placeholder="输入好友名字"><button class="btn" @click="addFriend">添加</button><div v-for="f in friends" :key="f.username" class="card">{{ f.username }} <span :style="{color: f.online ? '#2ecc71' : '#999'}">●</span></div></div>
         <!-- 拍卖行 -->
@@ -416,7 +446,7 @@
                 </div>
             </div>
         </div>
-        <!-- 战斗界面 -->
+        <!-- 战斗界面（保持不变） -->
         <div v-if="battle.active" class="battle-container">
             <div class="battle-card">
                 <div class="battle-enemy-area">
@@ -491,7 +521,7 @@ createApp({
         const profile = ref(null); const username = ref(''); const silver = ref(0); const diamond = ref(0); const energy = ref(0);
         const starters = ref([]); const sects = ref([]); const areas = ref([]); const currentScenes = ref([]); const currentAreaName = ref('');
         const myPets = ref([]); const activePet = ref(null); const inventory = ref([]); const encounter = ref({}); const battle = reactive({ active: false });
-        const dailyQuests = ref([]); const worldBoss = ref({ hp: 0, max_hp: 10000, active: true, defeated_date: null }); const friends = ref([]); const friendName = ref(''); const worldBossAttackedToday = ref(false);
+        const dailyQuests = ref([]); const worldBoss = ref({ hp: 0, max_hp: 10000, active: true, defeated_date: null }); const friends = ref([]); const friendName = ref('');
         const showNicknameInput = ref(false); const newNickname = ref(''); const showPetDetail = ref(false); const detailPet = ref(null);
         const showCharacterPanel = ref(false);
         const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
@@ -514,6 +544,16 @@ createApp({
         const leaderboard = ref([]);
         const showLeaderboard = ref(false);
         const toast = reactive({ show: false, message: '' });
+
+        // 世界BOSS新版状态
+        const worldBossStats = reactive({
+            attacks_today: 0,
+            total_damage_today: 0,
+            max_attacks: 10,
+            top10: []
+        });
+        const showBossLeaderboard = ref(false);
+        const bossLeaderboard = ref([]);
 
         // 宠物属性计算
         function calcPetStats(p) {
@@ -542,7 +582,7 @@ createApp({
             return { hp, atk, def, spd };
         }
 
-        // 爬塔难度系数与怪物预估
+        // 爬塔相关（保持不变）
         const towerDiff = computed(() => 1 + (towerProgress.value.current_floor - 1) * 0.15);
         const estimatedMonsterStats = computed(() => {
             const floor = towerProgress.value.current_floor || 1;
@@ -796,7 +836,7 @@ createApp({
             }
             if (it.data) inventory.value = it.data; if (ar.data) areas.value = ar.data; if (se.data) sects.value = se.data;
             if (qu.data) dailyQuests.value = qu.data.quests || []; if (bo.data) worldBoss.value = bo.data; if (fr.data) friends.value = fr.data;
-            if (user) { const { data: at } = await supabase.from('world_boss_attacks').select('*').eq('user_id',user.id).eq('boss_id',1).eq('attack_date',new Date().toISOString().split('T')[0]).maybeSingle(); worldBossAttackedToday.value = !!at; }
+            // 不再查询旧版 world_boss_attacks
             if (tower.data) {
                 towerProgress.value.current_floor = tower.data.current_floor || 1;
                 towerProgress.value.max_floor = tower.data.max_floor || 1;
@@ -804,6 +844,57 @@ createApp({
             }
             towerReady.value = true;
             await loadEquipment();
+            // 获取世界BOSS统计（攻击次数、榜单前十）
+            await fetchBossStats().catch(() => {});
+        }
+
+        async function fetchBossStats() {
+            const { data, error } = await supabase.rpc('get_today_boss_stats');
+            if (!error && data && !data.error) {
+                worldBossStats.attacks_today = data.attacks_today;
+                worldBossStats.total_damage_today = data.total_damage_today;
+                worldBossStats.top10 = data.top10;
+            }
+        }
+
+        async function fetchBossLeaderboard() {
+            const { data, error } = await supabase.rpc('get_world_boss_leaderboard', { p_date: new Date().toISOString().split('T')[0] });
+            if (!error && data) {
+                bossLeaderboard.value = data;
+            }
+        }
+
+        async function attackWorldBoss() {
+            if (worldBossStats.attacks_today >= 10) {
+                showToast('今日攻击次数已用完');
+                return;
+            }
+            const carriedPet = myPets.value.find(p => p.is_carried);
+            const petId = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null);
+            if (!petId) {
+                showToast('请先拥有至少一只宠物');
+                return;
+            }
+            battleBusy.value = true;
+            const { data, error } = await supabase.rpc('attack_world_boss', {
+                p_boss_id: 1,
+                p_pet_id: petId
+            });
+            battleBusy.value = false;
+            if (error) {
+                showToast('攻击失败：' + error.message);
+                return;
+            }
+            if (data.error) {
+                showToast(data.error);
+                return;
+            }
+            energy.value = data.energy_left;
+            worldBossStats.attacks_today = data.attacks_today;
+            worldBoss.value.hp = data.boss_hp;
+            if (data.boss_hp <= 0) worldBoss.value.active = false;
+            showToast(data.message);
+            await refreshData();
         }
 
         function returnToRoleSelect() { stopEnergySync(); stopPetRecovery(); view.value = 'role_select'; }
@@ -897,7 +988,7 @@ createApp({
             if (action === 'catch') {
                 if (ballCount.value <= 0) { showToast('捕捉球不足，请去拍卖行购买'); battleBusy.value = false; return; }
                 clearTimeout(t);
-                // ★★★ 恢复弱击逻辑 ★★★
+                // 弱击逻辑
                 if (encounter.value.currentHp > encounter.value.maxHp * 0.3) {
                     let damage = Math.floor(encounter.value.currentHp * 0.4);
                     if (damage < 1) damage = 1;
@@ -947,7 +1038,6 @@ createApp({
             encounter.value.currentHp = data.monster_hp; enemyHp.value = Math.max(0, data.monster_hp);
             if (data.player_hp !== undefined) { playerHp.value = Math.max(0, data.player_hp); if (data.player_max_hp !== undefined) playerMaxHp.value = data.player_max_hp; }
             if (data.log) { data.log.forEach(m => recentLogs.value.push(m.text)); }
-            // 努力值获取提示
             if (data.ev_hp || data.ev_atk || data.ev_def || data.ev_spd) {
                 let evText = '宠物获得了 ';
                 if (data.ev_hp) evText += `+${data.ev_hp} HP努力 `;
@@ -966,19 +1056,6 @@ createApp({
 
         async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
         async function submitQuest(id) { await supabase.rpc('submit_quest',{p_quest_id:id}); refreshData(); }
-        async function attackWorldBoss() {
-            if (worldBossAttackedToday.value) { showToast('今天已经攻击过妖风了'); return; }
-            const carriedPet = myPets.value.find(p => p.is_carried);
-            const pid = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null);
-            battleBusy.value = true;
-            const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: pid });
-            battleBusy.value = false;
-            if (error) { showToast('攻击失败：' + error.message); return; }
-            if (data.error) { showToast(data.error); return; }
-            let msg = `造成了 ${data.damage} 伤害！获得 ${data.instant_reward} 银两。`;
-            if (data.defeated) { msg += '\n妖风已被击败！排名奖励已发放。'; worldBoss.value.active = false; }
-            showToast(msg); worldBossAttackedToday.value = true; refreshData();
-        }
         async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
         async function addStat(stat) {
             if (!profile.value?.potential_points) { showToast('没有潜力点了！'); return; }
@@ -1044,6 +1121,13 @@ createApp({
             finally { towerBusy.value = false; }
         }
 
+        // 监听视图切换，自动刷新BOSS统计
+        watch(() => view.value, (val) => {
+            if (val === 'boss') {
+                fetchBossStats();
+            }
+        });
+
         onMounted(() => {
             if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister())); }
             refreshData().then(() => initView());
@@ -1062,7 +1146,7 @@ createApp({
             showNicknameInput, newNickname, showPetDetail, detailPet,
             showCharacterPanel, showSkillPanel, battleBusy, catching, catchMessage, ballShakeClass, recentLogs,
             enemyHp, playerHp, petHp, enemyHpPercent, playerMaxHp, playerHpPercent, petMaxHp, petHpPercent,
-            playerSkills, petSkills, playerExpPercent, maxEnergy, worldBossAttackedToday,
+            playerSkills, petSkills, playerExpPercent, maxEnergy,
             playerRealAtk, playerRealDef, playerRealSpd,
             qualityCN, slotNames, isPetAlive, ballCount, auctionItems,
             getMonsterName, getSectName, petSkillNames, ivSum, ivGrade, ivGradeText,
@@ -1077,7 +1161,10 @@ createApp({
             showEnemyInfo, pendingPlayerSkill, pendingPetSkill, openSkillPanel, selectPlayerSkill, selectPetSkill, cancelSkillPanel,
             logContainer, logEntryClass, logEntryIcon, formatLogMessage,
             towerProgress, towerBusy, loadTowerProgress: () => {}, syncTowerProgress,
-            leaderboard, showLeaderboard, loadLeaderboard, toast
+            leaderboard, showLeaderboard, loadLeaderboard, toast,
+            // 世界BOSS新增
+            worldBossStats, showBossLeaderboard, bossLeaderboard,
+            fetchBossStats, fetchBossLeaderboard
         };
     }
 }).mount('#app');
