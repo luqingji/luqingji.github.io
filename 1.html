@@ -429,7 +429,14 @@ createApp({
             console.log('seedsList 当前值:', JSON.stringify(seedsList.value));
         }
         async function loadEquipment() { if (profile.value?.id) { const { data } = await supabase.from('player_equipment').select('*, equipment_def:equipment_id(*)').eq('owner_id', profile.value.id); if (data) playerEquipment.value = data; } }
-        async function loadSeeds() { const { data } = await supabase.from('seeds_def').select('*').order('id'); if (data) seedsList.value = data.filter(s => s.cost > 0); }
+        async function loadSeeds() { 
+  const { data } = await supabase.from('seeds_def').select('*').order('id'); 
+  console.log('loadSeeds 查询结果:', data);
+  if (data) {
+    seedsList.value = data.filter(s => s.cost > 0);
+    console.log('赋值后 seedsList.value:', JSON.stringify(seedsList.value));
+  }
+}
         async function loadFarm() { const { data } = await supabase.rpc('get_farm_plots'); if (data) farmPlots.value = data; }
         function loadOwnedSeeds() { ownedSeeds.value = inventory.value.filter(item => item.item_id >= 201 && item.item_id <= 205); }
         async function fetchBossStats() { const { data } = await supabase.rpc('get_today_boss_stats'); if (data && !data.error) { worldBossStats.attacks_today = data.attacks_today; worldBossStats.total_damage_today = data.total_damage_today; } }
