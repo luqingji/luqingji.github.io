@@ -535,7 +535,14 @@ createApp({
         }
         function shakeBall(times) { return new Promise(resolve => { let c = 0; const i = setInterval(() => { ballShakeClass.value = 'shake'; setTimeout(() => ballShakeClass.value = '', 300); c++; if (c >= times) { clearInterval(i); resolve(); } }, 500); }); }
         async function getDailyQuests() { const { data } = await supabase.rpc('get_daily_quests'); if (data) dailyQuests.value = data.quests || []; }
-        async function submitQuest(id) { const { data, error } = await supabase.rpc('submit_quest', { p_quest_id: id }); if (error) { showToast('提交失败：'+error.message); return; } if (data.success) { showToast('获得功德值 +' + data.merit_gained); } refreshData(); }
+        async function submitQuest(id) {
+    const { data, error } = await supabase.rpc('submit_quest', { p_quest_id: id });
+    if (error) { showToast('提交失败：' + error.message); return; }
+    if (data.error) { showToast(data.error); return; }
+    showToast('获得功德值 +' + data.merit_gained);
+    // 立即刷新任务列表，让已提交的任务从界面中移除或显示为已提交
+    await refreshData();
+}
         async function attackWorldBoss() { if (worldBossStats.attacks_today >= 10) { showToast('今日攻击次数已用完'); return; } const carriedPet = myPets.value.find(p => p.is_carried); const petId = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null); if (!petId) { showToast('请先拥有至少一只宠物'); return; } battleBusy.value = true; const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: petId }); battleBusy.value = false; if (error) { showToast('攻击失败：' + error.message); return; } if (data.error) { showToast(data.error); return; } energy.value = data.energy_left; worldBossStats.attacks_today = data.attacks_today; worldBoss.value.hp = data.boss_hp; if (data.boss_hp <= 0) worldBoss.value.active = false; showToast(data.message); await refreshData(); }
         async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
         async function addStat(stat) { if (!profile.value?.potential_points) { showToast('没有潜力点了！'); return; } const { data, error } = await supabase.rpc('add_stat', { p_stat: stat }); if (error) { showToast('加点失败：' + error.message); return; } if (data.error) { showToast(data.error); return; } profile.value = data; showToast('加点成功！'); }
