@@ -323,7 +323,7 @@ createApp({
         const petMaxHp = computed(() => activePet.value?calcPetStats(activePet.value).hp:1);
         const playerHpPercent = computed(() => Math.min(100, (playerHp.value/playerMaxHp.value)*100));
         const petHpPercent = computed(() => Math.min(100, (Math.min(petHp.value,petMaxHp.value)/(petMaxHp.value||1))*100));
-        const towerDiff = computed(() => 1+(towerProgress.value.current_floor-1)*0.15);
+        const towerDiff = computed(() => 1 + Math.log(Math.max(towerProgress.value.current_floor, 1)) * 0.5);
         const estimatedMonsterStats = computed(() => { const floor=towerProgress.value.current_floor||1; const diff=towerDiff.value; const baseHp=50,baseAtk=35,baseDef=30,baseSpd=25,iv=15,level=12+floor*2; return { hp:Math.floor((Math.floor((baseHp*3+iv*2)*level/40)+level+20)*diff), atk:Math.floor((Math.floor((baseAtk*2.5+iv*1.5)*level/40)+5)*diff), def:Math.floor((Math.floor((baseDef*2.5+iv*1.5)*level/40)+5)*diff), spd:Math.floor((Math.floor((baseSpd*2.5+iv*1.5)*level/40)+5)*diff) }; });
         const playerAndPetPower = computed(() => { const petStats=activePet.value?calcPetStats(activePet.value):{hp:0,atk:0,def:0,spd:0}; return Math.floor(playerMaxHp.value+playerRealAtk.value*2+playerRealDef.value*1.5+playerRealSpd.value*1.5+petStats.hp+petStats.atk*2+petStats.def*1.5+petStats.spd*1.5); });
         const monsterPower = computed(() => { const ms=estimatedMonsterStats.value; return Math.floor(ms.hp+ms.atk*2+ms.def*1.5+ms.spd*1.5); });
