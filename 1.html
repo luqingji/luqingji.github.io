@@ -303,7 +303,7 @@ createApp({
         function logEntryClass(msg) { const t=msg.text||msg; if(t.includes('【先手】')) return 'first'; if(t.includes('你使用了')||t.includes('你发动了攻击')||t.includes('你发动了一次弱击')) return 'player'; if(t.includes('攻击了你')||t.includes('对你造成')) return 'enemy'; if(activePet?.value?.nickname&&(t.includes(activePet.value.nickname+'使用了')||t.includes(activePet.value.nickname+'攻击'))) return 'pet'; if(t.includes('战胜了')||t.includes('逃跑')||t.includes('努力')||t.includes('回复')||t.includes('获得装备')||t.includes('🎁')) return 'info'; return ''; }
         function logEntryIcon(msg) {return '';}
         function formatLogMessage(msg) { let t=msg.text||msg; t=t.replace(/【先手】/g,'').replace(/【后手】/g,''); t=t.replace(/造成(\d+)点伤害/g,'造成 <span class="damage-num">$1</span> 点伤害'); return t; }
-        watch(recentLogs, ()=>{ nextTick(()=>{ if(logContainer.value) logContainer.value.scrollTop=logContainer.value.scrollHeight; }); }, { deep:false });
+        watch(recentLogs, () => { setTimeout(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }, 50); }, { deep: false });
 
         // ==================== 计算属性 ====================
         const equippedItems = computed(() => { const eq={}; playerEquipment.value.filter(e=>e.equipped).forEach(e=>{eq[e.slot]=e.equipment_def;}); return eq; });
