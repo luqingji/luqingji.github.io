@@ -301,7 +301,7 @@ createApp({
         async function quickFeed(pet, itemId) { if(!hasItem(itemId)){showToast('灵果不足');return;} const{data,error}=await supabase.rpc('feed_pet',{p_pet_id:pet.id,p_item_id:itemId,p_quantity:1}); if(error){showToast('喂养失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast(data.message+(data.crit?' 💥暴击！':'')); await refreshData(); const updated=myPets.value.find(p=>p.id===pet.id); if(updated) detailPet.value=updated; }
 
         function logEntryClass(msg) { const t=msg.text||msg; if(t.includes('【先手】')) return 'first'; if(t.includes('你使用了')||t.includes('你发动了攻击')||t.includes('你发动了一次弱击')) return 'player'; if(t.includes('攻击了你')||t.includes('对你造成')) return 'enemy'; if(activePet?.value?.nickname&&(t.includes(activePet.value.nickname+'使用了')||t.includes(activePet.value.nickname+'攻击'))) return 'pet'; if(t.includes('战胜了')||t.includes('逃跑')||t.includes('努力')||t.includes('回复')||t.includes('获得装备')||t.includes('🎁')) return 'info'; return ''; }
-        function logEntryIcon(msg) { const t=msg.text||msg; if(t.includes('你')) return '🧑'; if(activePet?.value?.nickname&&t.includes(activePet.value.nickname)) return '🐾'; if(enemyNames.some(name=>t.includes(name))) return '👹'; if(t.includes('努力')) return '💪'; if(t.includes('回复')) return '🌿'; if(t.includes('装备')||t.includes('🎁')) return '🎁'; return '📢'; }
+        function logEntryIcon(msg) {return '';}
         function formatLogMessage(msg) { let t=msg.text||msg; t=t.replace(/【先手】/g,'').replace(/【后手】/g,''); t=t.replace(/造成(\d+)点伤害/g,'造成 <span class="damage-num">$1</span> 点伤害'); return t; }
         watch(recentLogs, ()=>{ nextTick(()=>{ if(logContainer.value) logContainer.value.scrollTop=logContainer.value.scrollHeight; }); }, { deep:false });
 
