@@ -473,7 +473,7 @@ createApp({
             if(data.log){data.log.forEach(m=>recentLogs.value.push(m.text));}
             if(data.chaos_seed_dropped){showToast('⚡ 江湖奇遇！你获得了一颗混沌灵种！');}
             if(data.equip_dropped){showToast('🎁 获得一件装备！');}
-            if(data.win){setTimeout(()=>{battle.active=false;refreshData();},1500);}else if(playerHp.value<=0){showToast('你被打败了...');battle.active=false;refreshData();}
+            if(data.win){setTimeout(()=>{battle.active=false;refreshData();},1500);}else if(playerHp.value<=0){showToast('你被打败了...');playerHp.value = 1;battle.active=false;refreshData();}
 			setTimeout(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }, 100);
         }
         function shakeBall(times) { return new Promise(resolve=>{let c=0;const i=setInterval(()=>{ballShakeClass.value='shake';setTimeout(()=>ballShakeClass.value='',300);c++;if(c>=times){clearInterval(i);resolve();}},500);}); }
@@ -493,7 +493,7 @@ createApp({
         async function syncEnergy() { if(!profile.value?.id)return; const now=new Date(); const lastUsed=new Date(profile.value.last_energy_used_at); const minutesPassed=(now-lastUsed)/60000; const recovered=Math.floor(minutesPassed/3); let newEnergy=profile.value.energy+recovered; const lastLogin=profile.value.last_login_date?new Date(profile.value.last_login_date+'T00:00:00'):null; const today=new Date().toISOString().split('T')[0]; if(!lastLogin||lastLogin<new Date(today+'T00:00:00')) newEnergy=maxEnergy.value; newEnergy=Math.min(newEnergy,maxEnergy.value); if(newEnergy!==profile.value.energy){energy.value=newEnergy;await supabase.from('profiles').update({energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today}).eq('id',profile.value.id);profile.value={...profile.value,energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today};}}
         let energyTimer=null; function startEnergySync(){syncEnergy();energyTimer=setInterval(syncEnergy,30000);} function stopEnergySync(){if(energyTimer)clearInterval(energyTimer);}
         let petRecoveryTimer=null;
-        async function recoverPets(){for(const p of myPets.value){if(p.is_carried)continue;const maxHp=calcPetStats(p).hp;if(p.current_hp<maxHp){const heal=Math.min(maxHp-p.current_hp,Math.ceil(maxHp*0.05));p.current_hp=Math.min(p.current_hp+heal,maxHp);await supabase.from('pets').update({current_hp:p.current_hp}).eq('id',p.id);}}}
+        async function recoverPets(){for(const p of myPets.value){const maxHp=calcPetStats(p).hp;if(p.current_hp<maxHp){const heal=Math.min(maxHp-p.current_hp,Math.ceil(maxHp*0.05));p.current_hp=Math.min(p.current_hp+heal,maxHp);await supabase.from('pets').update({current_hp:p.current_hp}).eq('id',p.id);}}}
         function startPetRecovery(){recoverPets();petRecoveryTimer=setInterval(recoverPets,30000);} function stopPetRecovery(){if(petRecoveryTimer)clearInterval(petRecoveryTimer);}
         async function loadLeaderboard(){const{data}=await supabase.rpc('get_tower_leaderboard');if(data)leaderboard.value=data;}
         async function syncTowerProgress(){const{data:{session}}=await supabase.auth.getSession();const user=session?.user;if(!user)return;const{data,error}=await supabase.from('user_tower_progress').select('*').eq('user_id',user.id).maybeSingle();if(error)return;if(data){towerProgress.value.current_floor=data.current_floor||1;towerProgress.value.max_floor=data.max_floor||1;towerProgress.value.season_name=data.season_name||'S1·试炼之塔';}towerReady.value=true;}
