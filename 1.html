@@ -431,7 +431,6 @@ createApp({
                 petHp.value=activePet.value.current_hp; playerHp.value=playerMaxHp.value;
                 battleBusy.value=false; catching.value=false; showSkillPanel.value=false;
                 battle.active=true; recentLogs.value=[];
-                recentLogs.value.push(data.type==='monster'?`${data.data.name}出现了！`:`野生的${data.data.name}出现了！`);
             }
         }
 
