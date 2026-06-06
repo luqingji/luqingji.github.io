@@ -428,7 +428,7 @@ createApp({
                 enemyHp.value=data.data.hp; encounter.value.monsterLevel=sceneLevel; encounter.value.type=data.type;
                 let carried=myPets.value.find(p=>p.is_carried);
                 if(carried){activePet.value=carried;}else{activePet.value=myPets.value.find(p=>p.current_hp>0); if(!activePet.value){showToast('没有可以战斗的宠物！');return;}}
-                petHp.value=activePet.value.current_hp; playerHp.value=playerMaxHp.value;
+                petHp.value=activePet.value.current_hp;
                 battleBusy.value=false; catching.value=false; showSkillPanel.value=false;
                 battle.active=true; recentLogs.value=[];
             }
@@ -457,7 +457,7 @@ createApp({
             }
             clearTimeout(t);
             let monsterId=encounter.value.id; let isWild=encounter.value.type==='wild_pet'; let wildBaseId=isWild?encounter.value.base_pet_id:null;
-            const rpcParams={p_pet_id:activePet.value.id,p_monster_id:isWild?1:monsterId,p_monster_current_hp:encounter.value.currentHp,p_is_wild:isWild,p_enemy_name:encounter.value.name,p_wild_base_id:wildBaseId,p_monster_level:encounter.value.monsterLevel||1,p_player_max_hp:playerMaxHp.value,p_player_affixes:equippedAffixes.value};
+            const rpcParams={p_pet_id:activePet.value.id,p_monster_id:isWild?1:monsterId,p_monster_current_hp:encounter.value.currentHp,p_is_wild:isWild,p_enemy_name:encounter.value.name,p_wild_base_id:wildBaseId,p_monster_level:encounter.value.monsterLevel||1,p_player_current_hp:playerHp.value,p_player_max_hp:playerMaxHp.value,p_player_affixes:equippedAffixes.value};
             if(action==='combined_skills'){rpcParams.p_player_skill_id=pendingPlayerSkill.value;rpcParams.p_pet_skill_id=pendingPetSkill.value;}
             else if(action==='player_skill'){rpcParams.p_player_skill_id=skillId;rpcParams.p_pet_skill_id=null;}
             else if(action==='pet_skill'){rpcParams.p_player_skill_id=null;rpcParams.p_pet_skill_id=skillId;}
