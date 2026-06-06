@@ -499,23 +499,7 @@ createApp({
         async function syncTowerProgress(){const{data:{session}}=await supabase.auth.getSession();const user=session?.user;if(!user)return;const{data,error}=await supabase.from('user_tower_progress').select('*').eq('user_id',user.id).maybeSingle();if(error)return;if(data){towerProgress.value.current_floor=data.current_floor||1;towerProgress.value.max_floor=data.max_floor||1;towerProgress.value.season_name=data.season_name||'S1·试炼之塔';}towerReady.value=true;}
         let cooldownTimer=null;
         function startCooldown(s=10){towerCooldown.value=s;if(cooldownTimer)clearInterval(cooldownTimer);cooldownTimer=setInterval(()=>{towerCooldown.value--;if(towerCooldown.value<=0){clearInterval(cooldownTimer);cooldownTimer=null;}},1000);}
-        async function startTowerBattle(){
-            await syncTowerProgress();playerHp.value=playerMaxHp.value;
-            if(activePet.value){activePet.value.current_hp=Math.min(activePet.value.current_hp,petMaxHp.value);petHp.value=activePet.value.current_hp;}
-            if(!activePet.value||activePet.value.current_hp<=0){const alivePet=myPets.value.find(p=>p.current_hp>0);if(alivePet){if(confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)){activePet.value=alivePet;activePet.value.current_hp=Math.min(activePet.value.current_hp,calcPetStats(activePet.value).hp);petHp.value=activePet.value.current_hp;}else{return;}}else{showToast('所有宠物都已阵亡，无法继续挑战！');return;}}
-            towerBusy.value=true;
-            try{
-                const petStats=calcPetStats(activePet.value);
-                const rpcParams={p_pet_id:activePet.value.id,p_pet_current_hp:petHp.value,p_pet_max_hp:petStats.hp,p_pet_atk:petStats.atk,p_pet_def:petStats.def,p_pet_spd:petStats.spd,p_pet_skills:activePet.value.skills||[],p_player_hp:playerHp.value,p_player_max_hp:playerMaxHp.value,p_player_atk:playerRealAtk.value,p_player_def:playerRealDef.value,p_player_spd:playerRealSpd.value,p_player_skills:playerSkills.value.map(s=>s.id),p_player_affixes:equippedAffixes.value};
-                const{data,error}=await supabase.rpc('tower_battle',rpcParams);
-                if(error)throw error;
-                petHp.value=Math.max(0,data.pet_hp);playerHp.value=Math.max(0,data.player_hp);enemyHp.value=data.monster_hp;recentLogs.value=[];
-                if(data.log)data.log.forEach(m=>recentLogs.value.push(m.text));
-                if(data.win){towerProgress.value.current_floor=data.new_floor;if(data.new_floor>towerProgress.value.max_floor)towerProgress.value.max_floor=data.new_floor;await refreshData();showToast('挑战成功！已进入第 '+towerProgress.value.current_floor+' 层');if(data.silver_reward)showToast('获得银两：'+data.silver_reward);}
-                else{showToast('挑战失败！停留在第 '+towerProgress.value.current_floor+' 层');}
-                startCooldown(10);
-            }catch(e){showToast('爬塔出错：'+e.message);}finally{towerBusy.value=false;}
-        }
+		async function startTowerBattle(){await syncTowerProgress();playerHp.value=playerMaxHp.value;if(activePet.value){activePet.value.current_hp=petMaxHp.value;petHp.value=petMaxHp.value;}if(!activePet.value||activePet.value.current_hp<=0){const alivePet=myPets.value.find(p=>p.current_hp>0);if(alivePet){if(confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)){activePet.value=alivePet;activePet.value.current_hp=calcPetStats(activePet.value).hp;petHp.value=activePet.value.current_hp;}else{return;}}else{showToast('所有宠物都已阵亡，无法继续挑战！');return;}}towerBusy.value=true;try{const petStats=calcPetStats(activePet.value);const rpcParams={p_pet_id:activePet.value.id,p_pet_current_hp:petMaxHp.value,p_pet_max_hp:petStats.hp,p_pet_atk:petStats.atk,p_pet_def:petStats.def,p_pet_spd:petStats.spd,p_pet_skills:activePet.value.skills||[],p_player_hp:playerMaxHp.value,p_player_max_hp:playerMaxHp.value,p_player_atk:playerRealAtk.value,p_player_def:playerRealDef.value,p_player_spd:playerRealSpd.value,p_player_skills:playerSkills.value.map(s=>s.id),p_player_affixes:equippedAffixes.value};const{data,error}=await supabase.rpc('tower_battle',rpcParams);if(error)throw error;petHp.value=Math.max(0,data.pet_hp);playerHp.value=Math.max(0,data.player_hp);enemyHp.value=data.monster_hp;recentLogs.value=[];if(data.log)data.log.forEach(m=>recentLogs.value.push(m.text));if(data.win){towerProgress.value.current_floor=data.new_floor;if(data.new_floor>towerProgress.value.max_floor)towerProgress.value.max_floor=data.new_floor;await refreshData();showToast('挑战成功！已进入第 '+towerProgress.value.current_floor+' 层');if(data.silver_reward)showToast('获得银两：'+data.silver_reward);}else{showToast('挑战失败！停留在第 '+towerProgress.value.current_floor+' 层');}startCooldown(10);}catch(e){showToast('爬塔出错：'+e.message);}finally{towerBusy.value=false;}}
 
         // ==================== 初始化 ====================
         let farmTimer = null;
