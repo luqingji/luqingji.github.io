@@ -150,6 +150,7 @@
                     <button class="btn" style="flex:1;" @click="setCarried(detailPet.id); showPetDetail=false">{{ detailPet.is_carried ? '取消携带' : '设为携带' }}</button>
                     <button class="btn purple" style="flex:1;" @click="showFusionDialog = true; showPetDetail = false">🧬 融合</button>
                     <button class="btn red" style="flex:1;" @click="releasePet(detailPet)">放生</button>
+					<button class="btn" style="flex:1; background: linear-gradient(180deg, #2ecc71, #27ae60); border-color: #1e8449; color: white;" @click="healPet(detailPet)">💚 治疗</button>
                 </div>
                 <button class="btn" style="width:100%; margin-top:6px;" @click="showPetDetail=false">关闭</button>
             </div>
@@ -299,6 +300,7 @@ createApp({
         function getPlotIcon(plot) { if(!plot.seed_id) return '🟫'; if(isMature(plot.slot)) return '🍎'; const total=new Date(plot.maturity_time)-new Date(plot.planted_at); if(isNaN(total)) return '🌱'; const elapsed=Date.now()-new Date(plot.planted_at); const ratio=elapsed/total; if(ratio<0.3) return '🌰'; if(ratio<0.7) return '🌿'; return '🌳'; }
         function formatIncubationTime(hatchTime) { const diff=new Date(hatchTime)-new Date(); if(diff<=0) return '已完成'; const h=Math.floor(diff/3600000); const m=Math.floor((diff%3600000)/60000); return `${h}时${m}分`; }
         async function quickFeed(pet, itemId) { if(!hasItem(itemId)){showToast('灵果不足');return;} const{data,error}=await supabase.rpc('feed_pet',{p_pet_id:pet.id,p_item_id:itemId,p_quantity:1}); if(error){showToast('喂养失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast(data.message+(data.crit?' 💥暴击！':'')); await refreshData(); const updated=myPets.value.find(p=>p.id===pet.id); if(updated) detailPet.value=updated; }
+		async function healPet(pet){const cost=50;if(silver.value<cost){showToast('银两不足，需要 '+cost+' 银两');return;}const maxHp=calcPetStats(pet).hp;if(pet.current_hp>=maxHp){showToast('宠物血量已满');return;}silver.value-=cost;pet.current_hp=maxHp;await supabase.from('pets').update({current_hp:maxHp}).eq('id',pet.id);await supabase.from('profiles').update({silver:silver.value}).eq('id',profile.value.id);showToast(pet.nickname+' 已完全康复！');refreshData();}
 
         function logEntryClass(msg) { const t=msg.text||msg; if(t.includes('【先手】')) return 'first'; if(t.includes('你使用了')||t.includes('你发动了攻击')||t.includes('你发动了一次弱击')) return 'player'; if(t.includes('攻击了你')||t.includes('对你造成')) return 'enemy'; if(activePet?.value?.nickname&&(t.includes(activePet.value.nickname+'使用了')||t.includes(activePet.value.nickname+'攻击'))) return 'pet'; if(t.includes('战胜了')||t.includes('逃跑')||t.includes('努力')||t.includes('回复')||t.includes('获得装备')||t.includes('🎁')) return 'info'; return ''; }
         function logEntryIcon(msg) {return '';}
@@ -493,7 +495,7 @@ createApp({
         async function syncEnergy() { if(!profile.value?.id)return; const now=new Date(); const lastUsed=new Date(profile.value.last_energy_used_at); const minutesPassed=(now-lastUsed)/60000; const recovered=Math.floor(minutesPassed/3); let newEnergy=profile.value.energy+recovered; const lastLogin=profile.value.last_login_date?new Date(profile.value.last_login_date+'T00:00:00'):null; const today=new Date().toISOString().split('T')[0]; if(!lastLogin||lastLogin<new Date(today+'T00:00:00')) newEnergy=maxEnergy.value; newEnergy=Math.min(newEnergy,maxEnergy.value); if(newEnergy!==profile.value.energy){energy.value=newEnergy;await supabase.from('profiles').update({energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today}).eq('id',profile.value.id);profile.value={...profile.value,energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today};}}
         let energyTimer=null; function startEnergySync(){syncEnergy();energyTimer=setInterval(syncEnergy,30000);} function stopEnergySync(){if(energyTimer)clearInterval(energyTimer);}
         let petRecoveryTimer=null;
-        async function recoverPets(){for(const p of myPets.value){const maxHp=calcPetStats(p).hp;if(p.current_hp<maxHp){const heal=Math.min(maxHp-p.current_hp,Math.ceil(maxHp*0.05));p.current_hp=Math.min(p.current_hp+heal,maxHp);await supabase.from('pets').update({current_hp:p.current_hp}).eq('id',p.id);}}}
+        async function recoverPets(){for(const p of myPets.value){if(p.is_carried) continue;const maxHp=calcPetStats(p).hp;if(p.current_hp<maxHp){const heal=Math.min(maxHp-p.current_hp,Math.ceil(maxHp*0.05));p.current_hp=Math.min(p.current_hp+heal,maxHp);await supabase.from('pets').update({current_hp:p.current_hp}).eq('id',p.id);}}}
         function startPetRecovery(){recoverPets();petRecoveryTimer=setInterval(recoverPets,30000);} function stopPetRecovery(){if(petRecoveryTimer)clearInterval(petRecoveryTimer);}
         async function loadLeaderboard(){const{data}=await supabase.rpc('get_tower_leaderboard');if(data)leaderboard.value=data;}
         async function syncTowerProgress(){const{data:{session}}=await supabase.auth.getSession();const user=session?.user;if(!user)return;const{data,error}=await supabase.from('user_tower_progress').select('*').eq('user_id',user.id).maybeSingle();if(error)return;if(data){towerProgress.value.current_floor=data.current_floor||1;towerProgress.value.max_floor=data.max_floor||1;towerProgress.value.season_name=data.season_name||'S1·试炼之塔';}towerReady.value=true;}
@@ -539,7 +541,7 @@ createApp({
             worldBossStats, showBossLeaderboard, bossLeaderboard, fetchBossStats, fetchBossLeaderboard,
             seedsList, farmPlots, showPlantDialog, currentPlantSlot, ownedSeeds,
             showFeedDialog, feedTargetPet, feedItem, feedQuantity,
-            getItemName, getSeedName, isMature, formatTimeLeft, plotStyle, hasItem, itemCount, quickFeed,
+            getItemName, getSeedName, isMature, formatTimeLeft, plotStyle, hasItem, itemCount, quickFeed, healPet,
             buySeed, openPlantDialog, plantSeed, waterPlot, fertilizePlot, removePest, harvestPlot, unlockPlot,
             openFeedDialog, confirmFeed, nextPlotCost, hasPest, getPlotIcon,
             incubationSlots, showIncubationDialog, startIncubation, hatchEgg, openIncubationDialog, formatIncubationTime,
