@@ -474,6 +474,7 @@ createApp({
             if(data.chaos_seed_dropped){showToast('⚡ 江湖奇遇！你获得了一颗混沌灵种！');}
             if(data.equip_dropped){showToast('🎁 获得一件装备！');}
             if(data.win){setTimeout(()=>{battle.active=false;refreshData();},1500);}else if(playerHp.value<=0){showToast('你被打败了...');battle.active=false;refreshData();}
+			setTimeout(() => { if (logContainer.value) logContainer.value.scrollTop = logContainer.value.scrollHeight; }, 100);
         }
         function shakeBall(times) { return new Promise(resolve=>{let c=0;const i=setInterval(()=>{ballShakeClass.value='shake';setTimeout(()=>ballShakeClass.value='',300);c++;if(c>=times){clearInterval(i);resolve();}},500);}); }
 
