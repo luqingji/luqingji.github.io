@@ -1,1218 +1,576 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>麦田守护者 v8.0 · 全功能修复版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <title>啾啾的知识花园 · 亲子学习版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* ========== 完整样式（与原始代码一致） ========== */
     :root {
-      --bg: #f5f0eb;
-      --card: #ffffff;
-      --text: #3d3929;
-      --accent: #c0844e;
-      --green: #6b8f71;
-      --red: #c0392b;
-      --blue: #5b7fbc;
-      --radius-lg: 16px;
-      --radius-md: 12px;
+      --bg: #fef9e7;
+      --gold: #f1c40f;
+      --jade: #6b8e4e;
+      --pink: #ffb6c1;
+      --sky: #a0d2f0;
+      --wood: #8b5a2b;
+      --red: #e74c3c;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--bg); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
-    #app { width: 100%; max-width: 800px; }
-    .auth-form { background: var(--card); border-radius: var(--radius-lg); padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); max-width: 380px; margin: 40px auto; text-align: center; }
-    .auth-form h1 { color: var(--text); margin-bottom: 20px; }
-    .auth-tabs { display: flex; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 1.5px solid #e0d8cc; }
-    .auth-tab { flex: 1; padding: 10px; cursor: pointer; background: #fdfcf9; font-weight: 600; border: none; font-family: inherit; font-size: 0.9rem; }
-    .auth-tab.active { background: var(--accent); color: #fff; }
-    .form-group { margin-bottom: 14px; text-align: left; } .form-group label { font-size: 0.8rem; color: #666; }
-    .form-group input,.form-group select { width: 100%; padding: 10px; border: 1.5px solid #e0d8cc; border-radius: 10px; font-size: 0.9rem; font-family: inherit; outline: none; margin-top: 4px; }
-    .btn-primary { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; } .btn-primary:disabled { opacity: 0.5; }
-    .msg-error { color: var(--red); font-size: 0.8rem; margin-top: 8px; }
-    .header { background: var(--card); border-radius: var(--radius-lg); padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06); flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-    .user-info { display: flex; align-items: center; gap: 10px; } .avatar { width: 36px; height: 36px; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; }
-    .avatar.male { background: var(--blue); } .avatar.female { background: #d4869c; }
-    .username { font-weight: 600; color: var(--text); } .gold-display { color: var(--accent); font-weight: 600; }
-    .btn-icon { padding: 6px 12px; background: #f0ede6; border: none; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-family: inherit; white-space: nowrap; } .btn-icon:hover { opacity: 0.8; }
-    .btn-logout { background: var(--red); color: #fff; } .btn-fight-call { background: #2d3436; color: #f0c040; border: 2px solid var(--red); font-weight: 700; }
-    .farm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-    .plot-card { background: var(--card); border-radius: var(--radius-lg); padding: 14px; text-align: center; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; } .plot-card:hover { transform: translateY(-2px); }
-    .plot-card.empty { border-color: #d5cec0; } .plot-card.planted { border-color: #c5d5b0; } .plot-card.ready { border-color: #f0c040; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(240,192,64,0.4); } 50% { box-shadow: 0 0 0 12px rgba(240,192,64,0); } }
-    .plot-emoji { font-size: 2rem; } .plot-name { font-size: 0.8rem; } .plot-status { font-size: 0.7rem; color: #888; }
-    .progress-bar { width: 100%; height: 4px; background: #e9ecef; border-radius: 2px; overflow: hidden; margin-top: 4px; } .progress-fill { height: 100%; background: var(--green); }
-    .modal-overlay { display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: flex-start; padding-top: 60px; }
-    .modal { background: #fff; border-radius: var(--radius-lg); padding: 20px; width: 420px; max-width: 90vw; text-align: center; position: relative; max-height: 80vh; overflow-y: auto; } .modal h3 { color: var(--text); margin-bottom: 12px; }
-    .btn-close { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; background: #e8e0d5; border: none; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 24px; }
-    .crop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .crop-btn,.pet-btn { padding: 10px 4px; border: 2px solid #e0d8cc; border-radius: var(--radius-md); background: #fdfcf9; cursor: pointer; font-family: inherit; font-size: 0.85rem; text-align: center; } .crop-btn:hover,.pet-btn:hover { border-color: var(--accent); } .crop-btn:disabled,.pet-btn:disabled { opacity: 0.4; }
-    .btn-water { background: #6ba3be; color: #fff; border: none; border-radius: 20px; padding: 8px 24px; cursor: pointer; font-size: 0.9rem; }
-    .pet-card,.order-card { background: #fefdf9; border-radius: var(--radius-md); padding: 12px; margin: 8px 0; text-align: left; border: 1px solid #e0d8cc; }
-    .pet-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; } .pet-stats { font-size: 0.75rem; color: #666; } .pet-actions,.eq-actions { margin-top: 8px; display: flex; gap: 4px; flex-wrap: wrap; }
-    .btn-small { padding: 4px 10px; border: none; border-radius: 12px; cursor: pointer; font-size: 0.7rem; font-family: inherit; }
-    .btn-explore { background: #1976d2; color: #fff; } .btn-station,.btn-adopt-pet { background: var(--accent); color: #fff; } .btn-unstation { background: #aaa; color: #fff; }
-    .btn-accept { background: var(--green); color: #fff; } .btn-fight-small { background: var(--red); color: #fff; } .btn-view { background: #e67e22; color: #fff; } .btn-detail { background: #6c5ce7; color: #fff; }
-    .btn-enchant { background: #9b59b6; color: #fff; }
-    .synthesis-tabs,.backpack-tabs,.mail-tabs { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
-    .synth-tab,.bp-tab,.mail-tab { padding: 6px 10px; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 0.75rem; background: #fdfcf9; font-weight: 600; } .synth-tab.active,.bp-tab.active,.mail-tab.active { background: var(--accent); color: #fff; }
-    .recipe-card { background: #f9f6f0; border-radius: var(--radius-md); padding: 10px; margin: 6px 0; text-align: left; border-left: 4px solid var(--accent); } .recipe-mats,.recipe-cost { font-size: 0.75rem; }
-    .btn-synth { background: #8e44ad; color: #fff; border: none; border-radius: 12px; padding: 6px 14px; cursor: pointer; font-size: 0.75rem; margin-top: 6px; } .btn-synth:disabled { background: #aaa; }
-    .equipment-card { background: #f9f6f0; border-radius: var(--radius-md); padding: 10px; margin: 6px 0; text-align: left; border-left: 4px solid var(--accent); }
-    .equipment-card.quality-white { border-left-color: #ccc; } .equipment-card.quality-blue { border-left-color: var(--blue); } .equipment-card.quality-purple { border-left-color: #9b59b6; } .equipment-card.quality-gold { border-left-color: #f0c040; }
-    .btn-enhance { background: #e67e22; color: #fff; } .btn-equip { background: #6ba3be; color: #fff; } .btn-unequip { background: #aaa; color: #fff; } .btn-decompose { background: #e74c3c; color: #fff; } .btn-sell { background: #f39c12; color: #fff; }
-    .item-row { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #f0ede6; } .item-row.placeholder { opacity: 0.3; border: 1px dashed #d5cec0; border-radius: 8px; justify-content: center; } .item-row.clickable { cursor: pointer; background: #fef9f3; border-radius: 8px; }
-    .page-btn { padding: 4px 10px; border: none; border-radius: 12px; cursor: pointer; font-size: 0.7rem; background: #f0ede6; } .page-btn.current { background: var(--accent); color: #fff; font-weight: 700; } .page-btn:disabled { opacity: 0.4; }
-    .log-item { text-align: left; padding: 6px 8px; border-bottom: 1px solid #f0ede6; }
-    .battle-container { display: flex; justify-content: space-around; align-items: center; margin: 12px 0; } .battle-pet { text-align: center; }
-    .battle-hp { width: 80px; height: 10px; background: #e9ecef; border-radius: 5px; margin: 4px auto; } .battle-hp-fill { height: 100%; background: var(--green); transition: width 0.3s; }
-    .battle-log-box { background: #2d3436; color: #dfe6e9; border-radius: var(--radius-md); padding: 10px; height: 150px; overflow-y: auto; font-size: 0.75rem; margin: 8px 0; text-align: left; }
-    .battle-actions { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; } .battle-btn { padding: 8px 16px; border: none; border-radius: 20px; font-weight: 600; cursor: pointer; font-size: 0.8rem; } .battle-btn.attack { background: #e74c3c; color: #fff; } .battle-btn.defend { background: #3498db; color: #fff; } .battle-btn:disabled { opacity: 0.5; }
-    .buff-tag { display: inline-block; background: #f39c12; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 0.65rem; margin: 1px; }
-    .boss-card { background: linear-gradient(135deg,#fef9f3,#fdf0e0); border-radius: var(--radius-lg); padding: 12px; margin: 8px 0; border: 2px solid #f0c040; }
-    .elite-card { background: linear-gradient(135deg,#f5f0ff,#ede0f5); border-radius: var(--radius-lg); padding: 10px; margin: 6px 0; border: 2px solid #9b59b6; }
-    .route-card { background: #f9f6f0; border-radius: var(--radius-md); padding: 10px; margin: 6px 0; border-left: 4px solid #1976d2; cursor: pointer; } .route-card.locked { opacity: 0.5; cursor: not-allowed; border-left-color: #ccc; }
-    .monster-log-card { background: #fefdf9; border-radius: var(--radius-md); padding: 10px; margin: 6px 0; border-left: 3px solid var(--accent); }
-    .affix-tag { display: inline-block; background: #2d3436; color: #dfe6e9; border-radius: 4px; padding: 1px 5px; font-size: 0.6rem; margin: 1px 2px; } .affix-tag.unlocked { background: var(--green); }
-    .potion-option { display: flex; align-items: center; gap: 8px; padding: 8px; background: #fef9f3; border-radius: 8px; margin: 4px 0; cursor: pointer; border: 2px solid transparent; } .potion-option:hover { border-color: var(--accent); }
-    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #3d3929; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; z-index: 200; opacity: 0; transition: opacity 0.3s; pointer-events: none; } .toast.show { opacity: 1; }
-    .season-bar { background: linear-gradient(135deg,#1e3c2f,#2a5a3a); color:#f0e68c; border-radius:var(--radius-lg); padding:10px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 8px rgba(0,0,0,0.1); cursor:pointer; }
-    .season-title { font-weight:700; font-size:0.9rem; display:flex; align-items:center; gap:6px; }
-    .season-xp-bar { flex:1; height:8px; background:rgba(255,255,255,0.2); border-radius:4px; margin:0 12px; overflow:hidden; }
-    .season-xp-fill { height:100%; background:#f0e68c; border-radius:4px; transition:width 0.5s; }
-    .season-level { font-weight:700; font-size:0.8rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:10px; }
-    .quest-item { background:#fefdf9; border-radius:var(--radius-md); padding:10px; margin:6px 0; border-left:4px solid var(--accent); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .quest-progress { font-size:0.75rem; color:#888; white-space:nowrap; }
-    .btn-claim { background:#f0c040; color:#3d3929; border:none; border-radius:12px; padding:4px 12px; cursor:pointer; font-size:0.7rem; font-weight:600; font-family:inherit; } .btn-claim:disabled { opacity:0.5; cursor:not-allowed; }
-    .dynamic-price { font-size:0.7rem; color:#888; display:flex; align-items:center; gap:4px; margin-top:2px; }
-    .price-up { color:var(--red); } .price-down { color:var(--green); } .price-stable { color:#888; }
-    @media (max-width: 600px) { .farm-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; } .plot-card { min-height: 90px; padding: 8px; } .btn-icon { padding: 5px 8px; font-size: 0.7rem; } }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", "STKaiti", sans-serif;
+      background: #2c3e50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    #app {
+      width: 420px;
+      max-width: 100%;
+      background: var(--bg);
+      border-radius: 30px;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      height: 95vh;
+      max-height: 850px;
+      position: relative;
+    }
+    .top-bar {
+      background: linear-gradient(180deg, #ffd700 0%, #f0b800 100%);
+      color: #3e2723;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 16px;
+      border-bottom: 3px solid #e6a800;
+      font-weight: bold;
+    }
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      background: #fef9e7;
+    }
+    .bottom-nav {
+      display: flex;
+      background: #fff8e7;
+      border-top: 3px solid #f1c40f;
+    }
+    .bottom-nav button {
+      flex: 1;
+      padding: 14px 4px;
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      cursor: pointer;
+      color: #8b5a2b;
+      transition: 0.2s;
+    }
+    .bottom-nav button:active {
+      background: #fdebd0;
+    }
+    .btn {
+      background: linear-gradient(180deg, #f1c40f, #d4ac0d);
+      border: none;
+      color: #2c3e50;
+      padding: 12px 20px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 18px;
+      cursor: pointer;
+      margin: 6px 4px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: all 0.1s;
+    }
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+    .btn.red {
+      background: linear-gradient(180deg, #e74c3c, #c0392b);
+      color: white;
+    }
+    .btn.jade {
+      background: linear-gradient(180deg, #8fbc8f, #5a7d5a);
+      color: white;
+    }
+    .card {
+      background: rgba(255,255,250,0.9);
+      border: 2px solid #f1c40f;
+      border-radius: 20px;
+      padding: 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    .pet-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .pet-emoji {
+      font-size: 40px;
+    }
+    .hp-bar {
+      height: 10px;
+      background: #ddd;
+      border-radius: 5px;
+      margin: 4px 0;
+      overflow: hidden;
+    }
+    .hp-fill {
+      height: 100%;
+      width: 100%;
+      background: #2ecc71;
+      transition: width 0.3s;
+    }
+    .exp-bar {
+      height: 6px;
+      background: #ddd;
+      border-radius: 3px;
+      margin: 3px 0;
+    }
+    .exp-fill {
+      height: 100%;
+      background: #3498db;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    .modal-content {
+      width: 90%;
+      max-width: 380px;
+      background: #fffef5;
+      border-radius: 30px;
+      padding: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .word-btn {
+      background: #fdebd0;
+      border: 2px solid #f1c40f;
+      border-radius: 15px;
+      padding: 10px 15px;
+      font-size: 24px;
+      margin: 5px;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .word-btn:active {
+      background: #f1c40f;
+      color: white;
+    }
+    .toast {
+      position: absolute;
+      top: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #f1c40f;
+      padding: 8px 20px;
+      border-radius: 20px;
+      z-index: 300;
+      animation: fadeInOut 2s ease;
+    }
+    @keyframes fadeInOut {
+      0%{opacity:0;transform:translateX(-50%) translateY(-10px);}
+      10%{opacity:1;transform:translateX(-50%) translateY(0);}
+      90%{opacity:1;}
+      100%{opacity:0;}
+    }
+    .learning-card {
+      background: #fffae6;
+      border: 2px dashed #f1c40f;
+      border-radius: 20px;
+      padding: 15px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 <div id="app">
-  <!-- 认证界面 -->
-  <div v-if="!isLoggedIn" class="auth-form">
-    <h1>🌱 麦田守护者 v8.0</h1>
-    <p style="color:#888;margin-bottom:16px;">全功能修复版 · 无需额外RPC</p>
-    <div class="auth-tabs"><button class="auth-tab" :class="{active:authMode==='login'}" @click="authMode='login'">登录</button><button class="auth-tab" :class="{active:authMode==='register'}" @click="authMode='register'">注册</button></div>
-    <div v-if="authMode==='login'"><div class="form-group"><label>邮箱</label><input type="email" v-model="loginEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="loginPassword"></div><button class="btn-primary" @click="handleLogin" :disabled="loading">登录农场</button></div>
-    <div v-else><div class="form-group"><label>昵称</label><input type="text" v-model="regUsername" maxlength="12"></div><div class="form-group"><label>邮箱</label><input type="email" v-model="regEmail"></div><div class="form-group"><label>密码</label><input type="password" v-model="regPassword"></div><div class="form-group"><label>性别</label><select v-model="regGender"><option value="none">不透露</option><option value="male">男士</option><option value="female">女士</option></select></div><button class="btn-primary" @click="handleRegister" :disabled="loading">注册并进入农场</button></div>
-    <p class="msg-error" v-if="errorMsg">{{errorMsg}}</p>
-  </div>
-  <!-- 战斗界面 -->
-  <div v-else-if="battle">
-    <div class="header"><span>⚔️ {{battle.opponentName}}</span><button class="btn-icon btn-logout" @click="fleeBattle">逃跑</button></div>
-    <div class="battle-container">
-      <div class="battle-pet"><div style="font-size:2rem;">{{getPetEmoji(battle.myPet?.pet_type)}}</div><div>{{battle.myPet?.pet_name}} Lv.{{battle.myPet?.level}}</div><div class="battle-hp"><div class="battle-hp-fill" :style="{width:battle.myHpPct+'%'}"></div></div><div>❤️{{battle.myCurrentHp}}/{{battle.myPet?.hp}}</div><div style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div :style="{width:battle.myEnergyPct+'%',height:'100%',background:'#f0c040',borderRadius:'3px'}"></div></div><div style="font-size:0.65rem;">⚡{{battle.myEnergy}}/10</div></div>
-      <div>VS</div>
-      <div class="battle-pet"><div style="font-size:2rem;">{{battle.opponentPet?.emoji||'👾'}}</div><div>{{battle.opponentPet?.pet_name}}</div><div class="battle-hp"><div class="battle-hp-fill" :style="{width:battle.oppHpPct+'%'}"></div></div><div>❤️{{battle.opponentCurrentHp}}/{{battle.opponentPet?.hp}}</div>
-        <div v-if="battle.opponentPet?.skills && battle.opponentPet.skills.length" style="width:80px;height:6px;background:#444;border-radius:3px;margin:4px auto;"><div :style="{width:battle.oppEnergyPct+'%',height:'100%',background:'#e74c3c',borderRadius:'3px'}"></div></div>
-        <div v-if="battle.opponentPet?.skills && battle.opponentPet.skills.length" style="font-size:0.65rem;color:#e74c3c;">🔥{{battle.opponentEnergy}}/{{battle.oppMaxEnergy||10}}</div>
-      </div>
-    </div>
-    <div class="battle-log-box" v-html="battle.logHTML"></div>
-    <div class="battle-actions"><button class="battle-btn attack" @click="doBattleAction('attack')" :disabled="battle.processing">⚔️攻击</button><button class="battle-btn defend" @click="doBattleAction('defend')" :disabled="battle.processing">🛡️防御</button></div>
-  </div>
-  <!-- 农场主界面 -->
-  <div v-else>
-    <div class="season-bar" @click="showSeasonModal = true">
-      <div class="season-title"><span>💧 {{ seasonState?.title || '生命之泉' }}</span></div>
-      <div class="season-xp-bar"><div class="season-xp-fill" :style="{width: seasonXpPercent + '%'}"></div></div>
-      <div class="season-level">Lv.{{ seasonState?.level || 1 }}</div>
-    </div>
-    <div class="header"><div class="user-info"><div class="avatar" :class="profile.gender||'none'">{{initial}}</div><div><div class="username">{{profile.username}}</div><div class="gold-display">🪙 {{profile.gold}}</div></div></div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn-icon" @click="showPetsModal=true">🐾</button><button class="btn-icon" @click="showBackpackModal=true">🎒</button><button class="btn-icon" @click="showSynthesisModal=true">🔧</button><button class="btn-icon" @click="showEquipmentModal=true">⚔️</button><button class="btn-icon btn-fight-call" @click="showSelectPetForBattle()">🐉讨伐</button><button class="btn-icon" @click="showExploreModal=true;exploringPet=null">🗺️</button><button class="btn-icon" @click="showOrdersModal=true">📦</button><button class="btn-icon" @click="showSeedShopModal=true;loadMarketDynamic();marketTab='seeds'">🏪</button><button class="btn-icon" @click="showMailModal=true;loadMails()">📬</button><button class="btn-icon" @click="showMonsterLogModal=true">📖</button><button class="btn-icon" @click="openEventLog">📋</button><button class="btn-icon" @click="showLeaderboardModal=true;lbTab='global';loadLeaderboard()">🏆</button><button class="btn-icon" @click="showFriendsModal=true">👥</button><button class="btn-icon" @click="refreshFarm">🔄</button><button class="btn-icon btn-logout" @click="handleLogout">退出</button></div></div>
-    <div class="farm-grid"><div v-for="plot in visiblePlots" :key="plot.plot_index" class="plot-card" :class="getPlotClass(plot)" @click="onPlotClick(plot)"><div class="plot-emoji">{{getPlotEmoji(plot)}}</div><div class="plot-name">{{getPlotName(plot)}}</div><div class="plot-status" v-html="getPlotStatus(plot)"></div><div class="progress-bar" v-if="plot._status==='growing'"><div class="progress-fill" :style="{width:plot._progress+'%'}"></div></div></div></div>
+  <div v-if="toast.show" class="toast">{{ toast.message }}</div>
+
+  <!-- 顶部状态栏 -->
+  <div class="top-bar">
+    <span>🌟 {{ username || '小园丁' }}</span>
+    <span>⭐ {{ stars }}</span>
   </div>
 
-  <!-- 弹窗模板（剩余部分将在消息2和3中提供） -->
-  <div v-if="showPlantModal" class="modal-overlay" @click.self="showPlantModal=false"><div class="modal"><h3>🌱选择作物</h3>
-    <div v-if="availableCrops.length===0" style="padding:20px;color:#888;"><p style="font-size:2rem;">🌰</p><p>背包里没有种子</p><p style="font-size:0.8rem;">去🏪种子商店购买，或让宠物🗺️探险获取</p></div>
-    <div v-else class="crop-grid"><button v-for="crop in availableCrops" :key="crop.key" class="crop-btn" :disabled="profile.gold<crop.seed" @click="doPlant(crop)"><div style="font-size:2rem;">{{crop.emoji}}</div><div>{{crop.name}}</div><div style="font-size:0.7rem;">🪙{{crop.seed}} ⏱{{crop.growth}}分</div></button></div>
-  <button class="btn-close" @click="showPlantModal=false">×</button></div></div>
-  <div v-if="showWaterModal" class="modal-overlay" @click.self="showWaterModal=false"><div class="modal"><h3>💧浇水</h3><p>{{waterPlotName}}正在生长</p><button class="btn-water" @click="doWater">浇水</button><button class="btn-close" @click="showWaterModal=false">×</button></div></div>
-  <!-- 更多弹窗将在消息2和3中继续 -->
-  <div v-if="showPetsModal" class="modal-overlay" @click.self="showPetsModal=false"><div class="modal"><h3>🐾宠物({{pets.length}}/{{profile.pet_slots}})</h3>
-    <div v-if="pets.length===0"><p>还没有宠物</p><button class="btn-small btn-adopt-pet" @click="showAdoptModal=true">🐾领养</button></div>
-    <div v-else><div v-for="pet in pets" :key="pet.id" class="pet-card"><div class="pet-header"><span style="font-size:1.8rem;">{{getPetEmoji(pet.pet_type)}}</span><div><strong>#{{pet.id}} {{pet.pet_name}}</strong> Lv.{{pet.level}}</div></div><div class="pet-stats">❤️{{getPetStats(pet).hp}} ⚔️{{getPetStats(pet).atk}} 🛡️{{getPetStats(pet).def}} ⚡{{getPetStats(pet).spd}} 🍀{{getPetStats(pet).luk}} 💪{{getPetStats(pet).sta}}</div><div class="pet-actions"><button v-if="!pet.exploring_until" class="btn-small btn-explore" @click="openExplore(pet)">🗺️探险</button><button v-else-if="new Date(pet.exploring_until)<=new Date()" class="btn-small btn-view" @click="completeExplore(pet)">查看收获</button><button v-else class="btn-small" disabled>探险中</button><button v-if="isStationed(pet)" class="btn-small btn-unstation" @click="toggleStation(pet)">取消驻扎</button><button v-else class="btn-small btn-station" @click="toggleStation(pet)">🏠驻扎</button><button class="btn-small btn-detail" @click="openPetDetail(pet)">📊属性</button></div></div><button v-if="pets.length<profile.pet_slots" class="btn-small btn-adopt-pet" @click="showAdoptModal=true">🐾领养新宠物</button></div><button class="btn-close" @click="showPetsModal=false">×</button></div></div>
-  <div v-if="showAdoptModal" class="modal-overlay" @click.self="showAdoptModal=false"><div class="modal"><h3>选择宠物</h3><div v-for="(info,key) in PET_TYPES" :key="key" class="pet-btn" @click="doAdopt(key)"><div style="font-size:2rem;">{{info.emoji}}</div><div>{{info.name}}</div></div><button class="btn-close" @click="showAdoptModal=false">×</button></div></div>
-  <div v-if="showExploreModal" class="modal-overlay" @click.self="showExploreModal=false"><div class="modal"><h3>🗺️探险</h3><p v-if="exploringPet">{{exploringPet.pet_name}} Lv.{{exploringPet.level}}</p><p v-else>选择宠物</p><div v-if="!exploringPet"><div v-for="pet in pets.filter(p=>!p.exploring_until||new Date(p.exploring_until)<=new Date())" :key="pet.id" class="pet-btn" @click="exploringPet=pet">{{getPetEmoji(pet.pet_type)}} {{pet.pet_name}} Lv.{{pet.level}}</div></div><div v-else><div v-for="route in EXPLORE_ROUTES" :key="route.id" class="pet-btn" :style="{opacity:exploringPet.level>=route.minLevel?1:0.5}" @click="doExplore(route)"><strong>{{route.emoji}}{{route.name}}</strong> 🪙{{route.cost}}</div></div><button class="btn-close" @click="showExploreModal=false">×</button></div></div>
-  <div v-if="showSynthesisModal" class="modal-overlay" @click.self="showSynthesisModal=false"><div class="modal"><h3>🔧合成台（图纸装备）</h3><div class="synthesis-tabs"><button class="synth-tab" :class="{active:synthTab==='equipment'}" @click="synthTab='equipment'">图纸装备</button><button class="synth-tab" :class="{active:synthTab==='food'}" @click="synthTab='food'">食品</button><button class="synth-tab" :class="{active:synthTab==='potion'}" @click="synthTab='potion'">药剂</button></div><div v-for="(recipe,idx) in currentRecipes" :key="idx" class="recipe-card"><strong>{{recipe.icon||''}}{{recipe.label||ITEM_NAMES[recipe.name]||recipe.name}}</strong><span v-if="recipe.set_name" style="font-size:0.7rem;color:#6c5ce7;">[{{recipe.set_name}}]</span><span v-if="recipe.quality" style="font-size:0.7rem;">-{{QUALITY_NAMES[recipe.quality]}}</span><div v-if="recipe.blueprint" style="font-size:0.7rem;color:#f0c040;">📜需要图纸：{{ITEM_NAMES[recipe.blueprint]||recipe.blueprint}} (拥有:{{items[recipe.blueprint]||0}})</div><div class="recipe-mats">材料：{{formatMats(recipe.materials)}}</div><div class="recipe-cost">费用：🪙{{recipe.cost}}</div><button class="btn-synth" :disabled="!canCraft(recipe)||(recipe.blueprint&&(items[recipe.blueprint]||0)<1)" @click="doSynthesize(recipe,idx)">{{canCraft(recipe)&&(!recipe.blueprint||(items[recipe.blueprint]||0)>=1)?'合成':'材料不足'}}</button></div><button class="btn-close" @click="showSynthesisModal=false">×</button></div></div>
-  <div v-if="showEquipmentModal" class="modal-overlay" @click.self="showEquipmentModal=false"><div class="modal"><h3>⚔️装备</h3><div v-if="equipment.length===0"><p>还没有装备</p></div><div v-for="eq in equipment" :key="eq.id" class="equipment-card" :class="'quality-'+(eq.quality||'white')"><strong>{{eq.name}}</strong> +{{eq.enhance_level||0}} ({{QUALITY_NAMES[eq.quality]||'普通'}})<div style="font-size:0.75rem;">攻+{{eq.atk_bonus}} 防+{{eq.def_bonus}} 幸+{{eq.luk_bonus}} | 装备于：{{getEquippedPetName(eq)}}</div><div v-if="eq.enchants&&eq.enchants.length" style="font-size:0.7rem;color:#9b59b6;">✨附魔：<span v-for="(e,i) in eq.enchants" :key="i">{{e.name}}+{{e.value}}{{i<eq.enchants.length-1?'、':''}}</span></div><div v-if="eq.set_name" style="font-size:0.7rem;color:#6c5ce7;">套装：{{eq.set_name}} ({{getSetCount(eq.set_name)}}/3件) <span v-if="getSetCount(eq.set_name)>=2">{{getSetBonusText(eq.set_name)}}</span></div><div class="eq-actions"><button v-if="!eq.equipped_to&&(eq.enhance_level||0)<10" class="btn-small btn-enhance" @click="doEnhance(eq)">强化</button><button v-if="!eq.equipped_to" class="btn-small btn-enchant" @click="openEnchant(eq)">附魔</button><button v-if="!eq.equipped_to" class="btn-small btn-equip" @click="openEquipSelect(eq)">装备</button><button v-if="eq.equipped_to" class="btn-small btn-unequip" @click="doUnequip(eq)">卸下</button><button v-if="!eq.equipped_to" class="btn-small btn-decompose" @click="doDecompose(eq)">分解</button><button v-if="!eq.equipped_to" class="btn-small btn-sell" @click="doSell(eq)">出售</button></div></div><button class="btn-close" @click="showEquipmentModal=false">×</button></div></div>
-  <div v-if="showEquipSelectModal" class="modal-overlay" @click.self="showEquipSelectModal=false"><div class="modal"><h3>选择宠物</h3><div v-for="pet in pets" :key="pet.id" class="pet-btn" @click="doEquip(equippingItem,pet)">{{getPetEmoji(pet.pet_type)}} #{{pet.id}} {{pet.pet_name}}</div><button class="btn-close" @click="showEquipSelectModal=false">×</button></div></div>
-  <div v-if="showEnchantModal" class="modal-overlay" @click.self="showEnchantModal=false"><div class="modal" style="width:420px;"><h3>✨ 装备附魔</h3><div v-if="enchantingItem" style="text-align:left;"><p><strong>{{enchantingItem.name}}</strong> +{{enchantingItem.enhance_level||0}} ({{QUALITY_NAMES[enchantingItem.quality]||'普通'}})</p><p style="font-size:0.75rem;">已附魔：{{(enchantingItem.enchants||[]).length}}/5条 <span style="color:#e74c3c;">(同属性覆盖)</span></p><div v-if="enchantingItem.enchants&&enchantingItem.enchants.length" style="font-size:0.75rem;color:#9b59b6;margin:4px 0;">当前：<span v-for="(e,i) in enchantingItem.enchants" :key="i">{{e.name}}+{{e.value}}{{i<enchantingItem.enchants.length-1?'、':''}}</span></div><p style="font-weight:600;margin:12px 0;">选择附魔材料：</p><div v-for="(mat,idx) in ENCHANT_MATERIALS" :key="idx" class="pet-card" style="cursor:pointer;display:flex;align-items:center;gap:8px;" @click="enchantEquipment(enchantingItem,idx)"><span style="font-size:1.5rem;">{{ITEM_EMOJI[mat.name]||'📦'}}</span><span style="flex:1;">{{ITEM_NAMES[mat.name]||mat.name}} ×{{mat.qty}}</span><span>🪙{{mat.cost}}</span><span style="font-size:0.7rem;color:#888;">→随机属性</span></div></div><button class="btn-close" @click="showEnchantModal=false">×</button></div></div>
-  <div v-if="showBackpackModal" class="modal-overlay" @click.self="showBackpackModal=false"><div class="modal"><h3>🎒背包</h3><div class="backpack-tabs"><button class="bp-tab" :class="{active:bpTab==='all'}" @click="bpTab='all';bpPage=1">全部</button><button class="bp-tab" :class="{active:bpTab==='material'}" @click="bpTab='material';bpPage=1">材料</button><button class="bp-tab" :class="{active:bpTab==='seed'}" @click="bpTab='seed';bpPage=1">种子</button><button class="bp-tab" :class="{active:bpTab==='crop'}" @click="bpTab='crop';bpPage=1">作物</button><button class="bp-tab" :class="{active:bpTab==='tool'}" @click="bpTab='tool';bpPage=1">道具</button></div><div style="min-height:300px;"><div class="item-row" style="background:#fef9f3;border-radius:10px;padding:10px;font-weight:600;"><span>🪙</span><span style="flex:1;">金币</span><span style="color:var(--accent);">{{profile.gold}}</span></div><div v-for="item in bpPageItems" :key="item.key" class="item-row" :class="{clickable:item.isBook||item.isPotion}" @click="onBackpackItemClick(item)"><span>{{item.emoji}}</span><span style="flex:1;">{{item.name}}</span><span>×{{item.qty}}</span></div><div v-for="i in bpPlaceholders" :key="'ph'+i" class="item-row placeholder"><span>─</span><span style="flex:1;">空位</span><span>─</span></div></div><div v-if="bpTotalPages>1" style="display:flex;justify-content:center;gap:6px;margin-top:12px;"><button class="page-btn" :disabled="bpPage<=1" @click="bpPage--">‹</button><button v-for="p in bpTotalPages" :key="p" class="page-btn" :class="{current:p===bpPage}" @click="bpPage=p">{{p}}</button><button class="page-btn" :disabled="bpPage>=bpTotalPages" @click="bpPage++">›</button></div><button class="btn-close" @click="showBackpackModal=false">×</button></div></div>
-  <div v-if="showPveModal" class="modal-overlay" @click.self="showPveModal=false"><div class="modal"><h3>🐉怪物讨伐</h3><div v-if="pveMonsters.length>0"><div v-for="mon in pveMonsters" :key="mon.name" style="cursor:pointer;" @click="startPveBattle(mon)"><div :class="mon.isElite?'elite-card':(mon.isBoss?'boss-card':'pet-card')"><strong>{{mon.emoji}}{{mon.name}}</strong> Lv.{{mon.minLevel}}~{{mon.maxLevel}}<span v-if="mon.isBoss" style="color:#e74c3c;"> 👑BOSS</span></div></div><button class="btn-icon" @click="showPveMaps()" style="margin-top:8px;">←返回地图</button></div><div v-else-if="pveMaps.length>0"><div v-for="map in pveMaps" :key="map.id" class="route-card" :class="{locked:!map.unlocked}" :style="{background:map.bg}" @click="map.unlocked&&openPveMap(map)"><strong>{{map.emoji}}{{map.name}}</strong> Lv.{{map.minLevel}}~{{map.maxLevel}}<div v-if="!map.unlocked" style="color:var(--red);font-size:0.7rem;">🔒{{map.unlockDesc}}</div></div></div><p v-else>暂无可讨伐的怪物</p><button class="btn-close" @click="showPveModal=false">×</button></div></div>
-  <div v-if="showOrdersModal" class="modal-overlay" @click.self="showOrdersModal=false"><div class="modal"><h3>📦每日订单</h3><div v-if="!orders||orders.length===0"><p>暂无订单</p></div><div v-for="(order,idx) in orders" :key="idx" class="order-card"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:2rem;">{{getCropEmoji(order.crop)}}</span><div style="flex:1;"><strong>{{getCropName(order.crop)}}×{{order.amount}}</strong><div style="font-size:0.7rem;">奖励：🪙{{order.rewardGold}} + 🎫×{{order.rewardTicket}}</div></div><button class="btn-small btn-accept" :disabled="(items[order.crop]||0)<order.amount" @click="submitOrder(idx)">{{(items[order.crop]||0)>=order.amount?'提交':'不足'}}</button></div></div><button class="btn-close" @click="showOrdersModal=false">×</button></div></div>
-  <div v-if="showSeedShopModal" class="modal-overlay" @click.self="showSeedShopModal=false"><div class="modal" style="width:460px;"><h3>🏪 交易行</h3><div class="mail-tabs"><button class="mail-tab" :class="{active:marketTab==='seeds'}" @click="marketTab='seeds'">🌱种子商店</button><button class="mail-tab" :class="{active:marketTab==='listings'}" @click="marketTab='listings';loadMarketDynamic()">📦玩家寄售</button><button class="mail-tab" :class="{active:marketTab==='sell'}" @click="marketTab='sell'">💰快速出售</button></div><div v-if="marketTab==='seeds'"><p style="font-size:0.75rem;color:#888;">系统每日随机寄售种子（每日5种，价格受供需影响）</p><div v-if="marketSeedShop.length===0"><p>暂无种子</p></div><div v-for="s in marketSeedShop" :key="s.id" class="pet-card" style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.5rem;">{{ITEM_EMOJI[s.seed_type]||'🌰'}}</span><span style="flex:1;">{{ITEM_NAMES[s.seed_type]||s.seed_type}}<span class="dynamic-price" :class="{'price-up': s.price > (s.base_price||s.price)*1.1, 'price-down': s.price < (s.base_price||s.price)*0.9}">{{ s.price > (s.base_price||s.price)*1.1 ? '📈' : (s.price < (s.base_price||s.price)*0.9 ? '📉' : '➡️') }} 🪙{{s.price}}</span></span><button class="btn-small btn-adopt-pet" :disabled="profile.gold < s.price" @click="buyMarketSeed(s)">购买</button></div></div><div v-if="marketTab==='listings'"><div v-if="marketListings.length===0"><p>暂无玩家挂单</p></div><div v-for="l in marketListings" :key="l.id" class="pet-card" style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.5rem;">{{ITEM_EMOJI[l.item_type]||'📦'}}</span><span style="flex:1;">{{ITEM_NAMES[l.item_type]||l.item_type}} ×{{l.quantity}}</span><span>🪙{{l.price}}/个</span><button class="btn-small btn-accept" :disabled="profile.gold < l.price" @click="buyListing(l)">购买</button></div></div><div v-if="marketTab==='sell'"><p style="font-size:0.75rem;color:#888;">以最低价快速卖给系统（影响种子商店价格）</p><div v-for="(qty, itemType) in items" :key="itemType"><div v-if="CROPS[itemType] && qty > 0" class="pet-card" style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.5rem;">{{ITEM_EMOJI[itemType]||'📦'}}</span><span style="flex:1;">{{ITEM_NAMES[itemType]||itemType}} ×{{qty}}</span><span>🪙{{Math.floor(CROPS[itemType].min/2)}}/个</span><button class="btn-small btn-sell" @click="quickSellDynamic(itemType)">出售</button></div></div></div><button class="btn-close" @click="showSeedShopModal=false">×</button></div></div>
-  <div v-if="showMailModal" class="modal-overlay" @click.self="showMailModal=false"><div class="modal"><h3>📬邮箱</h3><div class="mail-tabs"><button class="mail-tab" :class="{active:mailTab==='inbox'}" @click="mailTab='inbox'">收件箱</button><button class="mail-tab" :class="{active:mailTab==='compose'}" @click="mailTab='compose'">写邮件</button></div><div v-if="mailTab==='inbox'"><div v-if="!mails||mails.length===0"><p>收件箱为空</p></div><div v-for="(m,idx) in mails" :key="idx" class="order-card"><strong>{{m.title}}</strong><div style="font-size:0.75rem;">发件人：{{m.sender_name}}</div><div v-if="m.items" style="font-size:0.75rem;">附件：{{formatMailItems(m.items)}}</div><button v-if="!m.is_claimed&&m.items" class="btn-small btn-accept" @click="claimMail(m)">领取</button></div></div><div v-else-if="mailTab==='compose'"><div class="form-group"><label>收件人</label><input v-model="mailReceiver"></div><div class="form-group"><label>主题</label><input v-model="mailTitle"></div><div class="form-group"><label>内容</label><textarea v-model="mailContent" style="width:100%;height:60px;"></textarea></div><div class="form-group"><label>附件（每行：物品ID 数量）</label><textarea v-model="mailItemsText" style="width:100%;height:60px;" placeholder="例如：hair 3"></textarea></div><button class="btn-small btn-accept" @click="sendMail">发送</button></div><button class="btn-close" @click="showMailModal=false">×</button></div></div>
-  <div v-if="showEventLogModal" class="modal-overlay" @click.self="showEventLogModal=false"><div class="modal"><h3>📋事件日志</h3><div v-for="log in eventLogs" :key="log.id" class="log-item"><div style="font-size:0.7rem;color:#888;">{{formatTime(log.created_at)}}</div><div>{{formatEventMsg(log)}}</div></div><div v-if="eventLogs.length===0"><p>暂无记录</p></div><button class="btn-close" @click="showEventLogModal=false">×</button></div></div>
-  <div v-if="showFriendsModal" class="modal-overlay" @click.self="showFriendsModal=false"><div class="modal"><h3>👥好友</h3><div v-if="!friendProfiles||friendProfiles.length===0"><p>还没有好友</p></div><div v-for="f in friendProfiles" :key="f.id" class="pet-card" style="display:flex;align-items:center;gap:8px;"><span>{{(f.username||'?')[0]}}</span><span style="flex:1;">{{f.username}}</span><button class="btn-small btn-fight-small" @click="visitFriend(f)">访问</button></div><button class="btn-close" @click="showFriendsModal=false">×</button></div></div>
-  <div v-if="showFriendFarmModal" class="modal-overlay" @click.self="showFriendFarmModal=false"><div class="modal"><h3>🌾{{visitingFriend?.username}}的农场</h3><div v-for="plot in visitingPlots" :key="plot.plot_index" class="pet-card"><div v-if="!plot.crop_type">🟫空地</div><div v-else><span style="font-size:1.5rem;">{{getCropEmoji(plot.crop_type)}}</span><strong>{{getCropName(plot.crop_type)}}</strong><button v-if="getPlotClass(plot)==='ready'&&plot.stolen_count<2" class="btn-small btn-fight-small" @click="stealCrop(plot)">偷菜</button><button v-if="getPlotClass(plot)==='planted'" class="btn-small btn-water" @click="waterFriendPlot(plot)">浇水</button></div></div><button class="btn-close" @click="showFriendFarmModal=false">×</button></div></div>
-  <div v-if="showLeaderboardModal" class="modal-overlay" @click.self="showLeaderboardModal=false"><div class="modal"><h3>🏆排行榜</h3><div class="mail-tabs"><button class="mail-tab" :class="{active:lbTab==='global'}" @click="lbTab='global';loadLeaderboard()">全服</button><button class="mail-tab" :class="{active:lbTab==='friends'}" @click="lbTab='friends';loadLeaderboard()">好友</button><button class="mail-tab" :class="{active:lbTab==='pet'}" @click="lbTab='pet';loadLeaderboard()">宠物</button></div><div v-for="(p,idx) in lbRanked" :key="p.id" class="pet-card" style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;">{{(lbPage-1)*10+idx+1}}</span><span style="flex:1;">{{lbTab==='pet'?(p.pet_name+'('+(p.ownerName||'?')+')'):p.username}}</span><span>{{lbTab==='pet'?'战力'+p.power:'🪙'+p.gold}}</span><button v-if="lbTab!=='pet'&&p.id!==profile.id" class="btn-small btn-adopt-pet" @click="addFriend(p.id)">+好友</button></div><div v-if="lbTotalPages>1" style="display:flex;justify-content:center;gap:6px;margin-top:12px;"><button class="page-btn" :disabled="lbPage<=1" @click="lbPage--;loadLeaderboard()">‹</button><button v-for="p in lbTotalPages" :key="p" class="page-btn" :class="{current:p===lbPage}" @click="lbPage=p;loadLeaderboard()">{{p}}</button><button class="page-btn" :disabled="lbPage>=lbTotalPages" @click="lbPage++;loadLeaderboard()">›</button></div><button class="btn-close" @click="showLeaderboardModal=false">×</button></div></div>
-  <div v-if="showMonsterLogModal" class="modal-overlay" @click.self="showMonsterLogModal=false"><div class="modal"><h3>📖怪物图鉴</h3><div v-for="mon in ALL_MONSTERS" :key="mon.name" class="monster-log-card"><span style="font-size:1.5rem;">{{mon.emoji}}</span><strong>{{mon.name}}</strong><span style="font-size:0.75rem;">击杀：{{(monsterLog[mon.name]?.kills)||0}}</span></div><button class="btn-close" @click="showMonsterLogModal=false">×</button></div></div>
-  <div v-if="showPetDetailModal" class="modal-overlay" @click.self="showPetDetailModal=false"><div class="modal" style="text-align:left;"><h3 style="text-align:center;">📊宠物属性</h3><div v-if="petDetailData" style="font-size:0.85rem;"><p><strong>{{petDetailData.pet_name}}</strong> Lv.{{petDetailData.level}}</p><p>基础：❤️{{petDetailData.hp}} ⚔️{{petDetailData.atk}} 🛡️{{petDetailData.def}} ⚡{{petDetailData.spd}} 🍀{{petDetailData.luk}} 💪{{petDetailData.sta||50}}</p><p style="color:var(--accent);">最终：❤️{{getPetStats(petDetailData).hp}} ⚔️{{getPetStats(petDetailData).atk}} 🛡️{{getPetStats(petDetailData).def}} ⚡{{getPetStats(petDetailData).spd}} 🍀{{getPetStats(petDetailData).luk}} 💪{{getPetStats(petDetailData).sta}}</p><p>性格：{{PET_NATURES.find(n=>n.id===petDetailData.nature)?.name||'未知'}}</p><p>被动：{{PASSIVE_SKILLS[petDetailData.passive_skill]?.name||'无'}}</p><p>装备：{{equipment.filter(e=>e.equipped_to===petDetailData.id).map(e=>e.name+'+'+(e.enhance_level||0)).join(',')||'无'}}</p></div><button class="btn-close" @click="showPetDetailModal=false">×</button></div></div>
-  <div v-if="showPotionModal" class="modal-overlay" @click.self="showPotionModal=false"><div class="modal"><h3>🧪选择药剂</h3><p style="font-size:0.8rem;">在本次战斗中生效</p><div class="potion-option" @click="pendingPotion=null;showPotionModal=false;showPveMaps()"><span>🚫</span><span>不使用药剂</span></div><div v-for="pot in BATTLE_POTIONS" :key="pot.key" class="potion-option" :class="{used:(items[pot.key]||0)<=0}" @click="usePotion(pot)"><span>{{pot.emoji}}</span><span>{{pot.name}}</span><span style="font-size:0.7rem;">×{{items[pot.key]||0}}</span></div><button class="btn-close" @click="showPotionModal=false">×</button></div></div>
-  <div v-if="showSelectBattlePetModal" class="modal-overlay" @click.self="showSelectBattlePetModal=false"><div class="modal"><h3>选择出战宠物</h3><div v-for="pet in pets" :key="pet.id" class="pet-btn" @click="selectPetForBattle(pet)">{{getPetEmoji(pet.pet_type)}} #{{pet.id}} {{pet.pet_name}} Lv.{{pet.level}}</div><button class="btn-close" @click="showSelectBattlePetModal=false">×</button></div></div>
-  <div v-if="showSeasonModal" class="modal-overlay" @click.self="showSeasonModal=false"><div class="modal" style="width:460px;"><h3>💧 生命之泉 · 赛季通行证</h3><p style="font-size:0.85rem;margin-bottom:12px;">剩余 {{ seasonState?.remainingDays || 0 }} 天</p>
-    <div style="display:flex; gap:8px; overflow-x:auto; padding:8px 0; margin-bottom:16px;">
-      <div v-for="lvl in 10" :key="lvl" class="text-center" style="min-width:60px; opacity:0.4;" :class="{'opacity-100': lvl <= seasonState?.level}">
-        <div style="font-size:1.5rem;">{{ lvl <= 5 ? '🎁' : '👑' }}</div>
-        <div style="font-size:0.7rem;">Lv.{{ lvl }}</div>
+  <!-- 主界面 -->
+  <div class="main">
+    <!-- 花园主页 -->
+    <div v-if="view === 'garden'">
+      <div style="text-align: center; padding: 20px 0;">
+        <div style="font-size: 60px;">🌻</div>
+        <h2 style="color: #8b5a2b;">啾啾的知识花园</h2>
+        <p style="color: #6b8e4e;">今天你想玩什么？</p>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="learning-card" @click="view='farm'">
+          <div style="font-size: 40px;">🌱</div>
+          <strong>识字菜园</strong>
+          <p style="font-size: 12px;">浇水认字</p>
+        </div>
+        <div class="learning-card" @click="view='bakery'">
+          <div style="font-size: 40px;">🍪</div>
+          <strong>数学烘焙</strong>
+          <p style="font-size: 12px;">分饼干学数</p>
+        </div>
+        <div class="learning-card" @click="view='pets'">
+          <div style="font-size: 40px;">🐾</div>
+          <strong>英语伙伴</strong>
+          <p style="font-size: 12px;">摸宠物说单词</p>
+        </div>
+        <div class="learning-card" @click="view='adventure'">
+          <div style="font-size: 40px;">🔤</div>
+          <strong>字母森林</strong>
+          <p style="font-size: 12px;">拼读小怪兽</p>
+        </div>
       </div>
     </div>
-    <h4 style="text-align:left;margin:8px 0;">📋 赛季任务</h4>
-    <div v-if="seasonQuests.length === 0"><p style="color:#888;">暂无任务</p></div>
-    <div v-for="quest in seasonQuests" :key="quest.id" class="quest-item">
-      <div style="flex:1; text-align:left;">
-        <div style="font-size:0.8rem;font-weight:600;">{{ quest.desc }}</div>
-        <div class="quest-progress">{{ quest.current }}/{{ quest.target }}</div>
+
+    <!-- 识字菜园 (语文) -->
+    <div v-if="view === 'farm'">
+      <button class="btn" @click="view='garden'">← 回花园</button>
+      <h3>🌱 识字菜园</h3>
+      <div v-for="plant in farmPlots" :key="plant.id" class="card" style="display: flex; align-items: center; gap: 12px;">
+        <div style="font-size: 40px;">{{ plant.emoji }}</div>
+        <div style="flex: 1;">
+          <strong>{{ plant.name }}</strong>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: plant.water + '%', background: '#3498db'}"></div></div>
+          <p style="font-size: 12px;">💧 {{ plant.water }}%</p>
+        </div>
+        <button class="btn" @click="waterPlant(plant)" :disabled="plant.water >= 100">浇水识字</button>
       </div>
-      <button class="btn-claim" :disabled="quest.current < quest.target" @click="claimQuestReward(quest)">
-        {{ quest.current >= quest.target ? '领取' : '+' + quest.rewardXp + 'XP' }}
-      </button>
+      <p style="color: #888; margin-top: 12px;">点击“浇水识字”，选出正确的象形字就能让植物长大！</p>
     </div>
-    <button class="btn-close" @click="showSeasonModal=false">×</button></div></div>
-  <div class="toast" :class="{show:toastMsg}">{{toastMsg}}</div>
+
+    <!-- 数学烘焙 (数学) -->
+    <div v-if="view === 'bakery'">
+      <button class="btn" @click="view='garden'">← 回花园</button>
+      <h3>🍪 啾啾烘焙坊</h3>
+      <div class="card" style="text-align: center;">
+        <p style="font-size: 20px;">🐦 小鸟想请 <strong>{{ guestCount }}</strong> 位朋友吃饼干</p>
+        <p>请烤出刚好数量的饼干！</p>
+        <div style="display: flex; justify-content: center; gap: 8px; margin: 12px; flex-wrap: wrap;">
+          <span v-for="n in cookiesOnTray" :key="n" style="font-size: 32px;">🍪</span>
+          <span v-for="n in (guestCount - cookiesOnTray)" :key="'e'+n" style="font-size: 32px; opacity: 0.3;">🍪</span>
+        </div>
+        <div>
+          <button class="btn" @click="addCookie" :disabled="cookiesOnTray >= guestCount" style="font-size: 22px;">➕ 加一块</button>
+          <button class="btn red" @click="removeCookie" :disabled="cookiesOnTray <= 0">➖ 减一块</button>
+        </div>
+        <div v-if="cookiesOnTray === guestCount && guestCount > 0" style="margin-top: 12px;">
+          <p>🎉 数量刚好！现在分给朋友们：</p>
+          <p>每人分 <strong>{{ Math.floor(guestCount / 2) || 1 }}</strong> 块，需要几盘？</p>
+          <div style="display: flex; gap: 8px; justify-content: center; margin: 8px;">
+            <button class="btn" v-for="opt in divisionOptions" :key="opt" @click="checkDivision(opt)">{{ opt }} 盘</button>
+          </div>
+        </div>
+        <button class="btn" v-if="cookiesOnTray === guestCount && divisionSolved" @click="newGuest">再来一轮</button>
+      </div>
+    </div>
+
+    <!-- 英语宠物互动 (英语) -->
+    <div v-if="view === 'pets'">
+      <button class="btn" @click="view='garden'">← 回花园</button>
+      <h3>🐾 英语伙伴</h3>
+      <div v-for="pet in pets" :key="pet.id" class="card pet-card" @click="touchPet(pet)">
+        <div class="pet-emoji">{{ pet.emoji }}</div>
+        <div style="flex:1;">
+          <strong>{{ pet.name }}</strong>
+          <p style="font-size: 14px; color: #e67e22;">❤️ {{ pet.affection }}</p>
+          <div class="hp-bar"><div class="hp-fill" :style="{width: pet.affection + '%'}"></div></div>
+        </div>
+        <span style="font-size: 24px;">👆</span>
+      </div>
+      <p style="color: #888;">点击宠物，听听身体部位的英语吧！</p>
+    </div>
+
+    <!-- 字母森林 (拼读冒险) -->
+    <div v-if="view === 'adventure'">
+      <button class="btn" @click="view='garden'">← 回花园</button>
+      <h3>🔤 字母森林</h3>
+      <div v-if="!adventureActive" class="card" style="text-align: center;">
+        <p>森林里出现了字母小精灵！</p>
+        <p>打败它们，收集字母拼成单词吧。</p>
+        <button class="btn" @click="startAdventure">出发！</button>
+      </div>
+      <div v-else>
+        <div class="card" style="text-align: center;">
+          <div style="font-size: 60px;">{{ currentLetterSprite }}</div>
+          <p>字母小精灵 <strong>{{ currentLetter }}</strong></p>
+          <p>读音：<em>{{ letterSound }}</em></p>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
+            <input v-model="userLetterInput" placeholder="输入字母" maxlength="1" style="font-size: 24px; width: 80px; text-align: center; padding: 8px;" @keyup.enter="catchLetter">
+            <button class="btn" @click="catchLetter">✨ 捕捉</button>
+          </div>
+          <p v-if="catchFeedback">{{ catchFeedback }}</p>
+        </div>
+        <div v-if="collectedWord.length > 0" style="text-align: center; margin-top: 10px;">
+          <p>收集到的单词：<strong>{{ collectedWord }}</strong></p>
+          <div v-if="collectedWord === 'CAT'">
+            <div style="font-size: 50px;">🐱</div>
+            <p>太棒了！你拼出了 CAT！</p>
+            <button class="btn" @click="collectedWord='';adventureActive=false;">继续</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="bottom-nav">
+    <button @click="view='garden'">🏡 花园</button>
+    <button @click="view='farm'">🌱 菜园</button>
+    <button @click="view='bakery'">🍪 烘焙</button>
+    <button @click="view='pets'">🐾 宠物</button>
+    <button @click="view='adventure'">🔤 字母</button>
+  </div>
+
+  <!-- 识字浇水弹窗 -->
+  <div v-if="showWordChoice" class="modal" @click.self="showWordChoice=false">
+    <div class="modal-content">
+      <h3>💧 选出正确的字来浇水</h3>
+      <p style="font-size: 24px;">这是什么植物？</p>
+      <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+        <button class="word-btn" v-for="opt in currentWordOptions" :key="opt" @click="selectWord(opt)">{{ opt }}</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 宠物触摸弹窗 (英语部位) -->
+  <div v-if="showPetTouch" class="modal" @click.self="showPetTouch=false">
+    <div class="modal-content" style="text-align: center;">
+      <div style="font-size: 60px;">{{ touchedPet.emoji }}</div>
+      <h3>{{ touchedPet.name }}</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+        <button class="btn jade" @click="speakBodyPart('ear')">👂 Ear</button>
+        <button class="btn jade" @click="speakBodyPart('tail')">🐾 Tail</button>
+        <button class="btn jade" @click="speakBodyPart('nose')">👃 Nose</button>
+        <button class="btn jade" @click="speakBodyPart('paw')">🦶 Paw</button>
+      </div>
+      <p>点击按钮，听听英语怎么说，然后跟读吧！</p>
+      <button class="btn" @click="showPetTouch=false">抱抱结束</button>
+    </div>
+  </div>
 </div>
 
 <script>
-const { createApp, ref, reactive, computed, onUnmounted } = Vue;
-const supabaseUrl = 'https://siwacsnuminepetpxljh.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpd2Fjc251bWluZXBldHB4bGpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTcyMDAsImV4cCI6MjA5NDIzMzIwMH0.U4hMYHQiQr_LDLNbIR4yePDiJSIB1GNMb08InDasR9s';
-const db = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+  const { createApp, ref, reactive, computed, watch, onMounted } = Vue;
 
-// ======================== 游戏常量（完整） ========================
-const CROPS = {
-  strawberry:{name:'草莓',emoji:'🍓',seed:60,growth:12,min:100,max:140,type:'fruit',unlock:'初始'},
-  grape:{name:'葡萄',emoji:'🍇',seed:90,growth:18,min:150,max:220,type:'fruit',unlock:'初始'},
-  watermelon:{name:'西瓜',emoji:'🍉',seed:120,growth:22,min:200,max:300,type:'fruit',unlock:'探险'},
-  blueberry:{name:'蓝莓',emoji:'🫐',seed:80,growth:15,min:120,max:180,type:'fruit',unlock:'探险'},
-  apple:{name:'苹果',emoji:'🍎',seed:70,growth:14,min:110,max:160,type:'fruit',unlock:'探险'},
-  peach:{name:'桃子',emoji:'🍑',seed:85,growth:16,min:130,max:190,type:'fruit',unlock:'探险'},
-  orange:{name:'橘子',emoji:'🍊',seed:75,growth:13,min:110,max:170,type:'fruit',unlock:'探险'},
-  pineapple:{name:'菠萝',emoji:'🍍',seed:150,growth:28,min:250,max:380,type:'fruit',unlock:'探险'},
-  mango:{name:'芒果',emoji:'🥭',seed:140,growth:26,min:230,max:350,type:'fruit',unlock:'探险'},
-  cherry:{name:'樱桃',emoji:'🍒',seed:95,growth:16,min:140,max:210,type:'fruit',unlock:'探险'},
-  lemon:{name:'柠檬',emoji:'🍋',seed:85,growth:14,min:120,max:180,type:'fruit',unlock:'探险'},
-  banana:{name:'香蕉',emoji:'🍌',seed:110,growth:20,min:170,max:250,type:'fruit',unlock:'探险'},
-  pear:{name:'梨',emoji:'🍐',seed:75,growth:13,min:110,max:160,type:'fruit',unlock:'探险'},
-  kiwi:{name:'猕猴桃',emoji:'🥝',seed:100,growth:18,min:150,max:230,type:'fruit',unlock:'探险'},
-  melon:{name:'甜瓜',emoji:'🍈',seed:130,growth:24,min:210,max:320,type:'fruit',unlock:'探险'},
-  coconut:{name:'椰子',emoji:'🥥',seed:160,growth:30,min:280,max:420,type:'fruit',unlock:'探险'},
-  sunflower:{name:'向日葵',emoji:'🌻',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-  chrysanthemum:{name:'菊花',emoji:'🌼',seed:50,growth:10,min:80,max:120,type:'flower',unlock:'初始'},
-  tulip:{name:'郁金香',emoji:'🌷',seed:65,growth:12,min:100,max:150,type:'flower',unlock:'探险'},
-  clover:{name:'三叶草',emoji:'🍀',seed:40,growth:8,min:60,max:90,type:'flower',unlock:'探险'},
-  rose:{name:'玫瑰',emoji:'🌹',seed:100,growth:20,min:180,max:260,type:'flower',unlock:'探险'},
-  lily:{name:'百合',emoji:'🏵️',seed:90,growth:18,min:160,max:230,type:'flower',unlock:'探险'},
-  sakura:{name:'樱花',emoji:'🌸',seed:120,growth:22,min:200,max:300,type:'flower',unlock:'探险'},
-  lotus:{name:'荷花',emoji:'🪷',seed:110,growth:20,min:180,max:270,type:'flower',unlock:'战斗'},
-  cactus:{name:'仙人掌花',emoji:'🌵',seed:130,growth:24,min:200,max:320,type:'flower',unlock:'战斗'},
-  hibiscus:{name:'芙蓉',emoji:'🌺',seed:105,growth:19,min:160,max:240,type:'flower',unlock:'探险'},
-  white_flower:{name:'白花',emoji:'💮',seed:60,growth:11,min:90,max:140,type:'flower',unlock:'探险'},
-  herb:{name:'香草',emoji:'🌿',seed:55,growth:9,min:80,max:120,type:'flower',unlock:'探险'},
-  potted_plant:{name:'盆栽',emoji:'🪴',seed:140,growth:26,min:220,max:340,type:'flower',unlock:'战斗'},
-  carrot:{name:'胡萝卜',emoji:'🥕',seed:20,growth:8,min:50,max:80,type:'vegetable',unlock:'初始'},
-  tomato:{name:'番茄',emoji:'🍅',seed:40,growth:10,min:70,max:100,type:'vegetable',unlock:'初始'},
-  corn:{name:'玉米',emoji:'🌽',seed:80,growth:15,min:130,max:180,type:'vegetable',unlock:'初始'},
-  potato:{name:'土豆',emoji:'🥔',seed:30,growth:9,min:60,max:90,type:'vegetable',unlock:'初始'},
-  cabbage:{name:'白菜',emoji:'🥬',seed:35,growth:8,min:55,max:85,type:'vegetable',unlock:'初始'},
-  rice:{name:'水稻',emoji:'🌾',seed:100,growth:20,min:160,max:240,type:'vegetable',unlock:'战斗'},
-  pepper:{name:'辣椒',emoji:'🌶️',seed:70,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
-  cucumber:{name:'黄瓜',emoji:'🥒',seed:45,growth:10,min:70,max:110,type:'vegetable',unlock:'探险'},
-  onion:{name:'洋葱',emoji:'🧅',seed:50,growth:11,min:80,max:120,type:'vegetable',unlock:'探险'},
-  garlic:{name:'大蒜',emoji:'🧄',seed:55,growth:12,min:85,max:130,type:'vegetable',unlock:'探险'},
-  eggplant:{name:'茄子',emoji:'🍆',seed:65,growth:13,min:100,max:150,type:'vegetable',unlock:'探险'},
-  broccoli:{name:'西兰花',emoji:'🥦',seed:75,growth:14,min:120,max:180,type:'vegetable',unlock:'探险'},
-  green_pepper:{name:'青椒',emoji:'🫑',seed:60,growth:12,min:90,max:140,type:'vegetable',unlock:'探险'},
-  lettuce:{name:'生菜',emoji:'🥗',seed:40,growth:9,min:60,max:95,type:'vegetable',unlock:'探险'},
-  beans:{name:'豆子',emoji:'🫘',seed:50,growth:10,min:75,max:115,type:'vegetable',unlock:'探险'},
-  mushroom:{name:'蘑菇',emoji:'🍄',seed:45,growth:10,min:70,max:110,type:'special',unlock:'初始'},
-  peanut:{name:'花生',emoji:'🥜',seed:55,growth:12,min:90,max:130,type:'special',unlock:'初始'},
-  tea:{name:'茶树',emoji:'🍃',seed:200,growth:30,min:300,max:500,type:'special',unlock:'战斗'},
-  bamboo:{name:'竹子',emoji:'🎋',seed:80,growth:15,min:130,max:190,type:'special',unlock:'探险'},
-  chestnut:{name:'栗子',emoji:'🌰',seed:70,growth:14,min:110,max:170,type:'special',unlock:'探险'},
-  honey:{name:'蜂蜜',emoji:'🍯',seed:150,growth:25,min:230,max:380,type:'special',unlock:'探险'},
-  candy:{name:'糖果',emoji:'🍬',seed:120,growth:20,min:180,max:280,type:'special',unlock:'探险'},
-  chocolate:{name:'巧克力',emoji:'🍫',seed:160,growth:26,min:250,max:400,type:'special',unlock:'战斗'},
-  spice:{name:'香料',emoji:'🧂',seed:90,growth:16,min:140,max:210,type:'special',unlock:'探险'},
-  pumpkin:{name:'南瓜',emoji:'🎃',seed:130,growth:24,min:200,max:320,type:'special',unlock:'探险'},
-  sweet_potato:{name:'红薯',emoji:'🍠',seed:60,growth:11,min:90,max:140,type:'special',unlock:'探险'}
-};
-const DEFAULT_CROPS = Object.entries(CROPS).filter(([k,v])=>v.unlock==='初始').map(([k,v])=>({key:k,...v}));
-const PET_TYPES = {
-  cat:{name:'橘猫',emoji:'🐱',cost:50,time:2,baseAttr:{hp:90,atk:18,def:6,spd:12,luk:8,sta:60}},
-  dog:{name:'柴犬',emoji:'🐶',cost:80,time:3,baseAttr:{hp:120,atk:15,def:8,spd:8,luk:5,sta:80}},
-  rabbit:{name:'兔子',emoji:'🐰',cost:30,time:1.5,baseAttr:{hp:70,atk:15,def:5,spd:18,luk:12,sta:40}}
-};
-const PET_NATURES = [
-  {id:'brave',name:'勇敢',atk_bonus:0.1,spd_penalty:-0.1},
-  {id:'calm',name:'沉稳',def_bonus:0.1,atk_penalty:-0.1},
-  {id:'hasty',name:'急躁',spd_bonus:0.1,def_penalty:-0.1},
-  {id:'tough',name:'顽强',hp_bonus:0.1,luk_penalty:-0.1},
-  {id:'lucky',name:'幸运',luk_bonus:0.1,sta_penalty:-0.1},
-  {id:'energetic',name:'活力',sta_bonus:0.1,hp_penalty:-0.1},
-  {id:'balanced',name:'均衡'}
-];
-const PASSIVE_SKILLS = {
-  fire_soul:{name:'炎之魂',desc:'火系伤害+20%',atk_bonus:0.2},
-  brave:{name:'勇猛',desc:'攻击力+15%，防御力-10%',atk_bonus:0.15,def_penalty:0.1},
-  regen:{name:'再生',desc:'每回合回复3%最大HP'},
-  lucky:{name:'幸运儿',desc:'暴击率+10%，掉落奖励+20%'}
-};
-const EXPLORE_ROUTES = [
-  {id:'grassland',name:'草地小径',emoji:'🌿',time:0.5,cost:20,minLevel:1,materials:{hair:2,seed:1,dew:0.5},rareItem:'dew',rareProb:0.1,eventProb:0.1,eventName:'遇到受伤小动物',eventReward:'gold50',exp:20},
-  {id:'forest',name:'森林探索',emoji:'🌲',time:1,cost:40,minLevel:5,materials:{hair:3,ore:1.5,relic:0.3},rareItem:'relic',rareProb:0.15,eventProb:0.15,eventName:'发现宝箱',eventReward:'extra_materials',exp:40},
-  {id:'mine',name:'矿洞挖掘',emoji:'💎',time:2,cost:80,minLevel:10,materials:{ore:3,relic:1.5,moonstone:0.5},rareItem:'moonstone',rareProb:0.2,eventProb:0.2,eventName:'挖到矿石脉',eventReward:'double_materials',exp:80},
-  {id:'ruins',name:'遗迹探险',emoji:'🏛️',time:3,cost:150,minLevel:15,materials:{relic:3,feather:1.5,scale:0.5},rareItem:'scale',rareProb:0.25,eventProb:0.25,eventName:'触发古老机关',eventReward:'rare_material',exp:150},
-  {id:'dragon',name:'龙巢秘境',emoji:'🐉',time:4,cost:300,minLevel:20,materials:{feather:3,scale:2,dragon_soul:0.5},rareItem:'dragon_soul',rareProb:0.3,eventProb:0.3,eventName:'龙魂祝福',eventReward:'bonus_exp',exp:300},
-  {id:'night',name:'暗夜森林',emoji:'🌙',time:2,cost:100,minLevel:10,materials:{dew:3,clover:1.5,feather:0.5},rareItem:'feather',rareProb:0.2,eventProb:0.2,eventName:'萤火虫群',eventReward:'temp_luk',exp:100}
-];
-const SYNTHESIS_FOOD = [
-  {name:'wine',icon:'🍷',label:'葡萄酒',materials:{grape:5},cost:100},
-  {name:'juice_watermelon',icon:'🧃',label:'西瓜汁',materials:{watermelon:3},cost:50}
-];
-const SYNTHESIS_POTIONS = [
-  {name:'potion_atk',icon:'🧪',label:'攻击药剂',materials:{pepper:3,moonstone:1},cost:300},
-  {name:'potion_def',icon:'💊',label:'防御药剂',materials:{mushroom:3,relic:1},cost:300}
-];
-const BLUEPRINT_RECIPES = [
-  {name:'暗影匕首',slot:'weapon',quality:'gold',set_name:'暗影',materials:{relic:5,moonstone:3,scale:2},cost:3000,blueprint:'blueprint_boss'},
-  {name:'龙枪',slot:'weapon',quality:'gold',set_name:'龙骑士',materials:{scale:5,dragon_soul:3,ore:3},cost:3000,blueprint:'blueprint_boss'}
-];
-const QUALITY_NAMES = {white:'普通',blue:'精良',purple:'史诗',gold:'传说'};
-const ENHANCE_CONFIG = [
-  {level:1,cost:200,materials:{ore:2},prob:1.0},
-  {level:2,cost:400,materials:{ore:4},prob:1.0},
-  {level:3,cost:600,materials:{ore:6},prob:1.0},
-  {level:4,cost:1000,materials:{ore:3,relic:1},prob:0.9},
-  {level:5,cost:1500,materials:{ore:5,relic:2},prob:0.8}
-];
-const ENCHANT_MATERIALS = [
-  {name:'ore',qty:3,cost:500},
-  {name:'relic',qty:2,cost:800},
-  {name:'moonstone',qty:1,cost:1200}
-];
-const ENCHANT_ATTRS = [
-  {key:'atk_bonus',name:'攻击',min:1,max:8},
-  {key:'def_bonus',name:'防御',min:1,max:6},
-  {key:'luk_bonus',name:'幸运',min:1,max:4}
-];
-const BOSS_SKILLS = {
-  fire_storm:{name:'🔥火焰风暴',cost:4,dmgMult:1.5,desc:'造成1.5倍伤害'},
-  burn_out:{name:'💥燃烧殆尽',cost:6,dmgMult:2.5,selfDefPenalty:0.3,desc:'造成2.5倍伤害，自身防御降低30%'},
-  summon_bugs:{name:'🐛召唤小虫',cost:8,dmgMult:1.0,healPct:0.15,desc:'召唤小虫群，回复15%HP并造成伤害'}
-};
-const MONSTERS = [
-  {name:'菜青虫',emoji:'🐛',minLevel:1,maxLevel:5,hp:40,atk:8,def:2,spd:5,skills:[],rewards:{gold:20,items:{hair:0.3}}},
-  {name:'田鼠',emoji:'🐀',minLevel:5,maxLevel:10,hp:60,atk:12,def:4,spd:8,rewards:{gold:40,items:{seed:0.35}}},
-  {name:'蝙蝠',emoji:'🦇',minLevel:10,maxLevel:15,hp:80,atk:18,def:6,spd:14,rewards:{gold:70,items:{ore:0.3}}},
-  {name:'狐妖',emoji:'🦊',minLevel:15,maxLevel:25,hp:180,atk:30,def:12,spd:18,rewards:{gold:150,items:{feather:0.2}}},
-  {name:'幼龙',emoji:'🐉',minLevel:20,maxLevel:30,hp:250,atk:40,def:15,spd:20,rewards:{gold:250,items:{scale:0.15}}}
-];
-const ELITE_MONSTERS = [
-  {name:'黄金菜青虫',emoji:'🐛✨',minLevel:1,maxLevel:5,hp:60,atk:12,def:3,spd:7,rewards:{gold:50,items:{hair:0.6}}},
-  {name:'鼠王',emoji:'🐀👑',minLevel:5,maxLevel:10,hp:90,atk:18,def:6,spd:10,rewards:{gold:100,items:{seed:0.6}}},
-  {name:'血蝙蝠',emoji:'🦇🩸',minLevel:10,maxLevel:15,hp:120,atk:24,def:9,spd:16,rewards:{gold:150,items:{ore:0.5}}}
-];
-const ALL_MONSTERS = [...MONSTERS, ...ELITE_MONSTERS];
-const PVE_MAPS = [
-  {id:'grassland',name:'微风草原',emoji:'🌿',minLevel:1,maxLevel:10,monsterIds:['菜青虫','田鼠'],eliteIds:['黄金菜青虫'],bg:'#f5f9e9',unlockDesc:''},
-  {id:'forest',name:'幽暗森林',emoji:'🌲',minLevel:10,maxLevel:20,monsterIds:['蝙蝠','狐妖'],eliteIds:['鼠王','血蝙蝠'],bg:'#e9f0e9',unlockCond:{type:'elite_kills',count:3},unlockDesc:'击败任意3个精英怪解锁'},
-  {id:'boss_lair',name:'虫母巢穴',emoji:'👹',minLevel:1,maxLevel:35,monsterIds:[],eliteIds:[],isBoss:true,bg:'#fdf0e0',unlockDesc:''}
-];
-const ITEM_EMOJI = {
-  hair:'🧶',seed:'🌰',dew:'💧',ore:'💎',relic:'🏺',moonstone:'🌙',clover:'🍀',feather:'🪶',scale:'🔮',stardust:'🌟',dragon_soul:'🔮',
-  grape:'🍇',watermelon:'🍉',blueberry:'🫐',strawberry:'🍓',carrot:'🥕',tomato:'🍅',corn:'🌽',potato:'🥔',cabbage:'🥬',
-  sunflower:'🌻',chrysanthemum:'🌼',mushroom:'🍄',peanut:'🥜',pepper:'🌶️',
-  potion_atk:'🧪',potion_def:'💊',wine:'🍷',scroll_basic:'📜',protect_charm:'🛡️',seed_ticket:'🎫',blueprint_boss:'📜',
-  seed_cabbage:'🥬',seed_peanut:'🥜',seed_watermelon:'🍉',seed_blueberry:'🫐',seed_potato:'🥔',seed_grape:'🍇',seed_carrot:'🥕',seed_tomato:'🍅',seed_corn:'🌽',seed_sunflower:'🌻',seed_chrysanthemum:'🌼',seed_mushroom:'🍄',seed_strawberry:'🍓',
-  seed_apple:'🍎',seed_peach:'🍑',seed_orange:'🍊',seed_pineapple:'🍍',seed_mango:'🥭',seed_cherry:'🍒',seed_lemon:'🍋',seed_banana:'🍌',seed_pear:'🍐',seed_kiwi:'🥝',seed_melon:'🍈',seed_coconut:'🥥',
-  seed_tulip:'🌷',seed_clover:'🍀',seed_rose:'🌹',seed_lily:'🏵️',seed_sakura:'🌸',seed_lotus:'🪷',seed_cactus:'🌵',seed_hibiscus:'🌺',seed_white_flower:'💮',seed_herb:'🌿',seed_potted_plant:'🪴',
-  seed_cucumber:'🥒',seed_onion:'🧅',seed_garlic:'🧄',seed_eggplant:'🍆',seed_broccoli:'🥦',seed_green_pepper:'🫑',seed_lettuce:'🥗',seed_beans:'🫘',seed_rice:'🌾',seed_tea:'🍃',seed_bamboo:'🎋',seed_chestnut:'🌰',seed_honey:'🍯',seed_candy:'🍬',seed_chocolate:'🍫',seed_spice:'🧂',seed_pumpkin:'🎃',seed_sweet_potato:'🍠'
-};
-const ITEM_NAMES = {
-  hair:'动物毛发',seed:'神秘种子',dew:'清水露珠',ore:'矿石碎片',relic:'古代遗物',moonstone:'月光石',clover:'四叶草',feather:'精灵羽毛',scale:'龙鳞碎片',stardust:'星光粉尘',dragon_soul:'龙魂碎片',
-  grape:'葡萄',watermelon:'西瓜',blueberry:'蓝莓',strawberry:'草莓',carrot:'胡萝卜',tomato:'番茄',corn:'玉米',potato:'土豆',cabbage:'白菜',
-  sunflower:'向日葵',chrysanthemum:'菊花',mushroom:'蘑菇',peanut:'花生',pepper:'辣椒',
-  potion_atk:'攻击药剂',potion_def:'防御药剂',wine:'葡萄酒',scroll_basic:'技能卷轴',protect_charm:'保护符',seed_ticket:'种子券',blueprint_boss:'BOSS图纸',
-  seed_cabbage:'白菜种子',seed_peanut:'花生种子',seed_watermelon:'西瓜种子',seed_blueberry:'蓝莓种子',seed_potato:'土豆种子',seed_grape:'葡萄种子',seed_carrot:'胡萝卜种子',seed_tomato:'番茄种子',seed_corn:'玉米种子',seed_sunflower:'向日葵种子',seed_chrysanthemum:'菊花种子',seed_mushroom:'蘑菇种子',seed_strawberry:'草莓种子',
-  seed_apple:'苹果种子',seed_peach:'桃子种子',seed_orange:'橘子种子',seed_pineapple:'菠萝种子',seed_mango:'芒果种子',seed_cherry:'樱桃种子',seed_lemon:'柠檬种子',seed_banana:'香蕉种子',seed_pear:'梨种子',seed_kiwi:'猕猴桃种子',seed_melon:'甜瓜种子',seed_coconut:'椰子种子',
-  seed_tulip:'郁金香种子',seed_clover:'三叶草种子',seed_rose:'玫瑰种子',seed_lily:'百合种子',seed_sakura:'樱花种子',seed_lotus:'荷花种子',seed_cactus:'仙人掌花种子',seed_hibiscus:'芙蓉种子',seed_white_flower:'白花种子',seed_herb:'香草种子',seed_potted_plant:'盆栽种子',
-  seed_cucumber:'黄瓜种子',seed_onion:'洋葱种子',seed_garlic:'大蒜种子',seed_eggplant:'茄子种子',seed_broccoli:'西兰花种子',seed_green_pepper:'青椒种子',seed_lettuce:'生菜种子',seed_beans:'豆子种子',seed_rice:'水稻种子',seed_tea:'茶树种子',seed_bamboo:'竹子种子',seed_chestnut:'栗子种子',seed_honey:'蜂蜜种子',seed_candy:'糖果种子',seed_chocolate:'巧克力种子',seed_spice:'香料种子',seed_pumpkin:'南瓜种子',seed_sweet_potato:'红薯种子'
-};
-const SET_BONUSES = { '暗影':{2:{atk:10},3:{steal_extra:1}}, '龙骑士':{2:{atk:20},3:{boss_dmg:0.15}} };
-const WATER_COOLDOWN_MS = 30*60*1000;
-const BP_PER_PAGE = 8;
-const MAX_LOG_COUNT = 200;
-const MAX_ENERGY = 10;
-const PLOT_MAX_COUNT = 12;
-const MAX_PET_SLOTS = 6;
-const PET_MAX_LEVEL = 30;
-const BASE_MATERIALS = ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','sakura'];
-const PET_SLOT_UNLOCK = [
-  {slot:2,desc:'第1只宠物达到Lv.10',gold:5000,cond:{petLevel:10}},
-  {slot:3,desc:'解锁8块农田',gold:20000,cond:{plots:8}},
-  {slot:4,desc:'击败任意精英怪×5',gold:50000,cond:{eliteKills:5},materials:{scale:10}},
-  {slot:5,desc:'宠物探险完成50次',gold:100000,cond:{explores:50},materials:{dragon_soul:5}},
-  {slot:6,desc:'击败BOSS虫母女王×3',gold:200000,cond:{bossKills:3},materials:{stardust:10}}
-];
-const BATTLE_POTIONS = [
-  {key:'potion_atk',name:'攻击药剂',emoji:'🧪',effect:{atk:0.2}},
-  {key:'potion_def',name:'防御药剂',emoji:'💊',effect:{def:0.2}}
-];
-const BOSS_RESPAWN_HOURS = 6;
-const BOSS_DB_ID = 1;
-const SEASON_CONFIG = {
-  id:'s1_life_spring', title:'生命之泉', xpPerLevel:100, maxLevel:10,
-  startDate:new Date('2026-06-01'), endDate:new Date('2026-06-30'),
-  freeRewards:{
-    1:{items:{seed_ticket:5},gold:500},2:{items:{hair:20},gold:800},3:{items:{potion_atk:2},gold:1000},
-    4:{items:{protect_charm:1},gold:1500},5:{items:{seed_strawberry:10},gold:2000},6:{items:{ore:15},gold:2500},
-    7:{items:{scroll_basic:2},gold:3000},8:{items:{relic:8},gold:4000},9:{items:{dragon_soul:3},gold:5000},
-    10:{items:{blueprint_boss:1},gold:10000}
-  }
-};
-const SEASON_QUESTS_CONFIG = [
-  {id:'q_plant_20',desc:'种植作物20次',type:'plant',target:20,rewardXp:50},
-  {id:'q_harvest_15',desc:'收获作物15次',type:'harvest',target:15,rewardXp:50},
-  {id:'q_explore_10',desc:'宠物探险10次',type:'explore',target:10,rewardXp:60},
-  {id:'q_defeat_10',desc:'击败怪物10只',type:'defeat',target:10,rewardXp:80},
-  {id:'q_defeat_boss_3',desc:'参与击败BOSS3次',type:'boss_defeat',target:3,rewardXp:150},
-  {id:'q_synth_5',desc:'合成物品5次',type:'synthesis',target:5,rewardXp:40},
-  {id:'q_water_10',desc:'浇水10次',type:'water',target:10,rewardXp:30},
-  {id:'q_sell_50',desc:'出售作物累计获得50金币',type:'sell_gold',target:50,rewardXp:40}
-];
-// ======================== Vue 应用 ========================
-createApp({
-  setup() {
-    // 响应式数据
-    const isLoggedIn = ref(false);
-    const authMode = ref('login');
-    const loading = ref(false);
-    const errorMsg = ref('');
-    const toastMsg = ref('');
-    const loginEmail = ref('');
-    const loginPassword = ref('');
-    const regUsername = ref('');
-    const regEmail = ref('');
-    const regPassword = ref('');
-    const regGender = ref('none');
-    const profile = reactive({ id: '', username: '', gender: 'none', gold: 0, unlocked_plots: 4, pet_slots: 1, stationed_pet_id: null });
-    const rawPlots = ref([]);
-    const items = reactive({});
-    const pets = ref([]);
-    const stationedPet = ref(null);
-    const equipment = ref([]);
-    const monsterLog = reactive({});
-    const friendProfiles = ref([]);
-    const showPlantModal = ref(false);
-    const showWaterModal = ref(false);
-    const showPetsModal = ref(false);
-    const showAdoptModal = ref(false);
-    const showExploreModal = ref(false);
-    const showSynthesisModal = ref(false);
-    const showEquipmentModal = ref(false);
-    const showEquipSelectModal = ref(false);
-    const showBackpackModal = ref(false);
-    const showPveModal = ref(false);
-    const showOrdersModal = ref(false);
-    const showSeedShopModal = ref(false);
-    const showMailModal = ref(false);
-    const showEventLogModal = ref(false);
-    const showFriendsModal = ref(false);
-    const showLeaderboardModal = ref(false);
-    const showMonsterLogModal = ref(false);
-    const showFriendFarmModal = ref(false);
-    const showPetDetailModal = ref(false);
-    const showPotionModal = ref(false);
-    const showSelectBattlePetModal = ref(false);
-    const showEnchantModal = ref(false);
-    const showSeasonModal = ref(false);
-    const selectedPlotIndex = ref(-1);
-    const exploringPet = ref(null);
-    const synthTab = ref('equipment');
-    const equippingItem = ref(null);
-    const enchantingItem = ref(null);
-    const bpTab = ref('all');
-    const bpPage = ref(1);
-    const petDetailData = ref(null);
-    const pendingPotion = ref(null);
-    const battle = ref(null);
-    const selectedBattlePetId = ref(null);
-    const pveMonsters = ref([]);
-    const orders = ref([]);
-    const mails = ref([]);
-    const mailTab = ref('inbox');
-    const mailReceiver = ref('');
-    const mailTitle = ref('');
-    const mailContent = ref('');
-    const mailItemsText = ref('');
-    const eventLogs = ref([]);
-    const lbTab = ref('global');
-    const lbPage = ref(1);
-    const lbRanked = ref([]);
-    const lbTotalPages = ref(1);
-    const visitingFriend = ref(null);
-    const visitingPlots = ref([]);
-    const marketListings = ref([]);
-    const marketSeedShop = ref([]);
-    const marketTab = ref('seeds');
-    const marketDynamics = reactive({ seeds: {} });
-    const seasonState = reactive({ level: 1, xp: 0, title: '生命之泉', remainingDays: 0, claimedLevels: [] });
-    const seasonQuests = ref([]);
-    const currentSeasonId = ref('s1_life_spring');
+  createApp({
+    setup() {
+      // ---------- 全局状态 ----------
+      const view = ref('garden');
+      const username = ref('小园丁');
+      const stars = ref(0);
+      const toast = reactive({ show: false, message: '' });
 
-    // 辅助函数
-    let toastTimer;
-    function showToast(msg) { toastMsg.value = msg; clearTimeout(toastTimer); toastTimer = setTimeout(() => toastMsg.value = '', 2000); }
-
-    const initial = computed(() => (profile.username || '农')[0]);
-    const staFactor = computed(() => { if (!exploringPet.value) return 1; return Math.max(0.2, 1 - ((exploringPet.value.sta || 50) / 100)); });
-    const currentRecipes = computed(() => { if (synthTab.value === 'equipment') return BLUEPRINT_RECIPES; if (synthTab.value === 'food') return SYNTHESIS_FOOD; return SYNTHESIS_POTIONS; });
-    const pveMaps = computed(() => PVE_MAPS.map(m => {
-      if (!m.unlockCond) return { ...m, unlocked: true };
-      if (m.unlockCond.type === 'elite_kills') {
-        const totalEliteKills = Object.values(monsterLog).reduce((s, x) => s + (x.kills || 0), 0);
-        return { ...m, unlocked: totalEliteKills >= m.unlockCond.count };
+      function showToast(msg) {
+        toast.message = msg;
+        toast.show = true;
+        setTimeout(() => { toast.show = false; }, 2000);
       }
-      return { ...m, unlocked: false };
-    }));
-    const visiblePlots = computed(() => rawPlots.value.filter(p => p.plot_index < (profile.unlocked_plots || 4)).map(p => {
-      const now = new Date(); let s = 'empty', prog = 0, rm = 0, wa = false, n = '空地', e = '🟫';
-      if (p.crop_type && p.planted_at) {
-        const c = CROPS[p.crop_type]; e = c ? c.emoji : '🌱'; n = c ? c.name : '作物';
-        const pt = new Date(p.planted_at); let gm = p.growth_minutes * 60 * 1000;
-        if (p.watered_at) gm = Math.floor(gm * 0.7);
-        const mt = new Date(pt.getTime() + gm);
-        if (now >= mt) { s = 'ready'; prog = 100; }
-        else { s = 'growing'; prog = Math.floor((now - pt) / gm * 100); rm = Math.ceil((mt - now) / 60000); let w = true; if (p.watered_at) w = (now - new Date(p.watered_at)) >= WATER_COOLDOWN_MS; wa = w; }
-      }
-      return { ...p, _status: s, _progress: prog, _remainingMin: rm, _waterable: wa, _name: n, _emoji: e };
-    }));
-    const waterPlotName = computed(() => { const p = rawPlots.value.find(p => p.plot_index === selectedPlotIndex.value); return p ? CROPS[p.crop_type]?.name || '作物' : ''; });
-    const availableCrops = computed(() => {
-      const result = [];
-      for (const [key, qty] of Object.entries(items)) {
-        if (key.startsWith('seed_') && qty > 0) {
-          const cropKey = key.replace('seed_', '');
-          const crop = CROPS[cropKey];
-          if (crop) result.push({ key: cropKey, ...crop, seedKey: key });
+
+      // ---------- 农场/识字菜园 ----------
+      const farmPlots = ref([
+        { id: 1, emoji: '🌻', name: '向日葵', water: 30, correctChar: '花' },
+        { id: 2, emoji: '🌽', name: '玉米', water: 20, correctChar: '米' },
+        { id: 3, emoji: '🍅', name: '番茄', water: 50, correctChar: '茄' }
+      ]);
+      const showWordChoice = ref(false);
+      const currentPlant = ref(null);
+      const currentWordOptions = ref([]);
+
+      function waterPlant(plant) {
+        if (plant.water >= 100) return;
+        currentPlant.value = plant;
+        // 生成选项：正确字 + 两个干扰项
+        const correct = plant.correctChar;
+        const pool = ['花','米','茄','叶','果','菜','树','草'];
+        const opts = new Set([correct]);
+        while (opts.size < 3) {
+          const r = pool[Math.floor(Math.random() * pool.length)];
+          opts.add(r);
         }
+        currentWordOptions.value = Array.from(opts).sort(() => Math.random() - 0.5);
+        showWordChoice.value = true;
       }
-      return result;
-    });
-    const bpFilteredItems = computed(() => {
-      const all = Object.entries(items).map(([k, v]) => ({ key: k, qty: v }));
-      if (bpTab.value === 'all') return all;
-      if (bpTab.value === 'material') return all.filter(({ key }) => ['hair','seed','dew','ore','relic','moonstone','clover','feather','scale','snowflake','stardust','dragon_soul'].includes(key));
-      if (bpTab.value === 'seed') return all.filter(({ key }) => key.startsWith('seed_'));
-      if (bpTab.value === 'crop') return all.filter(({ key }) => CROPS[key]);
-      if (bpTab.value === 'tool') return all.filter(({ key }) => ['scroll_basic','protect_charm','lucky_stone','seed_ticket','auto_battle_ticket'].includes(key) || key.startsWith('book_') || key.startsWith('potion_') || key === 'blueprint_boss');
-      return all;
-    });
-    const bpTotalPages = computed(() => Math.ceil(bpFilteredItems.value.length / BP_PER_PAGE) || 1);
-    const bpPageItems = computed(() => {
-      const start = (bpPage.value - 1) * BP_PER_PAGE;
-      return bpFilteredItems.value.slice(start, start + BP_PER_PAGE).map(item => ({
-        ...item, emoji: ITEM_EMOJI[item.key] || '📦', name: ITEM_NAMES[item.key] || item.key,
-        isBook: item.key.startsWith('book_'), isPotion: item.key.startsWith('potion_')
-      }));
-    });
-    const bpPlaceholders = computed(() => Math.max(0, BP_PER_PAGE - bpPageItems.value.length));
-    const seasonXpPercent = computed(() => Math.min(100, (seasonState.xp / SEASON_CONFIG.xpPerLevel) * 100));
 
-    // 安全 RPC 调用
-    async function safeRpc(funcName, params = {}) {
-      const { data, error } = await db.rpc(funcName, params);
-      if (error) throw new Error(error.message);
-      return data;
-    }
-
-    // ========== 数据加载（只读） ==========
-    async function loadAllData(user) {
-      profile.id = user.id;
-      let { data: prof, error: profErr } = await db.from('profiles').select('*').eq('id', user.id).maybeSingle();
-      if (profErr) throw profErr;
-      if (!prof) {
-        const un = user.user_metadata?.username || '农夫';
-        const ge = user.user_metadata?.gender || 'none';
-        await db.from('profiles').insert({ id: user.id, username: un, gender: ge, gold: 200, unlocked_plots: 4, pet_slots: 1, monster_log: {} });
-        for (let i = 0; i < 4; i++) await db.from('farm_plots').upsert({ owner_id: user.id, plot_index: i, crop_type: null, planted_at: null }, { onConflict: 'owner_id,plot_index' });
-        const { data: newProf } = await db.from('profiles').select('*').eq('id', user.id).single();
-        prof = newProf;
-      }
-      Object.assign(profile, prof);
-      if (prof.monster_log) Object.assign(monsterLog, prof.monster_log);
-      const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id', user.id).order('plot_index');
-      rawPlots.value = plots || [];
-      const { data: playerItems } = await db.from('player_items').select('*').eq('user_id', user.id);
-      (playerItems || []).forEach(d => items[d.item_type] = d.quantity);
-      await loadPetsData();
-      const { data: eqs } = await db.from('equipment').select('*').eq('owner_id', user.id);
-      equipment.value = eqs || [];
-      await loadOrders();
-      await loadFriendProfiles();
-      await initSeasonData();
-      await loadMarketDynamic();
-      if (prof.stationed_pet_id) {
-        const pet = pets.value.find(p => p.id === prof.stationed_pet_id);
-        if (pet) stationedPet.value = pet;
-      }
-    }
-    async function loadPetsData() {
-      const { data } = await db.from('pets').select('*').eq('owner_id', profile.id);
-      pets.value = data || [];
-    }
-    async function loadItemsData() {
-      const { data } = await db.from('player_items').select('*').eq('user_id', profile.id);
-      Object.keys(items).forEach(k => delete items[k]);
-      (data || []).forEach(d => items[d.item_type] = d.quantity);
-    }
-    async function refreshFarm() {
-      const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id', profile.id).order('plot_index');
-      if (plots) rawPlots.value = plots;
-      const expectedCount = profile.unlocked_plots || 4;
-      const existing = new Set(plots?.map(p => p.plot_index) || []);
-      for (let i = 0; i < expectedCount; i++) {
-        if (!existing.has(i)) {
-          await db.from('farm_plots').upsert({ owner_id: profile.id, plot_index: i, crop_type: null, planted_at: null }, { onConflict: 'owner_id,plot_index' });
-        }
-      }
-      const { data: newProf } = await db.from('profiles').select('*').eq('id', profile.id).single();
-      if (newProf) Object.assign(profile, newProf);
-    }
-    async function loadOrders() {
-      const today = new Date().toDateString();
-      const { data } = await db.from('player_orders').select('orders').eq('user_id', profile.id).eq('order_date', today).maybeSingle();
-      if (data && data.orders) orders.value = data.orders;
-      else {
-        const possible = Object.keys(CROPS).filter(k => CROPS[k].unlock === '初始');
-        const o = [];
-        for (let i = 0; i < 3; i++) {
-          const ck = possible[Math.floor(Math.random() * possible.length)];
-          o.push({ crop: ck, amount: Math.floor(Math.random() * 3) + 1, rewardGold: 100 + Math.floor(Math.random() * 200), rewardTicket: Math.floor(Math.random() * 2) + 1 });
-        }
-        orders.value = o;
-        await db.from('player_orders').upsert({ user_id: profile.id, order_date: today, orders: o }, { onConflict: 'user_id,order_date' });
-      }
-    }
-    async function loadFriendProfiles() {
-      const { data: fd } = await db.from('friendships').select('id,from_user,to_user,status').or(`from_user.eq.${profile.id},to_user.eq.${profile.id}`).eq('status', 'accepted');
-      const fids = new Set(); (fd || []).forEach(f => fids.add(f.from_user === profile.id ? f.to_user : f.from_user));
-      if (fids.size > 0) {
-        const { data } = await db.from('profiles').select('id,username,gender,gold').in('id', [...fids]);
-        friendProfiles.value = data || [];
-      } else friendProfiles.value = [];
-    }
-    async function loadMarketDynamic() {
-      const { data: listings } = await db.from('market_listings').select('*').order('listed_at', { ascending: false }).limit(50);
-      marketListings.value = listings || [];
-      const today = new Date().toDateString();
-      const { data: dynamicsData } = await db.from('market_dynamics').select('*').eq('date', today);
-      if (dynamicsData && dynamicsData.length) dynamicsData.forEach(d => { marketDynamics.seeds[d.seed_type] = d; });
-      const { data: shopData, error: shopError } = await db.from('market_seed_shop').select('*').eq('stock_date', today);
-      if (shopError) {
-        console.error('加载种子商店失败', shopError);
-        marketSeedShop.value = [];
-      } else if (shopData && shopData.length > 0) {
-        marketSeedShop.value = shopData;
-      } else {
-        try {
-          const { data: generated } = await db.rpc('refresh_market_seed_shop');
-          marketSeedShop.value = generated || [];
-        } catch (e) {
-          console.warn('无法自动刷新种子商店，请确保后端已创建 refresh_market_seed_shop 函数', e);
-          marketSeedShop.value = [];
-        }
-      }
-    }
-    async function initSeasonData() {
-      const now = new Date();
-      const diff = SEASON_CONFIG.endDate.getTime() - now.getTime();
-      seasonState.remainingDays = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-      const { data: playerSeason } = await db.from('player_season').select('*').eq('user_id', profile.id).eq('season_id', currentSeasonId.value).maybeSingle();
-      if (playerSeason) {
-        seasonState.level = playerSeason.level || 1;
-        seasonState.xp = playerSeason.xp || 0;
-        seasonState.claimedLevels = playerSeason.claimed_levels || [];
-      }
-      const { data: questData } = await db.from('player_season_quests').select('*').eq('user_id', profile.id).eq('season_id', currentSeasonId.value).maybeSingle();
-      if (questData && questData.quests) {
-        seasonQuests.value = SEASON_QUESTS_CONFIG.map(config => {
-          const saved = questData.quests.find(q => q.id === config.id);
-          return { ...config, current: saved ? saved.current : 0 };
-        });
-      } else {
-        seasonQuests.value = SEASON_QUESTS_CONFIG.map(q => ({ ...q, current: 0 }));
-      }
-    }
-    async function updateQuestProgress(type, amount = 1) {
-      for (const quest of seasonQuests.value) { if (quest.type === type) quest.current = Math.min(quest.target, quest.current + amount); }
-      await db.from('player_season_quests').upsert({ user_id: profile.id, season_id: currentSeasonId.value, quests: seasonQuests.value.map(q => ({ id: q.id, current: q.current })) }, { onConflict: 'user_id,season_id' });
-    }
-    async function addSeasonXp(amount) {
-      if (amount <= 0) return;
-      seasonState.xp += amount;
-      while (seasonState.xp >= SEASON_CONFIG.xpPerLevel && seasonState.level < SEASON_CONFIG.maxLevel) {
-        seasonState.xp -= SEASON_CONFIG.xpPerLevel;
-        seasonState.level++;
-        showToast(`🎉赛季等级提升至Lv.${seasonState.level}！`);
-      }
-      if (seasonState.level >= SEASON_CONFIG.maxLevel) seasonState.xp = 0;
-      await db.from('player_season').upsert({ user_id: profile.id, season_id: currentSeasonId.value, level: seasonState.level, xp: seasonState.xp, claimed_levels: seasonState.claimedLevels }, { onConflict: 'user_id,season_id' });
-    }
-    async function claimQuestReward(quest) {
-      if (quest.current < quest.target) return;
-      await addSeasonXp(quest.rewardXp);
-      const idx = seasonQuests.value.findIndex(q => q.id === quest.id);
-      if (idx !== -1) seasonQuests.value[idx].current = 0;
-      showToast(`任务完成！+${quest.rewardXp}XP`);
-    }
-
-    // ========== 业务函数（安全 RPC 调用） ==========
-    async function doPlant(crop) {
-      try {
-        await safeRpc('plant_crop', { plot_index: selectedPlotIndex.value, crop_key: crop.key });
-        await refreshFarm(); await loadItemsData();
-        showPlantModal.value = false;
-        showToast(`种下了${crop.name}！`);
-        updateQuestProgress('plant');
-      } catch (e) { showToast(e.message); }
-    }
-    async function doHarvest(plot) {
-      try {
-        const result = await safeRpc('harvest_crop', { plot_index: plot.plot_index });
-        showToast(`收获成功！获得 ${result.crop_name} ×${result.quantity} + 🪙${result.gold}`);
-        await refreshFarm(); await loadItemsData();
-        updateQuestProgress('harvest');
-        updateQuestProgress('sell_gold', result.gold);
-      } catch (e) { showToast(e.message); }
-    }
-    async function doWater() {
-      try {
-        await safeRpc('water_crop', { plot_index: selectedPlotIndex.value });
-        showWaterModal.value = false;
-        showToast('浇水成功！');
-        await refreshFarm();
-        updateQuestProgress('water');
-      } catch (e) { showToast(e.message); }
-    }
-    async function doAdopt(petType) {
-      try {
-        const newPet = await safeRpc('adopt_pet', { pet_type: petType });
-        pets.value.push(newPet);
-        showAdoptModal.value = false;
-        showToast(`领养成功！`);
-      } catch (e) { showToast(e.message); }
-    }
-    async function doExplore(route) {
-      try {
-        await safeRpc('start_explore', { pet_id: exploringPet.value.id, route_id: route.id });
-        showExploreModal.value = false;
-        showToast(`${exploringPet.value.pet_name}出发探险！`);
-        await loadPetsData();
-        updateQuestProgress('explore');
-      } catch (e) { showToast(e.message); }
-    }
-    async function completeExplore(pet) {
-      try {
-        const result = await safeRpc('complete_explore', { pet_id: pet.id });
-        showToast(`探险归来！获得 🪙${result.gold} 和各种材料`);
-        await loadPetsData(); await loadItemsData();
-        updateQuestProgress('explore');
-      } catch (e) { showToast(e.message); }
-    }
-    async function toggleStation(pet) {
-      try {
-        if (isStationed(pet)) {
-          await safeRpc('set_stationed_pet', { pet_id: null });
-          stationedPet.value = null;
-          showToast('已取消驻扎');
+      function selectWord(char) {
+        if (char === currentPlant.value.correctChar) {
+          currentPlant.value.water = Math.min(100, currentPlant.value.water + 30);
+          stars.value += 2;
+          showToast('✅ 太棒了！' + char + ' 字是对的！');
+          // 语音读出这个字
+          speakText(char);
         } else {
-          await safeRpc('set_stationed_pet', { pet_id: pet.id });
-          stationedPet.value = pet;
-          showToast(`${pet.pet_name}已驻扎！`);
+          showToast('🐦 再试试看，这是' + currentPlant.value.correctChar + '哦');
         }
-      } catch (e) { showToast(e.message); }
-    }
-    async function doSynthesize(recipe) {
-      try {
-        const result = await safeRpc('synthesize_item', { recipe_name: recipe.name, recipe_type: synthTab.value });
-        showToast(`合成成功！获得 ${result.item_name}`);
-        await loadItemsData();
-        if (synthTab.value === 'equipment') await loadEquipmentData();
-        updateQuestProgress('synthesis');
-      } catch (e) { showToast(e.message); }
-    }
-    async function loadEquipmentData() {
-      const { data } = await db.from('equipment').select('*').eq('owner_id', profile.id);
-      equipment.value = data || [];
-    }
-    async function doEnhance(eq) {
-      try {
-        const newLevel = await safeRpc('enhance_equipment', { equipment_id: eq.id });
-        showToast(`强化成功！现在 +${newLevel}`);
-        await loadEquipmentData();
-      } catch (e) { showToast(e.message); }
-    }
-    async function doEquip(eq, pet) {
-      try {
-        await safeRpc('equip_item', { equipment_id: eq.id, pet_id: pet.id });
-        showToast(`已装备${eq.name}到${pet.pet_name}`);
-        await loadEquipmentData();
-        showEquipSelectModal.value = false;
-      } catch (e) { showToast(e.message); }
-    }
-    async function doUnequip(eq) {
-      try {
-        await safeRpc('unequip_item', { equipment_id: eq.id });
-        showToast('已卸下');
-        await loadEquipmentData();
-      } catch (e) { showToast(e.message); }
-    }
-    function openEnchant(eq) { enchantingItem.value = eq; showEnchantModal.value = true; }
-    async function enchantEquipment(eq, materialIdx) {
-      try {
-        const mat = ENCHANT_MATERIALS[materialIdx];
-        await safeRpc('enchant_equipment', { equipment_id: eq.id, material_key: mat.name });
-        showToast(`附魔成功！`);
-        await loadEquipmentData();
-        showEnchantModal.value = false;
-      } catch (e) { showToast(e.message); }
-    }
-    async function doSell(eq) {
-      if (!confirm(`确定出售 ${eq.name} 获得 🪙${eq.quality === 'gold' ? 2000 : eq.quality === 'purple' ? 1000 : 500} 吗？`)) return;
-      try {
-        await safeRpc('sell_equipment', { equipment_id: eq.id });
-        showToast(`出售成功！`);
-        await loadEquipmentData();
-      } catch (e) { showToast(e.message); }
-    }
-    async function doDecompose(eq) {
-      if (!confirm(`确定分解 ${eq.name} 吗？你将获得一些材料。`)) return;
-      try {
-        await safeRpc('decompose_equipment', { equipment_id: eq.id });
-        showToast(`分解成功！`);
-        await loadEquipmentData(); await loadItemsData();
-      } catch (e) { showToast(e.message); }
-    }
-    async function submitOrder(idx) {
-      const order = orders.value[idx];
-      if (!order) return;
-      try {
-        await safeRpc('submit_order', { order_index: idx });
-        showToast('订单完成！');
-        await loadItemsData(); await loadOrders();
-        updateQuestProgress('sell_gold', order.rewardGold);
-      } catch (e) { showToast(e.message); }
-    }
-    async function sendMail() {
-      if (!mailReceiver.value || !mailTitle.value) { showToast('收件人和主题不能为空'); return; }
-      try {
-        await safeRpc('send_mail', { receiver_username: mailReceiver.value, title: mailTitle.value, content: mailContent.value, items_text: mailItemsText.value });
-        showToast('邮件已发送！'); mailTab.value = 'inbox';
-        mailReceiver.value = ''; mailTitle.value = ''; mailContent.value = ''; mailItemsText.value = '';
-        await loadItemsData();
-      } catch (e) { showToast(e.message); }
-    }
-    async function loadMails() {
-      if (!profile.id) return;
-      const { data } = await db.from('mail').select('*').eq('receiver_id', profile.id).order('created_at', { ascending: false }).limit(50);
-      mails.value = data || [];
-    }
-    async function claimMail(m) {
-      try {
-        await safeRpc('claim_mail_attachment', { mail_id: m.id });
-        showToast('附件已领取！');
-        await loadItemsData();
-        m.is_claimed = true;
-      } catch (e) { showToast(e.message); }
-    }
-    async function loadEventLogs() {
-      if (!profile.id) return;
-      const { data } = await db.from('event_logs').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(MAX_LOG_COUNT);
-      eventLogs.value = data || [];
-    }
-    async function openEventLog() {
-      showEventLogModal.value = true;
-      await loadEventLogs();
-    }
-    async function buyMarketSeed(s) {
-      if (profile.gold < s.price) { showToast('金币不足'); return; }
-      try {
-        await safeRpc('buy_market_seed', { seed_type: s.seed_type });
-        showToast(`购买成功！`);
-        await loadItemsData(); await loadMarketDynamic();
-      } catch (e) { showToast(e.message); }
-    }
-    async function buyListing(listing) {
-      if (profile.gold < listing.price) { showToast('金币不足'); return; }
-      try {
-        await safeRpc('buy_market_listing', { listing_id: listing.id });
-        showToast(`购买成功！`);
-        await loadItemsData(); await loadMarketDynamic();
-      } catch (e) { showToast(e.message); }
-    }
-    async function quickSellDynamic(itemType) {
-      const qty = items[itemType] || 0;
-      if (qty <= 0) { showToast('没有该物品'); return; }
-      const crop = CROPS[itemType];
-      if (!crop) { showToast('只能出售作物'); return; }
-      const bp = Math.floor(crop.min / 2);
-      const total = bp * qty;
-      if (!confirm(`确定出售 ${itemType} ×${qty} 获得 🪙${total} 吗？`)) return;
-      try {
-        await safeRpc('quick_sell_crop', { crop_type: itemType, quantity: qty });
-        showToast(`出售成功！🪙+${total}`);
-        await loadItemsData();
-        updateQuestProgress('sell_gold', total);
-      } catch (e) { showToast(e.message); }
-    }
-    async function stealCrop(plot) {
-      try {
-        await safeRpc('steal_crop', { owner_id: visitingFriend.value.id, plot_index: plot.plot_index });
-        showToast(`偷取成功！`);
-        await visitFriend(visitingFriend.value);
-      } catch (e) { showToast(e.message); }
-    }
-    async function waterFriendPlot(plot) {
-      try {
-        await safeRpc('water_friend_crop', { owner_id: visitingFriend.value.id, plot_index: plot.plot_index });
-        showToast('浇水成功！');
-        await visitFriend(visitingFriend.value);
-      } catch (e) { showToast(e.message); }
-    }
-    async function visitFriend(f) {
-      const { data: plots } = await db.from('farm_plots').select('*').eq('owner_id', f.id).order('plot_index');
-      visitingPlots.value = plots || [];
-      visitingFriend.value = f;
-      showFriendFarmModal.value = true;
-    }
-    async function addFriend(uid) {
-      try {
-        await safeRpc('add_friend', { friend_id: uid });
-        showToast('好友申请已发送！');
-      } catch (e) { showToast(e.message); }
-    }
-    async function loadLeaderboard() {
-      const { data: ap } = await db.from('profiles').select('id,username,gold,gender').order('gold', { ascending: false });
-      let ranked = ap || [];
-      if (lbTab.value === 'friends') {
-        const fids = new Set((friendProfiles.value || []).map(f => f.id)); fids.add(profile.id);
-        ranked = ranked.filter(p => fids.has(p.id));
-      } else if (lbTab.value === 'pet') {
-        const { data: pd } = await db.from('pets').select('*, profiles(username,gender)');
-        ranked = (pd || []).map(pet => {
-          const eq = equipment.value.filter(e => e.equipped_to === pet.id);
-          let a = pet.atk, d = pet.def, s = pet.spd, l = pet.luk, h = pet.hp;
-          eq.forEach(e => { a += e.atk_bonus; d += e.def_bonus; s += e.spd_bonus; l += e.luk_bonus; });
-          return { ...pet, power: a + d + s + l + h, ownerName: pet.profiles?.username || '?' };
-        }).sort((a,b) => b.power - a.power).slice(0,50);
+        showWordChoice.value = false;
       }
-      lbTotalPages.value = Math.ceil(ranked.length / 10) || 1;
-      lbRanked.value = ranked.slice((lbPage.value - 1) * 10, lbPage.value * 10);
-    }
-    // BOSS 相关
-    async function loadBossState() {
-      const { data, error } = await db.rpc('boss_check_respawn');
-      if (error) return null;
-      if (Array.isArray(data) && data.length > 0) return data[0];
-      return data;
-    }
-    async function bossTakeDamage(damage) {
-      const { data, error } = await db.rpc('boss_take_damage', { damage });
-      if (error) return null;
-      if (Array.isArray(data) && data.length > 0) return data[0];
-      return data;
-    }
-    async function bossKill() {
-      await db.from('boss_state').update({ is_alive: false, next_respawn: new Date(Date.now() + BOSS_RESPAWN_HOURS * 3600000).toISOString(), current_hp: 0 }).eq('id', BOSS_DB_ID);
-    }
-    // 战斗流程（辅助函数）
-    function processBuffs(b) {
-      const process = (arr, ownerKey) => {
-        for (let i = arr.length - 1; i >= 0; i--) {
-          const bf = arr[i];
-          bf.duration--;
-          if (bf.duration <= 0) {
-            if (bf.type === 'def_down' && ownerKey === 'opp') {
-              b.opponentPet.def = Math.ceil(b.opponentPet.def / (1 - 0.3));
-            }
-            arr.splice(i, 1);
-          }
-        }
-      };
-      process(b.myBuffs, 'my');
-      process(b.oppBuffs, 'opp');
-    }
-    async function executePlayerTurn(b, action) {
-      if (action === 'attack') {
-        let atk = b.myPet.atk;
-        if (b.potionBonus?.atk) atk = Math.floor(atk * (1 + b.potionBonus.atk));
-        const dmg = Math.max(1, atk - b.opponentPet.def + Math.floor(Math.random() * 8));
-        if (b.opponentPet.isBoss) {
-          const res = await bossTakeDamage(dmg);
-          if (!res || !res.success) { showToast('BOSS血量同步失败，请重试'); return ''; }
-          b.opponentCurrentHp = res.remaining_hp;
+
+      // ---------- 数学烘焙 ----------
+      const guestCount = ref(3);
+      const cookiesOnTray = ref(0);
+      const divisionSolved = ref(false);
+      const divisionOptions = computed(() => {
+        const target = guestCount.value;
+        const correct = 2; // 固定分2盘，每人得 target/2
+        return [1, 2, 3, 4].filter(n => n !== correct).slice(0,2).concat(correct).sort(()=>Math.random()-0.5);
+      });
+
+      function addCookie() {
+        if (cookiesOnTray.value < guestCount.value) cookiesOnTray.value++;
+      }
+      function removeCookie() {
+        if (cookiesOnTray.value > 0) cookiesOnTray.value--;
+      }
+      function checkDivision(choice) {
+        if (choice === 2) { // 固定答案2盘
+          showToast('🎉 分对了！每盘有' + Math.floor(guestCount.value/2) + '块');
+          divisionSolved.value = true;
+          stars.value += 5;
         } else {
-          b.opponentCurrentHp = Math.max(0, b.opponentCurrentHp - dmg);
-        }
-        b.myEnergy = Math.min(MAX_ENERGY, b.myEnergy + 1);
-        return `你攻击造成${dmg}点伤害 `;
-      } else if (action === 'defend') {
-        b.myBuffs.push({ type: 'defend', duration: 1, label: '🛡️' });
-        b.myEnergy = Math.min(MAX_ENERGY, b.myEnergy + 2);
-        return '你选择防御 ';
-      }
-      return '';
-    }
-    function executeMonsterTurn(b) {
-      let log = '';
-      let dmg = 0;
-      const opp = b.opponentPet;
-      const hasSkills = opp.skills && opp.skills.length > 0;
-      if (hasSkills) {
-        b.opponentEnergy = b.opponentEnergy || 0;
-        const hpPct = b.opponentCurrentHp / opp.hp;
-        let chosenSkill = null;
-        if (b.opponentEnergy >= 8 && hpPct < 0.5 && opp.skills.includes('summon_bugs')) chosenSkill = 'summon_bugs';
-        else if (b.opponentEnergy >= 6 && opp.skills.includes('burn_out')) chosenSkill = 'burn_out';
-        else if (b.opponentEnergy >= 4 && opp.skills.includes('fire_storm')) chosenSkill = 'fire_storm';
-        if (chosenSkill && opp.skills.includes(chosenSkill)) {
-          const skill = BOSS_SKILLS[chosenSkill];
-          if (skill) {
-            b.opponentEnergy -= skill.cost;
-            dmg = Math.max(1, Math.floor(opp.atk * skill.dmgMult) - b.myPet.def + Math.floor(Math.random() * 6));
-            if (chosenSkill === 'burn_out') {
-              b.oppBuffs.push({ type: 'def_down', duration: 2, label: '🔻防' });
-              opp.def = Math.floor(opp.def * (1 - skill.selfDefPenalty));
-            }
-            if (chosenSkill === 'summon_bugs') {
-              const heal = Math.floor(opp.hp * skill.healPct);
-              b.opponentCurrentHp = Math.min(opp.hp, b.opponentCurrentHp + heal);
-              log += `🐛虫母召唤小虫群！回复${heal}HP，`;
-            }
-            b.myCurrentHp = Math.max(0, b.myCurrentHp - dmg);
-            log += `${skill.name}！造成${dmg}点伤害 (消耗${skill.cost}能量) `;
-            b.opponentEnergy = Math.min(b.oppMaxEnergy || 10, b.opponentEnergy + 1);
-            return log;
-          }
+          showToast('🤔 再想想，需要2盘才一样多哦');
         }
       }
-      if (hasSkills) b.opponentEnergy = Math.min(b.oppMaxEnergy || 10, (b.opponentEnergy || 0) + 2);
-      const defended = b.myBuffs.some(bf => bf.type === 'defend');
-      dmg = Math.max(1, opp.atk - b.myPet.def + Math.floor(Math.random() * 5));
-      const finalDmg = defended ? Math.floor(dmg * 0.5) : dmg;
-      b.myCurrentHp = Math.max(0, b.myCurrentHp - finalDmg);
-      log += `${opp.pet_name}攻击造成${finalDmg}点伤害${defended ? '(减免)' : ''}${hasSkills ? ' (能量+2)' : ''}`;
-      return log;
-    }
-    async function doBattleAction(action) {
-      const b = battle.value;
-      if (!b || b.processing) return;
-      b.processing = true;
-      try {
-        processBuffs(b);
-        let log = '';
-        const order = b.myPet.spd >= b.opponentPet.spd ? '(先手)' : '(后手)';
-        if (order === '(先手)') {
-          log += await executePlayerTurn(b, action);
-          if (b.opponentCurrentHp > 0) log += executeMonsterTurn(b);
-        } else {
-          if (b.opponentCurrentHp > 0) log += executeMonsterTurn(b);
-          if (b.myCurrentHp > 0) log += await executePlayerTurn(b, action);
-        }
-        b.myEnergy = Math.min(MAX_ENERGY, (b.myEnergy || 0) + 1);
-        b.myHpPct = Math.max(0, Math.min(100, Math.round(b.myCurrentHp / b.myPet.hp * 100)));
-        b.oppHpPct = Math.max(0, Math.min(100, Math.round(b.opponentCurrentHp / (b.opponentPet.hp || 1) * 100)));
-        b.myEnergyPct = b.myEnergy / MAX_ENERGY * 100;
-        b.oppEnergyPct = (b.opponentEnergy || 0) / (b.oppMaxEnergy || 10) * 100;
-        b.logHTML += `<div>[第${b.turn}回合]${order}${log}</div>`;
-        b.turn++;
-        if (b.myCurrentHp <= 0) {
-          b.logHTML += '<div>你输了！</div>';
-          setTimeout(() => endBattle(false), 1500);
-        } else if (b.opponentCurrentHp <= 0) {
-          b.logHTML += '<div>你赢了！</div>';
-          setTimeout(() => endBattle(true), 1500);
-        }
-      } finally {
-        b.processing = false;
+      function newGuest() {
+        guestCount.value = Math.floor(Math.random() * 6) + 2; // 2~7
+        cookiesOnTray.value = 0;
+        divisionSolved.value = false;
       }
-    }
-    async function endBattle(won) {
-      const b = battle.value;
-      if (!b) return;
-      if (won && b.monster) {
-        const gr = b.monster.rewards?.gold || 20;
-        await safeRpc('add_gold', { amount: gr });
-        profile.gold += gr;
-        if (!monsterLog[b.monster.name]) monsterLog[b.monster.name] = { kills: 0 };
-        monsterLog[b.monster.name].kills++;
-        await db.from('profiles').update({ monster_log: monsterLog }).eq('id', profile.id);
-        if (b.monster.isBoss) {
-          await bossKill();
-          await safeRpc('add_item_quantity', { item_type: 'blueprint_boss', qty: 1 });
-          showToast('🎉全服广播：虫母女王已被击败！📜获得BOSS图纸！');
-          updateQuestProgress('boss_defeat');
-        } else {
-          showToast(`胜利！🪙+${gr}`);
-          updateQuestProgress('defeat');
-        }
+
+      // ---------- 宠物英语 ----------
+      const pets = ref([
+        { id: 1, emoji: '🐶', name: '旺财', affection: 70 },
+        { id: 2, emoji: '🐱', name: '咪咪', affection: 50 },
+        { id: 3, emoji: '🐰', name: '跳跳', affection: 90 }
+      ]);
+      const showPetTouch = ref(false);
+      const touchedPet = ref(null);
+
+      function touchPet(pet) {
+        touchedPet.value = pet;
+        showPetTouch.value = true;
       }
-      battle.value = null;
-      pendingPotion.value = null;
-    }
-    function fleeBattle() { battle.value = null; pendingPotion.value = null; showToast('已逃跑'); }
-    function showPveMaps() { pveMonsters.value = []; showPveModal.value = true; }
-    async function openPveMap(map) {
-      if (map.isBoss) {
-        const bossState = await loadBossState();
-        if (!bossState) return;
-        if (bossState.is_alive === false || bossState.current_hp <= 0) {
-          const respawnTime = bossState.next_respawn;
-          if (respawnTime) showToast(`BOSS已被击杀，${new Date(respawnTime).toLocaleString()} 重生`);
-          else showToast('BOSS已被击杀，等待复活中...');
-          return;
-        }
-        const currentHp = bossState.current_hp > 0 ? bossState.current_hp : bossState.max_hp;
-        const bossMonster = {
-          name: '虫母女王', emoji: '👸', hp: currentHp, maxHp: bossState.max_hp,
-          atk: 50, def: 30, spd: 12, minLevel: 1, maxLevel: 35,
-          rewards: { gold: 1000, items: { scale: 3 } },
-          skills: ['fire_storm', 'burn_out', 'summon_bugs'], isBoss: true, maxEnergy: 10, dbId: BOSS_DB_ID
+
+      function speakBodyPart(part) {
+        const words = {
+          ear: 'ear',
+          tail: 'tail',
+          nose: 'nose',
+          paw: 'paw'
         };
-        pveMonsters.value = [bossMonster];
-      } else {
-        const mp = MONSTERS.filter(m => map.monsterIds.includes(m.name));
-        const ep = ELITE_MONSTERS.filter(m => map.eliteIds.includes(m.name));
-        pveMonsters.value = [...mp].sort(() => Math.random() - 0.5).slice(0, 4).map(m => ({ ...m, skills: [], isElite: false }))
-          .concat(ep.map(m => ({ ...m, skills: [], isElite: true })));
+        const word = words[part];
+        speakText(word);
+        if (touchedPet.value) {
+          touchedPet.value.affection = Math.min(100, touchedPet.value.affection + 2);
+          stars.value += 1;
+        }
+        showToast('🔊 ' + word + '  (跟读哦)');
       }
-    }
-    function startPveBattle(monster) {
-      const pet = pets.value.find(p => p.id === (selectedBattlePetId.value || pets.value[0]?.id));
-      if (!pet) { showToast('请先领养宠物'); return; }
-      const stats = getPetStats(pet);
-      let pb = {};
-      if (pendingPotion.value) { pb = pendingPotion.value.effect; showToast(`使用${pendingPotion.value.name}！`); }
-      const monsterHp = monster.hp || monster.maxHp || 800;
-      battle.value = {
-        myPet: { ...pet, hp: stats.hp, atk: stats.atk, def: stats.def, spd: stats.spd, luk: stats.luk, sta: stats.sta },
-        myCurrentHp: stats.hp, myHpPct: 100, myEnergy: 3, myEnergyPct: 30, myBuffs: [],
-        opponentPet: {
-          ...monster, hp: monsterHp, atk: monster.atk || 10, def: monster.def || 2, spd: monster.spd || 5,
-          pet_name: monster.name, pet_type: 'monster', emoji: monster.emoji || '👾',
-          isBoss: monster.isBoss || false, maxEnergy: monster.maxEnergy || 10, skills: monster.skills || []
-        },
-        opponentName: monster.name, opponentCurrentHp: monsterHp, oppHpPct: 100,
-        oppEnergy: monster.isBoss ? 3 : 0, oppEnergyPct: monster.isBoss ? 30 : 0, oppMaxEnergy: monster.maxEnergy || 10,
-        oppBuffs: [], skillCooldowns: {}, logHTML: '', monster, turn: 1, potionBonus: pb, processing: false
-      };
-      showPveModal.value = false;
-    }
-    function showSelectPetForBattle() {
-      if (pets.value.length === 0) { showToast('请先领养宠物'); return; }
-      if (pets.value.length === 1) { selectedBattlePetId.value = pets.value[0].id; showPotionModal.value = true; }
-      else { showSelectBattlePetModal.value = true; }
-    }
-    function selectPetForBattle(pet) { selectedBattlePetId.value = pet.id; showSelectBattlePetModal.value = false; showPotionModal.value = true; }
-    function usePotion(pot) {
-      if ((items[pot.key] || 0) <= 0) { showToast('药剂不足'); return; }
-      db.rpc('add_item_quantity', { p_item_type: pot.key, p_qty: -1 }).then(() => {
-        items[pot.key]--;
-        pendingPotion.value = pot;
-        showPotionModal.value = false;
-        showPveMaps();
-      });
-    }
-    // 纯辅助函数
-    function getPetEmoji(t) { return PET_TYPES[t]?.emoji || '🐾'; }
-    function isStationed(p) { return stationedPet.value?.id === p.id; }
-    function getEquippedPetName(eq) { if (!eq.equipped_to) return '未装备'; const pet = pets.value.find(p => p.id === eq.equipped_to); return pet ? pet.pet_name : '?'; }
-    function formatMats(m) { return Object.entries(m).map(([k, v]) => `${ITEM_EMOJI[k] || k}×${v}`).join(' '); }
-    function canCraft(r) { return Object.entries(r.materials).every(([k, v]) => (items[k] || 0) >= v) && profile.gold >= r.cost; }
-    function getCropEmoji(k) { return CROPS[k]?.emoji || '🌱'; }
-    function getCropName(k) { return CROPS[k]?.name || k; }
-    function formatTime(iso) { if (!iso) return ''; const d = new Date(iso), now = new Date(), diff = now - d, mins = Math.floor(diff / 60000); if (mins < 1) return '刚刚'; if (mins < 60) return `${mins}分钟前`; const h = Math.floor(mins / 60); if (h < 24) return `${h}小时前`; return `${Math.floor(h / 24)}天前`; }
-    function formatMailItems(it) { return Object.entries(it).filter(([k, v]) => v > 0).map(([k, v]) => `${ITEM_EMOJI[k] || '📦'}×${v}`).join(' '); }
-    function formatEventMsg(log) { try { const d = log.event_data || {}; switch (log.event_type) { case 'plant': return `🌱种下了${CROPS[d.crop]?.name || d.crop}`; case 'harvest': return `🌾收获了${CROPS[d.crop]?.name || d.crop}`; case 'pve_win': return `🐉击败了${d.monster}+${d.gold}金币`; default: return log.event_type; } } catch (e) { return log.event_type; } }
-    function getPetStats(pet) {
-      const equip = equipment.value.filter(e => e.equipped_to === pet.id);
-      let a = pet.atk || 0, d = pet.def || 0, s = pet.spd || 0, l = pet.luk || 0, h = pet.hp || 0, st = pet.sta || 50;
-      equip.forEach(e => {
-        a += e.atk_bonus || 0; d += e.def_bonus || 0; s += e.spd_bonus || 0; l += e.luk_bonus || 0;
-        if (e.enchants && Array.isArray(e.enchants)) e.enchants.forEach(en => { if (en.attr === 'atk_bonus') a += en.value || 0; else if (en.attr === 'def_bonus') d += en.value || 0; else if (en.attr === 'luk_bonus') l += en.value || 0; });
-      });
-      const setCounts = {}; equip.forEach(e => { if (e.set_name) setCounts[e.set_name] = (setCounts[e.set_name] || 0) + 1; });
-      for (const [sn, ct] of Object.entries(setCounts)) { const b = SET_BONUSES[sn]; if (!b) continue; if (ct >= 2 && b[2]) { if (b[2].atk) a += b[2].atk; if (b[2].def) d += b[2].def; } if (ct >= 3 && b[3]) { if (b[3].atk) a += b[3].atk; if (b[3].def) d += b[3].def; } }
-      if (pet.nature) { const n = PET_NATURES.find(n => n.id === pet.nature); if (n) { if (n.atk_bonus) a = Math.floor(a * (1 + n.atk_bonus)); if (n.def_bonus) d = Math.floor(d * (1 + n.def_bonus)); if (n.atk_penalty) a = Math.floor(a * (1 + n.atk_penalty)); if (n.def_penalty) d = Math.floor(d * (1 + n.def_penalty)); } }
-      if (pet.passive_skill && PASSIVE_SKILLS[pet.passive_skill]) { const p = PASSIVE_SKILLS[pet.passive_skill]; if (p.atk_bonus) a = Math.floor(a * (1 + p.atk_bonus)); if (p.def_bonus) d = Math.floor(d * (1 + p.def_bonus)); }
-      return { atk: a, def: d, spd: s, luk: l, hp: h, sta: st };
-    }
-    function getSetCount(setName) { return equipment.value.filter(e => e.set_name === setName && e.equipped_to !== null).length; }
-    function getSetBonusText(setName) { const bonus = SET_BONUSES[setName]; if (!bonus) return ''; const texts = []; if (bonus[2]) { const b = bonus[2]; if (b.atk) texts.push(`攻+${b.atk}`); if (b.def) texts.push(`防+${b.def}`); } return texts.join('，'); }
-    function openPetDetail(pet) { petDetailData.value = pet; showPetDetailModal.value = true; }
-    function getPlotClass(p) { return { empty: 'empty', ready: 'ready' }[p._status] || 'planted'; }
-    function getPlotEmoji(p) { return p._emoji; }
-    function getPlotName(p) { return p._name; }
-    function getPlotStatus(p) { if (p._status === 'empty') return '空地'; if (p._status === 'ready') return '✨可收获'; return (p._waterable ? '💧可浇水' : '🔥加速中') + ' 剩' + p._remainingMin + '分'; }
-    function onPlotClick(p) {
-      if (p._status === 'empty') { if (availableCrops.value.length === 0) { showToast('没有种子啦！去🏪商店购买或🗺️探险获取吧'); return; } selectedPlotIndex.value = p.plot_index; showPlantModal.value = true; }
-      else if (p._status === 'ready') { doHarvest(p); }
-      else { selectedPlotIndex.value = p.plot_index; showWaterModal.value = true; }
-    }
-    function openExplore(pet) { exploringPet.value = pet; showExploreModal.value = true; }
-    function openEquipSelect(eq) { equippingItem.value = eq; showEquipSelectModal.value = true; }
-    function onBackpackItemClick(item) { if (item.key === 'blueprint_boss') showToast('BOSS图纸，用于合成传说装备'); }
-    // 认证函数
-    async function handleLogin() { errorMsg.value = ''; if (!loginEmail.value || !loginPassword.value) { errorMsg.value = '请输入邮箱和密码'; return; } loading.value = true; try { const { data, error } = await db.auth.signInWithPassword({ email: loginEmail.value, password: loginPassword.value }); if (error) throw error; await loadAllData(data.user); isLoggedIn.value = true; showToast('登录成功！🌱'); } catch (e) { errorMsg.value = e.message || '登录失败'; } finally { loading.value = false; } }
-    async function handleRegister() { errorMsg.value = ''; if (!regUsername.value || !regEmail.value || !regPassword.value) { errorMsg.value = '请填写所有必填字段'; return; } if (regPassword.value.length < 6) { errorMsg.value = '密码至少6位'; return; } loading.value = true; try { const { data, error } = await db.auth.signUp({ email: regEmail.value, password: regPassword.value, options: { data: { username: regUsername.value, gender: regGender.value } } }); if (error) throw error; if (data.user) { showToast('注册成功！🎉'); await new Promise(r => setTimeout(r, 1500)); await loadAllData(data.user); isLoggedIn.value = true; } } catch (e) { errorMsg.value = e.message || '注册失败'; } finally { loading.value = false; } }
-    async function handleLogout() { await db.auth.signOut(); isLoggedIn.value = false; }
-    async function checkSession() { const { data } = await db.auth.getSession(); if (data.session) { await loadAllData(data.session.user); isLoggedIn.value = true; } }
-    checkSession();
-    const growthTimer = setInterval(() => { if (isLoggedIn.value && !battle.value) refreshFarm(); }, 30000);
-    onUnmounted(() => clearInterval(growthTimer));
 
-    return {
-      isLoggedIn, authMode, loading, errorMsg, toastMsg, loginEmail, loginPassword, regUsername, regEmail, regPassword, regGender,
-      profile, visiblePlots, initial, items, rawPlots, pets, stationedPet, equipment, monsterLog,
-      showPlantModal, showWaterModal, showPetsModal, showAdoptModal, showExploreModal, showSynthesisModal,
-      showEquipmentModal, showEquipSelectModal, showBackpackModal, showPveModal, showOrdersModal, showSeedShopModal,
-      showMailModal, showEventLogModal, showFriendsModal, showLeaderboardModal, showMonsterLogModal, showFriendFarmModal,
-      showPetDetailModal, showPotionModal, showSelectBattlePetModal, showEnchantModal, showSeasonModal,
-      selectedPlotIndex, waterPlotName, exploringPet, synthTab, equippingItem, enchantingItem, bpTab, bpPage, petDetailData, pendingPotion,
-      battle, selectedBattlePetId, pveMonsters, pveMaps,
-      orders, mails, mailTab, mailReceiver, mailTitle, mailContent, mailItemsText, eventLogs, friendProfiles,
-      lbTab, lbPage, lbRanked, lbTotalPages, visitingFriend, visitingPlots,
-      marketListings, marketSeedShop, marketTab, marketDynamics,
-      seasonState, seasonQuests, seasonXpPercent, currentSeasonId,
-      availableCrops, PET_TYPES, EXPLORE_ROUTES, currentRecipes, QUALITY_NAMES,
-      bpFilteredItems, bpTotalPages, bpPageItems, bpPlaceholders, ALL_MONSTERS, staFactor,
-      PET_NATURES, PASSIVE_SKILLS, PET_SLOT_UNLOCK, PLOT_MAX_COUNT, MAX_PET_SLOTS, BATTLE_POTIONS,
-      ENCHANT_MATERIALS, ENCHANT_ATTRS, BLUEPRINT_RECIPES, BOSS_SKILLS, SET_BONUSES,
-      ITEM_NAMES, ITEM_EMOJI, CROPS, SEASON_CONFIG,
-      getPlotClass, getPlotEmoji, getPlotName, getPlotStatus, getPetEmoji, isStationed, getEquippedPetName,
-      formatMats, canCraft, getCropEmoji, getCropName, formatTime, formatMailItems, formatEventMsg,
-      getPetStats, openPetDetail, getSetCount, getSetBonusText,
-      onPlotClick, doPlant, doWater, toggleStation, doAdopt, openExplore, doExplore, completeExplore,
-      doSynthesize, doEnhance, openEquipSelect, doEquip, doUnequip, openEnchant, enchantEquipment,
-      visitFriend, stealCrop, waterFriendPlot,
-      submitOrder, loadMarketDynamic, buyListing, quickSellDynamic, buyMarketSeed,
-      claimMail, sendMail, loadMails, loadEventLogs, loadLeaderboard, loadOrders, addFriend,
-      onBackpackItemClick, usePotion,
-      handleLogin, handleRegister, handleLogout, refreshFarm,
-      showPveMaps, openPveMap, startPveBattle, doBattleAction, endBattle, fleeBattle,
-      showSelectPetForBattle, selectPetForBattle, openEventLog,
-      updateQuestProgress, addSeasonXp, claimQuestReward, initSeasonData,
-      doSell, doDecompose
-    };
-  }
-}).mount('#app');
+      // ---------- 字母森林 ----------
+      const adventureActive = ref(false);
+      const currentLetter = ref('');
+      const currentLetterSprite = ref('');
+      const letterSound = ref('');
+      const userLetterInput = ref('');
+      const catchFeedback = ref('');
+      const collectedWord = ref('');
+
+      const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      function startAdventure() {
+        adventureActive.value = true;
+        nextLetter();
+      }
+      function nextLetter() {
+        const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
+        currentLetter.value = letter;
+        // 简单图形精灵：用emoji表示
+        const sprites = { A:'🅰️', B:'🅱️', C:'©️', D:'🆔', E:'📧', F:'🎏' };
+        currentLetterSprite.value = sprites[letter] || '🔤';
+        letterSound.value = getLetterSound(letter);
+        userLetterInput.value = '';
+        catchFeedback.value = '';
+      }
+      function getLetterSound(letter) {
+        const sounds = {
+          A:'[æ]', B:'[b]', C:'[k]', D:'[d]', E:'[e]', F:'[f]', G:'[g]', H:'[h]',
+          I:'[ɪ]', J:'[dʒ]', K:'[k]', L:'[l]', M:'[m]', N:'[n]', O:'[ɒ]', P:'[p]',
+          Q:'[kw]', R:'[r]', S:'[s]', T:'[t]', U:'[ʌ]', V:'[v]', W:'[w]', X:'[ks]',
+          Y:'[j]', Z:'[z]'
+        };
+        return sounds[letter] || '';
+      }
+      function catchLetter() {
+        const input = userLetterInput.value.toUpperCase().trim();
+        if (input === currentLetter.value) {
+          catchFeedback.value = '✅ 抓住了！';
+          // 添加到收集单词（目标CAT）
+          if (collectedWord.value.length < 3 && 'CAT'.includes(input)) {
+            if (!collectedWord.value.includes(input)) {
+              collectedWord.value += input;
+            }
+          }
+          stars.value += 3;
+          speakText(currentLetter.value);
+          if (collectedWord.value === 'CAT') {
+            showToast('🐱 你拼出了 CAT！小猫出现啦！');
+            adventureActive.value = false;
+          } else {
+            setTimeout(nextLetter, 1000);
+          }
+        } else {
+          catchFeedback.value = '❌ 再试一次，听听它的声音';
+          speakText(currentLetter.value + ' says ' + letterSound.value);
+        }
+        userLetterInput.value = '';
+      }
+
+      // ---------- 语音合成工具 ----------
+      function speakText(text) {
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = text.match(/[a-zA-Z]/) ? 'en-US' : 'zh-CN';
+          utterance.rate = 0.8;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      // 初始欢迎语音
+      onMounted(() => {
+        setTimeout(() => {
+          speakText('欢迎来到啾啾的知识花园！');
+        }, 500);
+      });
+
+      return {
+        view, username, stars, toast,
+        farmPlots, showWordChoice, currentWordOptions, waterPlant, selectWord,
+        guestCount, cookiesOnTray, divisionSolved, divisionOptions,
+        addCookie, removeCookie, checkDivision, newGuest,
+        pets, showPetTouch, touchedPet, touchPet, speakBodyPart,
+        adventureActive, currentLetter, currentLetterSprite, letterSound,
+        userLetterInput, catchFeedback, collectedWord, startAdventure, catchLetter,
+        showToast
+      };
+    }
+  }).mount('#app');
 </script>
 </body>
 </html>
