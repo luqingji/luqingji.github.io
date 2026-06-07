@@ -333,6 +333,13 @@ createApp({
                     supabase.from('user_tower_progress').select('*').eq('user_id', user.id).maybeSingle()
                 ]);
                 if(pr.data) { profile.value=pr.data; username.value=pr.data.username; silver.value=pr.data.silver; diamond.value=pr.data.diamond; energy.value=pr.data.energy; merit.value=pr.data.merit||0; }
+				// 恢复角色当前血量（如果数据库有 current_hp）
+if (pr.data.current_hp !== undefined && pr.data.current_hp !== null) {
+    playerHp.value = Math.max(1, Math.min(pr.data.current_hp, playerMaxHp.value));
+} else {
+    // 如果没有存储，设为满血
+    playerHp.value = playerMaxHp.value;
+}
                 else { await logout(); return; }
                 if(pe.data) {
                     const basePetIds = [...new Set(pe.data.map(p=>p.base_pet_id).filter(Boolean))];
@@ -360,31 +367,47 @@ createApp({
 
         // ==================== 治疗角色 ====================
         async function useHealItem() {
-            if(playerHp.value >= playerMaxHp.value) { showToast('气血已满'); return; }
-            const item = inventory.value.find(i => i.item_id === HEAL_ITEM_ID);
-            if(!item || item.quantity <= 0) { showToast('没有金疮药了'); return; }
-            const healAmount = Math.floor(playerMaxHp.value * HEAL_RATIO);
-            if(healAmount <= 0) return;
-            try {
-                const { data, error } = await supabase.rpc('use_heal_item', { p_item_id: HEAL_ITEM_ID, p_quantity: 1 });
-                if(error) throw error;
-                if(data && data.error) { showToast(data.error); return; }
-                playerHp.value = Math.min(playerHp.value + (data?.heal_amount || healAmount), playerMaxHp.value);
-                item.quantity--;
-                showToast(`使用金疮药，回复 ${data?.heal_amount || healAmount} 点气血`);
-                await refreshData();
-            } catch (e) {
-                console.warn('use_heal_item RPC 未找到，尝试临时模拟', e);
-                playerHp.value = Math.min(playerHp.value + healAmount, playerMaxHp.value);
-                item.quantity--;
-                showToast(`使用金疮药，回复 ${healAmount} 点气血（临时）`);
-                try {
-                    await supabase.from('profiles').update({ current_hp: playerHp.value }).eq('id', profile.value.id);
-                    await supabase.from('user_items').update({ quantity: item.quantity }).eq('id', item.id);
-                } catch (dbErr) { console.warn('直接更新数据库失败', dbErr); }
-                await refreshData();
-            }
-        }
+    const currentHp = playerHp.value;
+    const maxHp = playerMaxHp.value;
+    console.log('尝试疗伤，当前HP:', currentHp, '最大HP:', maxHp);
+    
+    if (currentHp >= maxHp) {
+        showToast('气血已满，无需用药');
+        return;
+    }
+    
+    const item = inventory.value.find(i => i.item_id === HEAL_ITEM_ID);
+    if (!item || item.quantity <= 0) {
+        showToast('没有金疮药了');
+        return;
+    }
+    
+    const healAmount = Math.floor(maxHp * HEAL_RATIO);
+    if (healAmount <= 0) return;
+    
+    try {
+        const { data, error } = await supabase.rpc('use_heal_item', { 
+            p_item_id: HEAL_ITEM_ID, p_quantity: 1 
+        });
+        if (error) throw error;
+        if (data && data.error) { showToast(data.error); return; }
+        
+        playerHp.value = Math.min(currentHp + (data?.heal_amount || healAmount), maxHp);
+        item.quantity--;
+        showToast(`使用金疮药，回复 ${data?.heal_amount || healAmount} 点气血`);
+        await refreshData();
+    } catch (e) {
+        console.warn('后端 RPC 不可用，启用临时疗伤', e);
+        playerHp.value = Math.min(currentHp + healAmount, maxHp);
+        item.quantity--;
+        showToast(`使用金疮药，回复 ${healAmount} 点气血（临时）`);
+        try {
+            await supabase.from('profiles').update({ current_hp: playerHp.value }).eq('id', profile.value.id);
+            await supabase.from('user_items').update({ quantity: item.quantity }).eq('id', item.id);
+        } catch (dbErr) {}
+        await refreshData();
+    }
+}
 
         // ==================== 核心操作（省略部分重复代码，实际已全部包含） ====================
         async function buySeed(seedId) {
