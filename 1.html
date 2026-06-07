@@ -144,7 +144,7 @@
         <div v-if="view === 'scene'"><button class="btn" @click="view='map'" style="width:auto">← 返回</button><h3>{{ currentAreaName }}</h3><div v-for="scene in currentScenes" :key="scene.id" class="card" @click="explore(scene)"><strong>{{ scene.name }}</strong> (Lv.{{ scene.level_min }}-{{ scene.level_max }})</div></div>
         <!-- 宠物列表 -->
         <div v-if="view === 'pets'"><h3>🐾 灵兽</h3><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><div v-for="p in myPets" :key="p.id" class="card" style="cursor:pointer; position:relative" @click="openPetDetail(p)"><div><strong>{{ p.nickname }}</strong> <small style="color:#999; font-size:10px;">#{{ p.id.substring(0,6) }}</small> Lv.{{ p.level }}</div><div style="font-size:10px; margin-top:2px;"><span :class="'rarity-'+(p.rarity||'common')">{{ {common:'普通',rare:'稀有',legendary:'传说'}[p.rarity||'common'] }}</span><span v-if="p.is_carried" class="carried-tag" style="margin-left:4px;">携带中</span></div><div class="hp-bar"><div class="hp-fill" :style="{width: Math.min(100, (Math.min(p.current_hp, calcPetStats(p).hp) / (calcPetStats(p).hp || 1)) * 100) + '%'}"></div></div><small>技能: {{ petSkillNames(p) }}</small></div></div></div>
-        <!-- 宠物详情面板（含融合按钮） -->
+        <!-- 宠物详情面板 -->
         <div v-if="showPetDetail" class="overlay" @click.self="showPetDetail = false">
             <div class="pet-detail-panel">
                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;"><div style="display:flex; align-items:center; gap:6px;"><span style="font-size:17px; font-weight:bold; color:#4a2c1a;">{{ detailPet.nickname }}</span><span class="level-box" style="font-size:12px; padding:2px 8px;">Lv.{{ detailPet.level }}</span><span v-if="detailPet.is_carried" class="carried-tag">携带中</span></div><span class="element-badge">{{ detailPet.element_primary || '?' }}</span></div>
@@ -234,6 +234,8 @@ createApp({
         const showNicknameInput = ref(false); const newNickname = ref(''); const showPetDetail = ref(false); const detailPet = ref(null); const showCharacterPanel = ref(false);
         const showSkillPanel = ref(false); const battleBusy = ref(false); const catching = ref(false); const catchMessage = ref(''); const ballShakeClass = ref(''); const recentLogs = ref([]);
         const enemyHp = ref(0); const petHp = ref(0);
+        // 【关键修改】playerHp 改为普通 ref，初始为满血
+        const playerHp = ref(100);
         const playerEquipment = ref([]); const selectedSlot = ref(null); const inventoryTab = ref('consumable'); const showEquipmentDetail = ref(false); const detailEquipment = ref(null);
         const showEnemyInfo = ref(false); const pendingPlayerSkill = ref(null); const pendingPetSkill = ref(null); const logContainer = ref(null);
         const qualityCN = { white:'普通', green:'优秀', blue:'精良', purple:'史诗', orange:'传说' };
@@ -251,20 +253,20 @@ createApp({
         const incubationSlots = ref([]); const showIncubationDialog = ref(false); const showFusionDialog = ref(false); const fusionPetA = ref(null); const fusionPetB = ref(null);
         const HEAL_ITEM_ID = 2; const HEAL_RATIO = 0.3;
 
-        // 计算属性
+        // 计算属性（playerMaxHp 依赖 profile 和装备）
+        const playerMaxHp = computed(() => {
+            let base = 100 + (profile.value?.level || 1) * 20 + (profile.value?.constitution || 5) * 5;
+            if (equippedItems.value.armor) base += equippedItems.value.armor.base_hp || 0;
+            if (equippedItems.value.necklace) base += equippedItems.value.necklace.base_hp || 0;
+            if (equippedItems.value.belt) base += equippedItems.value.belt.base_hp || 0;
+            let hpMult = 1.0;
+            for (const affix of equippedAffixes.value) { if (affix.id === 'hp_pct') hpMult += affix.value / 100; }
+            return Math.floor(base * hpMult);
+        });
+        // 其他计算属性不变，但需注意 playerHpPercent 等依赖 playerHp 的 ref
         const equippedItems = computed(() => { const eq={}; playerEquipment.value.filter(e=>e.equipped).forEach(e=>{eq[e.slot]=e.equipment_def;}); return eq; });
         const availableEquipment = computed(() => { const av={weapon:[],armor:[],necklace:[],ring:[],shoes:[],belt:[]}; playerEquipment.value.filter(e=>!e.equipped).forEach(e=>{av[e.slot].push({...e.equipment_def, id:e.id, affixes:e.affixes});}); return av; });
         const equippedAffixes = computed(() => { const affixes=[]; for(const slot of ['weapon','armor','necklace','ring','shoes','belt']){ const eq=playerEquipment.value.find(e=>e.slot===slot&&e.equipped); if(eq&&eq.affixes&&Array.isArray(eq.affixes)) affixes.push(...eq.affixes); } return affixes; });
-        const playerMaxHp = computed(() => { let base=100+(profile.value?.level||1)*20+(profile.value?.constitution||5)*5; if(equippedItems.value.armor) base+=equippedItems.value.armor.base_hp||0; if(equippedItems.value.necklace) base+=equippedItems.value.necklace.base_hp||0; if(equippedItems.value.belt) base+=equippedItems.value.belt.base_hp||0; let hpMult=1.0; for(const affix of equippedAffixes.value){ if(affix.id==='hp_pct') hpMult+=affix.value/100; } return Math.floor(base*hpMult); });
-        const playerHp = computed({
-            get() {
-                if (profile.value && profile.value.current_hp != null) return profile.value.current_hp;
-                return playerMaxHp.value;
-            },
-            set(val) {
-                if (profile.value) profile.value.current_hp = val;
-            }
-        });
         const playerRealAtk = computed(() => { let base=(profile.value?.strength||5)*1.5; if(equippedItems.value.weapon) base+=equippedItems.value.weapon.base_atk||0; if(equippedItems.value.ring) base+=equippedItems.value.ring.base_atk||0; return Math.floor(base); });
         const playerRealDef = computed(() => { let base=(profile.value?.endurance||5)*1.2; if(equippedItems.value.armor) base+=equippedItems.value.armor.base_def||0; if(equippedItems.value.belt) base+=equippedItems.value.belt.base_def||0; return Math.floor(base); });
         const playerRealSpd = computed(() => { let base=(profile.value?.agility||5)*2; if(equippedItems.value.shoes) base+=equippedItems.value.shoes.base_spd||0; if(equippedItems.value.ring) base+=equippedItems.value.ring.base_spd||0; return Math.floor(base); });
@@ -309,7 +311,7 @@ createApp({
         function logEntryIcon(msg) { return ''; }
         watch(recentLogs, ()=>{ nextTick(()=>{ if(logContainer.value) logContainer.value.scrollTop=logContainer.value.scrollHeight; }); }, { deep:false });
 
-        // 数据刷新
+        // 数据刷新：不再从数据库覆盖 playerHp，仅首次加载时设置
         async function refreshData() {
             if(!supabase.auth) return;
             const { data:{session} } = await supabase.auth.getSession();
@@ -325,8 +327,15 @@ createApp({
                     supabase.rpc('get_daily_quests'), supabase.from('world_bosses').select('*').eq('id',1).single(), supabase.rpc('get_friends'),
                     supabase.from('user_tower_progress').select('*').eq('user_id', user.id).maybeSingle()
                 ]);
-                if(pr.data) { profile.value=pr.data; username.value=pr.data.username; silver.value=pr.data.silver; diamond.value=pr.data.diamond; energy.value=pr.data.energy; merit.value=pr.data.merit||0; }
-                else { await logout(); return; }
+                if(pr.data) {
+                    profile.value = pr.data;
+                    username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; merit.value = pr.data.merit||0;
+                    // 首次加载时，如果本地 playerHp 未被设置（初始0或100），则从数据库恢复或设为满血
+                    if (playerHp.value === 100 && profile.value) {
+                        if (pr.data.current_hp != null) playerHp.value = pr.data.current_hp;
+                        else playerHp.value = playerMaxHp.value;
+                    }
+                } else { await logout(); return; }
                 if(pe.data) {
                     const basePetIds = [...new Set(pe.data.map(p=>p.base_pet_id).filter(Boolean))];
                     const { data: rarities } = await supabase.from('base_pets_def').select('id, rarity').in('id', basePetIds);
@@ -343,6 +352,7 @@ createApp({
                 loadOwnedSeeds();
             } catch (e) { console.error('refreshData error:', e); showToast('数据加载异常，请刷新重试'); }
         }
+        // 其余函数保持不变，但 processBattleResult、useHealItem 等直接操作 playerHp.value
         async function loadEquipment() { if(profile.value?.id){ const{data}=await supabase.from('player_equipment').select('*, equipment_def:equipment_id(*)').eq('owner_id',profile.value.id); if(data) playerEquipment.value=data; } }
         async function loadSeeds() { const{data}=await supabase.from('seeds_def').select('*').order('id'); if(data) seedsList.value=data.filter(s=>s.cost>0); }
         async function loadFarm() { const{data}=await supabase.rpc('get_farm_plots'); if(data&&!data.error){ farmPlots.value=data.map(p=>({...p, watered_recently: p.watered_at&&new Date(p.watered_at).getTime()>Date.now()-2*60*60*1000, fertilized_recently: p.fertilized_at&&new Date(p.fertilized_at).getTime()>Date.now()-4*60*60*1000})); } }
@@ -360,16 +370,25 @@ createApp({
                 const { data, error } = await supabase.rpc('use_heal_item', { p_item_id: HEAL_ITEM_ID, p_quantity: 1 });
                 if(error) throw error;
                 if(data && data.error) { showToast(data.error); return; }
-                if (profile.value) profile.value.current_hp = data.new_hp;
+                playerHp.value = data.new_hp;
                 item.quantity--;
                 showToast(`使用金疮药，回复 ${data.heal_amount} 点气血`);
                 await refreshData();
             } catch (e) {
-                showToast('治疗失败：' + e.message);
+                // 降级：本地模拟
+                const healAmount = Math.floor(playerMaxHp.value * HEAL_RATIO);
+                playerHp.value = Math.min(playerHp.value + healAmount, playerMaxHp.value);
+                item.quantity--;
+                showToast(`使用金疮药，回复 ${healAmount} 点气血（临时）`);
+                try {
+                    await supabase.from('profiles').update({ current_hp: playerHp.value }).eq('id', profile.value.id);
+                    await supabase.from('user_items').update({ quantity: item.quantity }).eq('id', item.id);
+                } catch (dbErr) {}
+                await refreshData();
             }
         }
 
-        // 核心操作
+        // 核心操作（省略不变，但战斗结果中直接设置 playerHp.value）
         async function buySeed(seedId) { try { const { data, error } = await supabase.rpc('buy_seed',{p_seed_id:seedId}); if(error){showToast('购买失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast(data.message); await refreshData(); } catch(e) { showToast('购买出错'); } }
         function openPlantDialog(slot) { currentPlantSlot.value=slot; loadOwnedSeeds(); showPlantDialog.value=true; }
         async function plantSeed(slot, itemId) { try { const { data, error } = await supabase.rpc('plant_seed',{p_slot:slot,p_seed_item_id:itemId}); if(error){showToast('种植失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast('播种成功！'); showPlantDialog.value=false; await refreshData(); } catch(e) { showToast('种植出错'); } }
@@ -385,13 +404,12 @@ createApp({
         async function quickFeed(pet, itemId) { if(!hasItem(itemId)){showToast('灵果不足');return;} try { const { data, error } = await supabase.rpc('feed_pet',{p_pet_id:pet.id,p_item_id:itemId,p_quantity:1}); if(error){showToast('喂养失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast(data.message+(data.crit?' 💥暴击！':'')); await refreshData(); const updated=myPets.value.find(p=>p.id===pet.id); if(updated) detailPet.value=updated; } catch(e) { showToast('喂养出错'); } }
         async function healPet(pet) { const cost=50; if(silver.value<cost){showToast('银两不足，需要 '+cost+' 银两');return;} const maxHp=calcPetStats(pet).hp; if(pet.current_hp>=maxHp){showToast('宠物血量已满');return;} try { await supabase.from('pets').update({current_hp:maxHp}).eq('id',pet.id); await supabase.from('profiles').update({silver: silver.value - cost}).eq('id',profile.value.id); pet.current_hp=maxHp; silver.value-=cost; showToast(pet.nickname+' 已完全康复！'); refreshData(); } catch(e) { showToast('治疗失败'); } }
 
-        // 角色相关
         function returnToRoleSelect() { stopEnergySync(); stopPetRecovery(); view.value='role_select'; }
         function enterGame() { if(profile.value?.sect_id){ startEnergySync(); startPetRecovery(); view.value='map'; } }
         async function createCharacterAndEnter(sectId) { if(!regNickname.value.trim()){showToast('请填写昵称');return;} loading.value=true; try { const{data,error}=await supabase.rpc('create_character',{p_sect_id:sectId}); if(!error&&data){ if(regNickname.value.trim()!==data.username) await supabase.rpc('update_nickname',{p_nickname:regNickname.value.trim()}); profile.value=data; username.value=data.username; startEnergySync(); startPetRecovery(); view.value='map'; }else{showToast('创建角色失败：'+(error?.message||'未知错误'));} } catch(e) { showToast('创建出错'); } finally { loading.value=false; refreshData(); } }
         async function login() { if(loading.value)return; loading.value=true; try { const{error}=await supabase.auth.signInWithPassword({email:email.value,password:password.value}); if(error){showToast('登录失败：'+error.message);return;} await refreshData(); view.value='role_select'; } catch(e) { showToast('登录异常'); } finally { loading.value=false; } }
         async function register() { if(!regNickname.value.trim()){showToast('请填写昵称');return;} if(loading.value)return; loading.value=true; try { const{error}=await supabase.auth.signUp({email:email.value,password:password.value}); if(error){showToast('注册失败：'+error.message);loading.value=false;return;} await supabase.rpc('ensure_profile',{p_username:regNickname.value.trim()}); await refreshData(); view.value='role_select'; } catch(e) { showToast('注册出错'); } finally { loading.value=false; } }
-        async function logout() { stopEnergySync(); stopPetRecovery(); await supabase.auth.signOut(); profile.value=null; username.value=''; silver.value=0; diamond.value=0; energy.value=0; myPets.value=[]; inventory.value=[]; dailyQuests.value=[]; friends.value=[]; playerEquipment.value=[]; towerProgress.value={current_floor:1,max_floor:1,season_name:''}; leaderboard.value=[]; towerReady.value=false; view.value='auth'; supabase.removeAllChannels(); }
+        async function logout() { stopEnergySync(); stopPetRecovery(); await supabase.auth.signOut(); profile.value=null; username.value=''; silver.value=0; diamond.value=0; energy.value=0; myPets.value=[]; inventory.value=[]; dailyQuests.value=[]; friends.value=[]; playerEquipment.value=[]; towerProgress.value={current_floor:1,max_floor:1,season_name:''}; leaderboard.value=[]; towerReady.value=false; playerHp.value = 100; view.value='auth'; supabase.removeAllChannels(); }
         async function saveNickname() { if(!newNickname.value.trim()){showToast('昵称不能为空');return;} try { const{error}=await supabase.rpc('update_nickname',{p_nickname:newNickname.value.trim()}); if(error){showToast('修改失败：'+error.message);return;} showToast('昵称修改成功！'); showNicknameInput.value=false; refreshData(); } catch(e) { showToast('修改出错'); } }
         async function setCarried(id) { try { const{error}=await supabase.rpc('set_carried_pet',{p_pet_id:id}); if(error){showToast('操作失败：'+error.message);return;} refreshData(); } catch(e) { showToast('操作出错'); } }
         function openPetDetail(p) { if(p.passive_skills&&p.passive_skills.length>0&&typeof p.passive_skills[0]==='string'){ p.passive_skills=p.passive_skills.map(s=>JSON.parse(s)); } detailPet.value=p; showPetDetail.value=true; }
@@ -399,17 +417,31 @@ createApp({
         async function openArea(area) { if((profile.value?.level||1)<area.required_level){showToast(`需要达到 Lv.${area.required_level} 才能进入${area.name}`);return;} const{data}=await supabase.from('scenes').select('*').eq('area_id',area.id); currentScenes.value=data; currentAreaName.value=area.name; view.value='scene'; }
         async function explore(scene) { try { await syncEnergy(); const{data,error}=await supabase.rpc('explore_area',{p_scene_id:scene.id}); if(error){showToast('探索失败：'+error.message);return;} if(data.error){showToast(data.error);return;} energy.value=data.energy; if(data.type==='monster'||data.type==='wild_pet'){ const sceneLevel=scene.level_min; if(data.type==='wild_pet'){data.data.base_pet_id=data.data.id;} data.data.level=sceneLevel; encounter.value=data.data; encounter.value.currentHp=data.data.hp; encounter.value.maxHp=data.data.hp; enemyHp.value=data.data.hp; encounter.value.monsterLevel=sceneLevel; encounter.value.type=data.type; let carried=myPets.value.find(p=>p.is_carried); if(carried&&carried.current_hp>0){activePet.value=carried;} else{ activePet.value=myPets.value.find(p=>p.current_hp>0); if(!activePet.value){showToast('没有可以战斗的宠物！');return;} } petHp.value=activePet.value.current_hp; battleBusy.value=false; catching.value=false; showSkillPanel.value=false; recentLogs.value=[]; battle.active=true; } } catch(e) { showToast('探索出错'); } }
 
-        // 战斗系统
         function openSkillPanel() { pendingPlayerSkill.value=null; pendingPetSkill.value=null; showSkillPanel.value=true; }
         function selectPlayerSkill(skillId) { pendingPlayerSkill.value=skillId; if(!isPetAlive.value){showSkillPanel.value=false; battleAction('player_skill',skillId);return;} checkAndExecute(); }
         function selectPetSkill(skillId) { pendingPetSkill.value=skillId; checkAndExecute(); }
         function checkAndExecute() { if(pendingPlayerSkill.value&&pendingPetSkill.value){showSkillPanel.value=false; battleAction('combined_skills');} }
         function cancelSkillPanel() { showSkillPanel.value=false; }
         async function battleAction(action, skillId=null) { if(battleBusy.value)return; battleBusy.value=true; showSkillPanel.value=false; const t=setTimeout(()=>{if(battleBusy.value){battleBusy.value=false;catching.value=false;showToast('操作超时，请重试');}},5000); if(action==='run'){clearTimeout(t);showToast('逃跑成功！');battle.active=false;refreshData();battleBusy.value=false;return;} if(action==='catch'){ clearTimeout(t); if(ballCount.value<=0){showToast('捕捉球不足');battleBusy.value=false;return;} if(encounter.value.currentHp>encounter.value.maxHp*0.3){let damage=Math.floor(encounter.value.currentHp*0.4);if(damage<1)damage=1;encounter.value.currentHp-=damage;enemyHp.value=encounter.value.currentHp;recentLogs.value.push('⚡ 你发动了一次弱击，对怪物造成 '+damage+' 点伤害');} catching.value=true; try{ const{data,error}=await supabase.rpc('catch_wild_pet',{p_pet_id:activePet.value.id,p_wild_base_id:encounter.value.base_pet_id,p_wild_current_hp:encounter.value.currentHp,p_scene_level:encounter.value.monsterLevel||1}); if(error){showToast('捕捉失败：'+error.message);catching.value=false;battleBusy.value=false;return;} if(data.error){showToast(data.error);catching.value=false;battleBusy.value=false;refreshData();return;} await shakeBall(3); if(data.caught){catchMessage.value='收服成功！';setTimeout(()=>{catching.value=false;battle.active=false;refreshData();},1500);}else{catchMessage.value='挣脱了！';setTimeout(()=>{catching.value=false;battleBusy.value=false;refreshData();},1000);} }catch(e){showToast('捕捉出错');battleBusy.value=false;catching.value=false;} return; } clearTimeout(t); let monsterId=encounter.value.id; let isWild=encounter.value.type==='wild_pet'; let wildBaseId=isWild?encounter.value.base_pet_id:null; const rpcParams={p_pet_id:activePet.value.id,p_monster_id:isWild?1:monsterId,p_monster_current_hp:encounter.value.currentHp,p_is_wild:isWild,p_enemy_name:encounter.value.name,p_wild_base_id:wildBaseId,p_monster_level:encounter.value.monsterLevel||1,p_player_current_hp:playerHp.value,p_player_max_hp:playerMaxHp.value,p_player_affixes:equippedAffixes.value}; if(action==='combined_skills'){rpcParams.p_player_skill_id=pendingPlayerSkill.value;rpcParams.p_pet_skill_id=pendingPetSkill.value;} else if(action==='player_skill'){rpcParams.p_player_skill_id=skillId;rpcParams.p_pet_skill_id=null;} else if(action==='pet_skill'){rpcParams.p_player_skill_id=null;rpcParams.p_pet_skill_id=skillId;} else{rpcParams.p_player_skill_id=null;rpcParams.p_pet_skill_id=null;} try{ const{data,error}=await supabase.rpc('battle_encounter',rpcParams); if(error){showToast('战斗出错：'+error.message);battleBusy.value=false;return;} processBattleResult(data); }catch(e){showToast('战斗异常');} battleBusy.value=false; }
-        function processBattleResult(data) { if(data.pet_hp!==undefined){petHp.value=Math.max(0,data.pet_hp);if(activePet.value)activePet.value.current_hp=petHp.value;} encounter.value.currentHp=data.monster_hp;enemyHp.value=Math.max(0,data.monster_hp); if(data.player_hp!==undefined){ if(profile.value) profile.value.current_hp = Math.max(0, data.player_hp); } if(data.log){data.log.forEach(m=>recentLogs.value.push(m.text));} if(data.chaos_seed_dropped){showToast('⚡ 江湖奇遇！你获得了一颗混沌灵种！');} if(data.equip_dropped){showToast('🎁 获得一件装备！');} if(data.win){setTimeout(()=>{battle.active=false;refreshData();},1500);} else if(playerHp.value<=0){ if(profile.value) profile.value.current_hp = 1; showToast('你被打败了...'); battle.active=false; refreshData(); } setTimeout(()=>{if(logContainer.value)logContainer.value.scrollTop=logContainer.value.scrollHeight;},100); }
+        function processBattleResult(data) {
+            if(data.pet_hp!==undefined){petHp.value=Math.max(0,data.pet_hp);if(activePet.value)activePet.value.current_hp=petHp.value;}
+            encounter.value.currentHp=data.monster_hp;enemyHp.value=Math.max(0,data.monster_hp);
+            if(data.player_hp!==undefined){ playerHp.value = Math.max(0, data.player_hp); }
+            if(data.log){data.log.forEach(m=>recentLogs.value.push(m.text));}
+            if(data.chaos_seed_dropped){showToast('⚡ 江湖奇遇！你获得了一颗混沌灵种！');}
+            if(data.equip_dropped){showToast('🎁 获得一件装备！');}
+            if(data.win){
+                setTimeout(()=>{battle.active=false;refreshData();},1500);
+            } else if(playerHp.value<=0){
+                playerHp.value = 1;
+                showToast('你被打败了...');
+                battle.active=false;
+                refreshData();
+            }
+            setTimeout(()=>{if(logContainer.value)logContainer.value.scrollTop=logContainer.value.scrollHeight;},100);
+        }
         function shakeBall(times) { return new Promise(resolve=>{let c=0;const i=setInterval(()=>{ballShakeClass.value='shake';setTimeout(()=>ballShakeClass.value='',300);c++;if(c>=times){clearInterval(i);resolve();}},500);}); }
 
-        // 师门等
         async function getDailyQuests() { const{data}=await supabase.rpc('get_daily_quests'); if(data) dailyQuests.value=data.quests||[]; }
         async function submitQuest(id) { try { const{data,error}=await supabase.rpc('submit_quest',{p_quest_id:id}); if(error){showToast('提交失败：'+error.message);return;} if(data.error){showToast(data.error);return;} showToast('获得功德值 +'+data.merit_gained); refreshData(); } catch(e) { showToast('提交出错'); } }
         async function attackWorldBoss() { if(worldBossStats.attacks_today>=10){showToast('今日攻击次数已用完');return;} const carriedPet=myPets.value.find(p=>p.is_carried); const petId=carriedPet?carriedPet.id:(myPets.value.length?myPets.value[0].id:null); if(!petId){showToast('请先拥有至少一只宠物');return;} battleBusy.value=true; try { const{data,error}=await supabase.rpc('attack_world_boss',{p_boss_id:1,p_pet_id:petId}); if(error){showToast('攻击失败：'+error.message);return;} if(data.error){showToast(data.error);return;} energy.value=data.energy_left; worldBossStats.attacks_today=data.attacks_today; worldBoss.value.hp=data.boss_hp; if(data.boss_hp<=0) worldBoss.value.active=false; showToast(data.message); await refreshData(); } catch(e) { showToast('攻击出错'); } finally { battleBusy.value=false; } }
@@ -422,16 +454,14 @@ createApp({
         async function decomposeEquipment(id) { if(!confirm('确定分解？'))return; try { const{data,error}=await supabase.rpc('decompose_equipment',{p_equipment_id:id}); if(error){showToast('分解失败：'+error.message);return;} if(data.error){showToast(data.error);return;} playerEquipment.value=playerEquipment.value.filter(e=>e.id!==id); silver.value+=data.silver_reward; showToast('分解成功，获得 '+data.silver_reward+' 银两'); showEquipmentDetail.value=false; } catch(e) { showToast('分解出错'); } }
         async function buyItem(itemId) { if(!confirm('确定购买吗？'))return; loading.value=true; try { const{data,error}=await supabase.rpc('buy_item',{p_item_id:itemId,p_quantity:1}); if(error){showToast('购买失败: '+error.message);return;} if(data.error){showToast(data.error);return;} showToast('购买成功！'); await refreshData(); } catch(e) { showToast('购买出错'); } finally { loading.value=false; } }
 
-        // 能量恢复
         async function syncEnergy() { if(!profile.value?.id)return; const now=new Date(); const lastUsed=new Date(profile.value.last_energy_used_at); const minutesPassed=(now-lastUsed)/60000; const recovered=Math.floor(minutesPassed/3); let newEnergy=profile.value.energy+recovered; const lastLogin=profile.value.last_login_date?new Date(profile.value.last_login_date+'T00:00:00'):null; const today=new Date().toISOString().split('T')[0]; if(!lastLogin||lastLogin<new Date(today+'T00:00:00')) newEnergy=maxEnergy.value; newEnergy=Math.min(newEnergy,maxEnergy.value); if(newEnergy!==profile.value.energy){ energy.value=newEnergy; await supabase.from('profiles').update({energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today}).eq('id',profile.value.id); profile.value={...profile.value,energy:newEnergy,last_energy_used_at:now.toISOString(),last_login_date:today}; } }
         let energyTimer=null; function startEnergySync(){syncEnergy();energyTimer=setInterval(syncEnergy,30000);} function stopEnergySync(){if(energyTimer)clearInterval(energyTimer);}
         let petRecoveryTimer=null; async function recoverPets(){ for(const p of myPets.value){ if(p.is_carried) continue; const maxHp=calcPetStats(p).hp; if(p.current_hp<maxHp){ const heal=Math.min(maxHp-p.current_hp,Math.ceil(maxHp*0.05)); p.current_hp=Math.min(p.current_hp+heal,maxHp); await supabase.from('pets').update({current_hp:p.current_hp}).eq('id',p.id); } } } function startPetRecovery(){recoverPets();petRecoveryTimer=setInterval(recoverPets,30000);} function stopPetRecovery(){if(petRecoveryTimer)clearInterval(petRecoveryTimer);}
 
-        // 爬塔
         async function loadLeaderboard() { const{data}=await supabase.rpc('get_tower_leaderboard'); if(data) leaderboard.value=data; }
         async function syncTowerProgress() { const{data:{session}}=await supabase.auth.getSession(); const user=session?.user; if(!user)return; const{data}=await supabase.from('user_tower_progress').select('*').eq('user_id',user.id).maybeSingle(); if(data){ towerProgress.value.current_floor=data.current_floor||1; towerProgress.value.max_floor=data.max_floor||1; towerProgress.value.season_name=data.season_name||'S1·试炼之塔'; } towerReady.value=true; }
         let cooldownTimer=null; function startCooldown(s=10){towerCooldown.value=s;if(cooldownTimer)clearInterval(cooldownTimer);cooldownTimer=setInterval(()=>{towerCooldown.value--;if(towerCooldown.value<=0){clearInterval(cooldownTimer);cooldownTimer=null;}},1000);}
-        async function startTowerBattle() { try { await syncTowerProgress(); if(profile.value) profile.value.current_hp = playerMaxHp.value; if(activePet.value){activePet.value.current_hp=Math.min(activePet.value.current_hp,petMaxHp.value);petHp.value=activePet.value.current_hp;} if(!activePet.value||activePet.value.current_hp<=0){ const alivePet=myPets.value.find(p=>p.current_hp>0); if(alivePet){if(confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)){activePet.value=alivePet;activePet.value.current_hp=Math.min(activePet.value.current_hp,calcPetStats(activePet.value).hp);petHp.value=activePet.value.current_hp;}else{return;}}else{showToast('所有宠物都已阵亡，无法继续挑战！');return;} } towerBusy.value=true; const petStats=calcPetStats(activePet.value); const rpcParams={p_pet_id:activePet.value.id,p_pet_current_hp:petHp.value,p_pet_max_hp:petStats.hp,p_pet_atk:petStats.atk,p_pet_def:petStats.def,p_pet_spd:petStats.spd,p_pet_skills:activePet.value.skills||[],p_player_hp:playerHp.value,p_player_max_hp:playerMaxHp.value,p_player_atk:playerRealAtk.value,p_player_def:playerRealDef.value,p_player_spd:playerRealSpd.value,p_player_skills:playerSkills.value.map(s=>s.id),p_player_affixes:equippedAffixes.value}; const{data,error}=await supabase.rpc('tower_battle',rpcParams); if(error)throw error; petHp.value=Math.max(0,data.pet_hp); if(profile.value) profile.value.current_hp = Math.max(0, data.player_hp); enemyHp.value=data.monster_hp; recentLogs.value=[]; if(data.log)data.log.forEach(m=>recentLogs.value.push(m.text)); if(data.win){ towerProgress.value.current_floor=data.new_floor; if(data.new_floor>towerProgress.value.max_floor)towerProgress.value.max_floor=data.new_floor; await refreshData(); showToast('挑战成功！已进入第 '+towerProgress.value.current_floor+' 层'); if(data.silver_reward)showToast('获得银两：'+data.silver_reward); }else{showToast('挑战失败！停留在第 '+towerProgress.value.current_floor+' 层');} startCooldown(10); } catch(e) { showToast('爬塔出错：'+e.message); } finally { towerBusy.value=false; } }
+        async function startTowerBattle() { try { await syncTowerProgress(); playerHp.value = playerMaxHp.value; if(activePet.value){activePet.value.current_hp=Math.min(activePet.value.current_hp,petMaxHp.value);petHp.value=activePet.value.current_hp;} if(!activePet.value||activePet.value.current_hp<=0){ const alivePet=myPets.value.find(p=>p.current_hp>0); if(alivePet){if(confirm(`你的携带宠物已阵亡，是否更换为 ${alivePet.nickname} 继续挑战？`)){activePet.value=alivePet;activePet.value.current_hp=Math.min(activePet.value.current_hp,calcPetStats(activePet.value).hp);petHp.value=activePet.value.current_hp;}else{return;}}else{showToast('所有宠物都已阵亡，无法继续挑战！');return;} } towerBusy.value=true; const petStats=calcPetStats(activePet.value); const rpcParams={p_pet_id:activePet.value.id,p_pet_current_hp:petHp.value,p_pet_max_hp:petStats.hp,p_pet_atk:petStats.atk,p_pet_def:petStats.def,p_pet_spd:petStats.spd,p_pet_skills:activePet.value.skills||[],p_player_hp:playerHp.value,p_player_max_hp:playerMaxHp.value,p_player_atk:playerRealAtk.value,p_player_def:playerRealDef.value,p_player_spd:playerRealSpd.value,p_player_skills:playerSkills.value.map(s=>s.id),p_player_affixes:equippedAffixes.value}; const{data,error}=await supabase.rpc('tower_battle',rpcParams); if(error)throw error; petHp.value=Math.max(0,data.pet_hp); playerHp.value = Math.max(0, data.player_hp); enemyHp.value=data.monster_hp; recentLogs.value=[]; if(data.log)data.log.forEach(m=>recentLogs.value.push(m.text)); if(data.win){ towerProgress.value.current_floor=data.new_floor; if(data.new_floor>towerProgress.value.max_floor)towerProgress.value.max_floor=data.new_floor; await refreshData(); showToast('挑战成功！已进入第 '+towerProgress.value.current_floor+' 层'); if(data.silver_reward)showToast('获得银两：'+data.silver_reward); }else{showToast('挑战失败！停留在第 '+towerProgress.value.current_floor+' 层');} startCooldown(10); } catch(e) { showToast('爬塔出错：'+e.message); } finally { towerBusy.value=false; } }
 
         let farmTimer=null; function startFarmTimer(){if(farmTimer)clearInterval(farmTimer);farmTimer=setInterval(()=>{farmPlots.value=[...farmPlots.value];},1000);}
         watch(()=>view.value,(val)=>{if(val==='boss')fetchBossStats();});
