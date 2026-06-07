@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-  <title>啾啾数学花园 · 巨型题库版</title>
+  <title>啾啾数学花园 · 文采弹窗版</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -43,7 +43,10 @@
     }
     .modal-content {
       width: 90%; max-width: 380px; background: #fffef5; border-radius: 30px; padding: 20px;
-      max-height: 80vh; overflow-y: auto;
+      max-height: 80vh; overflow-y: auto; text-align: center;
+    }
+    .correct-modal-content {
+      background: #fef9e7; border: 3px solid #27ae60;
     }
     .option-btn {
       background: #fdebd0; border: 2px solid #f1c40f; border-radius: 15px; padding: 12px;
@@ -77,6 +80,13 @@
     .plant-icon { font-size: 45px; }
     .progress-bar { height: 8px; background: #ddd; border-radius: 4px; margin: 5px 0; overflow: hidden; }
     .progress-fill { height: 100%; background: #66bb6a; transition: width 0.3s; }
+    .solution-box {
+      background: #f0f8e8; border-radius: 15px; padding: 12px; margin: 15px 0;
+      font-size: 16px; text-align: left; line-height: 1.6;
+    }
+    .encourage-text {
+      font-size: 24px; font-weight: bold; color: #27ae60; margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -125,11 +135,13 @@
       <button class="btn" @click="view='garden'">← 回花园</button>
       <h3 style="text-align: center;">{{ gameTitle }}</h3>
       <div v-if="!question" style="text-align: center; padding: 20px;">
-        <p>点击下方按钮开始挑战！</p>
+        <p>点击下方按钮开始挑战吧！</p>
         <button class="btn" @click="generateQuestion">出题！</button>
       </div>
       <div v-else class="card" style="text-align: center;">
-        <div style="font-size: 24px; margin-bottom: 15px;">{{ question.text }}</div>
+        <div style="font-size: 22px; margin-bottom: 15px; line-height: 1.6; color: #4a2c1a;">
+          {{ question.text }}
+        </div>
         <div v-if="question.image" style="font-size: 50px; margin: 10px;">{{ question.image }}</div>
         <div v-if="question.type === 'choice'">
           <button class="option-btn" v-for="opt in question.options" :key="opt" @click="answer(opt)">{{ opt }}</button>
@@ -146,13 +158,25 @@
   <div style="display:flex;background:#fff8e7;border-top:3px solid #f1c40f;">
     <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
   </div>
+
+  <!-- 正确弹窗 -->
+  <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
+    <div class="modal-content correct-modal-content">
+      <div style="font-size: 60px;">🎉</div>
+      <div class="encourage-text">{{ encourageText }}</div>
+      <div class="solution-box">
+        <strong>🧠 解题思路：</strong><br>
+        {{ currentSolution }}
+      </div>
+      <button class="btn" @click="closeCorrectModal" style="font-size: 20px; margin-top: 10px;">下一题 ➡️</button>
+    </div>
+  </div>
 </div>
 
 <script>
   const { createApp, ref, reactive, computed } = Vue;
   createApp({
     setup() {
-      // ---------- 年级 ----------
       const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
       const currentGrade = ref(0);
       function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
@@ -178,179 +202,961 @@
         question.value = null;
         feedback.value = '';
         userInput.value = '';
+        showCorrectModal.value = false;
         generateQuestion();
       }
 
       const question = ref(null);
       const feedback = ref('');
       const userInput = ref('');
+      const showCorrectModal = ref(false);
+      const encourageText = ref('');
+      const currentSolution = ref('');
 
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
+      function shuffleUnique(arr) {
+        let set = [...new Set(arr)];
+        return set.sort(() => Math.random() - 0.5);
+      }
+      function isPrime(n) {
+        if (n <= 1) return false;
+        for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false;
+        return true;
+      }
+      function fib(n) {
+        let a = 1, b = 1;
+        for (let i = 3; i <= n; i++) { let c = a + b; a = b; b = c; }
+        return b;
+      }
 
-      // ----- 题型生成器池 -----
+      // ========== 题目生成器（文采版） ==========
       const generators = {
         arithmetic: [
-          // 0: 幼儿园
-          [ () => { let c=rand(1,10); let e=['🐶','🐱','🐰','🐸','🐼']; return { text:'数一数有几只小动物？', image:e.slice(0,c).join(' '), type:'choice', answer:c, options:shuffleUnique([c,c+1,c-1].filter(n=>n>0)) }; },
-            () => { let a=rand(2,5),b=rand(2,5); return { text:`${'🍎'.repeat(a)} 和 ${'🍊'.repeat(b)} 谁更多？`, type:'choice', answer:a>b?'苹果':'橘子', options:['苹果','橘子','一样多'] }; },
-            () => { let a=rand(2,6); return { text:`数字 ${a} 的下一个数是？`, type:'choice', answer:a+1, options:shuffleUnique([a-1,a+1,a+2].filter(n=>n>0)) }; },
+          // 0 幼儿园
+          [
+            () => {
+              let e = ['🐶','🐱','🐰','🐸','🐼','🐨','🐯','🦁','🐮','🐷'];
+              let c = rand(1, e.length);
+              let animals = e.slice(0, c).join(' ');
+              return {
+                text: `🌿 森林里来了一群小动物，你瞧：${animals}。数一数，一共有几只小可爱呀？`,
+                image: animals,
+                type: 'choice',
+                answer: c,
+                solution: `小动物们排成一排，我们挨个点数：${animals.split(' ').map((a,i)=>(i+1)+'.'+a).join('，')}，一共是 ${c} 只。`,
+                options: shuffleUnique([c, c+1, c-1].filter(n => n>0 && n <= e.length))
+              };
+            },
+            () => {
+              let a=rand(2,5), b=rand(2,5);
+              return {
+                text: `🍎 桌子上有 ${'🍎'.repeat(a)}，旁边还有 ${'🍊'.repeat(b)}。苹果和橘子，谁的数量更多呢？`,
+                type:'choice',
+                answer: a>b ? '苹果' : '橘子',
+                solution: `苹果有 ${a} 个，橘子有 ${b} 个。${a>b ? '苹果比橘子多' : '橘子比苹果多'}，所以选“${a>b?'苹果':'橘子'}”。`,
+                options: ['苹果','橘子','一样多']
+              };
+            },
+            () => {
+              let a=rand(2,6);
+              return {
+                text: `🔢 数字宝宝 ${a} 正在排队，排在它后面的下一个数字是谁呢？`,
+                type:'choice',
+                answer: a+1,
+                solution: `数数的时候，${a} 的后面紧跟着就是 ${a+1}。`,
+                options: shuffleUnique([a-1, a+1, a+2].filter(n => n>0))
+              };
+            }
           ],
-          // 1: 一年级
-          [ () => { let a=rand(1,10),b=rand(1,10),op='+'; return { text:`${a} + ${b} = ?`, type:'choice', answer:a+b, options:shuffleUnique([a+b, a+b+1, a+b-1].filter(n=>n>=0)) }; },
-            () => { let a=rand(5,20),b=rand(1,a); return { text:`${a} - ${b} = ?`, type:'choice', answer:a-b, options:shuffleUnique([a-b, a-b+1, a-b-1].filter(n=>n>=0)) }; },
-            () => { let a=rand(1,9),b=rand(1,9); return { text:`比较大小：${a} ○ ${b}`, type:'choice', answer:a>b?'>':(a<b?'<':'='), options:['>','<','='] }; },
-            () => { let a=rand(2,9),b=rand(2,5); return { text:`${a} 是由几个十和几个一组成？`, type:'choice', answer:`${Math.floor(a/10)}个十${a%10}个一`, options:[`${Math.floor(a/10)}个十${a%10}个一`,`${Math.floor(a/10)+1}个十${a%10}个一`,`${Math.floor(a/10)}个十${a%10+1}个一`] }; },
+          // 1 一年级
+          [
+            () => {
+              let a=rand(1,10), b=rand(1,10);
+              return {
+                text: `🐦 树上有 ${a} 只小鸟，又飞来了 ${b} 只。现在树上共有几只小鸟呢？`,
+                type:'choice',
+                answer: a+b,
+                solution: `原来有 ${a} 只，加上飞来的 ${b} 只，算式是 ${a}+${b}=${a+b}。`,
+                options: shuffleUnique([a+b, a+b+1, a+b-1].filter(n => n>=0))
+              };
+            },
+            () => {
+              let a=rand(5,20), b=rand(1,a);
+              return {
+                text: `🍬 小明有 ${a} 颗糖，他分给了小红 ${b} 颗。小明还剩几颗糖？`,
+                type:'choice',
+                answer: a-b,
+                solution: `从 ${a} 里拿走 ${b}，用减法：${a}-${b}=${a-b}。`,
+                options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0))
+              };
+            },
+            () => {
+              let a=rand(1,9), b=rand(1,9);
+              return {
+                text: `⚖️ 比较一下：${a} 和 ${b}，中间应该填什么符号呢？`,
+                type:'choice',
+                answer: a>b ? '>' : (a<b ? '<' : '='),
+                solution: `${a>b ? a+' 大于 '+b : a<b ? a+' 小于 '+b : '两个数一样大'}，所以填“${a>b?'>':(a<b?'<':'=')}”。`,
+                options: ['>','<','=']
+              };
+            }
           ],
-          // 2: 二年级
-          [ () => { let a=rand(1,9),b=rand(1,9); return { text:`${a} × ${b} = ?`, type:'choice', answer:a*b, options:shuffleUnique([a*b, a*b+a, a*b-a].filter(n=>n>=0)) }; },
-            () => { let b=rand(1,9),ans=rand(1,9),a=b*ans; return { text:`${a} ÷ ${b} = ?`, type:'choice', answer:ans, options:shuffleUnique([ans,ans+1,ans-1].filter(n=>n>0)) }; },
-            () => { let a=rand(100,999),b=rand(10,99); return { text:`${a} + ${b} = ?`, type:'input', answer:a+b }; },
-            () => { let a=rand(100,999),b=rand(10,a); return { text:`${a} - ${b} = ?`, type:'input', answer:a-b }; },
+          // 2 二年级
+          [
+            () => {
+              let a=rand(1,9), b=rand(1,9);
+              return {
+                text: `🌸 花坛里每排放 ${a} 盆花，一共种了 ${b} 排。总共有多少盆花呢？`,
+                type:'choice',
+                answer: a*b,
+                solution: `每排 ${a} 盆，有 ${b} 排，就是 ${b} 个 ${a} 相加，用乘法：${a}×${b}=${a*b}。`,
+                options: shuffleUnique([a*b, a*b+a, a*b-a].filter(n => n>=0))
+              };
+            },
+            () => {
+              let b=rand(1,9), ans=rand(1,9), a=b*ans;
+              return {
+                text: `🍪 妈妈烤了 ${a} 块饼干，平均分给 ${b} 个小朋友。每人分到几块？`,
+                type:'choice',
+                answer: ans,
+                solution: `把 ${a} 平均分成 ${b} 份，用除法：${a}÷${b}=${ans}。`,
+                options: shuffleUnique([ans, ans+1, ans-1].filter(n => n>0))
+              };
+            }
           ],
-          // 3: 三年级
-          [ () => { let a=rand(10,99),b=rand(2,9); return { text:`${a} × ${b} = ?`, type:'input', answer:a*b }; },
-            () => { let a=rand(100,999),b=rand(10,99); return { text:`${a} + ${b} = ?`, type:'input', answer:a+b }; },
-            () => { let a=rand(100,999),b=rand(10,99); return { text:`${a} - ${b} = ?`, type:'input', answer:a-b }; },
-            () => { let a=rand(10,99),b=rand(2,9); return { text:`${a} ÷ ${b} 商几余几？`, type:'input', answer:Math.floor(a/b)+'余'+a%b }; },
+          // 3 三年级
+          [
+            () => {
+              let a=rand(10,99), b=rand(2,9);
+              return {
+                text: `🚀 火箭模型每个重 ${a} 千克，${b} 个这样的模型一共重多少千克？`,
+                type:'input',
+                answer: a*b,
+                solution: `求几个相同加数的和，用乘法：${a} × ${b} = ${a*b}。`
+              };
+            },
+            () => {
+              let a=rand(100,999), b=rand(10,99);
+              return {
+                text: `🏰 欢乐城堡上午接待了 ${a} 位游客，下午又来了 ${b} 位，全天一共接待了多少位游客？`,
+                type:'input',
+                answer: a+b,
+                solution: `上午人数 + 下午人数 = 总人数，即 ${a} + ${b} = ${a+b}。`
+              };
+            },
+            () => {
+              let a=rand(10,99), b=rand(2,9);
+              return {
+                text: `📦 学校买来 ${a} 本故事书，平均分给 ${b} 个班，每个班分到几本？还剩几本？`,
+                type:'input',
+                answer: Math.floor(a/b) + '余' + (a%b),
+                solution: `${a} ÷ ${b} = ${Math.floor(a/b)} 余 ${a%b}，所以每班 ${Math.floor(a/b)} 本，还剩 ${a%b} 本。`
+              };
+            }
           ],
-          // 4: 四年级
-          [ () => { let a=rand(1000,9999),b=rand(100,9999); let op=pick(['+','-']); let ans=op=='+'?a+b:a-b; return { text:`${a} ${op} ${b} = ?`, type:'input', answer:ans }; },
-            () => { let a=rand(10,99),b=rand(10,99); return { text:`${a} × ${b} = ?`, type:'input', answer:a*b }; },
-            () => { let a=rand(10,99),b=rand(2,9); return { text:`${a} ÷ ${b} = ? (保留两位小数)`, type:'input', answer:(a/b).toFixed(2) }; },
-            () => { let a=rand(2,9),b=rand(2,9),c=rand(2,5); return { text:`${a} × ${b} + ${c} = ?`, type:'input', answer:a*b+c }; },
+          // 4 四年级
+          [
+            () => {
+              let a=rand(1000,9999), b=rand(100,9999);
+              let op=pick(['+','-']);
+              let ans = op==='+' ? a+b : a-b;
+              return {
+                text: `💰 如果小镇的图书馆去年有 ${a} 本书，今年${op==='+'?'又添置了':'清走了'}${b}本，现在一共有多少本？`,
+                type:'input',
+                answer: ans,
+                solution: `使用${op==='+'?'加法':'减法'}：${a} ${op} ${b} = ${ans}。`
+              };
+            },
+            () => {
+              let a=rand(10,99), b=rand(10,99);
+              return {
+                text: `🍬 糖果厂把糖果每 ${a} 颗装一袋，已经装了 ${b} 袋，一共装了多少颗糖果？`,
+                type:'input',
+                answer: a*b,
+                solution: `每袋颗数 × 袋数 = 总颗数，${a} × ${b} = ${a*b}。`
+              };
+            }
           ],
-          // 5: 五年级
-          [ () => { let a=(rand(10,99)/10).toFixed(1),b=(rand(10,99)/10).toFixed(1); let op=pick(['+','-','×']); let ans; if(op=='+')ans=(parseFloat(a)+parseFloat(b)).toFixed(2); else if(op=='-')ans=(parseFloat(a)-parseFloat(b)).toFixed(2); else ans=(parseFloat(a)*parseFloat(b)).toFixed(2); return { text:`${a} ${op} ${b} = ?`, type:'input', answer:ans }; },
-            () => { let a=rand(2,9),b=rand(2,9),c=rand(2,9); return { text:`${a} × (${b} + ${c}) = ?`, type:'input', answer:a*(b+c) }; },
-            () => { let a=rand(2,9),b=rand(2,9),c=rand(2,5); return { text:`${a} × ${b} - ${c} = ?`, type:'input', answer:a*b-c }; },
-            () => { let n=rand(10,99); return { text:`${n} 是质数还是合数？`, type:'choice', answer:isPrime(n)?'质数':'合数', options:['质数','合数'] }; },
+          // 5 五年级
+          [
+            () => {
+              let a=(rand(10,99)/10).toFixed(1), b=(rand(10,99)/10).toFixed(1);
+              let op=pick(['+','-','×']);
+              let ans;
+              if(op==='+') ans=(parseFloat(a)+parseFloat(b)).toFixed(2);
+              else if(op==='-') ans=(parseFloat(a)-parseFloat(b)).toFixed(2);
+              else ans=(parseFloat(a)*parseFloat(b)).toFixed(2);
+              return {
+                text: `🧪 科学课上，妙妙量得一杯液体重 ${a} 克，她又倒入 ${b} 克。现在液体一共有多重？`,
+                type:'input',
+                answer: ans,
+                solution: `把两个重量相加：${a} + ${b} = ${ans} 克。`
+              };
+            },
+            () => {
+              let a=rand(2,9), b=rand(2,9), c=rand(2,9);
+              return {
+                text: `🎈 一个盒子里有 ${a} 个气球，每个小朋友分 ${b} 个，已经分给了 ${c} 个小朋友，还剩几个气球？`,
+                type:'input',
+                answer: a - b*c,
+                solution: `先算分出去的：${b} × ${c} = ${b*c}，再用总数减：${a} - ${b*c} = ${a-b*c}。`
+              };
+            }
           ],
-          // 6: 六年级
-          [ () => { let a=rand(2,9),b=rand(2,9); return { text:`${a}² = ?`, type:'input', answer:a*a }; },
-            () => { let a=rand(2,9),b=rand(2,9); return { text:`${a}³ = ?`, type:'input', answer:a*a*a }; },
-            () => { let a=rand(10,99),b=rand(1,9); return { text:`${a} ÷ ${b} = ? (保留三位小数)`, type:'input', answer:(a/b).toFixed(3) }; },
-            () => { let a=rand(2,9),b=rand(2,9),c=rand(2,9); return { text:`${a} × ${b} ÷ ${c} = ? (保留两位小数)`, type:'input', answer:(a*b/c).toFixed(2) }; },
+          // 6 六年级
+          [
+            () => {
+              let a=rand(2,9), b=rand(2,9);
+              return {
+                text: `🏡 一个正方形房间的边长是 ${a} 米，它的面积是多少平方米？（${a}²）`,
+                type:'input',
+                answer: a*a,
+                solution: `正方形面积 = 边长 × 边长，即 ${a} × ${a} = ${a*a}。`
+              };
+            },
+            () => {
+              let a=rand(2,9), b=rand(2,9);
+              return {
+                text: `🧊 一个立方体盒子的棱长是 ${a} 厘米，它的体积是多少立方厘米？（${a}³）`,
+                type:'input',
+                answer: a*a*a,
+                solution: `立方体体积 = 棱长³，即 ${a} × ${a} × ${a} = ${a*a*a}。`
+              };
+            }
           ]
         ],
         geometry: [
-          [ () => { let s=pick(['圆形','正方形','三角形']); return { text:`下面哪个是${s}？`, type:'choice', answer:s, options:[s,'长方形','梯形'] }; },
-            () => { let a=rand(5,15),b=rand(1,5); return { text:`铅笔长${a}厘米，橡皮长${b}厘米，一共多长？`, type:'choice', answer:a+b, options:shuffleUnique([a+b,a+b+1,a+b-1]) }; },
+          // 0 幼儿园
+          [
+            () => {
+              let s=pick(['圆形','正方形','三角形']);
+              return {
+                text: `🔍 魔法图形箱里有一个图形，它叫做“${s}”。下面哪一个才是它的样子呢？`,
+                type:'choice',
+                answer: s,
+                solution: `${s}的特征是：${s==='圆形'?'圆圆的，没有角':'正方形有四条一样长的边和四个直角':'三角形有三条边和三个角'}。`,
+                options: [s,'长方形','梯形']
+              };
+            },
+            () => {
+              let a=rand(5,15), b=rand(1,5);
+              return {
+                text: `📏 一支铅笔长 ${a} 厘米，一块橡皮长 ${b} 厘米。把它们首尾相接，一共有多长？`,
+                type:'choice',
+                answer: a+b,
+                solution: `把两段长度加起来：${a} + ${b} = ${a+b} 厘米。`,
+                options: shuffleUnique([a+b, a+b+1, a+b-1])
+              };
+            }
           ],
-          [ () => { let a=rand(3,8),b=rand(3,8); return { text:`长方形长${a}宽${b}，周长？`, type:'input', answer:(a+b)*2 }; },
-            () => { let a=rand(3,8); return { text:`正方形边长${a}，周长？`, type:'input', answer:a*4 }; },
+          // 1 一年级
+          [
+            () => {
+              let a=rand(3,8), b=rand(3,8);
+              return {
+                text: `🌳 花园里有一块长方形草地，长 ${a} 米，宽 ${b} 米。它的周长是多少米？`,
+                type:'input',
+                answer: (a+b)*2,
+                solution: `长方形周长 = (长+宽)×2 = (${a}+${b})×2 = ${(a+b)*2} 米。`
+              };
+            },
+            () => {
+              let a=rand(3,8);
+              return {
+                text: `🟦 一块正方形手帕的边长是 ${a} 厘米，它的周长是多少厘米？`,
+                type:'input',
+                answer: a*4,
+                solution: `正方形周长 = 边长×4 = ${a}×4 = ${a*4} 厘米。`
+              };
+            }
           ],
-          [ () => { let a=rand(3,8),b=rand(3,8); return { text:`长方形长${a}宽${b}，面积？`, type:'input', answer:a*b }; },
-            () => { let a=rand(3,8); return { text:`正方形边长${a}，面积？`, type:'input', answer:a*a }; },
+          // 2 二年级
+          [
+            () => {
+              let a=rand(3,8), b=rand(3,8);
+              return {
+                text: `📐 一块长方形画布长 ${a} 分米，宽 ${b} 分米，它的面积是多少平方分米？`,
+                type:'input',
+                answer: a*b,
+                solution: `长方形面积 = 长×宽 = ${a} × ${b} = ${a*b} 平方分米。`
+              };
+            },
+            () => {
+              let a=rand(3,8);
+              return {
+                text: `🟨 一张正方形桌面的边长是 ${a} 分米，它的面积是多少平方分米？`,
+                type:'input',
+                answer: a*a,
+                solution: `正方形面积 = 边长×边长 = ${a}×${a} = ${a*a} 平方分米。`
+              };
+            }
           ],
-          [ () => { let a=rand(3,8); return { text:`正方体棱长${a}，体积？`, type:'input', answer:a*a*a }; },
-            () => { let a=rand(3,8),b=rand(3,8),c=rand(3,8); return { text:`长方体${a}×${b}×${c}，体积？`, type:'input', answer:a*b*c }; },
-            () => { let a=rand(1,8)*10; return { text:`角${a}°的补角是？`, type:'input', answer:180-a }; },
+          // 3 三年级
+          [
+            () => {
+              let a=rand(3,8);
+              return {
+                text: `📦 一个正方体盒子的棱长是 ${a} 厘米，它的体积是多少立方厘米？`,
+                type:'input',
+                answer: a*a*a,
+                solution: `正方体体积 = 棱长³ = ${a}×${a}×${a} = ${a*a*a} 立方厘米。`
+              };
+            },
+            () => {
+              let a=rand(3,8), b=rand(3,8), c=rand(3,8);
+              return {
+                text: `🧱 一块长方体砖头长 ${a} 厘米、宽 ${b} 厘米、高 ${c} 厘米，它的体积是多少？`,
+                type:'input',
+                answer: a*b*c,
+                solution: `长方体体积 = 长×宽×高 = ${a}×${b}×${c} = ${a*b*c} 立方厘米。`
+              };
+            }
           ],
-          [ () => { let r=rand(2,5); return { text:`圆半径${r}，周长(π≈3.14)`, type:'input', answer:(2*3.14*r).toFixed(2) }; },
-            () => { let r=rand(2,5); return { text:`圆半径${r}，面积(π≈3.14)`, type:'input', answer:(3.14*r*r).toFixed(2) }; },
+          // 4 四年级
+          [
+            () => {
+              let a=rand(1,8)*10;
+              return {
+                text: `📐 一个角的度数是 ${a}°，它的补角是多少度？`,
+                type:'input',
+                answer: 180 - a,
+                solution: `补角指两个角加起来等于180°，所以另一个角是 180° - ${a}° = ${180-a}°。`
+              };
+            }
           ],
-          [ () => { let a=rand(3,8),b=rand(3,8); return { text:`三角形底${a}高${b}，面积？`, type:'input', answer:(a*b/2).toFixed(1) }; },
-            () => { let a=rand(3,8),b=rand(3,8); return { text:`梯形上底${a}下底${b}高${rand(3,6)}，面积？`, type:'input', answer:((a+b)*rand(3,6)/2).toFixed(1) }; },
+          // 5 五年级
+          [
+            () => {
+              let r=rand(2,5);
+              return {
+                text: `⭕ 一个圆形花坛的半径是 ${r} 米，它的周长大约是多少米？（π≈3.14）`,
+                type:'input',
+                answer: (2 * 3.14 * r).toFixed(2),
+                solution: `圆的周长 = 2πr = 2 × 3.14 × ${r} ≈ ${(2*3.14*r).toFixed(2)} 米。`
+              };
+            },
+            () => {
+              let r=rand(2,5);
+              return {
+                text: `🍕 一张圆形披萨的半径是 ${r} 分米，它的面积大约是多少平方分米？（π≈3.14）`,
+                type:'input',
+                answer: (3.14 * r * r).toFixed(2),
+                solution: `圆的面积 = πr² = 3.14 × ${r}² ≈ ${(3.14*r*r).toFixed(2)} 平方分米。`
+              };
+            }
           ],
-          [ () => { let r=rand(2,5); return { text:`圆柱半径${r}高${rand(5,10)}，体积(π≈3.14)`, type:'input', answer:(3.14*r*r*rand(5,10)).toFixed(2) }; },
-            () => { let r=rand(2,5); return { text:`圆锥半径${r}高${rand(5,10)}，体积(π≈3.14)`, type:'input', answer:(3.14*r*r*rand(5,10)/3).toFixed(2) }; },
+          // 6 六年级
+          [
+            () => {
+              let r=rand(2,5), h=rand(5,10);
+              return {
+                text: `🥫 一个圆柱形罐头盒，底面半径 ${r} 厘米，高 ${h} 厘米，它的体积大约是多少？（π≈3.14）`,
+                type:'input',
+                answer: (3.14 * r * r * h).toFixed(2),
+                solution: `圆柱体积 = 底面积×高 = πr²h = 3.14 × ${r}² × ${h} ≈ ${(3.14*r*r*h).toFixed(2)} 立方厘米。`
+              };
+            }
           ]
         ],
         fraction: [
-          [ () => genArith(0) ],
-          [ () => genArith(1) ],
-          [ () => genArith(2) ],
-          [ () => { let d=rand(2,6),n=rand(1,d-1); return { text:`阴影占整体的几分之几？`, image: '⬛'.repeat(n)+'⬜'.repeat(d-n), type:'choice', answer:`${n}/${d}`, options:[`${n}/${d}`,`${d-n}/${d}`,`${n+1}/${d}`] }; },
-            () => { let d=rand(2,6),n1=rand(1,d-1),n2=rand(1,d-1); return { text:`${n1}/${d} + ${n2}/${d} = ?`, type:'choice', answer:`${n1+n2}/${d}`, options:[`${n1+n2}/${d}`,`${n1+n2+1}/${d}`,`${n1+n2-1}/${d}`] }; },
-          ],
-          [ () => { let d=rand(3,8),n1=rand(1,d-1),n2=rand(1,n1); return { text:`${n1}/${d} - ${n2}/${d} = ?`, type:'choice', answer:`${n1-n2}/${d}`, options:[`${n1-n2}/${d}`,`${n1-n2+1}/${d}`,`${n1-n2-1}/${d}`] }; },
-            () => { let a=rand(1,3),b=rand(2,4),c=rand(1,3),d=rand(2,4); return { text:`${a}/${b} + ${c}/${d} = ? (通分)`, type:'input', answer:((a*d + c*b)/(b*d)).toFixed(2) }; },
-          ],
-          [ () => { let a=rand(1,5),b=rand(2,6),c=rand(1,5),d=rand(2,6); return { text:`${a}/${b} × ${c}/${d} = ?`, type:'input', answer:`${a*c}/${b*d}` }; },
-            () => { let a=rand(1,5),b=rand(2,6),c=rand(1,5),d=rand(2,6); return { text:`${a}/${b} ÷ ${c}/${d} = ?`, type:'input', answer:`${a*d}/${b*c}` }; },
-          ],
-          [ () => { let dec=(rand(1,99)/100).toFixed(2); return { text:`小数${dec}化为分数(分母100)`, type:'input', answer:`${Math.round(dec*100)}/100` }; },
-            () => { let num=rand(1,99),den=100; return { text:`${num}/${den} 化为小数`, type:'input', answer:(num/den).toFixed(2) }; },
-          ]
-        ],
-        word: [
-          [ () => { let a=rand(2,5),b=rand(1,3); return { text:`树上有${a}只鸟，飞走${b}只，还剩几只？`, type:'choice', answer:a-b, options:shuffleUnique([a-b,a-b+1,a-b-1].filter(n=>n>=0)) }; },
-            () => { let a=rand(2,6),b=rand(2,5); return { text:`桌上有${a}个苹果，吃了一些还剩${b}个，吃了几个？`, type:'choice', answer:a-b, options:shuffleUnique([a-b,a-b+1,a-b-1]) }; },
-          ],
-          [ () => { let a=rand(3,9),b=rand(2,5); return { text:`每排${a}棵树，种${b}排，共几棵？`, type:'input', answer:a*b }; },
-            () => { let a=rand(2,8),b=rand(2,6); return { text:`小明有${a}元，铅笔${b}元一支，能买几支？`, type:'input', answer:Math.floor(a/b) }; },
-          ],
-          [ () => { let total=rand(20,50),days=rand(2,5); return { text:`一本书${total}页，${days}天看完，平均每天？`, type:'input', answer:Math.floor(total/days) }; },
-            () => { let p=rand(5,15),n=rand(2,8); return { text:`钢笔${p}元，买${n}支付100元，找回？`, type:'input', answer:100-p*n }; },
-          ],
-          [ () => { let v=rand(30,80),t=rand(2,5); return { text:`汽车速度${v}千米/时，${t}小时行？`, type:'input', answer:v*t }; },
-            () => { let total=rand(50,200),p=rand(10,40); return { text:`总价${total}元，单价${p}元，数量？`, type:'input', answer:Math.floor(total/p) }; },
-          ],
-          [ () => { let a=rand(10,30),b=rand(2,8); return { text:`甲有${a}个，乙比甲多${b}个，乙有几个？`, type:'input', answer:a+b }; },
-            () => { let a=rand(20,50),b=rand(10,20); return { text:`苹果${a}个，梨比苹果少${b}个，梨几个？`, type:'input', answer:a-b }; },
-          ],
-          [ () => { let total=rand(100,500),p=rand(10,90); return { text:`${total}的${p}%是多少？`, type:'input', answer:Math.round(total*p/100) }; },
-            () => { let part=rand(20,80),total=rand(100,200); return { text:`${part}是${total}的百分之几？`, type:'input', answer:(part/total*100).toFixed(0)+'%' }; },
-          ],
-          [ () => { let a=rand(2,6),b=rand(2,6); return { text:`比例 3:4 = ${a}:?`, type:'input', answer:(a*4/3).toFixed(1) }; },
-            () => { let a=rand(10,50),b=rand(2,5); return { text:`按${a}:${b}分配${a+b*10}元，大份多少？`, type:'input', answer:Math.round((a+b*10)*a/(a+b)) }; },
-          ]
-        ],
-        logic: [
-          [ () => { let a=rand(2,5),b=rand(2,5),c=rand(2,5); return { text:`找规律：${a}, ${a+b}, ${a+b+c}, ?`, type:'input', answer:a+b+c+c }; },
-            () => { let a=rand(2,5); return { text:`△ + △ = ${a*2}，△ = ?`, type:'input', answer:a }; },
-          ],
-          [ () => { let a=rand(2,9),b=rand(2,9); return { text:`如果 ☆ = ${a}，那么 ☆ + ${b} = ?`, type:'input', answer:a+b }; },
-            () => { let a=rand(2,9),b=rand(2,9); return { text:`□ + □ = ${a*2}，□ = ?`, type:'input', answer:a }; },
-          ],
-          [ () => { let a=rand(2,9),b=rand(2,9); return { text:`○ × ○ = ${a*a}，○ = ?`, type:'input', answer:a }; },
-            () => { let a=rand(2,6),b=rand(2,6); return { text:`如果 A=${a}, B=${b}, A+B=?`, type:'input', answer:a+b }; },
-          ],
-          [ () => { let a=rand(2,5),b=rand(2,5); return { text:`鸡兔同笼，头${a+b}个，脚${a*2+b*4}只，兔几只？`, type:'input', answer:b }; },
-            () => { let age=rand(5,12); return { text:`小明今年${age}岁，爸爸年龄是小明的3倍多5岁，爸爸几岁？`, type:'input', answer:age*3+5 }; },
-          ],
-          [ () => { let n=rand(10,30); return { text:`数列 1,1,2,3,5,8...第${n}项？(斐波那契)`, type:'input', answer:fib(n) }; },
-            () => { let a=rand(2,6); return { text:`△ + □ = ${a+2}，△ - □ = ${a-2}，△=?`, type:'input', answer:a }; },
-          ],
-          [ () => { let a=rand(2,9),b=rand(2,9); return { text:`如果 x + ${b} = ${a+b}，x=?`, type:'input', answer:a }; },
-            () => { let a=rand(2,9); return { text:`2x = ${a*2}，x=?`, type:'input', answer:a }; },
-          ],
-          [ () => { let a=rand(2,5); return { text:`|x| = ${a}，x 可能为？(填正数)`, type:'input', answer:a }; },
-            () => { let a=rand(2,9); return { text:`√x = ${a}，x=?`, type:'input', answer:a*a }; },
-          ]
-        ],
-        measure: [
-          [ () => { let a=rand(3,10); return { text:`铅笔长 ${a} 厘米，合多少毫米？`, type:'input', answer:a*10 }; },
-            () => { let a=rand(1,5); return { text:`1米 = ? 厘米`, type:'choice', answer:100, options:[10,100,1000] }; },
-          ],
-          [ () => { let a=rand(1,5); return { text:`1千克 = ? 克`, type:'choice', answer:1000, options:[100,1000,10000] }; },
-            () => { let a=rand(2,8); return { text:`妈妈买了${a}千克苹果，合多少克？`, type:'input', answer:a*1000 }; },
-          ],
-          [ () => { let a=rand(1,5); return { text:`1升 = ? 毫升`, type:'choice', answer:1000, options:[10,100,1000] }; },
-            () => { let a=rand(2,6); return { text:`水壶容量${a}升，合多少毫升？`, type:'input', answer:a*1000 }; },
-          ],
-          [ () => { let a=rand(10,60); return { text:`${a}分钟 = ? 小时?分钟`, type:'input', answer:Math.floor(a/60)+'小时'+a%60+'分钟' }; },
-            () => { let a=rand(1,3); return { text:`${a}小时 = ? 分钟`, type:'input', answer:a*60 }; },
-          ],
-          [ () => { let a=rand(2,10); return { text:`正方形边长${a}米，周长多少厘米？`, type:'input', answer:a*4*100 }; },
-            () => { let a=rand(2,8); return { text:`长方形长${a}米宽${rand(2,6)}米，面积多少平方分米？`, type:'input', answer:a*rand(2,6)*100 }; },
-          ],
-          [ () => { let a=rand(2,8); return { text:`速度${a}米/秒，10秒跑多少米？`, type:'input', answer:a*10 }; },
-            () => { let a=rand(10,50); return { text:`${a}平方千米 = ? 公顷`, type:'input', answer:a*100 }; },
-          ],
-          [ () => { let a=rand(2,9); return { text:`1立方米 = ? 立方分米`, type:'choice', answer:1000, options:[100,1000,10000] }; },
-            () => { let a=rand(2,6); return { text:`长方体${a}×${rand(3,6)}×${rand(2,4)}米，体积多少立方厘米？`, type:'input', answer:a*rand(3,6)*rand(2,4)*1000000 }; },
-          ]
-        ]
+  // 0 幼儿园 —— 不涉及分数，但保留占位（可继续用算术题或简单图形）
+  [
+    () => {
+      let e = ['🐶','🐱','🐰','🐸','🐼'];
+      let c = rand(1, e.length);
+      return {
+        text: `🐣 鸡妈妈孵出了 ${c} 只小鸡，快来数一数！`,
+        image: e.slice(0, c).join(' '),
+        type: 'choice',
+        answer: c,
+        solution: `一只一只数：${e.slice(0,c).join('、')}，一共 ${c} 只。`,
+        options: shuffleUnique([c, c+1, c-1].filter(n => n>0 && n <= e.length))
       };
+    }
+  ],
+  // 1 一年级
+  [
+    () => {
+      let a=rand(2,6), b=rand(2,6);
+      return {
+        text: `🍰 妈妈把一块蛋糕切成了 ${a+b} 小块，小明吃了 ${a} 块，还剩几块？`,
+        type: 'choice',
+        answer: b,
+        solution: `总块数减去吃掉的就是剩下的：${a+b} - ${a} = ${b}。`,
+        options: shuffleUnique([b, a, a+b])
+      };
+    }
+  ],
+  // 2 二年级
+  [
+    () => {
+      let total=rand(6,12), parts=rand(2,4);
+      return {
+        text: `🍕 一个披萨被切成了 ${total} 片，平均分给 ${parts} 个小朋友，每人能分到几片？`,
+        type: 'input',
+        answer: Math.floor(total/parts),
+        solution: `用除法：${total} ÷ ${parts} = ${Math.floor(total/parts)}，每人分到 ${Math.floor(total/parts)} 片。`
+      };
+    }
+  ],
+  // 3 三年级
+  [
+    () => {
+      let d=rand(2,6), n=rand(1,d-1);
+      return {
+        text: `⬛ 下面这个长方形被分成了 ${d} 个小格，其中 ${n} 个是黑色的。黑色部分占整个长方形的几分之几？`,
+        image: '⬛'.repeat(n) + '⬜'.repeat(d-n),
+        type: 'choice',
+        answer: `${n}/${d}`,
+        solution: `整体被分成 ${d} 份，涂色部分有 ${n} 份，所以是 ${n}/${d}。`,
+        options: [`${n}/${d}`, `${d-n}/${d}`, `${n+1}/${d}`]
+      };
+    },
+    () => {
+      let d=rand(2,6), n1=rand(1,d-1), n2=rand(1,d-1);
+      return {
+        text: `🧮 计算：${n1}/${d} + ${n2}/${d} = ? （同分母分数相加）`,
+        type: 'choice',
+        answer: `${n1+n2}/${d}`,
+        solution: `分母相同，分子直接相加：${n1} + ${n2} = ${n1+n2}，所以答案是 ${n1+n2}/${d}。`,
+        options: [`${n1+n2}/${d}`, `${n1+n2+1}/${d}`, `${n1+n2-1}/${d}`]
+      };
+    }
+  ],
+  // 4 四年级
+  [
+    () => {
+      let d=rand(3,8), n1=rand(1,d-1), n2=rand(1,n1);
+      return {
+        text: `📝 计算：${n1}/${d} - ${n2}/${d} = ? （同分母分数相减）`,
+        type: 'choice',
+        answer: `${n1-n2}/${d}`,
+        solution: `分母相同，分子相减：${n1} - ${n2} = ${n1-n2}，所以是 ${n1-n2}/${d}。`,
+        options: [`${n1-n2}/${d}`, `${n1-n2+1}/${d}`, `${n1-n2-1}/${d}`]
+      };
+    },
+    () => {
+      let a=rand(1,3), b=rand(2,4), c=rand(1,3), d=rand(2,4);
+      return {
+        text: `🍰 小明吃了 ${a}/${b} 块蛋糕，小红吃了 ${c}/${d} 块蛋糕，他们一共吃了多少？（先通分）`,
+        type: 'input',
+        answer: ((a*d + c*b)/(b*d)).toFixed(2),
+        solution: `通分：${a}/${b} = ${a*d}/${b*d}，${c}/${d} = ${c*b}/${b*d}，相加得 ${a*d + c*b}/${b*d}，约等于 ${((a*d + c*b)/(b*d)).toFixed(2)}。`
+      };
+    }
+  ],
+  // 5 五年级
+  [
+    () => {
+      let a=rand(1,5), b=rand(2,6), c=rand(1,5), d=rand(2,6);
+      return {
+        text: `✖️ 分数乘法：${a}/${b} × ${c}/${d} = ?`,
+        type: 'input',
+        answer: `${a*c}/${b*d}`,
+        solution: `分数相乘，分子乘分子，分母乘分母：${a}×${c}=${a*c}，${b}×${d}=${b*d}，所以是 ${a*c}/${b*d}。`
+      };
+    },
+    () => {
+      let a=rand(1,5), b=rand(2,6), c=rand(1,5), d=rand(2,6);
+      return {
+        text: `➗ 分数除法：${a}/${b} ÷ ${c}/${d} = ?`,
+        type: 'input',
+        answer: `${a*d}/${b*c}`,
+        solution: `除以一个分数等于乘它的倒数：${a}/${b} ÷ ${c}/${d} = ${a}/${b} × ${d}/${c} = ${a*d}/${b*c}。`
+      };
+    }
+  ],
+  // 6 六年级
+  [
+    () => {
+      let dec = (rand(1,99)/100).toFixed(2);
+      return {
+        text: `🔢 小数 ${dec} 化成分数（分母100）`,
+        type: 'input',
+        answer: `${Math.round(dec*100)}/100`,
+        solution: `${dec} 是两位小数，可以写成分母为100的分数：${Math.round(dec*100)}/100。`
+      };
+    },
+    () => {
+      let num=rand(1,99), den=100;
+      return {
+        text: `🔄 分数 ${num}/${den} 化成小数`,
+        type: 'input',
+        answer: (num/den).toFixed(2),
+        solution: `用分子除以分母：${num} ÷ ${den} = ${(num/den).toFixed(2)}。`
+      };
+    }
+  ]
+],
+word: [
+  // 0 幼儿园
+  [
+    () => {
+      let a=rand(2,5), b=rand(1,3);
+      return {
+        text: `🐦 树上有 ${a} 只小鸟，飞走了 ${b} 只，树上还剩几只小鸟？`,
+        type: 'choice',
+        answer: a-b,
+        solution: `原来有 ${a} 只，飞走 ${b} 只，减法：${a} - ${b} = ${a-b}。`,
+        options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0))
+      };
+    },
+    () => {
+      let a=rand(2,6), b=rand(2,5);
+      return {
+        text: `🍎 桌上有 ${a} 个苹果，吃了一些后还剩 ${b} 个，请问吃了几个？`,
+        type: 'choice',
+        answer: a-b,
+        solution: `原来 ${a} 个，剩 ${b} 个，吃掉的就是 ${a} - ${b} = ${a-b} 个。`,
+        options: shuffleUnique([a-b, a-b+1, a-b-1])
+      };
+    }
+  ],
+  // 1 一年级
+  [
+    () => {
+      let a=rand(3,9), b=rand(2,5);
+      return {
+        text: `🌲 每排种 ${a} 棵树，种了 ${b} 排，一共种了多少棵树？`,
+        type: 'input',
+        answer: a*b,
+        solution: `每排 ${a} 棵，有 ${b} 排，用乘法：${a} × ${b} = ${a*b}。`
+      };
+    },
+    () => {
+      let money=rand(2,8), price=rand(2,6);
+      return {
+        text: `✏️ 小明有 ${money} 元，铅笔每支 ${price} 元，他最多能买几支？`,
+        type: 'input',
+        answer: Math.floor(money/price),
+        solution: `用总钱数除以单价：${money} ÷ ${price} = ${Math.floor(money/price)} 支（剩下 ${money%price} 元不够再买一支）。`
+      };
+    }
+  ],
+  // 2 二年级
+  [
+    () => {
+      let total=rand(20,50), days=rand(2,5);
+      return {
+        text: `📖 一本书有 ${total} 页，小明 ${days} 天看完，平均每天看多少页？`,
+        type: 'input',
+        answer: Math.floor(total/days),
+        solution: `总页数 ÷ 天数 = ${total} ÷ ${days} = ${Math.floor(total/days)} 页（还有 ${total%days} 页可以多看）。`
+      };
+    },
+    () => {
+      let price=rand(5,15), n=rand(2,8);
+      return {
+        text: `🛒 钢笔每支 ${price} 元，小明买了 ${n} 支，付了 100 元，应找回多少元？`,
+        type: 'input',
+        answer: 100 - price*n,
+        solution: `先算总价：${price} × ${n} = ${price*n} 元。再算找回：100 - ${price*n} = ${100-price*n} 元。`
+      };
+    }
+  ],
+  // 3 三年级
+  [
+    () => {
+      let v=rand(30,80), t=rand(2,5);
+      return {
+        text: `🚗 一辆汽车每小时行 ${v} 千米，${t} 小时能行多少千米？`,
+        type: 'input',
+        answer: v*t,
+        solution: `路程 = 速度 × 时间，${v} × ${t} = ${v*t} 千米。`
+      };
+    },
+    () => {
+      let total=rand(50,200), price=rand(10,40);
+      return {
+        text: `📦 一共花了 ${total} 元买笔记本，每本 ${price} 元，买了多少本？`,
+        type: 'input',
+        answer: Math.floor(total/price),
+        solution: `总价 ÷ 单价 = 数量，${total} ÷ ${price} = ${Math.floor(total/price)} 本。`
+      };
+    }
+  ],
+  // 4 四年级
+  [
+    () => {
+      let a=rand(10,30), b=rand(2,8);
+      return {
+        text: `⚽ 甲有 ${a} 个球，乙比甲多 ${b} 个，乙有多少个球？`,
+        type: 'input',
+        answer: a+b,
+        solution: `乙 = 甲 + ${b}，即 ${a} + ${b} = ${a+b}。`
+      };
+    },
+    () => {
+      let a=rand(20,50), b=rand(10,20);
+      return {
+        text: `🍐 水果店有苹果 ${a} 个，梨比苹果少 ${b} 个，梨有多少个？`,
+        type: 'input',
+        answer: a-b,
+        solution: `梨 = 苹果 - ${b}，即 ${a} - ${b} = ${a-b}。`
+      };
+    }
+  ],
+  // 5 五年级
+  [
+    () => {
+      let total=rand(100,500), percent=rand(10,90);
+      return {
+        text: `🎯 商场打折，原价 ${total} 元的商品，打 ${percent}% 折后是多少元？`,
+        type: 'input',
+        answer: Math.round(total * percent / 100),
+        solution: `${percent}% 就是 ${percent}/100，所以折后价 = ${total} × ${percent}/100 = ${Math.round(total*percent/100)} 元。`
+      };
+    },
+    () => {
+      let part=rand(20,80), total=rand(100,200);
+      return {
+        text: `📊 班级有 ${total} 人，其中 ${part} 人是女生，女生占全班的百分之几？`,
+        type: 'input',
+        answer: (part/total*100).toFixed(0) + '%',
+        solution: `用女生人数除以总人数再乘以100%：${part} ÷ ${total} × 100% = ${(part/total*100).toFixed(0)}%。`
+      };
+    }
+  ],
+  // 6 六年级
+  [
+    () => {
+      let a=rand(2,6), b=rand(2,6);
+      return {
+        text: `⚖️ 解比例：3 : 4 = ${a} : x，求 x。`,
+        type: 'input',
+        answer: (a*4/3).toFixed(1),
+        solution: `比例式内项积等于外项积：4 × ${a} = 3 × x，所以 x = (4×${a})/3 ≈ ${(a*4/3).toFixed(1)}。`
+      };
+    },
+    () => {
+      let a=rand(10,50), b=rand(2,5);
+      return {
+        text: `💰 将 ${a+b*10} 元按 ${a}:${b} 的比例分给两人，较大的一份是多少元？`,
+        type: 'input',
+        answer: Math.round((a+b*10) * a / (a+b)),
+        solution: `总份数 = ${a}+${b}=${a+b}，大份占 ${a}/${a+b}，所以 ${a+b*10} × ${a}/${a+b} ≈ ${Math.round((a+b*10)*a/(a+b))} 元。`
+      };
+    }
+  ]
+],
+        logic: [
+  // 0 幼儿园
+  [
+    () => {
+      let a=rand(2,5), b=rand(2,5), c=rand(2,5);
+      return {
+        text: `🔢 数字小精灵们排着队：${a}、${a+b}、${a+b+c}，接下来应该是谁呢？`,
+        type: 'input',
+        answer: a+b+c+c,
+        solution: `规律是每次增加一个固定的数：${a} 到 ${a+b} 增加了 ${b}，${a+b} 到 ${a+b+c} 增加了 ${c}，所以下一个增加 ${c}，得到 ${a+b+c} + ${c} = ${a+b+c+c}。`
+      };
+    },
+    () => {
+      let a=rand(2,5);
+      return {
+        text: `△ 神秘符号 △ 加上它自己等于 ${a*2}，那么 △ 是多少？`,
+        type: 'input',
+        answer: a,
+        solution: `因为 △ + △ = ${a*2}，所以 △ = ${a*2} ÷ 2 = ${a}。`
+      };
+    }
+  ],
+  // 1 一年级
+  [
+    () => {
+      let a=rand(2,9), b=rand(2,9);
+      return {
+        text: `⭐ 如果 ☆ = ${a}，那么 ☆ + ${b} 等于多少呢？`,
+        type: 'input',
+        answer: a+b,
+        solution: `直接把 ☆ 的值代入：${a} + ${b} = ${a+b}。`
+      };
+    },
+    () => {
+      let a=rand(2,9);
+      return {
+        text: `□ + □ = ${a*2}，□ 代表同一个数，它应该是多少？`,
+        type: 'input',
+        answer: a,
+        solution: `因为两个相同的数相加等于 ${a*2}，所以这个数就是 ${a*2} ÷ 2 = ${a}。`
+      };
+    }
+  ],
+  // 2 二年级
+  [
+    () => {
+      let a=rand(2,9);
+      return {
+        text: `○ × ○ = ${a*a}，○ 代表哪个数字呢？`,
+        type: 'input',
+        answer: a,
+        solution: `一个数乘自己等于 ${a*a}，这个数就是 ${a}，因为 ${a} × ${a} = ${a*a}。`
+      };
+    },
+    () => {
+      let a=rand(2,6), b=rand(2,6);
+      return {
+        text: `如果 A = ${a}，B = ${b}，那么 A + B 等于多少？`,
+        type: 'input',
+        answer: a+b,
+        solution: `直接把 A 和 B 的值加起来：${a} + ${b} = ${a+b}。`
+      };
+    }
+  ],
+  // 3 三年级
+  [
+    () => {
+      let a=rand(2,5), b=rand(2,5);
+      return {
+        text: `🐔🐰 鸡兔同笼，共有 ${a+b} 个头，${a*2 + b*4} 只脚。请问兔子有几只？`,
+        type: 'input',
+        answer: b,
+        solution: `假设全是鸡，脚数少 ${a*2 + b*4 - (a+b)*2} 只，每只兔比鸡多2只脚，所以兔子 = (${a*2 + b*4} - ${a+b}×2) ÷ 2 = ${b} 只。`
+      };
+    },
+    () => {
+      let age=rand(5,12);
+      return {
+        text: `👨‍👦 小明今年 ${age} 岁，爸爸的年龄是小明的 3 倍还多 5 岁。爸爸多少岁？`,
+        type: 'input',
+        answer: age*3+5,
+        solution: `爸爸年龄 = 小明年龄 × 3 + 5 = ${age} × 3 + 5 = ${age*3+5} 岁。`
+      };
+    }
+  ],
+  // 4 四年级
+  [
+    () => {
+      let a=rand(2,6);
+      return {
+        text: `🧮 △ + □ = ${a+2}，△ - □ = ${a-2}，那么 △ 是多少？`,
+        type: 'input',
+        answer: a,
+        solution: `两式相加：(△+□)+(△-□) = 2△ = ${a+2} + ${a-2} = ${2*a}，所以 △ = ${a}。`
+      };
+    },
+    () => {
+      let n=rand(10,30);
+      return {
+        text: `🔢 斐波那契数列：1,1,2,3,5,8... 请问第 ${n} 个数是多少？`,
+        type: 'input',
+        answer: fib(n),
+        solution: `斐波那契数列的规律是后一个数等于前两个数之和。计算到第 ${n} 个数为 ${fib(n)}。`
+      };
+    }
+  ],
+  // 5 五年级
+  [
+    () => {
+      let a=rand(2,9), b=rand(2,9);
+      return {
+        text: `⚖️ 如果 x + ${b} = ${a+b}，那么 x 是多少？`,
+        type: 'input',
+        answer: a,
+        solution: `方程两边同时减去 ${b}：x = ${a+b} - ${b} = ${a}。`
+      };
+    },
+    () => {
+      let a=rand(2,9);
+      return {
+        text: `📐 2x = ${a*2}，请你解出 x 的值。`,
+        type: 'input',
+        answer: a,
+        solution: `两边同时除以2：x = ${a*2} ÷ 2 = ${a}。`
+      };
+    }
+  ],
+  // 6 六年级
+  [
+    () => {
+      let a=rand(2,5);
+      return {
+        text: `|x| = ${a}，x 的正数可能是多少？`,
+        type: 'input',
+        answer: a,
+        solution: `绝对值表示到原点的距离，所以 x 可能是 ${a} 或 ${-a}。题目要求正数，所以答案是 ${a}。`
+      };
+    },
+    () => {
+      let a=rand(2,9);
+      return {
+        text: `√x = ${a}，那么 x 是多少？`,
+        type: 'input',
+        answer: a*a,
+        solution: `一个数的平方根是 ${a}，说明这个数就是 ${a}² = ${a*a}。`
+      };
+    }
+  ]
+],
+measure: [
+  // 0 幼儿园
+  [
+    () => {
+      let a=rand(3,10);
+      return {
+        text: `📏 一支铅笔长 ${a} 厘米，这等于多少毫米呢？`,
+        type: 'input',
+        answer: a*10,
+        solution: `1厘米 = 10毫米，所以 ${a} 厘米 = ${a} × 10 = ${a*10} 毫米。`
+      };
+    },
+    () => {
+      return {
+        text: `📏 1米等于多少厘米？`,
+        type: 'choice',
+        answer: 100,
+        solution: `1米 = 100厘米，这是长度单位换算的基础。`,
+        options: [10, 100, 1000]
+      };
+    }
+  ],
+  // 1 一年级
+  [
+    () => {
+      return {
+        text: `⚖️ 1千克等于多少克？`,
+        type: 'choice',
+        answer: 1000,
+        solution: `1千克 = 1000克，这是质量单位换算的基础。`,
+        options: [100, 1000, 10000]
+      };
+    },
+    () => {
+      let a=rand(2,8);
+      return {
+        text: `🍎 妈妈买了 ${a} 千克苹果，合多少克？`,
+        type: 'input',
+        answer: a*1000,
+        solution: `1千克 = 1000克，所以 ${a} 千克 = ${a} × 1000 = ${a*1000} 克。`
+      };
+    }
+  ],
+  // 2 二年级
+  [
+    () => {
+      return {
+        text: `🥛 1升等于多少毫升？`,
+        type: 'choice',
+        answer: 1000,
+        solution: `1升 = 1000毫升，这是容量单位换算的基础。`,
+        options: [10, 100, 1000]
+      };
+    },
+    () => {
+      let a=rand(2,6);
+      return {
+        text: `🫖 一个水壶的容量是 ${a} 升，合多少毫升？`,
+        type: 'input',
+        answer: a*1000,
+        solution: `1升 = 1000毫升，${a} 升 = ${a} × 1000 = ${a*1000} 毫升。`
+      };
+    }
+  ],
+  // 3 三年级
+  [
+    () => {
+      let a=rand(10,60);
+      return {
+        text: `⏰ ${a} 分钟是多少小时多少分钟？`,
+        type: 'input',
+        answer: Math.floor(a/60) + '小时' + (a%60) + '分钟',
+        solution: `${a} ÷ 60 = ${Math.floor(a/60)} 小时余 ${a%60} 分钟。`
+      };
+    },
+    () => {
+      let a=rand(1,3);
+      return {
+        text: `⏱️ ${a} 小时是多少分钟？`,
+        type: 'input',
+        answer: a*60,
+        solution: `1小时 = 60分钟，${a} 小时 = ${a} × 60 = ${a*60} 分钟。`
+      };
+    }
+  ],
+  // 4 四年级
+  [
+    () => {
+      let a=rand(2,10);
+      return {
+        text: `🏟️ 一个正方形操场边长 ${a} 米，周长是多少厘米？`,
+        type: 'input',
+        answer: a*4*100,
+        solution: `正方形周长 = 边长×4 = ${a}×4 = ${a*4} 米，换算成厘米：${a*4} × 100 = ${a*4*100} 厘米。`
+      };
+    },
+    () => {
+      let a=rand(2,8), b=rand(2,6);
+      return {
+        text: `📏 一块长方形地毯长 ${a} 米，宽 ${b} 米，面积是多少平方分米？`,
+        type: 'input',
+        answer: a*b*100,
+        solution: `面积 = 长×宽 = ${a}×${b} = ${a*b} 平方米。1平方米 = 100平方分米，所以 ${a*b} × 100 = ${a*b*100} 平方分米。`
+      };
+    }
+  ],
+  // 5 五年级
+  [
+    () => {
+      let a=rand(2,8);
+      return {
+        text: `🏃 小明跑步的速度是 ${a} 米/秒，10秒能跑多少米？`,
+        type: 'input',
+        answer: a*10,
+        solution: `路程 = 速度 × 时间 = ${a} × 10 = ${a*10} 米。`
+      };
+    },
+    () => {
+      let a=rand(10,50);
+      return {
+        text: `🗺️ ${a} 平方千米等于多少公顷？`,
+        type: 'input',
+        answer: a*100,
+        solution: `1平方千米 = 100公顷，所以 ${a} 平方千米 = ${a} × 100 = ${a*100} 公顷。`
+      };
+    }
+  ],
+  // 6 六年级
+  [
+    () => {
+      return {
+        text: `📦 1立方米等于多少立方分米？`,
+        type: 'choice',
+        answer: 1000,
+        solution: `1立方米 = 1000立方分米。`,
+        options: [100, 1000, 10000]
+      };
+    },
+    () => {
+      let a=rand(2,6), b=rand(3,6), c=rand(2,4);
+      return {
+        text: `🏗️ 一个长方体木块长 ${a} 米、宽 ${b} 米、高 ${c} 米，体积是多少立方厘米？`,
+        type: 'input',
+        answer: a*b*c*1000000,
+        solution: `体积 = ${a}×${b}×${c} = ${a*b*c} 立方米。1立方米 = 1000000立方厘米，所以等于 ${a*b*c*1000000} 立方厘米。`
+      };
+    }
+  ]
+],
+      };
+
+      // 临时占位函数，确保其他模块可运行（会沿用旧逻辑，直到替换）
+      function genFallback(g) {
+        // 简单返回一道通用题
+        return {
+          text: `请计算：${rand(1,99)} + ${rand(1,99)} = ?`,
+          type: 'input',
+          answer: 0,
+          solution: '直接相加即可。'
+        };
+      }
 
       function genArith(g) { return generators.arithmetic[g][rand(0, generators.arithmetic[g].length-1)](); }
       function genGeom(g) { return generators.geometry[g][rand(0, generators.geometry[g].length-1)](); }
-      function genFrac(g) { return generators.fraction[g][rand(0, generators.fraction[g].length-1)](); }
-      function genWord(g) { return generators.word[g][rand(0, generators.word[g].length-1)](); }
-      function genLogic(g) { return generators.logic[g][rand(0, generators.logic[g].length-1)](); }
-      function genMeasure(g) { return generators.measure[g][rand(0, generators.measure[g].length-1)](); }
+      function genFrac(g)   { return generators.fraction[g][rand(0, generators.fraction[g].length-1)](); }
+      function genWord(g)   { return generators.word[g][rand(0, generators.word[g].length-1)](); }
+      function genLogic(g)  { return generators.logic[g][rand(0, generators.logic[g].length-1)](); }
+      function genMeasure(g){ return generators.measure[g][rand(0, generators.measure[g].length-1)](); }
 
       const genMap = {
         arithmetic: genArith,
@@ -367,11 +1173,9 @@
         const grade = currentGrade.value;
         const game = currentGame.value;
         let q = genMap[game](grade);
+        if (!q.solution) q.solution = '这道题考察了基本的数学知识，细心计算就能得出答案。';
         if (q.type === 'choice' && q.options) {
-          // 确保选项包含答案
-          if (!q.options.includes(q.answer)) {
-            q.options.push(q.answer);
-          }
+          if (!q.options.includes(q.answer)) q.options.push(q.answer);
           q.options = shuffleUnique(q.options).slice(0,4);
         }
         question.value = q;
@@ -387,7 +1191,10 @@
           isCorrect = Math.abs(Number(userAnswer) - Number(correct)) < 0.001;
         }
         if (isCorrect) {
-          feedback.value = '✅ 太棒了！回答正确！';
+          feedback.value = '';
+          encourageText.value = pick(['太厉害了！🌟', '你真是数学小天才！', '完全正确，棒棒哒！', '哇，答对了！继续加油！', '好聪明！✨']);
+          currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
+          showCorrectModal.value = true;
           stars.value += 1 + Math.floor(currentGrade.value / 2);
           plantProgress[currentGame.value] += 25;
           if (plantProgress[currentGame.value] >= 100) {
@@ -395,29 +1202,15 @@
             showToast('🌱 植物升级了！获得额外星星！');
             stars.value += 3;
           }
-          showToast('答对了！');
-          setTimeout(() => { generateQuestion(); }, 800);
         } else {
           feedback.value = '❌ 再想想吧，试试看！';
           showToast('不对哦，再试一次～');
         }
       }
 
-      function shuffleUnique(arr) {
-        let set = [...new Set(arr)];
-        return set.sort(() => Math.random() - 0.5);
-      }
-
-      function isPrime(n) {
-        if (n <= 1) return false;
-        for (let i = 2; i <= Math.sqrt(n); i++) if (n % i === 0) return false;
-        return true;
-      }
-
-      function fib(n) {
-        let a = 1, b = 1;
-        for (let i = 3; i <= n; i++) { let c = a + b; a = b; b = c; }
-        return b;
+      function closeCorrectModal() {
+        showCorrectModal.value = false;
+        generateQuestion();
       }
 
       return {
@@ -425,7 +1218,8 @@
         stars, gardenLevel, toast, showToast,
         plantProgress,
         view, currentGame, gameTitle,
-        openGame, generateQuestion, question, feedback, userInput, answer
+        openGame, generateQuestion, question, feedback, userInput, answer,
+        showCorrectModal, encourageText, currentSolution, closeCorrectModal
       };
     }
   }).mount('#app');
