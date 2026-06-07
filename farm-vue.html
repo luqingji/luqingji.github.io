@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-  <title>啾啾数学花园 · 考试版</title>
+  <title>啾啾数学花园 · 完整修复版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -108,7 +108,6 @@
       <span>🌱 Lv.{{ gardenLevel }}</span>
     </div>
     <div class="main">
-      <!-- 年级选择器 -->
       <div class="grade-selector" v-if="view !== 'exam' || !examStarted">
         <button @click="prevGrade" :disabled="currentGrade <= 0">◀</button>
         <span style="font-size: 16px;">{{ gradeNames[currentGrade] }}</span>
@@ -181,7 +180,6 @@
           <button class="btn" @click="beginExam" style="font-size: 20px;">开始考试</button>
         </div>
         <div v-else>
-          <!-- 试卷区域 -->
           <div v-if="!examSubmitted">
             <div v-for="(q, idx) in examQuestions" :key="idx" class="exam-question">
               <div style="font-weight: bold; margin-bottom: 6px;">{{ idx+1 }}. {{ q.text }}</div>
@@ -202,7 +200,6 @@
               <button class="btn" @click="submitExam" style="font-size: 20px; padding: 12px 30px;">交卷</button>
             </div>
           </div>
-          <!-- 成绩单 -->
           <div v-else class="result-box">
             <div style="font-size: 60px;">🏆</div>
             <div class="result-grade">{{ examGrade }}</div>
@@ -226,7 +223,7 @@
       <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
     </div>
 
-    <!-- 正确弹窗（游戏模式） -->
+    <!-- 正确弹窗 -->
     <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
       <div class="modal-content correct-modal-content">
         <div style="font-size: 60px;">🎉</div>
@@ -304,7 +301,7 @@
       const currentSolution = ref('');
       const modalClosing = ref(false);
 
-      // 考试相关状态
+      // 考试状态
       const examStarted = ref(false);
       const examQuestions = ref([]);
       const examAnswers = ref([]);
@@ -340,7 +337,6 @@
         var grade = currentGrade.value;
         var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
         var questions = [];
-        // 从每个类别至少取1题，其余随机补足10题
         var perCat = 1;
         var remaining = 10 - categories.length;
         if (remaining < 0) remaining = 0;
@@ -360,7 +356,6 @@
             }
           }
         }
-        // 如果不够10题，再补充
         while (questions.length < 10) {
           var cat2 = categories[rand(0, categories.length-1)];
           var list2 = generators[cat2];
@@ -371,7 +366,6 @@
             questions.push(q2);
           }
         }
-        // 打乱顺序
         questions = shuffle(questions);
         examQuestions.value = questions;
         examAnswers.value = new Array(questions.length).fill('');
@@ -392,7 +386,6 @@
         examCorrect.value = correctCount;
         examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
         examSubmitted.value = true;
-        // 奖励星星
         stars.value += correctCount * 2;
         showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
       }
@@ -424,7 +417,7 @@
         return b;
       }
 
-      // 答案匹配
+      // 答案判断（精确匹配 + 数值近似）
       function normalizeAnswer(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/\s+/g, '').toLowerCase();
@@ -442,12 +435,12 @@
         return false;
       }
 
-      // ========== 题目生成器（与之前一致，此处省略详细生成器代码以节省篇幅，但实际需完整包含）==========
-      // 为保持完整性，以下插入完整的生成器代码，结构同上一次回复。
+      // ========== 题目生成器 ==========
       var generators = {};
 
       // --- 算术花田 ---
       generators.arithmetic = [];
+      // 0 幼儿园
       generators.arithmetic[0] = [
         function() {
           var e = ['🐶','🐱','🐰','🐸','🐼','🐨','🐯','🦁','🐮','🐷'];
@@ -491,6 +484,7 @@
           };
         }
       ];
+      // 1 一年级
       generators.arithmetic[1] = [
         function() {
           var a = rand(1,10), b = rand(1,10);
@@ -524,6 +518,7 @@
           };
         }
       ];
+      // 2 二年级
       generators.arithmetic[2] = [
         function() {
           var a = rand(1,9), b = rand(1,9);
@@ -546,6 +541,7 @@
           };
         }
       ];
+      // 3 三年级
       generators.arithmetic[3] = [
         function() {
           var a = rand(10,99), b = rand(2,9);
@@ -575,6 +571,7 @@
           };
         }
       ];
+      // 4 四年级
       generators.arithmetic[4] = [
         function() {
           var a = rand(1000,9999), b = rand(100,9999);
@@ -599,6 +596,7 @@
           };
         }
       ];
+      // 5 五年级
       generators.arithmetic[5] = [
         function() {
           var a = (rand(10,99)/10).toFixed(1), b = (rand(10,99)/10).toFixed(1);
@@ -620,6 +618,7 @@
           };
         }
       ];
+      // 6 六年级
       generators.arithmetic[6] = [
         function() {
           var a = rand(2,9), b = rand(2,9);
@@ -644,15 +643,24 @@
       // --- 图形树屋 ---
       generators.geometry = [];
       generators.geometry[0] = [
+        // 修复：用图形符号代替文字选项
         function() {
-          var s = pick(['圆形','正方形','三角形']);
-          var desc = s === '圆形' ? '圆圆的，没有角' : (s === '正方形' ? '有四条一样长的边和四个直角' : '有三条边和三个角');
+          var shapes = ['圆形','正方形','三角形'];
+          var s = pick(shapes);
+          var symbolMap = { '圆形':'●', '正方形':'■', '三角形':'▲' };
+          var symbol = symbolMap[s];
+          var descMap = {
+            '圆形':'圆圆的，没有角',
+            '正方形':'有四条一样长的边和四个直角',
+            '三角形':'有三条边和三个角'
+          };
           return {
             text: '🔍 魔法图形箱里有一个图形，它叫做"' + s + '"。下面哪一个才是它的样子呢？',
+            image: symbol,
             type: 'choice',
-            answer: s,
-            solution: s + '的特征是：' + desc + '。',
-            options: [s, '长方形', '梯形']
+            answer: symbol,
+            solution: symbol + '（' + s + '）的特征是：' + descMap[s] + '。',
+            options: shuffle(['●','■','▲'])
           };
         },
         function() {
@@ -1047,13 +1055,19 @@
       // --- 逻辑密室 ---
       generators.logic = [];
       generators.logic[0] = [
+        // 修复：等差数列
         function() {
-          var a = rand(2,5), b = rand(2,5), c = rand(2,5);
+          var start = rand(1, 6);
+          var step = rand(1, 4);
+          var first = start;
+          var second = start + step;
+          var third = second + step;
+          var next = third + step;
           return {
-            text: '🔢 数字小精灵们排着队：' + a + '、' + (a+b) + '、' + (a+b+c) + '，接下来应该是谁呢？',
+            text: '🔢 数字小精灵们排着队：' + first + '、' + second + '、' + third + '，接下来应该是谁呢？',
             type: 'input',
-            answer: String(a+b+c+c),
-            solution: '规律是每次增加一个固定的数，下一个增加 ' + c + '，得到 ' + (a+b+c) + ' + ' + c + ' = ' + (a+b+c+c) + '。'
+            answer: String(next),
+            solution: '规律是每次增加 ' + step + '。' + third + ' + ' + step + ' = ' + next + '。'
           };
         },
         function() {
@@ -1330,7 +1344,7 @@
         }
       ];
 
-      // 原有游戏生成器函数
+      // 生成器调用
       function genQuestion(category, grade) {
         var list = generators[category];
         if (!list || !list[grade]) return null;
@@ -1408,7 +1422,6 @@
         openGame, generateQuestion, question, feedback, userInput, answer,
         showCorrectModal, encourageText, currentSolution, closeCorrectModal,
         modalClosing,
-        // 考试相关
         examStarted, examQuestions, examAnswers, examSubmitted, examResults, examCorrect, examScore, examGrade,
         startExam, beginExam, submitExam, resetExam
       };
