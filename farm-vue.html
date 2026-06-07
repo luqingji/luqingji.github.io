@@ -2,8 +2,8 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-  <title>啾啾数学花园 · 完整修复版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>啾啾数学花园 · 打印版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -144,6 +144,7 @@
         </div>
         <div style="text-align:center; margin-top: 15px;">
           <button class="btn" @click="startExam" style="font-size: 20px; padding: 12px 30px;">📝 进入考试</button>
+          <button class="btn" @click="printExam" style="font-size: 20px; padding: 12px 30px;">🖨️ 打印试卷</button>
         </div>
       </div>
 
@@ -178,6 +179,7 @@
           <p>即将生成一套综合试卷，涵盖多种题型。</p>
           <p>题目数量：10 题</p>
           <button class="btn" @click="beginExam" style="font-size: 20px;">开始考试</button>
+          <button class="btn" @click="printExam" style="font-size: 20px;">🖨️ 打印试卷</button>
         </div>
         <div v-else>
           <div v-if="!examSubmitted">
@@ -332,64 +334,6 @@
         view.value = 'exam';
       }
 
-      function beginExam() {
-        examStarted.value = true;
-        var grade = currentGrade.value;
-        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
-        var questions = [];
-        var perCat = 1;
-        var remaining = 10 - categories.length;
-        if (remaining < 0) remaining = 0;
-        for (var i = 0; i < categories.length; i++) {
-          var cat = categories[i];
-          var num = perCat + (remaining > 0 ? Math.floor(Math.random() * (remaining + 1)) : 0);
-          if (num > 0) {
-            var list = generators[cat];
-            if (list && list[grade]) {
-              var funcs = list[grade];
-              for (var j = 0; j < num; j++) {
-                var q = funcs[rand(0, funcs.length-1)]();
-                if (!q.solution) q.solution = '本题考察基础知识，细心计算即可。';
-                questions.push(q);
-              }
-              remaining -= (num - 1);
-            }
-          }
-        }
-        while (questions.length < 10) {
-          var cat2 = categories[rand(0, categories.length-1)];
-          var list2 = generators[cat2];
-          if (list2 && list2[grade]) {
-            var funcs2 = list2[grade];
-            var q2 = funcs2[rand(0, funcs2.length-1)]();
-            if (!q2.solution) q2.solution = '本题考察基础知识，细心计算即可。';
-            questions.push(q2);
-          }
-        }
-        questions = shuffle(questions);
-        examQuestions.value = questions;
-        examAnswers.value = new Array(questions.length).fill('');
-        examSubmitted.value = false;
-      }
-
-      function submitExam() {
-        var correctCount = 0;
-        var results = [];
-        for (var i = 0; i < examQuestions.value.length; i++) {
-          var q = examQuestions.value[i];
-          var userAns = examAnswers.value[i] || '';
-          var isCorrect = isAnswerCorrect(userAns, q.answer);
-          results.push(isCorrect);
-          if (isCorrect) correctCount++;
-        }
-        examResults.value = results;
-        examCorrect.value = correctCount;
-        examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
-        examSubmitted.value = true;
-        stars.value += correctCount * 2;
-        showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
-      }
-
       // 工具函数
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
@@ -417,7 +361,6 @@
         return b;
       }
 
-      // 答案判断（精确匹配 + 数值近似）
       function normalizeAnswer(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/\s+/g, '').toLowerCase();
@@ -440,7 +383,6 @@
 
       // --- 算术花田 ---
       generators.arithmetic = [];
-      // 0 幼儿园
       generators.arithmetic[0] = [
         function() {
           var e = ['🐶','🐱','🐰','🐸','🐼','🐨','🐯','🦁','🐮','🐷'];
@@ -484,7 +426,6 @@
           };
         }
       ];
-      // 1 一年级
       generators.arithmetic[1] = [
         function() {
           var a = rand(1,10), b = rand(1,10);
@@ -518,7 +459,6 @@
           };
         }
       ];
-      // 2 二年级
       generators.arithmetic[2] = [
         function() {
           var a = rand(1,9), b = rand(1,9);
@@ -541,7 +481,6 @@
           };
         }
       ];
-      // 3 三年级
       generators.arithmetic[3] = [
         function() {
           var a = rand(10,99), b = rand(2,9);
@@ -571,7 +510,6 @@
           };
         }
       ];
-      // 4 四年级
       generators.arithmetic[4] = [
         function() {
           var a = rand(1000,9999), b = rand(100,9999);
@@ -596,7 +534,6 @@
           };
         }
       ];
-      // 5 五年级
       generators.arithmetic[5] = [
         function() {
           var a = (rand(10,99)/10).toFixed(1), b = (rand(10,99)/10).toFixed(1);
@@ -618,7 +555,6 @@
           };
         }
       ];
-      // 6 六年级
       generators.arithmetic[6] = [
         function() {
           var a = rand(2,9), b = rand(2,9);
@@ -643,17 +579,12 @@
       // --- 图形树屋 ---
       generators.geometry = [];
       generators.geometry[0] = [
-        // 修复：用图形符号代替文字选项
         function() {
           var shapes = ['圆形','正方形','三角形'];
           var s = pick(shapes);
           var symbolMap = { '圆形':'●', '正方形':'■', '三角形':'▲' };
           var symbol = symbolMap[s];
-          var descMap = {
-            '圆形':'圆圆的，没有角',
-            '正方形':'有四条一样长的边和四个直角',
-            '三角形':'有三条边和三个角'
-          };
+          var descMap = { '圆形':'圆圆的，没有角', '正方形':'有四条一样长的边和四个直角', '三角形':'有三条边和三个角' };
           return {
             text: '🔍 魔法图形箱里有一个图形，它叫做"' + s + '"。下面哪一个才是它的样子呢？',
             image: symbol,
@@ -677,106 +608,56 @@
       generators.geometry[1] = [
         function() {
           var a = rand(3,8), b = rand(3,8);
-          return {
-            text: '🌳 花园里有一块长方形草地，长 ' + a + ' 米，宽 ' + b + ' 米。它的周长是多少米？',
-            type: 'input',
-            answer: String((a+b)*2),
-            solution: '长方形周长 = (长+宽)×2 = (' + a + '+' + b + ')×2 = ' + ((a+b)*2) + ' 米。'
-          };
+          return { text: '🌳 花园里有一块长方形草地，长 ' + a + ' 米，宽 ' + b + ' 米。它的周长是多少米？', type: 'input', answer: String((a+b)*2), solution: '长方形周长 = (长+宽)×2 = (' + a + '+' + b + ')×2 = ' + ((a+b)*2) + ' 米。' };
         },
         function() {
           var a = rand(3,8);
-          return {
-            text: '🟦 一块正方形手帕的边长是 ' + a + ' 厘米，它的周长是多少厘米？',
-            type: 'input',
-            answer: String(a*4),
-            solution: '正方形周长 = 边长×4 = ' + a + '×4 = ' + (a*4) + ' 厘米。'
-          };
+          return { text: '🟦 一块正方形手帕的边长是 ' + a + ' 厘米，它的周长是多少厘米？', type: 'input', answer: String(a*4), solution: '正方形周长 = 边长×4 = ' + a + '×4 = ' + (a*4) + ' 厘米。' };
         }
       ];
       generators.geometry[2] = [
         function() {
           var a = rand(3,8), b = rand(3,8);
-          return {
-            text: '📐 一块长方形画布长 ' + a + ' 分米，宽 ' + b + ' 分米，它的面积是多少平方分米？',
-            type: 'input',
-            answer: String(a*b),
-            solution: '长方形面积 = 长×宽 = ' + a + ' × ' + b + ' = ' + (a*b) + ' 平方分米。'
-          };
+          return { text: '📐 一块长方形画布长 ' + a + ' 分米，宽 ' + b + ' 分米，它的面积是多少平方分米？', type: 'input', answer: String(a*b), solution: '长方形面积 = 长×宽 = ' + a + ' × ' + b + ' = ' + (a*b) + ' 平方分米。' };
         },
         function() {
           var a = rand(3,8);
-          return {
-            text: '🟨 一张正方形桌面的边长是 ' + a + ' 分米，它的面积是多少平方分米？',
-            type: 'input',
-            answer: String(a*a),
-            solution: '正方形面积 = 边长×边长 = ' + a + '×' + a + ' = ' + (a*a) + ' 平方分米。'
-          };
+          return { text: '🟨 一张正方形桌面的边长是 ' + a + ' 分米，它的面积是多少平方分米？', type: 'input', answer: String(a*a), solution: '正方形面积 = 边长×边长 = ' + a + '×' + a + ' = ' + (a*a) + ' 平方分米。' };
         }
       ];
       generators.geometry[3] = [
         function() {
           var a = rand(3,8);
-          return {
-            text: '📦 一个正方体盒子的棱长是 ' + a + ' 厘米，它的体积是多少立方厘米？',
-            type: 'input',
-            answer: String(a*a*a),
-            solution: '正方体体积 = 棱长³ = ' + a + '×' + a + '×' + a + ' = ' + (a*a*a) + ' 立方厘米。'
-          };
+          return { text: '📦 一个正方体盒子的棱长是 ' + a + ' 厘米，它的体积是多少立方厘米？', type: 'input', answer: String(a*a*a), solution: '正方体体积 = 棱长³ = ' + a + '×' + a + '×' + a + ' = ' + (a*a*a) + ' 立方厘米。' };
         },
         function() {
           var a = rand(3,8), b = rand(3,8), c = rand(3,8);
-          return {
-            text: '🧱 一块长方体砖头长 ' + a + ' 厘米、宽 ' + b + ' 厘米、高 ' + c + ' 厘米，它的体积是多少？',
-            type: 'input',
-            answer: String(a*b*c),
-            solution: '长方体体积 = 长×宽×高 = ' + a + '×' + b + '×' + c + ' = ' + (a*b*c) + ' 立方厘米。'
-          };
+          return { text: '🧱 一块长方体砖头长 ' + a + ' 厘米、宽 ' + b + ' 厘米、高 ' + c + ' 厘米，它的体积是多少？', type: 'input', answer: String(a*b*c), solution: '长方体体积 = 长×宽×高 = ' + a + '×' + b + '×' + c + ' = ' + (a*b*c) + ' 立方厘米。' };
         }
       ];
       generators.geometry[4] = [
         function() {
           var a = rand(1,8)*10;
-          return {
-            text: '📐 一个角的度数是 ' + a + '°，它的补角是多少度？',
-            type: 'input',
-            answer: String(180 - a),
-            solution: '补角指两个角加起来等于180°，所以另一个角是 180° - ' + a + '° = ' + (180-a) + '°。'
-          };
+          return { text: '📐 一个角的度数是 ' + a + '°，它的补角是多少度？', type: 'input', answer: String(180 - a), solution: '补角指两个角加起来等于180°，所以另一个角是 180° - ' + a + '° = ' + (180-a) + '°。' };
         }
       ];
       generators.geometry[5] = [
         function() {
           var r = rand(2,5);
           var ans = (2 * 3.14 * r).toFixed(2);
-          return {
-            text: '⭕ 一个圆形花坛的半径是 ' + r + ' 米，它的周长大约是多少米？（π≈3.14）',
-            type: 'input',
-            answer: ans,
-            solution: '圆的周长 = 2πr = 2 × 3.14 × ' + r + ' ≈ ' + ans + ' 米。'
-          };
+          return { text: '⭕ 一个圆形花坛的半径是 ' + r + ' 米，它的周长大约是多少米？（π≈3.14）', type: 'input', answer: ans, solution: '圆的周长 = 2πr = 2 × 3.14 × ' + r + ' ≈ ' + ans + ' 米。' };
         },
         function() {
           var r = rand(2,5);
           var ans = (3.14 * r * r).toFixed(2);
-          return {
-            text: '🍕 一张圆形披萨的半径是 ' + r + ' 分米，它的面积大约是多少平方分米？（π≈3.14）',
-            type: 'input',
-            answer: ans,
-            solution: '圆的面积 = πr² = 3.14 × ' + r + '² ≈ ' + ans + ' 平方分米。'
-          };
+          return { text: '🍕 一张圆形披萨的半径是 ' + r + ' 分米，它的面积大约是多少平方分米？（π≈3.14）', type: 'input', answer: ans, solution: '圆的面积 = πr² = 3.14 × ' + r + '² ≈ ' + ans + ' 平方分米。' };
         }
       ];
       generators.geometry[6] = [
         function() {
           var r = rand(2,5), h = rand(5,10);
           var ans = (3.14 * r * r * h).toFixed(2);
-          return {
-            text: '🥫 一个圆柱形罐头盒，底面半径 ' + r + ' 厘米，高 ' + h + ' 厘米，它的体积大约是多少？（π≈3.14）',
-            type: 'input',
-            answer: ans,
-            solution: '圆柱体积 = 底面积×高 = πr²h = 3.14 × ' + r + '² × ' + h + ' ≈ ' + ans + ' 立方厘米。'
-          };
+          return { text: '🥫 一个圆柱形罐头盒，底面半径 ' + r + ' 厘米，高 ' + h + ' 厘米，它的体积大约是多少？（π≈3.14）', type: 'input', answer: ans, solution: '圆柱体积 = 底面积×高 = πr²h = 3.14 × ' + r + '² × ' + h + ' ≈ ' + ans + ' 立方厘米。' };
         }
       ];
 
@@ -785,121 +666,60 @@
       generators.fraction[0] = [
         function() {
           var total = rand(4,8), parts = 2;
-          return {
-            text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？',
-            type: 'choice',
-            answer: String(total/2),
-            solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。',
-            options: [String(total/2), String(total/2+1), String(total/2-1)].filter(function(n){return parseFloat(n)>=0;})
-          };
+          return { text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？', type: 'choice', answer: String(total/2), solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。', options: [String(total/2), String(total/2+1), String(total/2-1)].filter(function(n){return parseFloat(n)>=0;}) };
         }
       ];
       generators.fraction[1] = [
         function() {
           var a = rand(2,6), b = rand(2,6);
-          return {
-            text: '🍰 妈妈把一块蛋糕切成了 ' + (a+b) + ' 小块，小明吃了 ' + a + ' 块，还剩几块？',
-            type: 'choice',
-            answer: String(b),
-            solution: '总块数减去吃掉的就是剩下的：' + (a+b) + ' - ' + a + ' = ' + b + '。',
-            options: shuffleUnique([b, a, a+b].map(String))
-          };
+          return { text: '🍰 妈妈把一块蛋糕切成了 ' + (a+b) + ' 小块，小明吃了 ' + a + ' 块，还剩几块？', type: 'choice', answer: String(b), solution: '总块数减去吃掉的就是剩下的：' + (a+b) + ' - ' + a + ' = ' + b + '。', options: shuffleUnique([b, a, a+b].map(String)) };
         }
       ];
       generators.fraction[2] = [
         function() {
           var total = rand(6,12), parts = rand(2,4);
-          return {
-            text: '🍕 一个披萨被切成了 ' + total + ' 片，平均分给 ' + parts + ' 个小朋友，每人能分到几片？',
-            type: 'input',
-            answer: String(Math.floor(total/parts)),
-            solution: '用除法：' + total + ' ÷ ' + parts + ' = ' + Math.floor(total/parts) + '，每人分到 ' + Math.floor(total/parts) + ' 片。'
-          };
+          return { text: '🍕 一个披萨被切成了 ' + total + ' 片，平均分给 ' + parts + ' 个小朋友，每人能分到几片？', type: 'input', answer: String(Math.floor(total/parts)), solution: '用除法：' + total + ' ÷ ' + parts + ' = ' + Math.floor(total/parts) + '，每人分到 ' + Math.floor(total/parts) + ' 片。' };
         }
       ];
       generators.fraction[3] = [
         function() {
           var d = rand(2,6), n = rand(1,d-1);
-          return {
-            text: '⬛ 下面这个长方形被分成了 ' + d + ' 个小格，其中 ' + n + ' 个是黑色的。黑色部分占整个长方形的几分之几？',
-            image: '⬛'.repeat(n) + '⬜'.repeat(d-n),
-            type: 'choice',
-            answer: n + '/' + d,
-            solution: '整体被分成 ' + d + ' 份，涂色部分有 ' + n + ' 份，所以是 ' + n + '/' + d + '。',
-            options: [n + '/' + d, (d-n) + '/' + d, (n+1) + '/' + d]
-          };
+          return { text: '⬛ 下面这个长方形被分成了 ' + d + ' 个小格，其中 ' + n + ' 个是黑色的。黑色部分占整个长方形的几分之几？', image: '⬛'.repeat(n) + '⬜'.repeat(d-n), type: 'choice', answer: n + '/' + d, solution: '整体被分成 ' + d + ' 份，涂色部分有 ' + n + ' 份，所以是 ' + n + '/' + d + '。', options: [n + '/' + d, (d-n) + '/' + d, (n+1) + '/' + d] };
         },
         function() {
           var d = rand(2,6), n1 = rand(1,d-1), n2 = rand(1,d-1);
-          return {
-            text: '🧮 计算：' + n1 + '/' + d + ' + ' + n2 + '/' + d + ' = ? （同分母分数相加）',
-            type: 'choice',
-            answer: (n1+n2) + '/' + d,
-            solution: '分母相同，分子直接相加：' + n1 + ' + ' + n2 + ' = ' + (n1+n2) + '，所以答案是 ' + (n1+n2) + '/' + d + '。',
-            options: [(n1+n2) + '/' + d, (n1+n2+1) + '/' + d, (n1+n2-1) + '/' + d]
-          };
+          return { text: '🧮 计算：' + n1 + '/' + d + ' + ' + n2 + '/' + d + ' = ? （同分母分数相加）', type: 'choice', answer: (n1+n2) + '/' + d, solution: '分母相同，分子直接相加：' + n1 + ' + ' + n2 + ' = ' + (n1+n2) + '，所以答案是 ' + (n1+n2) + '/' + d + '。', options: [(n1+n2) + '/' + d, (n1+n2+1) + '/' + d, (n1+n2-1) + '/' + d] };
         }
       ];
       generators.fraction[4] = [
         function() {
           var d = rand(3,8), n1 = rand(1,d-1), n2 = rand(1,n1);
-          return {
-            text: '📝 计算：' + n1 + '/' + d + ' - ' + n2 + '/' + d + ' = ? （同分母分数相减）',
-            type: 'choice',
-            answer: (n1-n2) + '/' + d,
-            solution: '分母相同，分子相减：' + n1 + ' - ' + n2 + ' = ' + (n1-n2) + '，所以是 ' + (n1-n2) + '/' + d + '。',
-            options: [(n1-n2) + '/' + d, (n1-n2+1) + '/' + d, (n1-n2-1) + '/' + d]
-          };
+          return { text: '📝 计算：' + n1 + '/' + d + ' - ' + n2 + '/' + d + ' = ? （同分母分数相减）', type: 'choice', answer: (n1-n2) + '/' + d, solution: '分母相同，分子相减：' + n1 + ' - ' + n2 + ' = ' + (n1-n2) + '，所以是 ' + (n1-n2) + '/' + d + '。', options: [(n1-n2) + '/' + d, (n1-n2+1) + '/' + d, (n1-n2-1) + '/' + d] };
         },
         function() {
           var a = rand(1,3), b = rand(2,4), c = rand(1,3), d = rand(2,4);
           var ans = ((a*d + c*b)/(b*d)).toFixed(2);
-          return {
-            text: '🍰 小明吃了 ' + a + '/' + b + ' 块蛋糕，小红吃了 ' + c + '/' + d + ' 块蛋糕，他们一共吃了多少？（先通分）',
-            type: 'input',
-            answer: ans,
-            solution: '通分：' + a + '/' + b + ' = ' + (a*d) + '/' + (b*d) + '，' + c + '/' + d + ' = ' + (c*b) + '/' + (b*d) + '，相加得 ' + (a*d + c*b) + '/' + (b*d) + '，约等于 ' + ans + '。'
-          };
+          return { text: '🍰 小明吃了 ' + a + '/' + b + ' 块蛋糕，小红吃了 ' + c + '/' + d + ' 块蛋糕，他们一共吃了多少？（先通分）', type: 'input', answer: ans, solution: '通分：' + a + '/' + b + ' = ' + (a*d) + '/' + (b*d) + '，' + c + '/' + d + ' = ' + (c*b) + '/' + (b*d) + '，相加得 ' + (a*d + c*b) + '/' + (b*d) + '，约等于 ' + ans + '。' };
         }
       ];
       generators.fraction[5] = [
         function() {
           var a = rand(1,5), b = rand(2,6), c = rand(1,5), d = rand(2,6);
-          return {
-            text: '✖️ 分数乘法：' + a + '/' + b + ' × ' + c + '/' + d + ' = ?',
-            type: 'input',
-            answer: (a*c) + '/' + (b*d),
-            solution: '分数相乘，分子乘分子，分母乘分母：' + a + '×' + c + '=' + (a*c) + '，' + b + '×' + d + '=' + (b*d) + '，所以是 ' + (a*c) + '/' + (b*d) + '。'
-          };
+          return { text: '✖️ 分数乘法：' + a + '/' + b + ' × ' + c + '/' + d + ' = ?', type: 'input', answer: (a*c) + '/' + (b*d), solution: '分数相乘，分子乘分子，分母乘分母：' + a + '×' + c + '=' + (a*c) + '，' + b + '×' + d + '=' + (b*d) + '，所以是 ' + (a*c) + '/' + (b*d) + '。' };
         },
         function() {
           var a = rand(1,5), b = rand(2,6), c = rand(1,5), d = rand(2,6);
-          return {
-            text: '➗ 分数除法：' + a + '/' + b + ' ÷ ' + c + '/' + d + ' = ?',
-            type: 'input',
-            answer: (a*d) + '/' + (b*c),
-            solution: '除以一个分数等于乘它的倒数：' + a + '/' + b + ' ÷ ' + c + '/' + d + ' = ' + a + '/' + b + ' × ' + d + '/' + c + ' = ' + (a*d) + '/' + (b*c) + '。'
-          };
+          return { text: '➗ 分数除法：' + a + '/' + b + ' ÷ ' + c + '/' + d + ' = ?', type: 'input', answer: (a*d) + '/' + (b*c), solution: '除以一个分数等于乘它的倒数：' + a + '/' + b + ' ÷ ' + c + '/' + d + ' = ' + a + '/' + b + ' × ' + d + '/' + c + ' = ' + (a*d) + '/' + (b*c) + '。' };
         }
       ];
       generators.fraction[6] = [
         function() {
           var dec = (rand(1,99)/100).toFixed(2);
-          return {
-            text: '🔢 小数 ' + dec + ' 化成分数（分母100）',
-            type: 'input',
-            answer: Math.round(dec*100) + '/100',
-            solution: dec + ' 是两位小数，可以写成分母为100的分数：' + Math.round(dec*100) + '/100。'
-          };
+          return { text: '🔢 小数 ' + dec + ' 化成分数（分母100）', type: 'input', answer: Math.round(dec*100) + '/100', solution: dec + ' 是两位小数，可以写成分母为100的分数：' + Math.round(dec*100) + '/100。' };
         },
         function() {
           var num = rand(1,99), den = 100;
-          return {
-            text: '🔄 分数 ' + num + '/' + den + ' 化成小数',
-            type: 'input',
-            answer: (num/den).toFixed(2),
-            solution: '用分子除以分母：' + num + ' ÷ ' + den + ' = ' + (num/den).toFixed(2) + '。'
-          };
+          return { text: '🔄 分数 ' + num + '/' + den + ' 化成小数', type: 'input', answer: (num/den).toFixed(2), solution: '用分子除以分母：' + num + ' ÷ ' + den + ' = ' + (num/den).toFixed(2) + '。' };
         }
       ];
 
@@ -908,134 +728,67 @@
       generators.word[0] = [
         function() {
           var a = rand(2,5), b = rand(1,3);
-          return {
-            text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？',
-            type: 'choice',
-            answer: String(a-b),
-            solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。',
-            options: shuffleUnique([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String))
-          };
+          return { text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？', type: 'choice', answer: String(a-b), solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。', options: shuffleUnique([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String)) };
         },
         function() {
           var a = rand(2,6), b = rand(2,5);
-          return {
-            text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？',
-            type: 'choice',
-            answer: String(a-b),
-            solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。',
-            options: shuffleUnique([a-b, a-b+1, a-b-1].map(String))
-          };
+          return { text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？', type: 'choice', answer: String(a-b), solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。', options: shuffleUnique([a-b, a-b+1, a-b-1].map(String)) };
         }
       ];
       generators.word[1] = [
         function() {
           var a = rand(3,9), b = rand(2,5);
-          return {
-            text: '🌲 每排种 ' + a + ' 棵树，种了 ' + b + ' 排，一共种了多少棵树？',
-            type: 'input',
-            answer: String(a*b),
-            solution: '每排 ' + a + ' 棵，有 ' + b + ' 排，用乘法：' + a + ' × ' + b + ' = ' + (a*b) + '。'
-          };
+          return { text: '🌲 每排种 ' + a + ' 棵树，种了 ' + b + ' 排，一共种了多少棵树？', type: 'input', answer: String(a*b), solution: '每排 ' + a + ' 棵，有 ' + b + ' 排，用乘法：' + a + ' × ' + b + ' = ' + (a*b) + '。' };
         },
         function() {
           var money = rand(2,8), price = rand(2,6);
-          return {
-            text: '✏️ 小明有 ' + money + ' 元，铅笔每支 ' + price + ' 元，他最多能买几支？',
-            type: 'input',
-            answer: String(Math.floor(money/price)),
-            solution: '用总钱数除以单价：' + money + ' ÷ ' + price + ' = ' + Math.floor(money/price) + ' 支（剩下 ' + (money%price) + ' 元不够再买一支）。'
-          };
+          return { text: '✏️ 小明有 ' + money + ' 元，铅笔每支 ' + price + ' 元，他最多能买几支？', type: 'input', answer: String(Math.floor(money/price)), solution: '用总钱数除以单价：' + money + ' ÷ ' + price + ' = ' + Math.floor(money/price) + ' 支（剩下 ' + (money%price) + ' 元不够再买一支）。' };
         }
       ];
       generators.word[2] = [
         function() {
           var total = rand(20,50), days = rand(2,5);
-          return {
-            text: '📖 一本书有 ' + total + ' 页，小明 ' + days + ' 天看完，平均每天看多少页？',
-            type: 'input',
-            answer: String(Math.floor(total/days)),
-            solution: '总页数 ÷ 天数 = ' + total + ' ÷ ' + days + ' = ' + Math.floor(total/days) + ' 页。'
-          };
+          return { text: '📖 一本书有 ' + total + ' 页，小明 ' + days + ' 天看完，平均每天看多少页？', type: 'input', answer: String(Math.floor(total/days)), solution: '总页数 ÷ 天数 = ' + total + ' ÷ ' + days + ' = ' + Math.floor(total/days) + ' 页。' };
         },
         function() {
           var price = rand(5,15), n = rand(2,8);
-          return {
-            text: '🛒 钢笔每支 ' + price + ' 元，小明买了 ' + n + ' 支，付了 100 元，应找回多少元？',
-            type: 'input',
-            answer: String(100 - price*n),
-            solution: '先算总价：' + price + ' × ' + n + ' = ' + (price*n) + ' 元。再算找回：100 - ' + (price*n) + ' = ' + (100-price*n) + ' 元。'
-          };
+          return { text: '🛒 钢笔每支 ' + price + ' 元，小明买了 ' + n + ' 支，付了 100 元，应找回多少元？', type: 'input', answer: String(100 - price*n), solution: '先算总价：' + price + ' × ' + n + ' = ' + (price*n) + ' 元。再算找回：100 - ' + (price*n) + ' = ' + (100-price*n) + ' 元。' };
         }
       ];
       generators.word[3] = [
         function() {
           var v = rand(30,80), t = rand(2,5);
-          return {
-            text: '🚗 一辆汽车每小时行 ' + v + ' 千米，' + t + ' 小时能行多少千米？',
-            type: 'input',
-            answer: String(v*t),
-            solution: '路程 = 速度 × 时间，' + v + ' × ' + t + ' = ' + (v*t) + ' 千米。'
-          };
+          return { text: '🚗 一辆汽车每小时行 ' + v + ' 千米，' + t + ' 小时能行多少千米？', type: 'input', answer: String(v*t), solution: '路程 = 速度 × 时间，' + v + ' × ' + t + ' = ' + (v*t) + ' 千米。' };
         },
         function() {
           var total = rand(50,200), price = rand(10,40);
-          return {
-            text: '📦 一共花了 ' + total + ' 元买笔记本，每本 ' + price + ' 元，买了多少本？',
-            type: 'input',
-            answer: String(Math.floor(total/price)),
-            solution: '总价 ÷ 单价 = 数量，' + total + ' ÷ ' + price + ' = ' + Math.floor(total/price) + ' 本。'
-          };
+          return { text: '📦 一共花了 ' + total + ' 元买笔记本，每本 ' + price + ' 元，买了多少本？', type: 'input', answer: String(Math.floor(total/price)), solution: '总价 ÷ 单价 = 数量，' + total + ' ÷ ' + price + ' = ' + Math.floor(total/price) + ' 本。' };
         }
       ];
       generators.word[4] = [
         function() {
           var a = rand(10,30), b = rand(2,8);
-          return {
-            text: '⚽ 甲有 ' + a + ' 个球，乙比甲多 ' + b + ' 个，乙有多少个球？',
-            type: 'input',
-            answer: String(a+b),
-            solution: '乙 = 甲 + ' + b + '，即 ' + a + ' + ' + b + ' = ' + (a+b) + '。'
-          };
+          return { text: '⚽ 甲有 ' + a + ' 个球，乙比甲多 ' + b + ' 个，乙有多少个球？', type: 'input', answer: String(a+b), solution: '乙 = 甲 + ' + b + '，即 ' + a + ' + ' + b + ' = ' + (a+b) + '。' };
         },
         function() {
           var a = rand(20,50), b = rand(10,20);
-          return {
-            text: '🍐 水果店有苹果 ' + a + ' 个，梨比苹果少 ' + b + ' 个，梨有多少个？',
-            type: 'input',
-            answer: String(a-b),
-            solution: '梨 = 苹果 - ' + b + '，即 ' + a + ' - ' + b + ' = ' + (a-b) + '。'
-          };
+          return { text: '🍐 水果店有苹果 ' + a + ' 个，梨比苹果少 ' + b + ' 个，梨有多少个？', type: 'input', answer: String(a-b), solution: '梨 = 苹果 - ' + b + '，即 ' + a + ' - ' + b + ' = ' + (a-b) + '。' };
         }
       ];
       generators.word[5] = [
         function() {
           var total = rand(100,500), percent = rand(10,90);
-          return {
-            text: '🎯 商场打折，原价 ' + total + ' 元的商品，打 ' + percent + '% 折后是多少元？',
-            type: 'input',
-            answer: String(Math.round(total * percent / 100)),
-            solution: percent + '% 就是 ' + percent + '/100，所以折后价 = ' + total + ' × ' + percent + '/100 = ' + Math.round(total*percent/100) + ' 元。'
-          };
+          return { text: '🎯 商场打折，原价 ' + total + ' 元的商品，打 ' + percent + '% 折后是多少元？', type: 'input', answer: String(Math.round(total * percent / 100)), solution: percent + '% 就是 ' + percent + '/100，所以折后价 = ' + total + ' × ' + percent + '/100 = ' + Math.round(total*percent/100) + ' 元。' };
         },
         function() {
           var part = rand(20,80), total = rand(100,200);
-          return {
-            text: '📊 班级有 ' + total + ' 人，其中 ' + part + ' 人是女生，女生占全班的百分之几？',
-            type: 'input',
-            answer: (part/total*100).toFixed(0) + '%',
-            solution: '用女生人数除以总人数再乘以100%：' + part + ' ÷ ' + total + ' × 100% = ' + (part/total*100).toFixed(0) + '%。'
-          };
+          return { text: '📊 班级有 ' + total + ' 人，其中 ' + part + ' 人是女生，女生占全班的百分之几？', type: 'input', answer: (part/total*100).toFixed(0) + '%', solution: '用女生人数除以总人数再乘以100%：' + part + ' ÷ ' + total + ' × 100% = ' + (part/total*100).toFixed(0) + '%。' };
         }
       ];
       generators.word[6] = [
         function() {
           var a = rand(2,6), b = rand(2,6);
-          return {
-            text: '⚖️ 解比例：3 : 4 = ' + a + ' : x，求 x。',
-            type: 'input',
-            answer: (a*4/3).toFixed(1),
-            solution: '比例式内项积等于外项积：4 × ' + a + ' = 3 × x，所以 x = (4×' + a + ')/3 ≈ ' + (a*4/3).toFixed(1) + '。'
-          };
+          return { text: '⚖️ 解比例：3 : 4 = ' + a + ' : x，求 x。', type: 'input', answer: (a*4/3).toFixed(1), solution: '比例式内项积等于外项积：4 × ' + a + ' = 3 × x，所以 x = (4×' + a + ')/3 ≈ ' + (a*4/3).toFixed(1) + '。' };
         },
         function() {
           var a = rand(2,6), b = rand(2,6);
@@ -1043,161 +796,81 @@
           var totalMoney = (a+b)*k;
           var maxRatio = Math.max(a, b);
           var maxShare = k * maxRatio;
-          return {
-            text: '💰 将 ' + totalMoney + ' 元按 ' + a + ':' + b + ' 的比例分给两人，较大的一份是多少元？',
-            type: 'input',
-            answer: String(maxShare),
-            solution: '总份数 = ' + a + '+' + b + '=' + (a+b) + '，每份 ' + k + ' 元，较大比例是 ' + maxRatio + '，所以大份 = ' + maxRatio + '×' + k + ' = ' + maxShare + ' 元。'
-          };
+          return { text: '💰 将 ' + totalMoney + ' 元按 ' + a + ':' + b + ' 的比例分给两人，较大的一份是多少元？', type: 'input', answer: String(maxShare), solution: '总份数 = ' + a + '+' + b + '=' + (a+b) + '，每份 ' + k + ' 元，较大比例是 ' + maxRatio + '，所以大份 = ' + maxRatio + '×' + k + ' = ' + maxShare + ' 元。' };
         }
       ];
 
       // --- 逻辑密室 ---
       generators.logic = [];
       generators.logic[0] = [
-        // 修复：等差数列
         function() {
-          var start = rand(1, 6);
-          var step = rand(1, 4);
-          var first = start;
-          var second = start + step;
-          var third = second + step;
-          var next = third + step;
-          return {
-            text: '🔢 数字小精灵们排着队：' + first + '、' + second + '、' + third + '，接下来应该是谁呢？',
-            type: 'input',
-            answer: String(next),
-            solution: '规律是每次增加 ' + step + '。' + third + ' + ' + step + ' = ' + next + '。'
-          };
+          var start = rand(1, 6), step = rand(1, 4);
+          var first = start, second = start + step, third = second + step, next = third + step;
+          return { text: '🔢 数字小精灵们排着队：' + first + '、' + second + '、' + third + '，接下来应该是谁呢？', type: 'input', answer: String(next), solution: '规律是每次增加 ' + step + '。' + third + ' + ' + step + ' = ' + next + '。' };
         },
         function() {
           var a = rand(2,5);
-          return {
-            text: '△ 神秘符号 △ 加上它自己等于 ' + (a*2) + '，那么 △ 是多少？',
-            type: 'input',
-            answer: String(a),
-            solution: '因为 △ + △ = ' + (a*2) + '，所以 △ = ' + (a*2) + ' ÷ 2 = ' + a + '。'
-          };
+          return { text: '△ 神秘符号 △ 加上它自己等于 ' + (a*2) + '，那么 △ 是多少？', type: 'input', answer: String(a), solution: '因为 △ + △ = ' + (a*2) + '，所以 △ = ' + (a*2) + ' ÷ 2 = ' + a + '。' };
         }
       ];
       generators.logic[1] = [
         function() {
           var a = rand(2,9), b = rand(2,9);
-          return {
-            text: '⭐ 如果 ☆ = ' + a + '，那么 ☆ + ' + b + ' 等于多少呢？',
-            type: 'input',
-            answer: String(a+b),
-            solution: '直接把 ☆ 的值代入：' + a + ' + ' + b + ' = ' + (a+b) + '。'
-          };
+          return { text: '⭐ 如果 ☆ = ' + a + '，那么 ☆ + ' + b + ' 等于多少呢？', type: 'input', answer: String(a+b), solution: '直接把 ☆ 的值代入：' + a + ' + ' + b + ' = ' + (a+b) + '。' };
         },
         function() {
           var a = rand(2,9);
-          return {
-            text: '□ + □ = ' + (a*2) + '，□ 代表同一个数，它应该是多少？',
-            type: 'input',
-            answer: String(a),
-            solution: '因为两个相同的数相加等于 ' + (a*2) + '，所以这个数就是 ' + (a*2) + ' ÷ 2 = ' + a + '。'
-          };
+          return { text: '□ + □ = ' + (a*2) + '，□ 代表同一个数，它应该是多少？', type: 'input', answer: String(a), solution: '因为两个相同的数相加等于 ' + (a*2) + '，所以这个数就是 ' + (a*2) + ' ÷ 2 = ' + a + '。' };
         }
       ];
       generators.logic[2] = [
         function() {
           var a = rand(2,9);
-          return {
-            text: '○ × ○ = ' + (a*a) + '，○ 代表哪个数字呢？',
-            type: 'input',
-            answer: String(a),
-            solution: '一个数乘自己等于 ' + (a*a) + '，这个数就是 ' + a + '，因为 ' + a + ' × ' + a + ' = ' + (a*a) + '。'
-          };
+          return { text: '○ × ○ = ' + (a*a) + '，○ 代表哪个数字呢？', type: 'input', answer: String(a), solution: '一个数乘自己等于 ' + (a*a) + '，这个数就是 ' + a + '，因为 ' + a + ' × ' + a + ' = ' + (a*a) + '。' };
         },
         function() {
           var a = rand(2,6), b = rand(2,6);
-          return {
-            text: '如果 A = ' + a + '，B = ' + b + '，那么 A + B 等于多少？',
-            type: 'input',
-            answer: String(a+b),
-            solution: '直接把 A 和 B 的值加起来：' + a + ' + ' + b + ' = ' + (a+b) + '。'
-          };
+          return { text: '如果 A = ' + a + '，B = ' + b + '，那么 A + B 等于多少？', type: 'input', answer: String(a+b), solution: '直接把 A 和 B 的值加起来：' + a + ' + ' + b + ' = ' + (a+b) + '。' };
         }
       ];
       generators.logic[3] = [
         function() {
           var a = rand(2,5), b = rand(2,5);
-          return {
-            text: '🐔🐰 鸡兔同笼，共有 ' + (a+b) + ' 个头，' + (a*2 + b*4) + ' 只脚。请问兔子有几只？',
-            type: 'input',
-            answer: String(b),
-            solution: '假设全是鸡，脚数少 ' + (a*2 + b*4 - (a+b)*2) + ' 只，每只兔比鸡多2只脚，所以兔子 = ' + b + ' 只。'
-          };
+          return { text: '🐔🐰 鸡兔同笼，共有 ' + (a+b) + ' 个头，' + (a*2 + b*4) + ' 只脚。请问兔子有几只？', type: 'input', answer: String(b), solution: '假设全是鸡，脚数少 ' + (a*2 + b*4 - (a+b)*2) + ' 只，每只兔比鸡多2只脚，所以兔子 = ' + b + ' 只。' };
         },
         function() {
           var age = rand(5,12);
-          return {
-            text: '👨‍👦 小明今年 ' + age + ' 岁，爸爸的年龄是小明的 3 倍还多 5 岁。爸爸多少岁？',
-            type: 'input',
-            answer: String(age*3+5),
-            solution: '爸爸年龄 = 小明年龄 × 3 + 5 = ' + age + ' × 3 + 5 = ' + (age*3+5) + ' 岁。'
-          };
+          return { text: '👨‍👦 小明今年 ' + age + ' 岁，爸爸的年龄是小明的 3 倍还多 5 岁。爸爸多少岁？', type: 'input', answer: String(age*3+5), solution: '爸爸年龄 = 小明年龄 × 3 + 5 = ' + age + ' × 3 + 5 = ' + (age*3+5) + ' 岁。' };
         }
       ];
       generators.logic[4] = [
         function() {
           var a = rand(2,6);
-          return {
-            text: '🧮 △ + □ = ' + (a+2) + '，△ - □ = ' + (a-2) + '，那么 △ 是多少？',
-            type: 'input',
-            answer: String(a),
-            solution: '两式相加：(△+□)+(△-□) = 2△ = ' + (a+2) + ' + ' + (a-2) + ' = ' + (2*a) + '，所以 △ = ' + a + '。'
-          };
+          return { text: '🧮 △ + □ = ' + (a+2) + '，△ - □ = ' + (a-2) + '，那么 △ 是多少？', type: 'input', answer: String(a), solution: '两式相加：(△+□)+(△-□) = 2△ = ' + (a+2) + ' + ' + (a-2) + ' = ' + (2*a) + '，所以 △ = ' + a + '。' };
         },
         function() {
           var n = rand(10,30);
-          return {
-            text: '🔢 斐波那契数列：1,1,2,3,5,8... 请问第 ' + n + ' 个数是多少？',
-            type: 'input',
-            answer: String(fib(n)),
-            solution: '斐波那契数列的规律是后一个数等于前两个数之和。计算到第 ' + n + ' 个数为 ' + fib(n) + '。'
-          };
+          return { text: '🔢 斐波那契数列：1,1,2,3,5,8... 请问第 ' + n + ' 个数是多少？', type: 'input', answer: String(fib(n)), solution: '斐波那契数列的规律是后一个数等于前两个数之和。计算到第 ' + n + ' 个数为 ' + fib(n) + '。' };
         }
       ];
       generators.logic[5] = [
         function() {
           var a = rand(2,9), b = rand(2,9);
-          return {
-            text: '⚖️ 如果 x + ' + b + ' = ' + (a+b) + '，那么 x 是多少？',
-            type: 'input',
-            answer: String(a),
-            solution: '方程两边同时减去 ' + b + '：x = ' + (a+b) + ' - ' + b + ' = ' + a + '。'
-          };
+          return { text: '⚖️ 如果 x + ' + b + ' = ' + (a+b) + '，那么 x 是多少？', type: 'input', answer: String(a), solution: '方程两边同时减去 ' + b + '：x = ' + (a+b) + ' - ' + b + ' = ' + a + '。' };
         },
         function() {
           var a = rand(2,9);
-          return {
-            text: '📐 2x = ' + (a*2) + '，请你解出 x 的值。',
-            type: 'input',
-            answer: String(a),
-            solution: '两边同时除以2：x = ' + (a*2) + ' ÷ 2 = ' + a + '。'
-          };
+          return { text: '📐 2x = ' + (a*2) + '，请你解出 x 的值。', type: 'input', answer: String(a), solution: '两边同时除以2：x = ' + (a*2) + ' ÷ 2 = ' + a + '。' };
         }
       ];
       generators.logic[6] = [
         function() {
           var a = rand(2,5);
-          return {
-            text: '|x| = ' + a + '，x 的正数可能是多少？',
-            type: 'input',
-            answer: String(a),
-            solution: '绝对值表示到原点的距离，所以 x 可能是 ' + a + ' 或 ' + (-a) + '。题目要求正数，所以答案是 ' + a + '。'
-          };
+          return { text: '|x| = ' + a + '，x 的正数可能是多少？', type: 'input', answer: String(a), solution: '绝对值表示到原点的距离，所以 x 可能是 ' + a + ' 或 ' + (-a) + '。题目要求正数，所以答案是 ' + a + '。' };
         },
         function() {
           var a = rand(2,9);
-          return {
-            text: '√x = ' + a + '，那么 x 是多少？',
-            type: 'input',
-            answer: String(a*a),
-            solution: '一个数的平方根是 ' + a + '，说明这个数就是 ' + a + '² = ' + (a*a) + '。'
-          };
+          return { text: '√x = ' + a + '，那么 x 是多少？', type: 'input', answer: String(a*a), solution: '一个数的平方根是 ' + a + '，说明这个数就是 ' + a + '² = ' + (a*a) + '。' };
         }
       ];
 
@@ -1206,145 +879,190 @@
       generators.measure[0] = [
         function() {
           var a = rand(3,10);
-          return {
-            text: '📏 一支铅笔长 ' + a + ' 厘米，这等于多少毫米呢？',
-            type: 'input',
-            answer: String(a*10),
-            solution: '1厘米 = 10毫米，所以 ' + a + ' 厘米 = ' + a + ' × 10 = ' + (a*10) + ' 毫米。'
-          };
+          return { text: '📏 一支铅笔长 ' + a + ' 厘米，这等于多少毫米呢？', type: 'input', answer: String(a*10), solution: '1厘米 = 10毫米，所以 ' + a + ' 厘米 = ' + a + ' × 10 = ' + (a*10) + ' 毫米。' };
         },
         function() {
-          return {
-            text: '📏 1米等于多少厘米？',
-            type: 'choice',
-            answer: '100',
-            solution: '1米 = 100厘米，这是长度单位换算的基础。',
-            options: ['10', '100', '1000']
-          };
+          return { text: '📏 1米等于多少厘米？', type: 'choice', answer: '100', solution: '1米 = 100厘米，这是长度单位换算的基础。', options: ['10', '100', '1000'] };
         }
       ];
       generators.measure[1] = [
         function() {
-          return {
-            text: '⚖️ 1千克等于多少克？',
-            type: 'choice',
-            answer: '1000',
-            solution: '1千克 = 1000克，这是质量单位换算的基础。',
-            options: ['100', '1000', '10000']
-          };
+          return { text: '⚖️ 1千克等于多少克？', type: 'choice', answer: '1000', solution: '1千克 = 1000克，这是质量单位换算的基础。', options: ['100', '1000', '10000'] };
         },
         function() {
           var a = rand(2,8);
-          return {
-            text: '🍎 妈妈买了 ' + a + ' 千克苹果，合多少克？',
-            type: 'input',
-            answer: String(a*1000),
-            solution: '1千克 = 1000克，所以 ' + a + ' 千克 = ' + a + ' × 1000 = ' + (a*1000) + ' 克。'
-          };
+          return { text: '🍎 妈妈买了 ' + a + ' 千克苹果，合多少克？', type: 'input', answer: String(a*1000), solution: '1千克 = 1000克，所以 ' + a + ' 千克 = ' + a + ' × 1000 = ' + (a*1000) + ' 克。' };
         }
       ];
       generators.measure[2] = [
         function() {
-          return {
-            text: '🥛 1升等于多少毫升？',
-            type: 'choice',
-            answer: '1000',
-            solution: '1升 = 1000毫升，这是容量单位换算的基础。',
-            options: ['10', '100', '1000']
-          };
+          return { text: '🥛 1升等于多少毫升？', type: 'choice', answer: '1000', solution: '1升 = 1000毫升，这是容量单位换算的基础。', options: ['10', '100', '1000'] };
         },
         function() {
           var a = rand(2,6);
-          return {
-            text: '🫖 一个水壶的容量是 ' + a + ' 升，合多少毫升？',
-            type: 'input',
-            answer: String(a*1000),
-            solution: '1升 = 1000毫升，' + a + ' 升 = ' + a + ' × 1000 = ' + (a*1000) + ' 毫升。'
-          };
+          return { text: '🫖 一个水壶的容量是 ' + a + ' 升，合多少毫升？', type: 'input', answer: String(a*1000), solution: '1升 = 1000毫升，' + a + ' 升 = ' + a + ' × 1000 = ' + (a*1000) + ' 毫升。' };
         }
       ];
       generators.measure[3] = [
         function() {
           var a = rand(10,60);
-          return {
-            text: '⏰ ' + a + ' 分钟是多少小时多少分钟？',
-            type: 'input',
-            answer: Math.floor(a/60) + '小时' + (a%60) + '分钟',
-            solution: a + ' ÷ 60 = ' + Math.floor(a/60) + ' 小时余 ' + (a%60) + ' 分钟。'
-          };
+          return { text: '⏰ ' + a + ' 分钟是多少小时多少分钟？', type: 'input', answer: Math.floor(a/60) + '小时' + (a%60) + '分钟', solution: a + ' ÷ 60 = ' + Math.floor(a/60) + ' 小时余 ' + (a%60) + ' 分钟。' };
         },
         function() {
           var a = rand(1,3);
-          return {
-            text: '⏱️ ' + a + ' 小时是多少分钟？',
-            type: 'input',
-            answer: String(a*60),
-            solution: '1小时 = 60分钟，' + a + ' 小时 = ' + a + ' × 60 = ' + (a*60) + ' 分钟。'
-          };
+          return { text: '⏱️ ' + a + ' 小时是多少分钟？', type: 'input', answer: String(a*60), solution: '1小时 = 60分钟，' + a + ' 小时 = ' + a + ' × 60 = ' + (a*60) + ' 分钟。' };
         }
       ];
       generators.measure[4] = [
         function() {
           var a = rand(2,10);
-          return {
-            text: '🏟️ 一个正方形操场边长 ' + a + ' 米，周长是多少厘米？',
-            type: 'input',
-            answer: String(a*4*100),
-            solution: '正方形周长 = 边长×4 = ' + a + '×4 = ' + (a*4) + ' 米，换算成厘米：' + (a*4) + ' × 100 = ' + (a*4*100) + ' 厘米。'
-          };
+          return { text: '🏟️ 一个正方形操场边长 ' + a + ' 米，周长是多少厘米？', type: 'input', answer: String(a*4*100), solution: '正方形周长 = 边长×4 = ' + a + '×4 = ' + (a*4) + ' 米，换算成厘米：' + (a*4) + ' × 100 = ' + (a*4*100) + ' 厘米。' };
         },
         function() {
           var a = rand(2,8), b = rand(2,6);
-          return {
-            text: '📏 一块长方形地毯长 ' + a + ' 米，宽 ' + b + ' 米，面积是多少平方分米？',
-            type: 'input',
-            answer: String(a*b*100),
-            solution: '面积 = 长×宽 = ' + a + '×' + b + ' = ' + (a*b) + ' 平方米。1平方米 = 100平方分米，所以 ' + (a*b) + ' × 100 = ' + (a*b*100) + ' 平方分米。'
-          };
+          return { text: '📏 一块长方形地毯长 ' + a + ' 米，宽 ' + b + ' 米，面积是多少平方分米？', type: 'input', answer: String(a*b*100), solution: '面积 = 长×宽 = ' + a + '×' + b + ' = ' + (a*b) + ' 平方米。1平方米 = 100平方分米，所以 ' + (a*b) + ' × 100 = ' + (a*b*100) + ' 平方分米。' };
         }
       ];
       generators.measure[5] = [
         function() {
           var a = rand(2,8);
-          return {
-            text: '🏃 小明跑步的速度是 ' + a + ' 米/秒，10秒能跑多少米？',
-            type: 'input',
-            answer: String(a*10),
-            solution: '路程 = 速度 × 时间 = ' + a + ' × 10 = ' + (a*10) + ' 米。'
-          };
+          return { text: '🏃 小明跑步的速度是 ' + a + ' 米/秒，10秒能跑多少米？', type: 'input', answer: String(a*10), solution: '路程 = 速度 × 时间 = ' + a + ' × 10 = ' + (a*10) + ' 米。' };
         },
         function() {
           var a = rand(10,50);
-          return {
-            text: '🗺️ ' + a + ' 平方千米等于多少公顷？',
-            type: 'input',
-            answer: String(a*100),
-            solution: '1平方千米 = 100公顷，所以 ' + a + ' 平方千米 = ' + a + ' × 100 = ' + (a*100) + ' 公顷。'
-          };
+          return { text: '🗺️ ' + a + ' 平方千米等于多少公顷？', type: 'input', answer: String(a*100), solution: '1平方千米 = 100公顷，所以 ' + a + ' 平方千米 = ' + a + ' × 100 = ' + (a*100) + ' 公顷。' };
         }
       ];
       generators.measure[6] = [
         function() {
-          return {
-            text: '📦 1立方米等于多少立方分米？',
-            type: 'choice',
-            answer: '1000',
-            solution: '1立方米 = 1000立方分米。',
-            options: ['100', '1000', '10000']
-          };
+          return { text: '📦 1立方米等于多少立方分米？', type: 'choice', answer: '1000', solution: '1立方米 = 1000立方分米。', options: ['100', '1000', '10000'] };
         },
         function() {
           var a = rand(2,6), b = rand(3,6), c = rand(2,4);
-          return {
-            text: '🏗️ 一个长方体木块长 ' + a + ' 米、宽 ' + b + ' 米、高 ' + c + ' 米，体积是多少立方厘米？',
-            type: 'input',
-            answer: String(a*b*c*1000000),
-            solution: '体积 = ' + a + '×' + b + '×' + c + ' = ' + (a*b*c) + ' 立方米。1立方米 = 1000000立方厘米，所以等于 ' + (a*b*c*1000000) + ' 立方厘米。'
-          };
+          return { text: '🏗️ 一个长方体木块长 ' + a + ' 米、宽 ' + b + ' 米、高 ' + c + ' 米，体积是多少立方厘米？', type: 'input', answer: String(a*b*c*1000000), solution: '体积 = ' + a + '×' + b + '×' + c + ' = ' + (a*b*c) + ' 立方米。1立方米 = 1000000立方厘米，所以等于 ' + (a*b*c*1000000) + ' 立方厘米。' };
         }
       ];
 
-      // 生成器调用
+      // 通用生成题目数组
+      function generateExamQuestions(grade) {
+        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        var questions = [];
+        var perCat = 1;
+        var remaining = 10 - categories.length;
+        if (remaining < 0) remaining = 0;
+        for (var i = 0; i < categories.length; i++) {
+          var cat = categories[i];
+          var num = perCat + (remaining > 0 ? Math.floor(Math.random() * (remaining + 1)) : 0);
+          if (num > 0) {
+            var list = generators[cat];
+            if (list && list[grade]) {
+              var funcs = list[grade];
+              for (var j = 0; j < num; j++) {
+                var q = funcs[rand(0, funcs.length-1)]();
+                if (!q.solution) q.solution = '本题考察基础知识，细心计算即可。';
+                questions.push(q);
+              }
+              remaining -= (num - 1);
+            }
+          }
+        }
+        while (questions.length < 10) {
+          var cat2 = categories[rand(0, categories.length-1)];
+          var list2 = generators[cat2];
+          if (list2 && list2[grade]) {
+            var funcs2 = list2[grade];
+            var q2 = funcs2[rand(0, funcs2.length-1)]();
+            if (!q2.solution) q2.solution = '本题考察基础知识，细心计算即可。';
+            questions.push(q2);
+          }
+        }
+        return shuffle(questions);
+      }
+
+      function beginExam() {
+        examStarted.value = true;
+        examQuestions.value = generateExamQuestions(currentGrade.value);
+        examAnswers.value = new Array(examQuestions.value.length).fill('');
+        examSubmitted.value = false;
+      }
+
+      function submitExam() {
+        var correctCount = 0;
+        var results = [];
+        for (var i = 0; i < examQuestions.value.length; i++) {
+          var q = examQuestions.value[i];
+          var userAns = examAnswers.value[i] || '';
+          var isCorrect = isAnswerCorrect(userAns, q.answer);
+          results.push(isCorrect);
+          if (isCorrect) correctCount++;
+        }
+        examResults.value = results;
+        examCorrect.value = correctCount;
+        examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
+        examSubmitted.value = true;
+        stars.value += correctCount * 2;
+        showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
+      }
+
+      // 打印试卷功能
+      function printExam() {
+        var grade = currentGrade.value;
+        var questions = generateExamQuestions(grade);
+        var printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) {
+          showToast('请允许弹出窗口以打印试卷');
+          return;
+        }
+        // 试卷内容
+        var examHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>啾啾数学试卷</title>';
+        examHtml += '<style>';
+        examHtml += 'body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin: 20px; }';
+        examHtml += 'h1 { text-align: center; font-size: 24px; margin-bottom: 10px; }';
+        examHtml += '.info { text-align: center; margin-bottom: 20px; font-size: 16px; }';
+        examHtml += '.question { margin-bottom: 18px; page-break-inside: avoid; }';
+        examHtml += '.q-text { font-size: 16px; font-weight: bold; margin-bottom: 6px; }';
+        examHtml += '.q-image { font-size: 40px; text-align: center; margin: 6px 0; }';
+        examHtml += '.options { margin-left: 20px; font-size: 16px; }';
+        examHtml += '.options span { margin-right: 20px; }';
+        examHtml += '.answer-line { border-bottom: 1px solid #000; width: 120px; display: inline-block; margin-left: 10px; }';
+        examHtml += '@media print { body { margin: 0; } .page-break { page-break-after: always; } }';
+        examHtml += '</style></head><body>';
+        examHtml += '<h1>🌻 啾啾数学花园 试卷</h1>';
+        examHtml += '<div class="info">年级：' + gradeNames[grade] + ' | 姓名：________ 日期：________</div>';
+        for (var i = 0; i < questions.length; i++) {
+          var q = questions[i];
+          examHtml += '<div class="question">';
+          examHtml += '<div class="q-text">' + (i+1) + '. ' + q.text + '</div>';
+          if (q.image) examHtml += '<div class="q-image">' + q.image + '</div>';
+          if (q.type === 'choice') {
+            examHtml += '<div class="options">';
+            for (var j = 0; j < q.options.length; j++) {
+              examHtml += '<span>○ ' + q.options[j] + '</span>';
+            }
+            examHtml += '</div>';
+          } else {
+            examHtml += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
+          }
+          examHtml += '</div>';
+        }
+        // 答案页
+        examHtml += '<div class="page-break"></div>';
+        examHtml += '<h1>🧠 答案与解题思路</h1>';
+        for (var k = 0; k < questions.length; k++) {
+          var aq = questions[k];
+          examHtml += '<div class="question">';
+          examHtml += '<div class="q-text">' + (k+1) + '. 答案：<strong>' + aq.answer + '</strong></div>';
+          examHtml += '<div style="font-size:14px; color:#555;">' + aq.solution + '</div>';
+          examHtml += '</div>';
+        }
+        examHtml += '</body></html>';
+        printWindow.document.write(examHtml);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(function() { printWindow.print(); }, 500);
+      }
+
+      // 原有游戏生成器
       function genQuestion(category, grade) {
         var list = generators[category];
         if (!list || !list[grade]) return null;
@@ -1359,13 +1077,7 @@
         var game = currentGame.value;
         var q = genQuestion(game, grade);
         if (!q) {
-          q = {
-            text: '题目准备中，请稍后再试~',
-            type: 'choice',
-            answer: '好的',
-            solution: '暂无题目，请切换年级或游戏。',
-            options: ['好的', '知道了']
-          };
+          q = { text: '题目准备中，请稍后再试~', type: 'choice', answer: '好的', solution: '暂无题目，请切换年级或游戏。', options: ['好的', '知道了'] };
         }
         if (!q.solution) q.solution = '这道题考察了基本的数学知识，细心计算就能得出答案。';
         if (q.type === 'choice' && q.options) {
@@ -1423,7 +1135,8 @@
         showCorrectModal, encourageText, currentSolution, closeCorrectModal,
         modalClosing,
         examStarted, examQuestions, examAnswers, examSubmitted, examResults, examCorrect, examScore, examGrade,
-        startExam, beginExam, submitExam, resetExam
+        startExam, beginExam, submitExam, resetExam,
+        printExam
       };
     }
   }).mount('#app');
