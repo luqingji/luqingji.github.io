@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
   <title>啾啾数学花园</title>
-  <!-- 使用国内 CDN，加载更稳定 -->
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -90,7 +89,6 @@
 </head>
 <body>
 <div id="app">
-  <!-- Vue 加载失败时的提示 -->
   <div v-if="!vueReady" style="text-align:center;padding:50px;color:#e74c3c;">
     ⚠️ 正在加载组件，请稍候...<br>
     <small style="color:#888;">如果长时间无反应，请检查网络连接后刷新页面</small>
@@ -109,7 +107,6 @@
         <button @click="nextGrade" :disabled="currentGrade >= gradeNames.length-1">▶</button>
       </div>
 
-      <!-- 花园视图 -->
       <div v-if="view === 'garden'">
         <div class="garden-grid">
           <div class="garden-item" @click="openGame('arithmetic')">
@@ -139,7 +136,6 @@
         </div>
       </div>
 
-      <!-- 游戏视图 -->
       <div v-if="view === 'game'">
         <button class="btn" @click="view='garden'">← 回花园</button>
         <h3 style="text-align: center;">{{ gameTitle }}</h3>
@@ -166,7 +162,6 @@
       <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
     </div>
 
-    <!-- 正确弹窗 -->
     <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
       <div class="modal-content correct-modal-content">
         <div style="font-size: 60px;">🎉</div>
@@ -185,7 +180,6 @@
 
 <script>
 (function() {
-  // 检测 Vue 是否加载成功
   if (typeof Vue === 'undefined') {
     document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">⚠️ Vue 加载失败，请检查网络连接后刷新页面<br><small><a href="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" target="_blank">手动下载 Vue</a></small></div>';
     return;
@@ -195,7 +189,6 @@
 
   createApp({
     setup() {
-      // 页面就绪标记
       const vueReady = ref(true);
 
       // 常量
@@ -295,13 +288,30 @@
             options: shuffleUnique([c, c+1, c-1].filter(function(n){return n>0 && n <= e.length;}).map(String))
           };
         },
+        // 修复：苹果橘子比较，增加相等的情况
         function() {
           var a = rand(2,5), b = rand(2,5);
+          var answer;
+          if (a > b) {
+            answer = '苹果';
+          } else if (a < b) {
+            answer = '橘子';
+          } else {
+            answer = '一样多';
+          }
+          var solution = '苹果有 ' + a + ' 个，橘子有 ' + b + ' 个。';
+          if (a > b) {
+            solution += '苹果比橘子多，所以选"苹果"。';
+          } else if (a < b) {
+            solution += '橘子比苹果多，所以选"橘子"。';
+          } else {
+            solution += '两边一样多，所以选"一样多"。';
+          }
           return {
             text: '🍎 桌子上有 ' + '🍎'.repeat(a) + '，旁边还有 ' + '🍊'.repeat(b) + '。苹果和橘子，谁的数量更多呢？',
             type: 'choice',
-            answer: a > b ? '苹果' : '橘子',
-            solution: '苹果有 ' + a + ' 个，橘子有 ' + b + ' 个。' + (a > b ? '苹果比橘子多' : '橘子比苹果多') + '，所以选"' + (a > b ? '苹果' : '橘子') + '"。',
+            answer: answer,
+            solution: solution,
             options: ['苹果','橘子','一样多']
           };
         },
@@ -428,7 +438,7 @@
           };
         }
       ];
-      // 5 五年级（已修复负数问题）
+      // 5 五年级（已修复负数）
       generators.arithmetic[5] = [
         function() {
           var a = (rand(10,99)/10).toFixed(1), b = (rand(10,99)/10).toFixed(1);
@@ -1161,7 +1171,7 @@
         }
       ];
 
-      // ========== 生成题目 ==========
+      // 统一生成器
       function genQuestion(category, grade) {
         var list = generators[category];
         if (!list || !list[grade]) return null;
@@ -1192,7 +1202,7 @@
         question.value = q;
       }
 
-      // ========== 答案匹配 ==========
+      // 答案匹配
       function normalizeAnswer(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/\s+/g, '').toLowerCase();
@@ -1243,7 +1253,6 @@
         }, 300);
       }
 
-      // 年级切换时自动刷新题目
       watch(currentGrade, function() {
         if (view.value === 'game' && currentGame.value) {
           generateQuestion();
