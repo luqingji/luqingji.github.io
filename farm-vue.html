@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-  <title>啾啾数学花园</title>
+  <title>啾啾数学花园 · 考试版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -85,6 +85,13 @@
       font-size: 16px; text-align: left; line-height: 1.6;
     }
     .encourage-text { font-size: 24px; font-weight: bold; color: #27ae60; margin: 10px 0; }
+    .exam-question {
+      background: #fff; border: 2px solid #ddd; border-radius: 15px; padding: 12px; margin-bottom: 12px;
+    }
+    .exam-question.correct { border-color: #27ae60; background: #f0fff0; }
+    .exam-question.wrong { border-color: #e74c3c; background: #fff0f0; }
+    .result-box { text-align: center; padding: 20px; }
+    .result-grade { font-size: 40px; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -101,12 +108,14 @@
       <span>🌱 Lv.{{ gardenLevel }}</span>
     </div>
     <div class="main">
-      <div class="grade-selector">
+      <!-- 年级选择器 -->
+      <div class="grade-selector" v-if="view !== 'exam' || !examStarted">
         <button @click="prevGrade" :disabled="currentGrade <= 0">◀</button>
         <span style="font-size: 16px;">{{ gradeNames[currentGrade] }}</span>
         <button @click="nextGrade" :disabled="currentGrade >= gradeNames.length-1">▶</button>
       </div>
 
+      <!-- 花园视图 -->
       <div v-if="view === 'garden'">
         <div class="garden-grid">
           <div class="garden-item" @click="openGame('arithmetic')">
@@ -134,8 +143,12 @@
             <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.measure+'%'}"></div></div>
           </div>
         </div>
+        <div style="text-align:center; margin-top: 15px;">
+          <button class="btn" @click="startExam" style="font-size: 20px; padding: 12px 30px;">📝 进入考试</button>
+        </div>
       </div>
 
+      <!-- 游戏视图 -->
       <div v-if="view === 'game'">
         <button class="btn" @click="view='garden'">← 回花园</button>
         <h3 style="text-align: center;">{{ gameTitle }}</h3>
@@ -157,11 +170,63 @@
           <p v-if="feedback" style="margin-top:12px;font-weight:bold;">{{ feedback }}</p>
         </div>
       </div>
+
+      <!-- 考试视图 -->
+      <div v-if="view === 'exam'">
+        <button class="btn" @click="view='garden'; resetExam()">← 退出考试</button>
+        <h3 style="text-align: center;">📝 综合考试 ({{ gradeNames[currentGrade] }})</h3>
+        <div v-if="!examStarted" style="text-align: center; padding: 20px;">
+          <p>即将生成一套综合试卷，涵盖多种题型。</p>
+          <p>题目数量：10 题</p>
+          <button class="btn" @click="beginExam" style="font-size: 20px;">开始考试</button>
+        </div>
+        <div v-else>
+          <!-- 试卷区域 -->
+          <div v-if="!examSubmitted">
+            <div v-for="(q, idx) in examQuestions" :key="idx" class="exam-question">
+              <div style="font-weight: bold; margin-bottom: 6px;">{{ idx+1 }}. {{ q.text }}</div>
+              <div v-if="q.image" style="font-size: 40px; text-align: center;">{{ q.image }}</div>
+              <div v-if="q.type === 'choice'">
+                <div v-for="opt in q.options" :key="opt" style="margin: 4px 0;">
+                  <label style="display: flex; align-items: center; cursor: pointer; font-size: 18px;">
+                    <input type="radio" :name="'q'+idx" :value="opt" v-model="examAnswers[idx]" style="margin-right: 8px; transform: scale(1.3);">
+                    {{ opt }}
+                  </label>
+                </div>
+              </div>
+              <div v-if="q.type === 'input'">
+                <input v-model="examAnswers[idx]" type="text" style="font-size:20px;width:100px;text-align:center;padding:4px;" placeholder="?">
+              </div>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+              <button class="btn" @click="submitExam" style="font-size: 20px; padding: 12px 30px;">交卷</button>
+            </div>
+          </div>
+          <!-- 成绩单 -->
+          <div v-else class="result-box">
+            <div style="font-size: 60px;">🏆</div>
+            <div class="result-grade">{{ examGrade }}</div>
+            <p>正确 {{ examCorrect }} / {{ examQuestions.length }}</p>
+            <p>得分 {{ examScore }} 分</p>
+            <div v-for="(q, idx) in examQuestions" :key="idx" class="exam-question" :class="examResults[idx] ? 'correct' : 'wrong'">
+              <div style="font-weight: bold;">{{ idx+1 }}. {{ q.text }} {{ examResults[idx] ? '✅' : '❌' }}</div>
+              <div v-if="!examResults[idx]" style="margin-top: 4px; color: #e74c3c;">
+                你的答案：{{ examAnswers[idx] || '未填' }} | 正确答案：{{ q.answer }}
+              </div>
+              <div class="solution-box" style="margin-top: 8px; font-size: 14px;">
+                <strong>🧠 思路：</strong>{{ q.solution }}
+              </div>
+            </div>
+            <button class="btn" @click="view='garden'; resetExam()" style="margin-top: 15px;">返回花园</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div style="display:flex;background:#fff8e7;border-top:3px solid #f1c40f;">
       <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
     </div>
 
+    <!-- 正确弹窗（游戏模式） -->
     <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
       <div class="modal-content correct-modal-content">
         <div style="font-size: 60px;">🎉</div>
@@ -181,7 +246,7 @@
 <script>
 (function() {
   if (typeof Vue === 'undefined') {
-    document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">⚠️ Vue 加载失败，请检查网络连接后刷新页面<br><small><a href="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js" target="_blank">手动下载 Vue</a></small></div>';
+    document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">⚠️ Vue 加载失败，请检查网络连接后刷新页面</div>';
     return;
   }
 
@@ -190,8 +255,6 @@
   createApp({
     setup() {
       const vueReady = ref(true);
-
-      // 常量
       const STARS_PER_LEVEL = 30;
       const PROGRESS_PER_CORRECT = 25;
       const MAX_PROGRESS = 100;
@@ -241,6 +304,99 @@
       const currentSolution = ref('');
       const modalClosing = ref(false);
 
+      // 考试相关状态
+      const examStarted = ref(false);
+      const examQuestions = ref([]);
+      const examAnswers = ref([]);
+      const examSubmitted = ref(false);
+      const examResults = ref([]);
+      const examCorrect = ref(0);
+      const examScore = ref(0);
+      const examGrade = computed(function() {
+        var pct = examCorrect.value / examQuestions.value.length;
+        if (pct === 1) return '🌟🌟🌟 满分达人！';
+        if (pct >= 0.8) return '🌟🌟 非常优秀！';
+        if (pct >= 0.6) return '🌟 继续加油！';
+        return '💪 多多练习哦！';
+      });
+
+      function resetExam() {
+        examStarted.value = false;
+        examQuestions.value = [];
+        examAnswers.value = [];
+        examSubmitted.value = false;
+        examResults.value = [];
+        examCorrect.value = 0;
+        examScore.value = 0;
+      }
+
+      function startExam() {
+        resetExam();
+        view.value = 'exam';
+      }
+
+      function beginExam() {
+        examStarted.value = true;
+        var grade = currentGrade.value;
+        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        var questions = [];
+        // 从每个类别至少取1题，其余随机补足10题
+        var perCat = 1;
+        var remaining = 10 - categories.length;
+        if (remaining < 0) remaining = 0;
+        for (var i = 0; i < categories.length; i++) {
+          var cat = categories[i];
+          var num = perCat + (remaining > 0 ? Math.floor(Math.random() * (remaining + 1)) : 0);
+          if (num > 0) {
+            var list = generators[cat];
+            if (list && list[grade]) {
+              var funcs = list[grade];
+              for (var j = 0; j < num; j++) {
+                var q = funcs[rand(0, funcs.length-1)]();
+                if (!q.solution) q.solution = '本题考察基础知识，细心计算即可。';
+                questions.push(q);
+              }
+              remaining -= (num - 1);
+            }
+          }
+        }
+        // 如果不够10题，再补充
+        while (questions.length < 10) {
+          var cat2 = categories[rand(0, categories.length-1)];
+          var list2 = generators[cat2];
+          if (list2 && list2[grade]) {
+            var funcs2 = list2[grade];
+            var q2 = funcs2[rand(0, funcs2.length-1)]();
+            if (!q2.solution) q2.solution = '本题考察基础知识，细心计算即可。';
+            questions.push(q2);
+          }
+        }
+        // 打乱顺序
+        questions = shuffle(questions);
+        examQuestions.value = questions;
+        examAnswers.value = new Array(questions.length).fill('');
+        examSubmitted.value = false;
+      }
+
+      function submitExam() {
+        var correctCount = 0;
+        var results = [];
+        for (var i = 0; i < examQuestions.value.length; i++) {
+          var q = examQuestions.value[i];
+          var userAns = examAnswers.value[i] || '';
+          var isCorrect = isAnswerCorrect(userAns, q.answer);
+          results.push(isCorrect);
+          if (isCorrect) correctCount++;
+        }
+        examResults.value = results;
+        examCorrect.value = correctCount;
+        examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
+        examSubmitted.value = true;
+        // 奖励星星
+        stars.value += correctCount * 2;
+        showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
+      }
+
       // 工具函数
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
@@ -268,12 +424,30 @@
         return b;
       }
 
-      // ========== 题目生成器 ==========
+      // 答案匹配
+      function normalizeAnswer(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/\s+/g, '').toLowerCase();
+      }
+
+      function isAnswerCorrect(userAnswer, correctAnswer) {
+        var userStr = normalizeAnswer(userAnswer);
+        var correctStr = normalizeAnswer(String(correctAnswer));
+        if (userStr === correctStr) return true;
+        var numUser = parseFloat(userStr);
+        var numCorrect = parseFloat(correctStr);
+        if (!isNaN(numUser) && !isNaN(numCorrect) && Math.abs(numUser - numCorrect) < 0.001) {
+          return true;
+        }
+        return false;
+      }
+
+      // ========== 题目生成器（与之前一致，此处省略详细生成器代码以节省篇幅，但实际需完整包含）==========
+      // 为保持完整性，以下插入完整的生成器代码，结构同上一次回复。
       var generators = {};
 
       // --- 算术花田 ---
       generators.arithmetic = [];
-      // 0 幼儿园
       generators.arithmetic[0] = [
         function() {
           var e = ['🐶','🐱','🐰','🐸','🐼','🐨','🐯','🦁','🐮','🐷'];
@@ -288,25 +462,16 @@
             options: shuffleUnique([c, c+1, c-1].filter(function(n){return n>0 && n <= e.length;}).map(String))
           };
         },
-        // 修复：苹果橘子比较，增加相等的情况
         function() {
           var a = rand(2,5), b = rand(2,5);
           var answer;
-          if (a > b) {
-            answer = '苹果';
-          } else if (a < b) {
-            answer = '橘子';
-          } else {
-            answer = '一样多';
-          }
+          if (a > b) answer = '苹果';
+          else if (a < b) answer = '橘子';
+          else answer = '一样多';
           var solution = '苹果有 ' + a + ' 个，橘子有 ' + b + ' 个。';
-          if (a > b) {
-            solution += '苹果比橘子多，所以选"苹果"。';
-          } else if (a < b) {
-            solution += '橘子比苹果多，所以选"橘子"。';
-          } else {
-            solution += '两边一样多，所以选"一样多"。';
-          }
+          if (a > b) solution += '苹果比橘子多，所以选"苹果"。';
+          else if (a < b) solution += '橘子比苹果多，所以选"橘子"。';
+          else solution += '两边一样多，所以选"一样多"。';
           return {
             text: '🍎 桌子上有 ' + '🍎'.repeat(a) + '，旁边还有 ' + '🍊'.repeat(b) + '。苹果和橘子，谁的数量更多呢？',
             type: 'choice',
@@ -326,7 +491,6 @@
           };
         }
       ];
-      // 1 一年级
       generators.arithmetic[1] = [
         function() {
           var a = rand(1,10), b = rand(1,10);
@@ -360,7 +524,6 @@
           };
         }
       ];
-      // 2 二年级
       generators.arithmetic[2] = [
         function() {
           var a = rand(1,9), b = rand(1,9);
@@ -383,7 +546,6 @@
           };
         }
       ];
-      // 3 三年级
       generators.arithmetic[3] = [
         function() {
           var a = rand(10,99), b = rand(2,9);
@@ -413,7 +575,6 @@
           };
         }
       ];
-      // 4 四年级
       generators.arithmetic[4] = [
         function() {
           var a = rand(1000,9999), b = rand(100,9999);
@@ -438,7 +599,6 @@
           };
         }
       ];
-      // 5 五年级（已修复负数）
       generators.arithmetic[5] = [
         function() {
           var a = (rand(10,99)/10).toFixed(1), b = (rand(10,99)/10).toFixed(1);
@@ -460,7 +620,6 @@
           };
         }
       ];
-      // 6 六年级
       generators.arithmetic[6] = [
         function() {
           var a = rand(2,9), b = rand(2,9);
@@ -1171,7 +1330,7 @@
         }
       ];
 
-      // 统一生成器
+      // 原有游戏生成器函数
       function genQuestion(category, grade) {
         var list = generators[category];
         if (!list || !list[grade]) return null;
@@ -1202,28 +1361,9 @@
         question.value = q;
       }
 
-      // 答案匹配
-      function normalizeAnswer(str) {
-        if (str === null || str === undefined) return '';
-        return String(str).replace(/\s+/g, '').toLowerCase();
-      }
-
-      function isAnswerCorrect(userAnswer, correctAnswer) {
-        var userStr = normalizeAnswer(userAnswer);
-        var correctStr = normalizeAnswer(String(correctAnswer));
-        if (userStr === correctStr) return true;
-        var numUser = parseFloat(userStr);
-        var numCorrect = parseFloat(correctStr);
-        if (!isNaN(numUser) && !isNaN(numCorrect) && Math.abs(numUser - numCorrect) < 0.001) {
-          return true;
-        }
-        return false;
-      }
-
       function answer(userAnswer) {
         if (!question.value || showCorrectModal.value) return;
         var isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
-
         if (isCorrect) {
           feedback.value = '';
           encourageText.value = pick(['太厉害了！🌟', '你真是数学小天才！', '完全正确，棒棒哒！', '哇，答对了！继续加油！', '好聪明！✨']);
@@ -1267,7 +1407,10 @@
         view, currentGame, gameTitle,
         openGame, generateQuestion, question, feedback, userInput, answer,
         showCorrectModal, encourageText, currentSolution, closeCorrectModal,
-        modalClosing
+        modalClosing,
+        // 考试相关
+        examStarted, examQuestions, examAnswers, examSubmitted, examResults, examCorrect, examScore, examGrade,
+        startExam, beginExam, submitExam, resetExam
       };
     }
   }).mount('#app');
