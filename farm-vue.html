@@ -8,6 +8,9 @@
   <style>
     :root {
       --bg: #fef9e7; --gold: #f1c40f; --jade: #6b8e4e; --red: #e74c3c; --wood: #8b5a2b;
+      --btn-gradient: linear-gradient(180deg, #f1c40f, #d4ac0d);
+      --btn-active: translateY(2px);
+      --shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -26,16 +29,17 @@
     }
     .main { flex: 1; overflow-y: auto; padding: 12px; background: #fef9e7; }
     .btn {
-      background: linear-gradient(180deg, #f1c40f, #d4ac0d); border: none; color: #2c3e50;
+      background: var(--btn-gradient); border: none; color: #2c3e50;
       padding: 10px 18px; border-radius: 25px; font-weight: bold; font-size: 17px; cursor: pointer;
-      margin: 6px 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.1s; display: inline-block;
+      margin: 6px 4px; box-shadow: var(--shadow); transition: all 0.1s; display: inline-block;
     }
-    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn:active { transform: var(--btn-active); box-shadow: none; }
     .btn.red { background: linear-gradient(180deg, #e74c3c, #c0392b); color: white; }
     .btn.jade { background: linear-gradient(180deg, #8fbc8f, #5a7d5a); color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .card {
       background: rgba(255,255,250,0.95); border: 2px solid #f1c40f; border-radius: 20px;
-      padding: 14px; margin-bottom: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow);
     }
     .modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
@@ -71,6 +75,7 @@
       background: #fff; border: 1px solid #ccc; border-radius: 50%; width: 30px; height: 30px;
       font-size: 18px; cursor: pointer;
     }
+    .grade-selector button:disabled { opacity: 0.4; cursor: not-allowed; }
     .garden-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .garden-item {
       background: #e8f5e9; border-radius: 20px; padding: 15px; text-align: center;
@@ -160,7 +165,7 @@
   </div>
 
   <!-- 正确弹窗 -->
-  <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
+  <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal" @keydown.escape="closeCorrectModal">
     <div class="modal-content correct-modal-content">
       <div style="font-size: 60px;">🎉</div>
       <div class="encourage-text">{{ encourageText }}</div>
@@ -168,31 +173,45 @@
         <strong>🧠 解题思路：</strong><br>
         {{ currentSolution }}
       </div>
-      <button class="btn" @click="closeCorrectModal" style="font-size: 20px; margin-top: 10px;">下一题 ➡️</button>
+      <button class="btn" @click="closeCorrectModal" :disabled="modalClosing" style="font-size: 20px; margin-top: 10px;">
+        {{ modalClosing ? '稍等...' : '下一题 ➡️' }}
+      </button>
     </div>
   </div>
 </div>
 
 <script>
-  const { createApp, ref, reactive, computed } = Vue;
+  const { createApp, ref, reactive, computed, watch } = Vue;
   createApp({
     setup() {
+      // ---------- 常量 ----------
+      const STARS_PER_LEVEL = 30;
+      const PROGRESS_PER_CORRECT = 25;
+      const MAX_PROGRESS = 100;
+      const LEVEL_UP_BONUS = 3;
+
       const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
       const currentGrade = ref(0);
       function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
       function nextGrade() { if (currentGrade.value < gradeNames.length-1) currentGrade.value++; }
 
       const stars = ref(0);
-      const gardenLevel = computed(() => Math.floor(stars.value / 30) + 1);
+      const gardenLevel = computed(() => Math.floor(stars.value / STARS_PER_LEVEL) + 1);
       const toast = reactive({ show: false, message: '' });
       function showToast(msg) { toast.message = msg; toast.show = true; setTimeout(() => { toast.show = false; }, 2000); }
 
-      const plantProgress = reactive({ arithmetic:0, geometry:0, fraction:0, word:0, logic:0, measure:0 });
+      const plantProgress = reactive({
+        arithmetic: 0, geometry: 0, fraction: 0,
+        word: 0, logic: 0, measure: 0
+      });
 
       const view = ref('garden');
       const currentGame = ref('');
       const gameTitle = computed(() => {
-        const map = { arithmetic:'算术花田', geometry:'图形树屋', fraction:'分数厨房', word:'应用小岛', logic:'逻辑密室', measure:'度量工坊' };
+        const map = {
+          arithmetic:'算术花田', geometry:'图形树屋', fraction:'分数厨房',
+          word:'应用小岛', logic:'逻辑密室', measure:'度量工坊'
+        };
         return map[currentGame.value] || '';
       });
 
@@ -203,6 +222,7 @@
         feedback.value = '';
         userInput.value = '';
         showCorrectModal.value = false;
+        modalClosing.value = false;
         generateQuestion();
       }
 
@@ -212,12 +232,23 @@
       const showCorrectModal = ref(false);
       const encourageText = ref('');
       const currentSolution = ref('');
+      const modalClosing = ref(false);
 
+      // ---------- 工具函数 ----------
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
+      function shuffle(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
       function shuffleUnique(arr) {
-        let set = [...new Set(arr)];
-        return set.sort(() => Math.random() - 0.5);
+        // 去重后随机排序
+        const unique = [...new Set(arr)];
+        return shuffle(unique);
       }
       function isPrime(n) {
         if (n <= 1) return false;
@@ -225,12 +256,14 @@
         return true;
       }
       function fib(n) {
+        if (n <= 0) return 0;
+        if (n <= 2) return 1;
         let a = 1, b = 1;
         for (let i = 3; i <= n; i++) { let c = a + b; a = b; b = c; }
         return b;
       }
 
-      // ========== 题目生成器（已修复） ==========
+      // ---------- 题目生成器 (已修复逻辑问题) ----------
       const generators = {
         arithmetic: [
           // 0 幼儿园
@@ -243,9 +276,9 @@
                 text: `🌿 森林里来了一群小动物，你瞧：${animals}。数一数，一共有几只小可爱呀？`,
                 image: animals,
                 type: 'choice',
-                answer: c,
+                answer: String(c),
                 solution: `小动物们排成一排，我们挨个点数：${animals.split(' ').map((a,i)=>(i+1)+'.'+a).join('，')}，一共是 ${c} 只。`,
-                options: shuffleUnique([c, c+1, c-1].filter(n => n>0 && n <= e.length))
+                options: shuffleUnique([c, c+1, c-1].filter(n => n>0 && n <= e.length).map(String))
               };
             },
             () => {
@@ -263,9 +296,9 @@
               return {
                 text: `🔢 数字宝宝 ${a} 正在排队，排在它后面的下一个数字是谁呢？`,
                 type:'choice',
-                answer: a+1,
+                answer: String(a+1),
                 solution: `数数的时候，${a} 的后面紧跟着就是 ${a+1}。`,
-                options: shuffleUnique([a-1, a+1, a+2].filter(n => n>0))
+                options: shuffleUnique([a-1, a+1, a+2].filter(n => n>0).map(String))
               };
             }
           ],
@@ -276,9 +309,9 @@
               return {
                 text: `🐦 树上有 ${a} 只小鸟，又飞来了 ${b} 只。现在树上共有几只小鸟呢？`,
                 type:'choice',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `原来有 ${a} 只，加上飞来的 ${b} 只，算式是 ${a}+${b}=${a+b}。`,
-                options: shuffleUnique([a+b, a+b+1, a+b-1].filter(n => n>=0))
+                options: shuffleUnique([a+b, a+b+1, a+b-1].filter(n => n>=0).map(String))
               };
             },
             () => {
@@ -286,9 +319,9 @@
               return {
                 text: `🍬 小明有 ${a} 颗糖，他分给了小红 ${b} 颗。小明还剩几颗糖？`,
                 type:'choice',
-                answer: a-b,
+                answer: String(a-b),
                 solution: `从 ${a} 里拿走 ${b}，用减法：${a}-${b}=${a-b}。`,
-                options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0))
+                options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0).map(String))
               };
             },
             () => {
@@ -309,9 +342,9 @@
               return {
                 text: `🌸 花坛里每排放 ${a} 盆花，一共种了 ${b} 排。总共有多少盆花呢？`,
                 type:'choice',
-                answer: a*b,
+                answer: String(a*b),
                 solution: `每排 ${a} 盆，有 ${b} 排，就是 ${b} 个 ${a} 相加，用乘法：${a}×${b}=${a*b}。`,
-                options: shuffleUnique([a*b, a*b+a, a*b-a].filter(n => n>=0))
+                options: shuffleUnique([a*b, a*b+a, a*b-a].filter(n => n>=0).map(String))
               };
             },
             () => {
@@ -319,9 +352,9 @@
               return {
                 text: `🍪 妈妈烤了 ${a} 块饼干，平均分给 ${b} 个小朋友。每人分到几块？`,
                 type:'choice',
-                answer: ans,
+                answer: String(ans),
                 solution: `把 ${a} 平均分成 ${b} 份，用除法：${a}÷${b}=${ans}。`,
-                options: shuffleUnique([ans, ans+1, ans-1].filter(n => n>0))
+                options: shuffleUnique([ans, ans+1, ans-1].filter(n => n>0).map(String))
               };
             }
           ],
@@ -332,7 +365,7 @@
               return {
                 text: `🚀 火箭模型每个重 ${a} 千克，${b} 个这样的模型一共重多少千克？`,
                 type:'input',
-                answer: a*b,
+                answer: String(a*b),
                 solution: `求几个相同加数的和，用乘法：${a} × ${b} = ${a*b}。`
               };
             },
@@ -341,7 +374,7 @@
               return {
                 text: `🏰 欢乐城堡上午接待了 ${a} 位游客，下午又来了 ${b} 位，全天一共接待了多少位游客？`,
                 type:'input',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `上午人数 + 下午人数 = 总人数，即 ${a} + ${b} = ${a+b}。`
               };
             },
@@ -364,7 +397,7 @@
               return {
                 text: `💰 如果小镇的图书馆去年有 ${a} 本书，今年${op==='+'?'又添置了':'清走了'}${b}本，现在一共有多少本？`,
                 type:'input',
-                answer: ans,
+                answer: String(ans),
                 solution: `使用${op==='+'?'加法':'减法'}：${a} ${op} ${b} = ${ans}。`
               };
             },
@@ -373,12 +406,12 @@
               return {
                 text: `🍬 糖果厂把糖果每 ${a} 颗装一袋，已经装了 ${b} 袋，一共装了多少颗糖果？`,
                 type:'input',
-                answer: a*b,
+                answer: String(a*b),
                 solution: `每袋颗数 × 袋数 = 总颗数，${a} × ${b} = ${a*b}。`
               };
             }
           ],
-          // 5 五年级 【修复：只使用加法，文字/解题完全一致】
+          // 5 五年级 【修复第二题负数问题】
           [
             () => {
               let a=(rand(10,99)/10).toFixed(1), b=(rand(10,99)/10).toFixed(1);
@@ -391,11 +424,12 @@
               };
             },
             () => {
-              let a=rand(2,9), b=rand(2,9), c=rand(2,9);
+              // 修复：确保 a >= b*c，避免负数
+              let b=rand(2,9), c=rand(2,9), a=rand(b*c, b*c+10);
               return {
                 text: `🎈 一个盒子里有 ${a} 个气球，每个小朋友分 ${b} 个，已经分给了 ${c} 个小朋友，还剩几个气球？`,
                 type:'input',
-                answer: a - b*c,
+                answer: String(a - b*c),
                 solution: `先算分出去的：${b} × ${c} = ${b*c}，再用总数减：${a} - ${b*c} = ${a-b*c}。`
               };
             }
@@ -407,7 +441,7 @@
               return {
                 text: `🏡 一个正方形房间的边长是 ${a} 米，它的面积是多少平方米？（${a}²）`,
                 type:'input',
-                answer: a*a,
+                answer: String(a*a),
                 solution: `正方形面积 = 边长 × 边长，即 ${a} × ${a} = ${a*a}。`
               };
             },
@@ -416,7 +450,7 @@
               return {
                 text: `🧊 一个立方体盒子的棱长是 ${a} 厘米，它的体积是多少立方厘米？（${a}³）`,
                 type:'input',
-                answer: a*a*a,
+                answer: String(a*a*a),
                 solution: `立方体体积 = 棱长³，即 ${a} × ${a} × ${a} = ${a*a*a}。`
               };
             }
@@ -440,9 +474,9 @@
               return {
                 text: `📏 一支铅笔长 ${a} 厘米，一块橡皮长 ${b} 厘米。把它们首尾相接，一共有多长？`,
                 type:'choice',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `把两段长度加起来：${a} + ${b} = ${a+b} 厘米。`,
-                options: shuffleUnique([a+b, a+b+1, a+b-1])
+                options: shuffleUnique([a+b, a+b+1, a+b-1].map(String))
               };
             }
           ],
@@ -453,7 +487,7 @@
               return {
                 text: `🌳 花园里有一块长方形草地，长 ${a} 米，宽 ${b} 米。它的周长是多少米？`,
                 type:'input',
-                answer: (a+b)*2,
+                answer: String((a+b)*2),
                 solution: `长方形周长 = (长+宽)×2 = (${a}+${b})×2 = ${(a+b)*2} 米。`
               };
             },
@@ -462,7 +496,7 @@
               return {
                 text: `🟦 一块正方形手帕的边长是 ${a} 厘米，它的周长是多少厘米？`,
                 type:'input',
-                answer: a*4,
+                answer: String(a*4),
                 solution: `正方形周长 = 边长×4 = ${a}×4 = ${a*4} 厘米。`
               };
             }
@@ -474,7 +508,7 @@
               return {
                 text: `📐 一块长方形画布长 ${a} 分米，宽 ${b} 分米，它的面积是多少平方分米？`,
                 type:'input',
-                answer: a*b,
+                answer: String(a*b),
                 solution: `长方形面积 = 长×宽 = ${a} × ${b} = ${a*b} 平方分米。`
               };
             },
@@ -483,7 +517,7 @@
               return {
                 text: `🟨 一张正方形桌面的边长是 ${a} 分米，它的面积是多少平方分米？`,
                 type:'input',
-                answer: a*a,
+                answer: String(a*a),
                 solution: `正方形面积 = 边长×边长 = ${a}×${a} = ${a*a} 平方分米。`
               };
             }
@@ -495,7 +529,7 @@
               return {
                 text: `📦 一个正方体盒子的棱长是 ${a} 厘米，它的体积是多少立方厘米？`,
                 type:'input',
-                answer: a*a*a,
+                answer: String(a*a*a),
                 solution: `正方体体积 = 棱长³ = ${a}×${a}×${a} = ${a*a*a} 立方厘米。`
               };
             },
@@ -504,7 +538,7 @@
               return {
                 text: `🧱 一块长方体砖头长 ${a} 厘米、宽 ${b} 厘米、高 ${c} 厘米，它的体积是多少？`,
                 type:'input',
-                answer: a*b*c,
+                answer: String(a*b*c),
                 solution: `长方体体积 = 长×宽×高 = ${a}×${b}×${c} = ${a*b*c} 立方厘米。`
               };
             }
@@ -516,7 +550,7 @@
               return {
                 text: `📐 一个角的度数是 ${a}°，它的补角是多少度？`,
                 type:'input',
-                answer: 180 - a,
+                answer: String(180 - a),
                 solution: `补角指两个角加起来等于180°，所以另一个角是 180° - ${a}° = ${180-a}°。`
               };
             }
@@ -556,18 +590,16 @@
           ]
         ],
         fraction: [
-          // 0 幼儿园 —— 不涉及分数，但保留占位（可继续用算术题或简单图形）
+          // 0 幼儿园 (替换为均分概念)
           [
             () => {
-              let e = ['🐶','🐱','🐰','🐸','🐼'];
-              let c = rand(1, e.length);
+              let total = rand(4,8), parts = 2;
               return {
-                text: `🐣 鸡妈妈孵出了 ${c} 只小鸡，快来数一数！`,
-                image: e.slice(0, c).join(' '),
+                text: `🍪 盘子里有 ${total} 块饼干，分给 ${parts} 个小朋友，每人分到几块？`,
                 type: 'choice',
-                answer: c,
-                solution: `一只一只数：${e.slice(0,c).join('、')}，一共 ${c} 只。`,
-                options: shuffleUnique([c, c+1, c-1].filter(n => n>0 && n <= e.length))
+                answer: String(total/2),
+                solution: `把 ${total} 块饼干平均分成 ${parts} 份，每份就是 ${total/2} 块。`,
+                options: [String(total/2), String(total/2+1), String(total/2-1)].filter(n => parseFloat(n)>=0)
               };
             }
           ],
@@ -578,9 +610,9 @@
               return {
                 text: `🍰 妈妈把一块蛋糕切成了 ${a+b} 小块，小明吃了 ${a} 块，还剩几块？`,
                 type: 'choice',
-                answer: b,
+                answer: String(b),
                 solution: `总块数减去吃掉的就是剩下的：${a+b} - ${a} = ${b}。`,
-                options: shuffleUnique([b, a, a+b])
+                options: shuffleUnique([b, a, a+b].map(String))
               };
             }
           ],
@@ -591,7 +623,7 @@
               return {
                 text: `🍕 一个披萨被切成了 ${total} 片，平均分给 ${parts} 个小朋友，每人能分到几片？`,
                 type: 'input',
-                answer: Math.floor(total/parts),
+                answer: String(Math.floor(total/parts)),
                 solution: `用除法：${total} ÷ ${parts} = ${Math.floor(total/parts)}，每人分到 ${Math.floor(total/parts)} 片。`
               };
             }
@@ -693,9 +725,9 @@
               return {
                 text: `🐦 树上有 ${a} 只小鸟，飞走了 ${b} 只，树上还剩几只小鸟？`,
                 type: 'choice',
-                answer: a-b,
+                answer: String(a-b),
                 solution: `原来有 ${a} 只，飞走 ${b} 只，减法：${a} - ${b} = ${a-b}。`,
-                options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0))
+                options: shuffleUnique([a-b, a-b+1, a-b-1].filter(n => n>=0).map(String))
               };
             },
             () => {
@@ -703,9 +735,9 @@
               return {
                 text: `🍎 桌上有 ${a} 个苹果，吃了一些后还剩 ${b} 个，请问吃了几个？`,
                 type: 'choice',
-                answer: a-b,
+                answer: String(a-b),
                 solution: `原来 ${a} 个，剩 ${b} 个，吃掉的就是 ${a} - ${b} = ${a-b} 个。`,
-                options: shuffleUnique([a-b, a-b+1, a-b-1])
+                options: shuffleUnique([a-b, a-b+1, a-b-1].map(String))
               };
             }
           ],
@@ -716,7 +748,7 @@
               return {
                 text: `🌲 每排种 ${a} 棵树，种了 ${b} 排，一共种了多少棵树？`,
                 type: 'input',
-                answer: a*b,
+                answer: String(a*b),
                 solution: `每排 ${a} 棵，有 ${b} 排，用乘法：${a} × ${b} = ${a*b}。`
               };
             },
@@ -725,7 +757,7 @@
               return {
                 text: `✏️ 小明有 ${money} 元，铅笔每支 ${price} 元，他最多能买几支？`,
                 type: 'input',
-                answer: Math.floor(money/price),
+                answer: String(Math.floor(money/price)),
                 solution: `用总钱数除以单价：${money} ÷ ${price} = ${Math.floor(money/price)} 支（剩下 ${money%price} 元不够再买一支）。`
               };
             }
@@ -737,7 +769,7 @@
               return {
                 text: `📖 一本书有 ${total} 页，小明 ${days} 天看完，平均每天看多少页？`,
                 type: 'input',
-                answer: Math.floor(total/days),
+                answer: String(Math.floor(total/days)),
                 solution: `总页数 ÷ 天数 = ${total} ÷ ${days} = ${Math.floor(total/days)} 页（还有 ${total%days} 页可以多看）。`
               };
             },
@@ -746,7 +778,7 @@
               return {
                 text: `🛒 钢笔每支 ${price} 元，小明买了 ${n} 支，付了 100 元，应找回多少元？`,
                 type: 'input',
-                answer: 100 - price*n,
+                answer: String(100 - price*n),
                 solution: `先算总价：${price} × ${n} = ${price*n} 元。再算找回：100 - ${price*n} = ${100-price*n} 元。`
               };
             }
@@ -758,7 +790,7 @@
               return {
                 text: `🚗 一辆汽车每小时行 ${v} 千米，${t} 小时能行多少千米？`,
                 type: 'input',
-                answer: v*t,
+                answer: String(v*t),
                 solution: `路程 = 速度 × 时间，${v} × ${t} = ${v*t} 千米。`
               };
             },
@@ -767,7 +799,7 @@
               return {
                 text: `📦 一共花了 ${total} 元买笔记本，每本 ${price} 元，买了多少本？`,
                 type: 'input',
-                answer: Math.floor(total/price),
+                answer: String(Math.floor(total/price)),
                 solution: `总价 ÷ 单价 = 数量，${total} ÷ ${price} = ${Math.floor(total/price)} 本。`
               };
             }
@@ -779,7 +811,7 @@
               return {
                 text: `⚽ 甲有 ${a} 个球，乙比甲多 ${b} 个，乙有多少个球？`,
                 type: 'input',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `乙 = 甲 + ${b}，即 ${a} + ${b} = ${a+b}。`
               };
             },
@@ -788,7 +820,7 @@
               return {
                 text: `🍐 水果店有苹果 ${a} 个，梨比苹果少 ${b} 个，梨有多少个？`,
                 type: 'input',
-                answer: a-b,
+                answer: String(a-b),
                 solution: `梨 = 苹果 - ${b}，即 ${a} - ${b} = ${a-b}。`
               };
             }
@@ -800,7 +832,7 @@
               return {
                 text: `🎯 商场打折，原价 ${total} 元的商品，打 ${percent}% 折后是多少元？`,
                 type: 'input',
-                answer: Math.round(total * percent / 100),
+                answer: String(Math.round(total * percent / 100)),
                 solution: `${percent}% 就是 ${percent}/100，所以折后价 = ${total} × ${percent}/100 = ${Math.round(total*percent/100)} 元。`
               };
             },
@@ -814,7 +846,7 @@
               };
             }
           ],
-          // 6 六年级 【修复比例题，正确取较大一份】
+          // 6 六年级 【修复比例分配题】
           [
             () => {
               let a=rand(2,6), b=rand(2,6);
@@ -826,15 +858,16 @@
               };
             },
             () => {
-              let a=rand(10,50), b=rand(2,5);
-              let totalMoney = a + b * 10;
-              let maxRatio = Math.max(a, b);          // 取较大的比例数字
-              let maxShare = Math.round(totalMoney * maxRatio / (a + b));
+              let a=rand(2,6), b=rand(2,6);
+              let k = rand(5,15);
+              let totalMoney = (a+b)*k;
+              let maxRatio = Math.max(a, b);
+              let maxShare = k * maxRatio;
               return {
                 text: `💰 将 ${totalMoney} 元按 ${a}:${b} 的比例分给两人，较大的一份是多少元？`,
                 type: 'input',
-                answer: maxShare,
-                solution: `总份数 = ${a}+${b}=${a+b}，较大比例是 ${maxRatio}，大份占 ${maxRatio}/${a+b}，所以 ${totalMoney} × ${maxRatio}/${a+b} ≈ ${maxShare} 元。`
+                answer: String(maxShare),
+                solution: `总份数 = ${a}+${b}=${a+b}，每份 ${k} 元，较大比例是 ${maxRatio}，所以大份 = ${maxRatio}×${k} = ${maxShare} 元。`
               };
             }
           ]
@@ -847,7 +880,7 @@
               return {
                 text: `🔢 数字小精灵们排着队：${a}、${a+b}、${a+b+c}，接下来应该是谁呢？`,
                 type: 'input',
-                answer: a+b+c+c,
+                answer: String(a+b+c+c),
                 solution: `规律是每次增加一个固定的数：${a} 到 ${a+b} 增加了 ${b}，${a+b} 到 ${a+b+c} 增加了 ${c}，所以下一个增加 ${c}，得到 ${a+b+c} + ${c} = ${a+b+c+c}。`
               };
             },
@@ -856,7 +889,7 @@
               return {
                 text: `△ 神秘符号 △ 加上它自己等于 ${a*2}，那么 △ 是多少？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `因为 △ + △ = ${a*2}，所以 △ = ${a*2} ÷ 2 = ${a}。`
               };
             }
@@ -868,7 +901,7 @@
               return {
                 text: `⭐ 如果 ☆ = ${a}，那么 ☆ + ${b} 等于多少呢？`,
                 type: 'input',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `直接把 ☆ 的值代入：${a} + ${b} = ${a+b}。`
               };
             },
@@ -877,7 +910,7 @@
               return {
                 text: `□ + □ = ${a*2}，□ 代表同一个数，它应该是多少？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `因为两个相同的数相加等于 ${a*2}，所以这个数就是 ${a*2} ÷ 2 = ${a}。`
               };
             }
@@ -889,7 +922,7 @@
               return {
                 text: `○ × ○ = ${a*a}，○ 代表哪个数字呢？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `一个数乘自己等于 ${a*a}，这个数就是 ${a}，因为 ${a} × ${a} = ${a*a}。`
               };
             },
@@ -898,7 +931,7 @@
               return {
                 text: `如果 A = ${a}，B = ${b}，那么 A + B 等于多少？`,
                 type: 'input',
-                answer: a+b,
+                answer: String(a+b),
                 solution: `直接把 A 和 B 的值加起来：${a} + ${b} = ${a+b}。`
               };
             }
@@ -910,7 +943,7 @@
               return {
                 text: `🐔🐰 鸡兔同笼，共有 ${a+b} 个头，${a*2 + b*4} 只脚。请问兔子有几只？`,
                 type: 'input',
-                answer: b,
+                answer: String(b),
                 solution: `假设全是鸡，脚数少 ${a*2 + b*4 - (a+b)*2} 只，每只兔比鸡多2只脚，所以兔子 = (${a*2 + b*4} - ${a+b}×2) ÷ 2 = ${b} 只。`
               };
             },
@@ -919,7 +952,7 @@
               return {
                 text: `👨‍👦 小明今年 ${age} 岁，爸爸的年龄是小明的 3 倍还多 5 岁。爸爸多少岁？`,
                 type: 'input',
-                answer: age*3+5,
+                answer: String(age*3+5),
                 solution: `爸爸年龄 = 小明年龄 × 3 + 5 = ${age} × 3 + 5 = ${age*3+5} 岁。`
               };
             }
@@ -931,7 +964,7 @@
               return {
                 text: `🧮 △ + □ = ${a+2}，△ - □ = ${a-2}，那么 △ 是多少？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `两式相加：(△+□)+(△-□) = 2△ = ${a+2} + ${a-2} = ${2*a}，所以 △ = ${a}。`
               };
             },
@@ -940,7 +973,7 @@
               return {
                 text: `🔢 斐波那契数列：1,1,2,3,5,8... 请问第 ${n} 个数是多少？`,
                 type: 'input',
-                answer: fib(n),
+                answer: String(fib(n)),
                 solution: `斐波那契数列的规律是后一个数等于前两个数之和。计算到第 ${n} 个数为 ${fib(n)}。`
               };
             }
@@ -952,7 +985,7 @@
               return {
                 text: `⚖️ 如果 x + ${b} = ${a+b}，那么 x 是多少？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `方程两边同时减去 ${b}：x = ${a+b} - ${b} = ${a}。`
               };
             },
@@ -961,7 +994,7 @@
               return {
                 text: `📐 2x = ${a*2}，请你解出 x 的值。`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `两边同时除以2：x = ${a*2} ÷ 2 = ${a}。`
               };
             }
@@ -973,7 +1006,7 @@
               return {
                 text: `|x| = ${a}，x 的正数可能是多少？`,
                 type: 'input',
-                answer: a,
+                answer: String(a),
                 solution: `绝对值表示到原点的距离，所以 x 可能是 ${a} 或 ${-a}。题目要求正数，所以答案是 ${a}。`
               };
             },
@@ -982,7 +1015,7 @@
               return {
                 text: `√x = ${a}，那么 x 是多少？`,
                 type: 'input',
-                answer: a*a,
+                answer: String(a*a),
                 solution: `一个数的平方根是 ${a}，说明这个数就是 ${a}² = ${a*a}。`
               };
             }
@@ -996,7 +1029,7 @@
               return {
                 text: `📏 一支铅笔长 ${a} 厘米，这等于多少毫米呢？`,
                 type: 'input',
-                answer: a*10,
+                answer: String(a*10),
                 solution: `1厘米 = 10毫米，所以 ${a} 厘米 = ${a} × 10 = ${a*10} 毫米。`
               };
             },
@@ -1004,9 +1037,9 @@
               return {
                 text: `📏 1米等于多少厘米？`,
                 type: 'choice',
-                answer: 100,
+                answer: '100',
                 solution: `1米 = 100厘米，这是长度单位换算的基础。`,
-                options: [10, 100, 1000]
+                options: ['10', '100', '1000']
               };
             }
           ],
@@ -1016,9 +1049,9 @@
               return {
                 text: `⚖️ 1千克等于多少克？`,
                 type: 'choice',
-                answer: 1000,
+                answer: '1000',
                 solution: `1千克 = 1000克，这是质量单位换算的基础。`,
-                options: [100, 1000, 10000]
+                options: ['100', '1000', '10000']
               };
             },
             () => {
@@ -1026,7 +1059,7 @@
               return {
                 text: `🍎 妈妈买了 ${a} 千克苹果，合多少克？`,
                 type: 'input',
-                answer: a*1000,
+                answer: String(a*1000),
                 solution: `1千克 = 1000克，所以 ${a} 千克 = ${a} × 1000 = ${a*1000} 克。`
               };
             }
@@ -1037,9 +1070,9 @@
               return {
                 text: `🥛 1升等于多少毫升？`,
                 type: 'choice',
-                answer: 1000,
+                answer: '1000',
                 solution: `1升 = 1000毫升，这是容量单位换算的基础。`,
-                options: [10, 100, 1000]
+                options: ['10', '100', '1000']
               };
             },
             () => {
@@ -1047,7 +1080,7 @@
               return {
                 text: `🫖 一个水壶的容量是 ${a} 升，合多少毫升？`,
                 type: 'input',
-                answer: a*1000,
+                answer: String(a*1000),
                 solution: `1升 = 1000毫升，${a} 升 = ${a} × 1000 = ${a*1000} 毫升。`
               };
             }
@@ -1068,7 +1101,7 @@
               return {
                 text: `⏱️ ${a} 小时是多少分钟？`,
                 type: 'input',
-                answer: a*60,
+                answer: String(a*60),
                 solution: `1小时 = 60分钟，${a} 小时 = ${a} × 60 = ${a*60} 分钟。`
               };
             }
@@ -1080,7 +1113,7 @@
               return {
                 text: `🏟️ 一个正方形操场边长 ${a} 米，周长是多少厘米？`,
                 type: 'input',
-                answer: a*4*100,
+                answer: String(a*4*100),
                 solution: `正方形周长 = 边长×4 = ${a}×4 = ${a*4} 米，换算成厘米：${a*4} × 100 = ${a*4*100} 厘米。`
               };
             },
@@ -1089,7 +1122,7 @@
               return {
                 text: `📏 一块长方形地毯长 ${a} 米，宽 ${b} 米，面积是多少平方分米？`,
                 type: 'input',
-                answer: a*b*100,
+                answer: String(a*b*100),
                 solution: `面积 = 长×宽 = ${a}×${b} = ${a*b} 平方米。1平方米 = 100平方分米，所以 ${a*b} × 100 = ${a*b*100} 平方分米。`
               };
             }
@@ -1101,7 +1134,7 @@
               return {
                 text: `🏃 小明跑步的速度是 ${a} 米/秒，10秒能跑多少米？`,
                 type: 'input',
-                answer: a*10,
+                answer: String(a*10),
                 solution: `路程 = 速度 × 时间 = ${a} × 10 = ${a*10} 米。`
               };
             },
@@ -1110,7 +1143,7 @@
               return {
                 text: `🗺️ ${a} 平方千米等于多少公顷？`,
                 type: 'input',
-                answer: a*100,
+                answer: String(a*100),
                 solution: `1平方千米 = 100公顷，所以 ${a} 平方千米 = ${a} × 100 = ${a*100} 公顷。`
               };
             }
@@ -1121,9 +1154,9 @@
               return {
                 text: `📦 1立方米等于多少立方分米？`,
                 type: 'choice',
-                answer: 1000,
+                answer: '1000',
                 solution: `1立方米 = 1000立方分米。`,
-                options: [100, 1000, 10000]
+                options: ['100', '1000', '10000']
               };
             },
             () => {
@@ -1131,7 +1164,7 @@
               return {
                 text: `🏗️ 一个长方体木块长 ${a} 米、宽 ${b} 米、高 ${c} 米，体积是多少立方厘米？`,
                 type: 'input',
-                answer: a*b*c*1000000,
+                answer: String(a*b*c*1000000),
                 solution: `体积 = ${a}×${b}×${c} = ${a*b*c} 立方米。1立方米 = 1000000立方厘米，所以等于 ${a*b*c*1000000} 立方厘米。`
               };
             }
@@ -1139,29 +1172,29 @@
         ],
       };
 
-      // 映射生成函数
-      function genArith(g) { return generators.arithmetic[g][rand(0, generators.arithmetic[g].length-1)](); }
-      function genGeom(g) { return generators.geometry[g][rand(0, generators.geometry[g].length-1)](); }
-      function genFrac(g)   { return generators.fraction[g][rand(0, generators.fraction[g].length-1)](); }
-      function genWord(g)   { return generators.word[g][rand(0, generators.word[g].length-1)](); }
-      function genLogic(g)  { return generators.logic[g][rand(0, generators.logic[g].length-1)](); }
-      function genMeasure(g){ return generators.measure[g][rand(0, generators.measure[g].length-1)](); }
-
-      const genMap = {
-        arithmetic: genArith,
-        geometry: genGeom,
-        fraction: genFrac,
-        word: genWord,
-        logic: genLogic,
-        measure: genMeasure
-      };
+      // 映射生成函数 (通用)
+      function genQuestion(category, grade) {
+        const list = generators[category];
+        if (!list || !list[grade]) return null;
+        const funcs = list[grade];
+        return funcs[rand(0, funcs.length-1)]();
+      }
 
       function generateQuestion() {
         feedback.value = '';
         userInput.value = '';
         const grade = currentGrade.value;
         const game = currentGame.value;
-        let q = genMap[game](grade);
+        let q = genQuestion(game, grade);
+        if (!q) {
+          q = {
+            text: '题目准备中，请稍后再试~',
+            type: 'choice',
+            answer: '好的',
+            solution: '暂无题目，请切换年级或游戏。',
+            options: ['好的', '知道了']
+          };
+        }
         if (!q.solution) q.solution = '这道题考察了基本的数学知识，细心计算就能得出答案。';
         if (q.type === 'choice' && q.options) {
           if (!q.options.includes(q.answer)) q.options.push(q.answer);
@@ -1170,42 +1203,46 @@
         question.value = q;
       }
 
-      // 输入答案模糊匹配（忽略多余空格，处理中文答案的变体）
+      // ---------- 答案匹配 ----------
       function normalizeAnswer(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/\s+/g, '').toLowerCase();
       }
 
-      function answer(userAnswer) {
-        if (!question.value) return;
-        const correct = String(question.value.answer);
+      function isAnswerCorrect(userAnswer, correctAnswer) {
         const userStr = normalizeAnswer(userAnswer);
-        const correctStr = normalizeAnswer(correct);
-
-        let isCorrect = false;
-        // 先尝试模糊匹配（适合带中文的答案）
-        if (userStr === correctStr) {
-          isCorrect = true;
-        } else {
-          // 如果两者都可以转为数字，则按数值比较（误差<0.001）
-          const numUser = parseFloat(userStr);
-          const numCorrect = parseFloat(correctStr);
-          if (!isNaN(numUser) && !isNaN(numCorrect)) {
-            isCorrect = Math.abs(numUser - numCorrect) < 0.001;
-          }
+        const correctStr = normalizeAnswer(String(correctAnswer));
+        
+        // 严格字符串匹配
+        if (userStr === correctStr) return true;
+        
+        // 如果都是数值（允许小数），进行数值比较
+        const numUser = parseFloat(userStr);
+        const numCorrect = parseFloat(correctStr);
+        if (!isNaN(numUser) && !isNaN(numCorrect) && Math.abs(numUser - numCorrect) < 0.001) {
+          return true;
         }
+        return false;
+      }
+
+      function answer(userAnswer) {
+        if (!question.value || showCorrectModal.value) return;
+        const isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
 
         if (isCorrect) {
           feedback.value = '';
           encourageText.value = pick(['太厉害了！🌟', '你真是数学小天才！', '完全正确，棒棒哒！', '哇，答对了！继续加油！', '好聪明！✨']);
           currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
           showCorrectModal.value = true;
+          // 奖励星星
           stars.value += 1 + Math.floor(currentGrade.value / 2);
-          plantProgress[currentGame.value] += 25;
-          if (plantProgress[currentGame.value] >= 100) {
-            plantProgress[currentGame.value] = 0;
+          // 植物进度
+          const game = currentGame.value;
+          plantProgress[game] += PROGRESS_PER_CORRECT;
+          if (plantProgress[game] >= MAX_PROGRESS) {
+            plantProgress[game] = 0;
             showToast('🌱 植物升级了！获得额外星星！');
-            stars.value += 3;
+            stars.value += LEVEL_UP_BONUS;
           }
         } else {
           feedback.value = '❌ 再想想吧，试试看！';
@@ -1214,9 +1251,22 @@
       }
 
       function closeCorrectModal() {
+        if (modalClosing.value) return;
+        modalClosing.value = true;
         showCorrectModal.value = false;
-        generateQuestion();
+        // 延迟一小段时间再生成新题并解锁，防止双击
+        setTimeout(() => {
+          modalClosing.value = false;
+          generateQuestion();
+        }, 300);
       }
+
+      // 监听年级切换，若正在游戏中则自动刷新题目
+      watch(currentGrade, () => {
+        if (view.value === 'game' && currentGame.value) {
+          generateQuestion();
+        }
+      });
 
       return {
         gradeNames, currentGrade, prevGrade, nextGrade,
@@ -1224,7 +1274,8 @@
         plantProgress,
         view, currentGame, gameTitle,
         openGame, generateQuestion, question, feedback, userInput, answer,
-        showCorrectModal, encourageText, currentSolution, closeCorrectModal
+        showCorrectModal, encourageText, currentSolution, closeCorrectModal,
+        modalClosing
       };
     }
   }).mount('#app');
