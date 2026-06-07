@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-  <title>啾啾的知识花园 · 亲子学习版</title>
+  <title>啾啾数学花园 · 分级数学启蒙</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
       --bg: #fef9e7;
       --gold: #f1c40f;
       --jade: #6b8e4e;
-      --pink: #ffb6c1;
-      --sky: #a0d2f0;
-      --wood: #8b5a2b;
       --red: #e74c3c;
+      --wood: #8b5a2b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -55,88 +53,30 @@
       padding: 12px;
       background: #fef9e7;
     }
-    .bottom-nav {
-      display: flex;
-      background: #fff8e7;
-      border-top: 3px solid #f1c40f;
-    }
-    .bottom-nav button {
-      flex: 1;
-      padding: 14px 4px;
-      border: none;
-      background: transparent;
-      font-size: 20px;
-      cursor: pointer;
-      color: #8b5a2b;
-      transition: 0.2s;
-    }
-    .bottom-nav button:active {
-      background: #fdebd0;
-    }
     .btn {
       background: linear-gradient(180deg, #f1c40f, #d4ac0d);
       border: none;
       color: #2c3e50;
-      padding: 12px 20px;
-      border-radius: 30px;
+      padding: 10px 18px;
+      border-radius: 25px;
       font-weight: bold;
-      font-size: 18px;
+      font-size: 17px;
       cursor: pointer;
       margin: 6px 4px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       transition: all 0.1s;
+      display: inline-block;
     }
-    .btn:active {
-      transform: translateY(2px);
-      box-shadow: none;
-    }
-    .btn.red {
-      background: linear-gradient(180deg, #e74c3c, #c0392b);
-      color: white;
-    }
-    .btn.jade {
-      background: linear-gradient(180deg, #8fbc8f, #5a7d5a);
-      color: white;
-    }
+    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .btn.red { background: linear-gradient(180deg, #e74c3c, #c0392b); color: white; }
+    .btn.jade { background: linear-gradient(180deg, #8fbc8f, #5a7d5a); color: white; }
     .card {
-      background: rgba(255,255,250,0.9);
+      background: rgba(255,255,250,0.95);
       border: 2px solid #f1c40f;
       border-radius: 20px;
       padding: 14px;
       margin-bottom: 10px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-    .pet-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-    }
-    .pet-emoji {
-      font-size: 40px;
-    }
-    .hp-bar {
-      height: 10px;
-      background: #ddd;
-      border-radius: 5px;
-      margin: 4px 0;
-      overflow: hidden;
-    }
-    .hp-fill {
-      height: 100%;
-      width: 100%;
-      background: #2ecc71;
-      transition: width 0.3s;
-    }
-    .exp-bar {
-      height: 6px;
-      background: #ddd;
-      border-radius: 3px;
-      margin: 3px 0;
-    }
-    .exp-fill {
-      height: 100%;
-      background: #3498db;
     }
     .modal {
       position: fixed;
@@ -157,20 +97,21 @@
       max-height: 80vh;
       overflow-y: auto;
     }
-    .word-btn {
+    .option-btn {
       background: #fdebd0;
       border: 2px solid #f1c40f;
       border-radius: 15px;
-      padding: 10px 15px;
-      font-size: 24px;
+      padding: 12px;
+      font-size: 22px;
       margin: 5px;
       cursor: pointer;
       transition: 0.1s;
+      display: block;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
     }
-    .word-btn:active {
-      background: #f1c40f;
-      color: white;
-    }
+    .option-btn:active { background: #f1c40f; color: white; }
     .toast {
       position: absolute;
       top: 60px;
@@ -189,12 +130,49 @@
       90%{opacity:1;}
       100%{opacity:0;}
     }
-    .learning-card {
-      background: #fffae6;
-      border: 2px dashed #f1c40f;
+    .grade-selector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .grade-selector button {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .garden-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .garden-item {
+      background: #e8f5e9;
       border-radius: 20px;
       padding: 15px;
       text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+      border: 2px solid #a5d6a7;
+    }
+    .garden-item:active { background: #c8e6c9; }
+    .plant-icon { font-size: 45px; }
+    .progress-bar {
+      height: 8px;
+      background: #ddd;
+      border-radius: 4px;
+      margin: 5px 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #66bb6a;
+      transition: width 0.3s;
     }
   </style>
 </head>
@@ -204,370 +182,424 @@
 
   <!-- 顶部状态栏 -->
   <div class="top-bar">
-    <span>🌟 {{ username || '小园丁' }}</span>
-    <span>⭐ {{ stars }}</span>
+    <span>🌟 {{ stars }}</span>
+    <span style="font-weight: bold; font-size: 18px;">{{ gradeNames[currentGrade] }}</span>
+    <span>🌱 {{ gardenLevel }}</span>
   </div>
 
   <!-- 主界面 -->
   <div class="main">
+    <!-- 年级选择器 -->
+    <div class="grade-selector">
+      <button @click="prevGrade" :disabled="currentGrade <= 0">◀</button>
+      <span style="font-size: 16px;">{{ gradeNames[currentGrade] }}</span>
+      <button @click="nextGrade" :disabled="currentGrade >= gradeNames.length-1">▶</button>
+    </div>
+
     <!-- 花园主页 -->
     <div v-if="view === 'garden'">
-      <div style="text-align: center; padding: 20px 0;">
-        <div style="font-size: 60px;">🌻</div>
-        <h2 style="color: #8b5a2b;">啾啾的知识花园</h2>
-        <p style="color: #6b8e4e;">今天你想玩什么？</p>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-        <div class="learning-card" @click="view='farm'">
-          <div style="font-size: 40px;">🌱</div>
-          <strong>识字菜园</strong>
-          <p style="font-size: 12px;">浇水认字</p>
+      <div class="garden-grid">
+        <div class="garden-item" @click="openGame('arithmetic')">
+          <div class="plant-icon">🌻</div>
+          <strong>算术花田</strong>
+          <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.arithmetic + '%'}"></div></div>
         </div>
-        <div class="learning-card" @click="view='bakery'">
-          <div style="font-size: 40px;">🍪</div>
-          <strong>数学烘焙</strong>
-          <p style="font-size: 12px;">分饼干学数</p>
+        <div class="garden-item" @click="openGame('geometry')">
+          <div class="plant-icon">🌳</div>
+          <strong>图形树屋</strong>
+          <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.geometry + '%'}"></div></div>
         </div>
-        <div class="learning-card" @click="view='pets'">
-          <div style="font-size: 40px;">🐾</div>
-          <strong>英语伙伴</strong>
-          <p style="font-size: 12px;">摸宠物说单词</p>
+        <div class="garden-item" @click="openGame('fraction')">
+          <div class="plant-icon">🍕</div>
+          <strong>分数厨房</strong>
+          <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.fraction + '%'}"></div></div>
         </div>
-        <div class="learning-card" @click="view='adventure'">
-          <div style="font-size: 40px;">🔤</div>
-          <strong>字母森林</strong>
-          <p style="font-size: 12px;">拼读小怪兽</p>
+        <div class="garden-item" @click="openGame('word')">
+          <div class="plant-icon">📚</div>
+          <strong>应用小岛</strong>
+          <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.word + '%'}"></div></div>
         </div>
       </div>
     </div>
 
-    <!-- 识字菜园 (语文) -->
-    <div v-if="view === 'farm'">
+    <!-- 游戏界面（通用） -->
+    <div v-if="view === 'game'">
       <button class="btn" @click="view='garden'">← 回花园</button>
-      <h3>🌱 识字菜园</h3>
-      <div v-for="plant in farmPlots" :key="plant.id" class="card" style="display: flex; align-items: center; gap: 12px;">
-        <div style="font-size: 40px;">{{ plant.emoji }}</div>
-        <div style="flex: 1;">
-          <strong>{{ plant.name }}</strong>
-          <div class="hp-bar"><div class="hp-fill" :style="{width: plant.water + '%', background: '#3498db'}"></div></div>
-          <p style="font-size: 12px;">💧 {{ plant.water }}%</p>
-        </div>
-        <button class="btn" @click="waterPlant(plant)" :disabled="plant.water >= 100">浇水识字</button>
+      <h3 style="text-align: center;">{{ gameTitle }}</h3>
+      <div v-if="!question" style="text-align: center; padding: 20px;">
+        <p>点击下方按钮开始挑战吧！</p>
+        <button class="btn" @click="generateQuestion">出题！</button>
       </div>
-      <p style="color: #888; margin-top: 12px;">点击“浇水识字”，选出正确的象形字就能让植物长大！</p>
-    </div>
-
-    <!-- 数学烘焙 (数学) -->
-    <div v-if="view === 'bakery'">
-      <button class="btn" @click="view='garden'">← 回花园</button>
-      <h3>🍪 啾啾烘焙坊</h3>
-      <div class="card" style="text-align: center;">
-        <p style="font-size: 20px;">🐦 小鸟想请 <strong>{{ guestCount }}</strong> 位朋友吃饼干</p>
-        <p>请烤出刚好数量的饼干！</p>
-        <div style="display: flex; justify-content: center; gap: 8px; margin: 12px; flex-wrap: wrap;">
-          <span v-for="n in cookiesOnTray" :key="n" style="font-size: 32px;">🍪</span>
-          <span v-for="n in (guestCount - cookiesOnTray)" :key="'e'+n" style="font-size: 32px; opacity: 0.3;">🍪</span>
+      <div v-else class="card" style="text-align: center;">
+        <div style="font-size: 24px; margin-bottom: 15px;">{{ question.text }}</div>
+        <div v-if="question.image" style="font-size: 50px; margin: 10px;">{{ question.image }}</div>
+        <!-- 选择题选项 -->
+        <div v-if="question.type === 'choice'">
+          <button class="option-btn" v-for="opt in question.options" :key="opt" @click="answer(opt)">{{ opt }}</button>
         </div>
-        <div>
-          <button class="btn" @click="addCookie" :disabled="cookiesOnTray >= guestCount" style="font-size: 22px;">➕ 加一块</button>
-          <button class="btn red" @click="removeCookie" :disabled="cookiesOnTray <= 0">➖ 减一块</button>
+        <!-- 输入题 -->
+        <div v-if="question.type === 'input'">
+          <input v-model="userInput" type="number" style="font-size: 24px; width: 100px; text-align: center; padding: 8px;"
+                 @keyup.enter="answer(parseFloat(userInput))" placeholder="?">
+          <button class="btn" @click="answer(parseFloat(userInput))">确定</button>
         </div>
-        <div v-if="cookiesOnTray === guestCount && guestCount > 0" style="margin-top: 12px;">
-          <p>🎉 数量刚好！现在分给朋友们：</p>
-          <p>每人分 <strong>{{ Math.floor(guestCount / 2) || 1 }}</strong> 块，需要几盘？</p>
-          <div style="display: flex; gap: 8px; justify-content: center; margin: 8px;">
-            <button class="btn" v-for="opt in divisionOptions" :key="opt" @click="checkDivision(opt)">{{ opt }} 盘</button>
-          </div>
-        </div>
-        <button class="btn" v-if="cookiesOnTray === guestCount && divisionSolved" @click="newGuest">再来一轮</button>
-      </div>
-    </div>
-
-    <!-- 英语宠物互动 (英语) -->
-    <div v-if="view === 'pets'">
-      <button class="btn" @click="view='garden'">← 回花园</button>
-      <h3>🐾 英语伙伴</h3>
-      <div v-for="pet in pets" :key="pet.id" class="card pet-card" @click="touchPet(pet)">
-        <div class="pet-emoji">{{ pet.emoji }}</div>
-        <div style="flex:1;">
-          <strong>{{ pet.name }}</strong>
-          <p style="font-size: 14px; color: #e67e22;">❤️ {{ pet.affection }}</p>
-          <div class="hp-bar"><div class="hp-fill" :style="{width: pet.affection + '%'}"></div></div>
-        </div>
-        <span style="font-size: 24px;">👆</span>
-      </div>
-      <p style="color: #888;">点击宠物，听听身体部位的英语吧！</p>
-    </div>
-
-    <!-- 字母森林 (拼读冒险) -->
-    <div v-if="view === 'adventure'">
-      <button class="btn" @click="view='garden'">← 回花园</button>
-      <h3>🔤 字母森林</h3>
-      <div v-if="!adventureActive" class="card" style="text-align: center;">
-        <p>森林里出现了字母小精灵！</p>
-        <p>打败它们，收集字母拼成单词吧。</p>
-        <button class="btn" @click="startAdventure">出发！</button>
-      </div>
-      <div v-else>
-        <div class="card" style="text-align: center;">
-          <div style="font-size: 60px;">{{ currentLetterSprite }}</div>
-          <p>字母小精灵 <strong>{{ currentLetter }}</strong></p>
-          <p>读音：<em>{{ letterSound }}</em></p>
-          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 12px;">
-            <input v-model="userLetterInput" placeholder="输入字母" maxlength="1" style="font-size: 24px; width: 80px; text-align: center; padding: 8px;" @keyup.enter="catchLetter">
-            <button class="btn" @click="catchLetter">✨ 捕捉</button>
-          </div>
-          <p v-if="catchFeedback">{{ catchFeedback }}</p>
-        </div>
-        <div v-if="collectedWord.length > 0" style="text-align: center; margin-top: 10px;">
-          <p>收集到的单词：<strong>{{ collectedWord }}</strong></p>
-          <div v-if="collectedWord === 'CAT'">
-            <div style="font-size: 50px;">🐱</div>
-            <p>太棒了！你拼出了 CAT！</p>
-            <button class="btn" @click="collectedWord='';adventureActive=false;">继续</button>
-          </div>
-        </div>
+        <p v-if="feedback" style="margin-top: 12px; font-weight: bold;">{{ feedback }}</p>
       </div>
     </div>
   </div>
 
   <!-- 底部导航 -->
-  <div class="bottom-nav">
-    <button @click="view='garden'">🏡 花园</button>
-    <button @click="view='farm'">🌱 菜园</button>
-    <button @click="view='bakery'">🍪 烘焙</button>
-    <button @click="view='pets'">🐾 宠物</button>
-    <button @click="view='adventure'">🔤 字母</button>
-  </div>
-
-  <!-- 识字浇水弹窗 -->
-  <div v-if="showWordChoice" class="modal" @click.self="showWordChoice=false">
-    <div class="modal-content">
-      <h3>💧 选出正确的字来浇水</h3>
-      <p style="font-size: 24px;">这是什么植物？</p>
-      <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
-        <button class="word-btn" v-for="opt in currentWordOptions" :key="opt" @click="selectWord(opt)">{{ opt }}</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 宠物触摸弹窗 (英语部位) -->
-  <div v-if="showPetTouch" class="modal" @click.self="showPetTouch=false">
-    <div class="modal-content" style="text-align: center;">
-      <div style="font-size: 60px;">{{ touchedPet.emoji }}</div>
-      <h3>{{ touchedPet.name }}</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
-        <button class="btn jade" @click="speakBodyPart('ear')">👂 Ear</button>
-        <button class="btn jade" @click="speakBodyPart('tail')">🐾 Tail</button>
-        <button class="btn jade" @click="speakBodyPart('nose')">👃 Nose</button>
-        <button class="btn jade" @click="speakBodyPart('paw')">🦶 Paw</button>
-      </div>
-      <p>点击按钮，听听英语怎么说，然后跟读吧！</p>
-      <button class="btn" @click="showPetTouch=false">抱抱结束</button>
-    </div>
+  <div style="display: flex; background: #fff8e7; border-top: 3px solid #f1c40f;">
+    <button @click="view='garden'" style="flex:1; padding:14px; border:none; background:transparent; font-size:20px; cursor:pointer;">🏡 花园</button>
   </div>
 </div>
 
 <script>
-  const { createApp, ref, reactive, computed, watch, onMounted } = Vue;
+  const { createApp, ref, reactive, computed } = Vue;
 
   createApp({
     setup() {
-      // ---------- 全局状态 ----------
-      const view = ref('garden');
-      const username = ref('小园丁');
-      const stars = ref(0);
-      const toast = reactive({ show: false, message: '' });
+      // ---------- 年级系统 ----------
+      const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+      const currentGrade = ref(0); // 0=幼儿园, 1=一年级, ... ,6=六年级
+      function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
+      function nextGrade() { if (currentGrade.value < gradeNames.length-1) currentGrade.value++; }
 
+      // ---------- 全局状态 ----------
+      const stars = ref(0);
+      const gardenLevel = computed(() => Math.floor(stars.value / 20) + 1);
+      const toast = reactive({ show: false, message: '' });
       function showToast(msg) {
         toast.message = msg;
         toast.show = true;
         setTimeout(() => { toast.show = false; }, 2000);
       }
 
-      // ---------- 农场/识字菜园 ----------
-      const farmPlots = ref([
-        { id: 1, emoji: '🌻', name: '向日葵', water: 30, correctChar: '花' },
-        { id: 2, emoji: '🌽', name: '玉米', water: 20, correctChar: '米' },
-        { id: 3, emoji: '🍅', name: '番茄', water: 50, correctChar: '茄' }
-      ]);
-      const showWordChoice = ref(false);
-      const currentPlant = ref(null);
-      const currentWordOptions = ref([]);
-
-      function waterPlant(plant) {
-        if (plant.water >= 100) return;
-        currentPlant.value = plant;
-        // 生成选项：正确字 + 两个干扰项
-        const correct = plant.correctChar;
-        const pool = ['花','米','茄','叶','果','菜','树','草'];
-        const opts = new Set([correct]);
-        while (opts.size < 3) {
-          const r = pool[Math.floor(Math.random() * pool.length)];
-          opts.add(r);
-        }
-        currentWordOptions.value = Array.from(opts).sort(() => Math.random() - 0.5);
-        showWordChoice.value = true;
-      }
-
-      function selectWord(char) {
-        if (char === currentPlant.value.correctChar) {
-          currentPlant.value.water = Math.min(100, currentPlant.value.water + 30);
-          stars.value += 2;
-          showToast('✅ 太棒了！' + char + ' 字是对的！');
-          // 语音读出这个字
-          speakText(char);
-        } else {
-          showToast('🐦 再试试看，这是' + currentPlant.value.correctChar + '哦');
-        }
-        showWordChoice.value = false;
-      }
-
-      // ---------- 数学烘焙 ----------
-      const guestCount = ref(3);
-      const cookiesOnTray = ref(0);
-      const divisionSolved = ref(false);
-      const divisionOptions = computed(() => {
-        const target = guestCount.value;
-        const correct = 2; // 固定分2盘，每人得 target/2
-        return [1, 2, 3, 4].filter(n => n !== correct).slice(0,2).concat(correct).sort(()=>Math.random()-0.5);
+      // 植物成长进度 (每答对一题+25%, 满100%重置并奖励星星)
+      const plantProgress = reactive({
+        arithmetic: 0,
+        geometry: 0,
+        fraction: 0,
+        word: 0
       });
 
-      function addCookie() {
-        if (cookiesOnTray.value < guestCount.value) cookiesOnTray.value++;
+      // ---------- 视图 ----------
+      const view = ref('garden');
+      const currentGame = ref('');
+
+      function openGame(gameType) {
+        currentGame.value = gameType;
+        view.value = 'game';
+        // 重置题目状态
+        question.value = null;
+        feedback.value = '';
+        userInput.value = '';
+        // 自动出题
+        generateQuestion();
       }
-      function removeCookie() {
-        if (cookiesOnTray.value > 0) cookiesOnTray.value--;
+
+      const gameTitle = computed(() => {
+        const map = { arithmetic: '算术花田', geometry: '图形树屋', fraction: '分数厨房', word: '应用小岛' };
+        return map[currentGame.value] || '';
+      });
+
+      // ---------- 题库系统 ----------
+      const question = ref(null); // {text, image, type:'choice'|'input', options, answer}
+      const feedback = ref('');
+      const userInput = ref('');
+
+      // 生成随机整数 [min,max]
+      function rand(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
       }
-      function checkDivision(choice) {
-        if (choice === 2) { // 固定答案2盘
-          showToast('🎉 分对了！每盘有' + Math.floor(guestCount.value/2) + '块');
-          divisionSolved.value = true;
-          stars.value += 5;
-        } else {
-          showToast('🤔 再想想，需要2盘才一样多哦');
+
+      // 生成题目主函数
+      function generateQuestion() {
+        feedback.value = '';
+        userInput.value = '';
+        const grade = currentGrade.value;
+        const game = currentGame.value;
+
+        let q = null;
+
+        // 根据游戏类型和年级调用对应的生成器
+        if (game === 'arithmetic') {
+          q = genArithmetic(grade);
+        } else if (game === 'geometry') {
+          q = genGeometry(grade);
+        } else if (game === 'fraction') {
+          q = genFraction(grade);
+        } else if (game === 'word') {
+          q = genWordProblem(grade);
         }
-      }
-      function newGuest() {
-        guestCount.value = Math.floor(Math.random() * 6) + 2; // 2~7
-        cookiesOnTray.value = 0;
-        divisionSolved.value = false;
-      }
 
-      // ---------- 宠物英语 ----------
-      const pets = ref([
-        { id: 1, emoji: '🐶', name: '旺财', affection: 70 },
-        { id: 2, emoji: '🐱', name: '咪咪', affection: 50 },
-        { id: 3, emoji: '🐰', name: '跳跳', affection: 90 }
-      ]);
-      const showPetTouch = ref(false);
-      const touchedPet = ref(null);
-
-      function touchPet(pet) {
-        touchedPet.value = pet;
-        showPetTouch.value = true;
-      }
-
-      function speakBodyPart(part) {
-        const words = {
-          ear: 'ear',
-          tail: 'tail',
-          nose: 'nose',
-          paw: 'paw'
-        };
-        const word = words[part];
-        speakText(word);
-        if (touchedPet.value) {
-          touchedPet.value.affection = Math.min(100, touchedPet.value.affection + 2);
-          stars.value += 1;
-        }
-        showToast('🔊 ' + word + '  (跟读哦)');
-      }
-
-      // ---------- 字母森林 ----------
-      const adventureActive = ref(false);
-      const currentLetter = ref('');
-      const currentLetterSprite = ref('');
-      const letterSound = ref('');
-      const userLetterInput = ref('');
-      const catchFeedback = ref('');
-      const collectedWord = ref('');
-
-      const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-      function startAdventure() {
-        adventureActive.value = true;
-        nextLetter();
-      }
-      function nextLetter() {
-        const letter = letterPool[Math.floor(Math.random() * letterPool.length)];
-        currentLetter.value = letter;
-        // 简单图形精灵：用emoji表示
-        const sprites = { A:'🅰️', B:'🅱️', C:'©️', D:'🆔', E:'📧', F:'🎏' };
-        currentLetterSprite.value = sprites[letter] || '🔤';
-        letterSound.value = getLetterSound(letter);
-        userLetterInput.value = '';
-        catchFeedback.value = '';
-      }
-      function getLetterSound(letter) {
-        const sounds = {
-          A:'[æ]', B:'[b]', C:'[k]', D:'[d]', E:'[e]', F:'[f]', G:'[g]', H:'[h]',
-          I:'[ɪ]', J:'[dʒ]', K:'[k]', L:'[l]', M:'[m]', N:'[n]', O:'[ɒ]', P:'[p]',
-          Q:'[kw]', R:'[r]', S:'[s]', T:'[t]', U:'[ʌ]', V:'[v]', W:'[w]', X:'[ks]',
-          Y:'[j]', Z:'[z]'
-        };
-        return sounds[letter] || '';
-      }
-      function catchLetter() {
-        const input = userLetterInput.value.toUpperCase().trim();
-        if (input === currentLetter.value) {
-          catchFeedback.value = '✅ 抓住了！';
-          // 添加到收集单词（目标CAT）
-          if (collectedWord.value.length < 3 && 'CAT'.includes(input)) {
-            if (!collectedWord.value.includes(input)) {
-              collectedWord.value += input;
-            }
+        if (q) {
+          // 如果是选择题，确保选项包含正确答案且不重复
+          if (q.type === 'choice' && q.options && q.options.indexOf(q.answer) === -1) {
+            q.options.push(q.answer);
           }
-          stars.value += 3;
-          speakText(currentLetter.value);
-          if (collectedWord.value === 'CAT') {
-            showToast('🐱 你拼出了 CAT！小猫出现啦！');
-            adventureActive.value = false;
+          question.value = q;
+        }
+      }
+
+      // 回答处理
+      function answer(userAnswer) {
+        if (!question.value) return;
+        const correct = question.value.answer;
+        // 字符串比较处理（选择题选项可能是字符串）
+        const isCorrect = (typeof correct === 'string' && typeof userAnswer === 'string')
+          ? correct.trim().toLowerCase() === userAnswer.trim().toLowerCase()
+          : Math.abs(Number(userAnswer) - Number(correct)) < 0.001;
+
+        if (isCorrect) {
+          feedback.value = '✅ 太棒了！回答正确！';
+          stars.value += 1 + Math.floor(currentGrade.value / 2); // 高年级奖励略多
+          // 植物成长
+          plantProgress[currentGame.value] += 25;
+          if (plantProgress[currentGame.value] >= 100) {
+            plantProgress[currentGame.value] = 0;
+            showToast('🌱 植物升级了！获得额外星星！');
+            stars.value += 3;
+          }
+          showToast('答对了！');
+          // 延迟出下一题
+          setTimeout(() => {
+            generateQuestion();
+          }, 800);
+        } else {
+          feedback.value = '❌ 再想想吧，试试看！';
+          showToast('不对哦，再试一次～');
+        }
+      }
+
+      // ========== 具体题目生成器 ==========
+
+      // 1. 算术题 (覆盖K-6)
+      function genArithmetic(grade) {
+        let a, b, op, answer, text, type='choice', options=[];
+        // 根据年级选择运算类型
+        if (grade === 0) { // 幼儿园：数数
+          const count = rand(1, 10);
+          const emojis = ['🐶','🐱','🐰','🐸','🐼','🐨','🐯','🦁','🐮','🐷'];
+          text = `数一数有多少只小动物？`;
+          const image = emojis.slice(0, count).join(' ');
+          answer = count;
+          options = [count, count+1, count-1].filter(n=>n>0).sort(()=>Math.random()-0.5);
+          return { text, image, type:'choice', answer, options };
+        } else if (grade === 1) { // 一年级：20以内加减
+          op = Math.random()<0.5 ? '+' : '-';
+          if (op === '+') {
+            a = rand(1, 10); b = rand(1, 10);
+            answer = a + b;
           } else {
-            setTimeout(nextLetter, 1000);
+            a = rand(5, 20); b = rand(1, a);
+            answer = a - b;
           }
+          text = `${a} ${op} ${b} = ?`;
+        } else if (grade === 2) { // 二年级：表内乘除
+          op = Math.random()<0.5 ? '×' : '÷';
+          if (op === '×') {
+            a = rand(1, 9); b = rand(1, 9);
+            answer = a * b;
+          } else {
+            b = rand(1, 9); answer = rand(1, 9);
+            a = b * answer;
+          }
+          text = `${a} ${op} ${b} = ?`;
+        } else if (grade === 3) { // 三年级：三位数加减，多位数乘一位数
+          const r = Math.random();
+          if (r < 0.5) {
+            op = Math.random()<0.5 ? '+' : '-';
+            a = rand(100, 999); b = rand(10, 999);
+            if (op === '-') answer = a - b;
+            else answer = a + b;
+            text = `${a} ${op} ${b} = ?`;
+          } else {
+            a = rand(10, 99); b = rand(2, 9);
+            answer = a * b;
+            text = `${a} × ${b} = ?`;
+          }
+        } else if (grade === 4) { // 四年级：大数加减，乘除
+          const r = Math.random();
+          if (r < 0.4) {
+            a = rand(1000, 9999); b = rand(100, 9999);
+            op = Math.random()<0.5 ? '+' : '-';
+            answer = op === '+' ? a+b : a-b;
+            text = `${a} ${op} ${b} = ?`;
+          } else {
+            a = rand(10, 99); b = rand(10, 99);
+            answer = a * b;
+            text = `${a} × ${b} = ?`;
+          }
+        } else if (grade >= 5) { // 五六年级：小数、分数运算（简单分数已进fraction）
+          const r = Math.random();
+          if (r < 0.5) {
+            // 小数加减乘
+            a = (rand(10, 99) / 10).toFixed(1);
+            b = (rand(10, 99) / 10).toFixed(1);
+            const ops = ['+', '-', '×'];
+            op = ops[rand(0,2)];
+            if (op === '+') answer = (parseFloat(a) + parseFloat(b)).toFixed(2);
+            else if (op === '-') answer = (parseFloat(a) - parseFloat(b)).toFixed(2);
+            else answer = (parseFloat(a) * parseFloat(b)).toFixed(2);
+            text = `${a} ${op} ${b} = ?`;
+          } else {
+            // 整数混合运算
+            a = rand(2, 9); b = rand(2, 9); const c = rand(2, 5);
+            answer = a * b + c;
+            text = `${a} × ${b} + ${c} = ?`;
+          }
+        }
+        // 生成干扰项
+        if (!options.length) {
+          const ansNum = Number(answer);
+          options = [ansNum, ansNum+1, ansNum-1, ansNum+2].filter((n,i,a)=> n>=0 && a.indexOf(n)===i).sort(()=>Math.random()-0.5);
+        }
+        return { text, type:'choice', answer, options };
+      }
+
+      // 2. 几何题
+      function genGeometry(grade) {
+        let text, answer, options, type='choice';
+        if (grade === 0) {
+          // 幼儿园：认识形状
+          const shapes = ['圆形', '正方形', '三角形'];
+          const shape = shapes[rand(0,2)];
+          text = `下面哪个是${shape}？`;
+          answer = shape;
+          options = [shape, shapes.filter(s=>s!==shape)[0], shapes.filter(s=>s!==shape)[1]].sort(()=>Math.random()-0.5);
+          return { text, type:'choice', answer, options };
+        } else if (grade === 1 || grade === 2) {
+          // 认识图形、长度比较
+          text = `铅笔长 10 厘米，橡皮长 3 厘米，铅笔比橡皮长多少厘米？`;
+          answer = 7;
+        } else if (grade === 3) {
+          // 周长面积
+          const w = rand(3, 10), h = rand(3, 10);
+          if (Math.random()<0.5) {
+            text = `长方形长 ${w} 厘米，宽 ${h} 厘米，周长是多少？`;
+            answer = (w + h) * 2;
+          } else {
+            text = `正方形边长 ${w} 厘米，面积是多少？`;
+            answer = w * w;
+          }
+        } else if (grade === 4) {
+          // 角度
+          const angle = rand(1, 8) * 10;
+          text = `一个角是 ${angle}°，它的补角是多少度？`;
+          answer = 180 - angle;
+        } else if (grade >= 5) {
+          // 圆、体积
+          if (Math.random()<0.5) {
+            const r = rand(2, 10);
+            text = `圆的半径是 ${r} cm，周长是多少？(π取3.14)`;
+            answer = (2 * 3.14 * r).toFixed(2);
+          } else {
+            const l = rand(2, 5), w = rand(2, 5), h = rand(2, 5);
+            text = `长方体长${l}宽${w}高${h}，体积是多少？`;
+            answer = l * w * h;
+          }
+        }
+        const ansNum = Number(answer);
+        options = [ansNum, ansNum+1, ansNum-1, ansNum+2].filter((n,i,a)=> n>=0 && a.indexOf(n)===i).sort(()=>Math.random()-0.5);
+        return { text, type:'choice', answer, options };
+      }
+
+      // 3. 分数
+      function genFraction(grade) {
+        let text, answer, options, type='choice';
+        if (grade < 3) {
+          // 三年级以下不做分数，转为简单比较
+          return genArithmetic(grade);
+        }
+        if (grade === 3) {
+          // 分数初步：看图写分数
+          const den = rand(2, 4);
+          const num = rand(1, den-1);
+          text = `阴影部分占整体的几分之几？ (提示：分母${den})`;
+          answer = `${num}/${den}`;
+          options = [`${num}/${den}`, `${den-num}/${den}`, `${num+1}/${den}`].filter((v,i,a)=>a.indexOf(v)===i);
+        } else if (grade === 4) {
+          // 同分母加减
+          const den = rand(3, 8);
+          const a = rand(1, den-1), b = rand(1, den-1);
+          const op = Math.random()<0.5 ? '+' : '-';
+          if (op === '+') {
+            answer = `${a+b}/${den}`;
+          } else {
+            if (a >= b) answer = `${a-b}/${den}`;
+            else answer = `${b-a}/${den}`;
+          }
+          text = `(${a}/${den}) ${op} (${b}/${den}) = ? (化简前)`;
+          options = [answer, `${a+b+1}/${den}`, `${Math.abs(a-b)+1}/${den}`];
         } else {
-          catchFeedback.value = '❌ 再试一次，听听它的声音';
-          speakText(currentLetter.value + ' says ' + letterSound.value);
+          // 五六年级：分数乘除、小数分数转换
+          const r = Math.random();
+          if (r < 0.5) {
+            const a = rand(1, 5), b = rand(2, 6);
+            const c = rand(1, 5), d = rand(2, 6);
+            answer = `${a*c}/${b*d}`;
+            text = `(${a}/${b}) × (${c}/${d}) = ? (无需化简)`;
+          } else {
+            const decimal = (rand(1, 99) / 100).toFixed(2);
+            answer = `${Math.round(parseFloat(decimal)*100)}/100`;
+            text = `将小数 ${decimal} 化为分数 (分母100)`;
+          }
+          options = [answer, `${parseInt(answer)+1}/100`, `${parseInt(answer)-1}/100`];
         }
-        userLetterInput.value = '';
+        return { text, type:'choice', answer, options };
       }
 
-      // ---------- 语音合成工具 ----------
-      function speakText(text) {
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = text.match(/[a-zA-Z]/) ? 'en-US' : 'zh-CN';
-          utterance.rate = 0.8;
-          window.speechSynthesis.speak(utterance);
+      // 4. 应用题
+      function genWordProblem(grade) {
+        let text, answer, options, type='choice';
+        if (grade === 0) {
+          const count = rand(2, 5);
+          text = `树上有 ${count} 只小鸟，又飞来 1 只，现在有几只？`;
+          answer = count + 1;
+        } else if (grade === 1) {
+          const a = rand(5, 15), b = rand(2, 10);
+          text = `小明有 ${a} 颗糖，吃了 ${b} 颗，还剩几颗？`;
+          answer = a - b;
+        } else if (grade === 2) {
+          const a = rand(3, 9), b = rand(2, 5);
+          text = `每排 ${a} 棵树，种了 ${b} 排，一共有多少棵树？`;
+          answer = a * b;
+        } else if (grade === 3) {
+          const total = rand(20, 50), days = rand(2, 5);
+          answer = Math.floor(total / days);
+          text = `一本书共 ${total} 页，小明 ${days} 天看完，平均每天看多少页？`;
+        } else if (grade === 4) {
+          const price = rand(5, 20), amount = rand(3, 10);
+          answer = price * amount;
+          text = `钢笔每支 ${price} 元，买了 ${amount} 支，一共花了多少钱？`;
+        } else if (grade >= 5) {
+          // 比例、百分数
+          const r = Math.random();
+          if (r < 0.5) {
+            const total = rand(100, 500), percent = rand(10, 90);
+            answer = Math.round(total * percent / 100);
+            text = `${total} 的 ${percent}% 是多少？`;
+          } else {
+            const speed = rand(30, 80), time = rand(2, 5);
+            answer = speed * time;
+            text = `汽车每小时行 ${speed} 千米，${time} 小时行多少千米？`;
+          }
         }
+        const ansNum = Number(answer);
+        options = [ansNum, ansNum+1, ansNum-1, ansNum+2].filter((n,i,a)=> n>=0 && a.indexOf(n)===i).sort(()=>Math.random()-0.5);
+        return { text, type:'choice', answer, options };
       }
 
-      // 初始欢迎语音
-      onMounted(() => {
-        setTimeout(() => {
-          speakText('欢迎来到啾啾的知识花园！');
-        }, 500);
-      });
+      // 页面初始化时预热
+      // 无
 
       return {
-        view, username, stars, toast,
-        farmPlots, showWordChoice, currentWordOptions, waterPlant, selectWord,
-        guestCount, cookiesOnTray, divisionSolved, divisionOptions,
-        addCookie, removeCookie, checkDivision, newGuest,
-        pets, showPetTouch, touchedPet, touchPet, speakBodyPart,
-        adventureActive, currentLetter, currentLetterSprite, letterSound,
-        userLetterInput, catchFeedback, collectedWord, startAdventure, catchLetter,
-        showToast
+        gradeNames, currentGrade, prevGrade, nextGrade,
+        stars, gardenLevel, toast, showToast,
+        plantProgress,
+        view, currentGame, gameTitle,
+        openGame, generateQuestion, question, feedback, userInput, answer
       };
     }
   }).mount('#app');
