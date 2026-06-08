@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
-  <title>啾啾数学花园 · 全屏进化版</title>
+  <title>啾啾数学花园 · 逻辑修复版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -20,7 +20,6 @@
       box-shadow: 0 0 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; height: 100vh; position: relative;
       overflow: hidden;
     }
-    /* 桌面端宽屏时显示圆角 */
     @media (min-width: 600px) {
       #app { border-radius: 20px; height: 95vh; max-height: 900px; }
     }
@@ -337,7 +336,7 @@
           return !isNaN(nu) && !isNaN(nc) && Math.abs(nu-nc)<0.001;
         }
 
-        // ========== 丰富生成器 ==========
+        // ========== 丰富生成器（已修复所有减法逻辑） ==========
         const persons = ['小明','小红','小华','小丽','小刚','妈妈','爸爸','爷爷','奶奶','老师','同学','弟弟','妹妹'];
         const items = ['苹果','橘子','铅笔','橡皮','尺子','书本','糖果','饼干','星星','气球','花朵','贝壳','贴纸','弹珠'];
         const places = ['桌子上','书包里','盒子里','地上','树上','篮子里','盘子里','口袋里','抽屉里'];
@@ -354,7 +353,7 @@
             const opt = uniqueArray([a+b, a+b+1, a+b-1].filter(n=>n>=0).map(String));
             return { text:`${s.person}在${s.place}有${a}个${s.item}，又放进了${b}个。一共有几个${s.item}？`, type:'choice', answer:String(a+b), solution:`${a}+${b}=${a+b}`, options:opt };
           } else if (grade === 1) {
-            const a=rand(10,20), b=rand(1,a-1);
+            const a=rand(10,20), b=rand(1,a-1); // 减数小于被减数
             const types = [
               () => `${s.person}有${a}个${s.item}，送给了${pick(persons)}${b}个。还剩几个？`,
               () => `公交车上有${a}人，到站下去${b}人，又上来${rand(2,8)}人。现在车上有几人？`,
@@ -466,11 +465,11 @@
           }
         }
 
-        // ----- 应用小岛（生活深入） -----
+        // ----- 应用小岛（修复减法逻辑） -----
         function wordTemplates(grade) {
           const s = randomStory();
           if (grade===0) {
-            const a=rand(2,5),b=rand(1,3);
+            const a=rand(3,6), b=rand(1,a-1); // 保证 a > b
             return { text:`树上有${a}只鸟，飞走${b}只，剩几只？`, type:'choice', answer:String(a-b), solution:`${a}-${b}=${a-b}`, options:uniqueArray([a-b,a-b+1,a-b-1].filter(n=>n>=0).map(String)) };
           } else if (grade===1) {
             const a=rand(3,9),b=rand(2,5);
