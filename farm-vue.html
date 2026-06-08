@@ -2,106 +2,44 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
-  <title>数学花园 · 解题详解版</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>啾啾数学花园 · 完整无删减版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
-    :root {
-      --bg: #fef9e7; --gold: #f1c40f; --jade: #6b8e4e; --red: #e74c3c; --wood: #8b5a2b;
-    }
+    :root { --bg: #fef9e7; --gold: #f1c40f; --red: #e74c3c; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: "PingFang SC", "Microsoft YaHei", "STKaiti", sans-serif;
-      background: #2c3e50;
-      display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0;
-    }
-    #app {
-      width: 100%; max-width: 800px; background: var(--bg); border-radius: 0;
-      box-shadow: 0 0 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; height: 100vh; position: relative;
-      overflow: hidden;
-    }
-    @media (min-width: 600px) {
-      #app { border-radius: 20px; height: 95vh; max-height: 900px; }
-    }
-    .top-bar {
-      background: linear-gradient(180deg, #ffd700 0%, #f0b800 100%); color: #3e2723;
-      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
-      font-size: 18px; border-bottom: 3px solid #e6a800; font-weight: bold;
-    }
-    .main { flex: 1; overflow-y: auto; padding: 16px; background: #fef9e7; }
-    .btn {
-      background: linear-gradient(180deg, #f1c40f, #d4ac0d); border: none; color: #2c3e50;
-      padding: 12px 20px; border-radius: 25px; font-weight: bold; font-size: 18px; cursor: pointer;
-      margin: 6px 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.1s; display: inline-block;
-    }
+    body { font-family: "PingFang SC", "Microsoft YaHei", "STKaiti", sans-serif; background: #2c3e50; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    #app { width: 100%; max-width: 800px; background: var(--bg); border-radius: 0; box-shadow: 0 0 40px rgba(0,0,0,0.4); display: flex; flex-direction: column; height: 100vh; position: relative; overflow: hidden; }
+    @media (min-width: 600px) { #app { border-radius: 20px; height: 95vh; max-height: 900px; } }
+    .top-bar { background: linear-gradient(180deg, #ffd700, #f0b800); color: #3e2723; padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; font-size: 20px; font-weight: bold; border-bottom: 3px solid #e6a800; }
+    .main { flex: 1; overflow-y: auto; padding: 20px; background: #fef9e7; }
+    .btn { background: linear-gradient(180deg, #f1c40f, #d4ac0d); border: none; color: #2c3e50; padding: 14px 22px; border-radius: 30px; font-weight: bold; font-size: 20px; cursor: pointer; margin: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.1s; display: inline-block; }
     .btn:active { transform: translateY(2px); box-shadow: none; }
-    .btn.red { background: linear-gradient(180deg, #e74c3c, #c0392b); color: white; }
-    .btn.jade { background: linear-gradient(180deg, #8fbc8f, #5a7d5a); color: white; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-    .card {
-      background: rgba(255,255,250,0.95); border: 2px solid #f1c40f; border-radius: 20px;
-      padding: 18px; margin-bottom: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-    .modal {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7);
-      display: flex; justify-content: center; align-items: center; z-index: 200;
-    }
-    .modal-content {
-      width: 90%; max-width: 450px; background: #fffef5; border-radius: 30px; padding: 24px;
-      max-height: 80vh; overflow-y: auto; text-align: center;
-    }
-    .correct-modal-content { background: #fef9e7; border: 3px solid #27ae60; }
-    .option-btn {
-      background: #fdebd0; border: 2px solid #f1c40f; border-radius: 15px; padding: 14px;
-      font-size: 24px; margin: 6px; cursor: pointer; transition: 0.1s; display: block; width: 90%;
-      margin-left: auto; margin-right: auto;
-    }
-    .option-btn:active { background: #f1c40f; color: white; }
-    .toast {
-      position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.8); color: #f1c40f; padding: 8px 20px; border-radius: 20px;
-      z-index: 300; animation: fadeInOut 2s ease;
-    }
-    @keyframes fadeInOut {
-      0%{opacity:0;transform:translateX(-50%) translateY(-10px);}
-      10%{opacity:1;transform:translateX(-50%) translateY(0);}
-      90%{opacity:1;} 100%{opacity:0;}
-    }
-    .grade-selector {
-      display: flex; align-items: center; justify-content: center; gap: 12px; margin: 10px 0;
-    }
-    .grade-selector button {
-      background: #fff; border: 1px solid #ccc; border-radius: 50%; width: 36px; height: 36px;
-      font-size: 20px; cursor: pointer;
-    }
-    .grade-selector button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .garden-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-    .garden-item {
-      background: #e8f5e9; border-radius: 20px; padding: 15px; text-align: center;
-      cursor: pointer; transition: 0.2s; border: 2px solid #a5d6a7; font-size: 16px;
-    }
-    .garden-item:active { background: #c8e6c9; }
-    .plant-icon { font-size: 45px; }
-    .progress-bar { height: 10px; background: #ddd; border-radius: 5px; margin: 5px 0; overflow: hidden; }
+    .card { background: rgba(255,255,250,0.95); border: 2px solid #f1c40f; border-radius: 25px; padding: 24px; margin-bottom: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 200; }
+    .modal-content { width: 90%; max-width: 500px; background: #fffef5; border-radius: 30px; padding: 30px; max-height: 80vh; overflow-y: auto; text-align: center; }
+    .option-btn { background: #fdebd0; border: 2px solid #f1c40f; border-radius: 20px; padding: 16px; font-size: 26px; margin: 8px; cursor: pointer; transition: 0.1s; display: block; width: 90%; margin-left: auto; margin-right: auto; }
+    .toast { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: #f1c40f; padding: 10px 24px; border-radius: 20px; z-index: 300; animation: fadeInOut 2s; }
+    @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-10px);} 10%{opacity:1;transform:translateX(-50%) translateY(0);} 90%{opacity:1;} 100%{opacity:0;} }
+    .grade-selector { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 10px 0; }
+    .grade-selector button { background: #fff; border: 1px solid #ccc; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; }
+    .garden-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+    .garden-item { background: #e8f5e9; border-radius: 25px; padding: 20px; text-align: center; cursor: pointer; border: 2px solid #a5d6a7; font-size: 18px; }
+    .plant-icon { font-size: 50px; }
+    .progress-bar { height: 10px; background: #ddd; border-radius: 5px; margin: 8px 0; overflow: hidden; }
     .progress-fill { height: 100%; background: #66bb6a; transition: width 0.3s; }
-    .solution-box {
-      background: #f0f8e8; border-radius: 15px; padding: 14px; margin: 15px 0;
-      font-size: 18px; text-align: left; line-height: 1.8;
-    }
-    .encourage-text { font-size: 28px; font-weight: bold; color: #27ae60; margin: 10px 0; }
-    .exam-question {
-      background: #fff; border: 2px solid #ddd; border-radius: 15px; padding: 14px; margin-bottom: 14px;
-    }
+    .solution-box { background: #f0f8e8; border-radius: 15px; padding: 18px; margin: 15px 0; font-size: 20px; text-align: left; line-height: 1.8; }
+    .encourage-text { font-size: 32px; font-weight: bold; color: #27ae60; margin: 12px 0; }
+    .exam-question { background: #fff; border: 2px solid #ddd; border-radius: 20px; padding: 16px; margin-bottom: 16px; }
     .exam-question.correct { border-color: #27ae60; background: #f0fff0; }
     .exam-question.wrong { border-color: #e74c3c; background: #fff0f0; }
     .result-box { text-align: center; padding: 20px; }
-    .result-grade { font-size: 44px; margin: 10px 0; }
-    .q-number-input {
-      width: 70px; text-align: center; font-size: 20px; padding: 6px; border: 2px solid #f1c40f; border-radius: 10px;
-    }
-    .time-input-group { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
-    .time-input-group input { width: 70px; font-size: 22px; text-align: center; padding: 8px; }
-    .time-label { font-size: 20px; }
+    .result-grade { font-size: 48px; margin: 10px 0; }
+    .q-number-input { width: 80px; text-align: center; font-size: 22px; padding: 8px; border: 2px solid #f1c40f; border-radius: 15px; }
+    .big-input { font-size: 28px; width: 180px; text-align: center; padding: 12px; border: 2px solid #f1c40f; border-radius: 15px; }
+    .time-input-group { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 15px; }
+    .time-input-group input { width: 90px; font-size: 26px; text-align: center; padding: 10px; border: 2px solid #f1c40f; border-radius: 12px; }
+    .time-label { font-size: 24px; }
   </style>
 </head>
 <body>
@@ -109,17 +47,17 @@
   <div v-if="toast.show" class="toast">{{ toast.message }}</div>
   <div class="top-bar">
     <span>🌟 {{ stars }}</span>
-    <span style="font-weight: bold; font-size: 20px;">{{ gradeNames[currentGrade] }}</span>
+    <span style="font-weight: bold; font-size: 22px;">{{ gradeNames[currentGrade] }}</span>
     <span>🌱 Lv.{{ gardenLevel }}</span>
   </div>
   <div class="main">
     <div class="grade-selector" v-if="view !== 'exam' || !examStarted">
       <button @click="prevGrade" :disabled="currentGrade <= 0">◀</button>
-      <span style="font-size: 20px;">{{ gradeNames[currentGrade] }}</span>
+      <span style="font-size: 22px;">{{ gradeNames[currentGrade] }}</span>
       <button @click="nextGrade" :disabled="currentGrade >= gradeNames.length-1">▶</button>
     </div>
 
-    <!-- 花园视图 -->
+    <!-- ======================== 花园视图 ======================== -->
     <div v-if="view === 'garden'">
       <div class="garden-grid">
         <div class="garden-item" @click="openGame('arithmetic')">
@@ -147,36 +85,32 @@
           <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.measure+'%'}"></div></div>
         </div>
       </div>
-      <div style="text-align:center; margin-top: 18px;">
-        <button class="btn" @click="startExam" style="font-size: 22px; padding: 14px 32px;">📝 进入考试</button>
-        <button class="btn" @click="printExam" style="font-size: 22px; padding: 14px 32px;">🖨️ 打印试卷</button>
+      <div style="text-align:center; margin-top: 20px;">
+        <button class="btn" @click="startExam" style="font-size: 24px; padding: 16px 36px;">📝 进入考试</button>
+        <button class="btn" @click="printExam" style="font-size: 24px; padding: 16px 36px;">🖨️ 打印试卷</button>
       </div>
     </div>
 
-    <!-- 游戏视图 -->
+    <!-- ======================== 游戏视图 ======================== -->
     <div v-if="view === 'game'">
       <button class="btn" @click="view='garden'; resetGameBatch()">← 回花园</button>
-      <h3 style="text-align: center; font-size: 22px;">{{ gameTitle }}</h3>
-      <div v-if="!question && !gameStarted" style="text-align: center; padding: 20px;">
-        <p style="font-size: 18px;">选择题目数量：
-          <input v-model.number="questionCount" type="number" min="1" max="20" class="q-number-input"> 题
-        </p>
-        <button class="btn" @click="generateQuestionBatch" style="font-size: 22px;">出题！</button>
+      <h3 style="text-align: center; font-size: 24px;">{{ gameTitle }}</h3>
+      <div v-if="!question && !gameStarted" style="text-align: center; padding: 30px;">
+        <p style="font-size: 20px;">选择题目数量：<input v-model.number="questionCount" type="number" min="1" max="20" class="q-number-input"> 题</p>
+        <button class="btn" @click="generateQuestionBatch" style="font-size: 24px;">出题！</button>
       </div>
       <div v-else-if="question" class="card" style="text-align: center;">
-        <div style="font-size: 16px; color: #888;">剩余 {{ questionQueue.length + 1 }} / {{ questionCount }} 题</div>
-        <div style="font-size: 24px; margin-bottom: 15px; line-height: 1.6; color: #4a2c1a;">{{ question.text }}</div>
-        <div v-if="question.image" style="font-size: 60px; margin: 10px;">{{ question.image }}</div>
+        <div style="font-size: 18px; color: #888;">剩余 {{ questionQueue.length + 1 }} / {{ questionCount }} 题</div>
+        <div style="font-size: 26px; margin-bottom: 18px; line-height: 1.6; color: #4a2c1a;">{{ question.text }}</div>
+        <div v-if="question.image" style="font-size: 64px; margin: 12px;">{{ question.image }}</div>
 
         <div v-if="question.type === 'choice'">
           <button class="option-btn" v-for="opt in question.options" :key="opt" @click="answer(opt)">{{ opt }}</button>
         </div>
-
         <div v-if="question.type === 'input'">
-          <input v-model="userInput" type="text" @keyup.enter="answer(userInput)" placeholder="?">
+          <input v-model="userInput" type="text" class="big-input" @keyup.enter="answer(userInput)" placeholder="?">
           <button class="btn" @click="answer(userInput)">确定</button>
         </div>
-
         <div v-if="question.type === 'time'">
           <div class="time-input-group">
             <input v-model="userHours" type="number" min="0" placeholder="0" @keyup.enter="answerTime">
@@ -186,58 +120,65 @@
           </div>
           <button class="btn" @click="answerTime">确定</button>
         </div>
-
-        <p v-if="feedback" style="margin-top:12px;font-weight:bold;font-size:20px;">{{ feedback }}</p>
+        <p v-if="feedback" style="margin-top:14px;font-weight:bold;font-size:22px;">{{ feedback }}</p>
       </div>
-      <div v-else-if="gameStarted && !question" style="text-align: center; padding: 20px;">
-        <p style="font-size: 24px;">🎉 本轮练习完成！</p>
+      <div v-else-if="gameStarted && !question" style="text-align: center; padding: 30px;">
+        <p style="font-size: 26px;">🎉 本轮练习完成！</p>
         <button class="btn" @click="generateQuestionBatch">再来一组</button>
       </div>
     </div>
 
-    <!-- 考试视图 -->
+    <!-- ======================== 考试视图（完整无删减） ======================== -->
     <div v-if="view === 'exam'">
       <button class="btn" @click="view='garden'; resetExam()">← 退出考试</button>
-      <h3 style="text-align: center; font-size: 22px;">📝 综合考试 ({{ gradeNames[currentGrade] }})</h3>
+      <h3 style="text-align: center; font-size: 24px;">📝 综合考试 ({{ gradeNames[currentGrade] }})</h3>
       <div v-if="!examStarted" style="text-align: center; padding: 20px;">
-        <p style="font-size: 18px;">选择题目数量：
-          <input v-model.number="questionCount" type="number" min="5" max="20" class="q-number-input"> 题
-        </p>
-        <button class="btn" @click="beginExam" style="font-size: 22px;">开始考试</button>
-        <button class="btn" @click="printExam" style="font-size: 22px;">🖨️ 打印试卷</button>
+        <p style="font-size: 20px;">选择题目数量：<input v-model.number="questionCount" type="number" min="5" max="20" class="q-number-input"> 题</p>
+        <button class="btn" @click="beginExam" style="font-size: 24px;">开始考试</button>
+        <button class="btn" @click="printExam" style="font-size: 24px;">🖨️ 打印试卷</button>
       </div>
       <div v-else>
+        <!-- 考试进行中 -->
         <div v-if="!examSubmitted">
           <div v-for="(q, idx) in examQuestions" :key="idx" class="exam-question">
-            <div style="font-weight: bold; margin-bottom: 6px; font-size: 18px;">{{ idx+1 }}. {{ q.text }}</div>
+            <div style="font-weight: bold; margin-bottom: 6px; font-size: 20px;">{{ idx+1 }}. {{ q.text }}</div>
             <div v-if="q.image" style="font-size: 40px; text-align: center;">{{ q.image }}</div>
             <div v-if="q.type === 'choice'">
               <div v-for="opt in q.options" :key="opt" style="margin: 4px 0;">
-                <label style="display: flex; align-items: center; cursor: pointer; font-size: 20px;">
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 22px;">
                   <input type="radio" :name="'q'+idx" :value="opt" v-model="examAnswers[idx]" style="margin-right: 8px; transform: scale(1.5);">
                   {{ opt }}
                 </label>
               </div>
             </div>
             <div v-if="q.type === 'input'">
-              <input v-model="examAnswers[idx]" type="text" style="font-size:20px;width:120px;text-align:center;padding:6px;" placeholder="?">
+              <input v-model="examAnswers[idx]" type="text" style="font-size:22px;width:140px;text-align:center;padding:8px;" placeholder="?">
+            </div>
+            <div v-if="q.type === 'time'">
+              <div class="time-input-group">
+                <input v-model="examTimeHours[idx]" type="number" min="0" placeholder="0">
+                <span class="time-label">小时</span>
+                <input v-model="examTimeMinutes[idx]" type="number" min="0" max="59" placeholder="0">
+                <span class="time-label">分钟</span>
+              </div>
             </div>
           </div>
           <div style="text-align: center; margin-top: 20px;">
-            <button class="btn" @click="submitExam" style="font-size: 22px; padding: 14px 32px;">交卷</button>
+            <button class="btn" @click="submitExam" style="font-size: 24px; padding: 14px 36px;">交卷</button>
           </div>
         </div>
+        <!-- 考试结果 -->
         <div v-else class="result-box">
           <div style="font-size: 60px;">🏆</div>
           <div class="result-grade">{{ examGrade }}</div>
-          <p style="font-size: 20px;">正确 {{ examCorrect }} / {{ examQuestions.length }}</p>
-          <p style="font-size: 20px;">得分 {{ examScore }} 分</p>
+          <p style="font-size: 22px;">正确 {{ examCorrect }} / {{ examQuestions.length }}</p>
+          <p style="font-size: 22px;">得分 {{ examScore }} 分</p>
           <div v-for="(q, idx) in examQuestions" :key="idx" class="exam-question" :class="examResults[idx] ? 'correct' : 'wrong'">
-            <div style="font-weight: bold; font-size: 18px;">{{ idx+1 }}. {{ q.text }} {{ examResults[idx] ? '✅' : '❌' }}</div>
-            <div v-if="!examResults[idx]" style="margin-top: 4px; color: #e74c3c; font-size: 16px;">
+            <div style="font-weight: bold; font-size: 20px;">{{ idx+1 }}. {{ q.text }} {{ examResults[idx] ? '✅' : '❌' }}</div>
+            <div v-if="!examResults[idx]" style="margin-top: 4px; color: #e74c3c; font-size: 18px;">
               你的答案：{{ examAnswers[idx] || '未填' }} | 正确答案：{{ q.answer }}
             </div>
-            <div class="solution-box" style="margin-top: 8px; font-size: 16px;">
+            <div class="solution-box" style="margin-top: 8px; font-size: 18px;">
               <strong>🧠 思路：</strong>{{ q.solution }}
             </div>
           </div>
@@ -247,19 +188,19 @@
     </div>
   </div>
   <div style="display:flex;background:#fff8e7;border-top:3px solid #f1c40f;">
-    <button @click="view='garden'" style="flex:1;padding:16px;border:none;background:transparent;font-size:22px;cursor:pointer;">🏡 花园</button>
+    <button @click="view='garden'" style="flex:1;padding:18px;border:none;background:transparent;font-size:24px;cursor:pointer;">🏡 花园</button>
   </div>
 
-  <!-- 正确弹窗 -->
+  <!-- ======================== 正确弹窗 ======================== -->
   <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
     <div class="modal-content correct-modal-content">
-      <div style="font-size: 70px;">🎉</div>
+      <div style="font-size: 80px;">🎉</div>
       <div class="encourage-text">{{ encourageText }}</div>
       <div class="solution-box">
         <strong>🧠 解题思路：</strong><br>
         {{ currentSolution }}
       </div>
-      <button class="btn" @click="closeCorrectModal" :disabled="modalClosing" style="font-size: 22px; margin-top: 10px;">
+      <button class="btn" @click="closeCorrectModal" :disabled="modalClosing" style="font-size: 24px; margin-top: 12px;">
         {{ modalClosing ? '稍等...' : '下一题 ➡️' }}
       </button>
     </div>
@@ -267,558 +208,495 @@
 </div>
 
 <script>
-  (function() {
-    if (typeof Vue === 'undefined') {
-      document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">⚠️ Vue 加载失败，请刷新页面</div>';
-      return;
-    }
+(function() {
+  if (typeof Vue === 'undefined') {
+    document.getElementById('app').innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">⚠️ Vue 加载失败，请刷新页面</div>';
+    return;
+  }
 
-    const { createApp, ref, reactive, computed, watch } = Vue;
+  const { createApp, ref, reactive, computed, watch } = Vue;
 
-    createApp({
-      setup() {
-        const STARS_PER_LEVEL = 30;
-        const PROGRESS_PER_CORRECT = 25;
-        const MAX_PROGRESS = 100;
-        const LEVEL_UP_BONUS = 3;
-        const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
-        const currentGrade = ref(0);
-        function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
-        function nextGrade() { if (currentGrade.value < gradeNames.length-1) currentGrade.value++; }
+  createApp({
+    setup() {
+      // ========== 常量与状态 ==========
+      const STARS_PER_LEVEL = 30;
+      const PROGRESS_PER_CORRECT = 25;
+      const MAX_PROGRESS = 100;
+      const LEVEL_UP_BONUS = 3;
 
-        const stars = ref(0);
-        const gardenLevel = computed(() => Math.floor(stars.value / STARS_PER_LEVEL) + 1);
-        const toast = reactive({ show: false, message: '' });
-        function showToast(msg) { toast.message = msg; toast.show = true; setTimeout(() => { toast.show = false; }, 2000); }
+      const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+      const currentGrade = ref(0);
+      function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
+      function nextGrade() { if (currentGrade.value < gradeNames.length-1) currentGrade.value++; }
 
-        const plantProgress = reactive({ arithmetic:0, geometry:0, fraction:0, word:0, logic:0, measure:0 });
-        const view = ref('garden');
-        const currentGame = ref('');
-        const gameTitle = computed(() => ({
-          arithmetic:'算术花田', geometry:'图形树屋', fraction:'分数厨房', word:'应用小岛', logic:'逻辑密室', measure:'度量工坊'
-        })[currentGame.value] || '');
+      const stars = ref(0);
+      const gardenLevel = computed(() => Math.floor(stars.value / STARS_PER_LEVEL) + 1);
+      const toast = reactive({ show: false, message: '' });
+      function showToast(msg) { toast.message = msg; toast.show = true; setTimeout(() => { toast.show = false; }, 2000); }
 
-        function openGame(gameType) {
-          currentGame.value = gameType;
-          view.value = 'game';
-          resetGameBatch();
+      const plantProgress = reactive({
+        arithmetic: 0, geometry: 0, fraction: 0,
+        word: 0, logic: 0, measure: 0
+      });
+
+      const view = ref('garden');
+      const currentGame = ref('');
+      const gameTitle = computed(() => ({
+        arithmetic: '算术花田', geometry: '图形树屋', fraction: '分数厨房',
+        word: '应用小岛', logic: '逻辑密室', measure: '度量工坊'
+      })[currentGame.value] || '');
+
+      function openGame(gameType) {
+        currentGame.value = gameType;
+        view.value = 'game';
+        resetGameBatch();
+      }
+
+      // 游戏模式状态
+      const questionCount = ref(10);
+      const questionQueue = ref([]);
+      const gameStarted = ref(false);
+      const question = ref(null);
+      const feedback = ref('');
+      const userInput = ref('');
+      const userHours = ref(0);
+      const userMinutes = ref(0);
+      const showCorrectModal = ref(false);
+      const encourageText = ref('');
+      const currentSolution = ref('');
+      const modalClosing = ref(false);
+
+      function resetGameBatch() {
+        question.value = null;
+        questionQueue.value = [];
+        gameStarted.value = false;
+        feedback.value = '';
+        userInput.value = '';
+        userHours.value = 0;
+        userMinutes.value = 0;
+        showCorrectModal.value = false;
+        modalClosing.value = false;
+      }
+
+      // 考试模式状态
+      const examStarted = ref(false);
+      const examQuestions = ref([]);
+      const examAnswers = ref([]);
+      const examTimeHours = ref([]);  // 时间类型的时
+      const examTimeMinutes = ref([]); // 时间类型的分
+      const examSubmitted = ref(false);
+      const examResults = ref([]);
+      const examCorrect = ref(0);
+      const examScore = ref(0);
+      const examGrade = computed(() => {
+        const pct = examCorrect.value / examQuestions.value.length;
+        if (pct === 1) return '🌟🌟🌟 满分达人！';
+        if (pct >= 0.8) return '🌟🌟 非常优秀！';
+        if (pct >= 0.6) return '🌟 继续加油！';
+        return '💪 多多练习哦！';
+      });
+
+      function resetExam() {
+        examStarted.value = false;
+        examQuestions.value = [];
+        examAnswers.value = [];
+        examTimeHours.value = [];
+        examTimeMinutes.value = [];
+        examSubmitted.value = false;
+        examResults.value = [];
+        examCorrect.value = 0;
+        examScore.value = 0;
+      }
+      function startExam() { resetExam(); view.value = 'exam'; }
+
+      // ========== 工具函数 ==========
+      function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+      function pick(arr) { return arr[rand(0, arr.length-1)]; }
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
         }
+        return a;
+      }
+      function uniqueArray(arr) { return [...new Set(arr)]; }
+      function normalizeAnswer(str) {
+        if (str === null || str === undefined) return '';
+        return String(str).replace(/\s+/g, '').toLowerCase();
+      }
+      function isAnswerCorrect(userAnswer, correctAnswer) {
+        const u = normalizeAnswer(userAnswer);
+        const c = normalizeAnswer(String(correctAnswer));
+        if (u === c) return true;
+        const nu = parseFloat(u), nc = parseFloat(c);
+        return !isNaN(nu) && !isNaN(nc) && Math.abs(nu - nc) < 0.001;
+      }
 
-        const questionCount = ref(10);
-        const questionQueue = ref([]);
-        const gameStarted = ref(false);
-        const question = ref(null);
-        const feedback = ref('');
-        const userInput = ref('');
-        const userHours = ref(0);
-        const userMinutes = ref(0);
-        const showCorrectModal = ref(false);
-        const encourageText = ref('');
-        const currentSolution = ref('');
-        const modalClosing = ref(false);
+      const persons = ['小明', '小红', '小华', '小丽', '小刚', '妈妈', '爸爸', '爷爷', '奶奶', '老师', '同学'];
+      const items = ['苹果', '橘子', '铅笔', '橡皮', '尺子', '书本', '糖果', '饼干', '气球', '花朵', '贝壳', '弹珠'];
+      function randomStory() { return { person: pick(persons), item: pick(items) }; }
 
-        function resetGameBatch() {
-          question.value = null; questionQueue.value = []; gameStarted.value = false;
-          feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
-          showCorrectModal.value = false; modalClosing.value = false;
+      // ========== 题目生成器（所有年级、所有知识点） ==========
+
+      // ----- 算术花田 -----
+      function arithmeticTemplates(grade) {
+        const s = randomStory();
+        if (grade === 0) {
+          const a = rand(1, 6), b = rand(1, 6);
+          return {
+            text: `${s.person}有${a}个${s.item}，又得到了${b}个。现在有几个？`,
+            type: 'choice',
+            answer: String(a + b),
+            solution: `把两部分合起来：${a}+${b}=${a+b}`,
+            options: uniqueArray([a+b, a+b+1, a+b-1].filter(n => n >= 0).map(String))
+          };
         }
-
-        const examStarted = ref(false);
-        const examQuestions = ref([]);
-        const examAnswers = ref([]);
-        const examSubmitted = ref(false);
-        const examResults = ref([]);
-        const examCorrect = ref(0);
-        const examScore = ref(0);
-        const examGrade = computed(() => {
-          const pct = examCorrect.value / examQuestions.value.length;
-          if (pct === 1) return '🌟🌟🌟 满分达人！';
-          if (pct >= 0.8) return '🌟🌟 非常优秀！';
-          if (pct >= 0.6) return '🌟 继续加油！';
-          return '💪 多多练习哦！';
-        });
-        function resetExam() { examStarted.value = false; examQuestions.value = []; examAnswers.value = []; examSubmitted.value = false; examResults.value = []; examCorrect.value = 0; examScore.value = 0; }
-        function startExam() { resetExam(); view.value = 'exam'; }
-
-        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-        function pick(arr) { return arr[rand(0, arr.length-1)]; }
-        function shuffle(arr) { const a = arr.slice(); for (let i=a.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-        function uniqueArray(arr) { return [...new Set(arr)]; }
-        function fib(n) { if (n<=0) return 0; if (n<=2) return 1; let a=1,b=1; for (let i=3;i<=n;i++) { let c=a+b; a=b; b=c; } return b; }
-        function normalizeAnswer(str) { if (str===null||str===undefined) return ''; return String(str).replace(/\s+/g,'').toLowerCase(); }
-        function isAnswerCorrect(userAnswer, correctAnswer) {
-          const u = normalizeAnswer(userAnswer), c = normalizeAnswer(String(correctAnswer));
-          if (u===c) return true;
-          const nu = parseFloat(u), nc = parseFloat(c);
-          return !isNaN(nu) && !isNaN(nc) && Math.abs(nu-nc)<0.001;
+        if (grade === 1) {
+          const a = rand(8, 25), b = rand(1, a - 1), c = rand(1, 10);
+          const types = [
+            () => ({ t: `${s.person}有${a}个${s.item}，送出了${b}个。还剩几个？`, ans: a - b, sol: `原来${a}个，送出${b}个，剩下 ${a}-${b}=${a-b}` }),
+            () => ({ t: `${s.person}有${a}个${s.item}，飞走了${b}个，又买来${c}个。现在有几个？`, ans: a - b + c, sol: `飞走${b}个后剩${a-b}个，再买来${c}个，一共 ${a-b}+${c}=${a-b+c}` }),
+            () => ({ t: `${s.person}上午写了${a}个字，下午写了${b}个字。一共写了多少个字？`, ans: a + b, sol: `上午${a}个，下午${b}个，总共 ${a}+${b}=${a+b}` }),
+            () => ({ t: `公交车上有${a}人，到站下去${b}人，又上来${c}人。现在车上有几人？`, ans: a - b + c, sol: `下去${b}人后剩${a-b}人，又上来${c}人，现在有 ${a-b}+${c}=${a-b+c}人` })
+          ];
+          const q = pick(types)();
+          return { text: q.t, type: 'input', answer: String(q.ans), solution: q.sol };
         }
-
-        const persons = ['小明','小红','小华','小丽','小刚','妈妈','爸爸','爷爷','奶奶','老师','同学','弟弟','妹妹'];
-        const items = ['苹果','橘子','铅笔','橡皮','尺子','书本','糖果','饼干','星星','气球','花朵','贝壳','贴纸','弹珠'];
-        const places = ['桌子上','书包里','盒子里','地上','树上','篮子里','盘子里','口袋里','抽屉里'];
-
-        function randomStory() {
-          return { person: pick(persons), item: pick(items), place: pick(places) };
+        if (grade === 2) {
+          const a = rand(1, 9), b = rand(1, 9);
+          const types = [
+            () => ({ t: `每排放${a}个${s.item}，放了${b}排。一共多少个？`, ans: a * b, sol: `${a}×${b}=${a*b}` }),
+            () => ({ t: `${s.person}每天存${a}元，存了${b}天。一共存了多少元？`, ans: a * b, sol: `${a}×${b}=${a*b}` }),
+            () => ({ t: `有${a * b}个${s.item}，平均分给${a}人，每人几个？`, ans: b, sol: `${a * b}÷${a}=${b}` })
+          ];
+          const q = pick(types)();
+          return { text: q.t, type: 'input', answer: String(q.ans), solution: q.sol };
         }
-
-        // ----- 算术花田（混合运算+详细思路） -----
-        function arithmeticTemplates(grade) {
-          const s = randomStory();
-          if (grade === 0) {
-            const a=rand(1,5), b=rand(1,5);
-            const opt = uniqueArray([a+b, a+b+1, a+b-1].filter(n=>n>=0).map(String));
-            return { text:`${s.person}在${s.place}有${a}个${s.item}，又放进了${b}个。一共有几个${s.item}？`, type:'choice', answer:String(a+b), solution:`把两部分合起来：${a}+${b}=${a+b}`, options:opt };
-          } else if (grade === 1) {
-            const a=rand(5,20), b=rand(1,a-1), c=rand(1,10);
-            const types = [
-              () => `${s.person}有${a}个${s.item}，送给了${pick(persons)}${b}个。还剩几个？`,
-              () => `公交车上有${a}人，到站下去${b}人，又上来${c}人。现在车上有几人？`,
-              () => `${s.person}上午写了${a}个字，下午写了${b}个字。一共写了多少个字？`,
-              () => `${s.person}有${a}个${s.item}，飞走了${b}个，又买来了${c}个。现在有几个？`,
-              () => `商店里有${a}个${s.item}，卖掉了${b}个，又进货${c}个。现在有多少个？`,
-              () => `${s.person}吃了${b}个${s.item}后还剩${a}个，妈妈又给了他${c}个。现在一共有几个？`,
-              () => `池塘边原来有${a}只青蛙，跳走${b}只，又跳来${c}只。现在有多少只？`
-            ];
-            const q = pick(types)();
-            let ans, sol;
-            if (q.includes('飞走了') && q.includes('又买来') || q.includes('卖掉') && q.includes('进货') || q.includes('跳走') && q.includes('跳来')) {
-              ans = a - b + c;
-              sol = `原来有${a}个，飞走/卖掉${b}个后剩下${a-b}个，又买来/跳来${c}个，所以现在有 ${a-b}+${c}=${ans}个。`;
-            } else if (q.includes('吃了') && q.includes('又给了')) {
-              ans = a + c;
-              sol = `吃了${b}个后还剩${a}个，所以原来有${a+b}个；妈妈又给${c}个，现在共有 ${a}+${c}=${ans}个。`;
-            } else if (q.includes('上午') && q.includes('下午')) {
-              ans = a + b;
-              sol = `上午写${a}个，下午写${b}个，一共 ${a}+${b}=${ans}个字。`;
-            } else if (q.includes('下去') && q.includes('上来')) {
-              ans = a - b + c;
-              sol = `车上原有${a}人，下去${b}人后剩${a-b}人，又上来${c}人，现在有 ${a-b}+${c}=${ans}人。`;
-            } else {
-              ans = a - b;
-              sol = `原来有${a}个，拿走/送走${b}个，剩下 ${a}-${b}=${ans}个。`;
-            }
-            return { text: q, type: 'input', answer: String(ans), solution: sol };
-          } else if (grade === 2) {
-            const a=rand(1,9), b=rand(1,9);
-            const types = [
-              () => ({ text:`每排放${a}个${s.item}，放了${b}排。一共用了多少个${s.item}？`, ans:a*b, sol:`每排${a}个，有${b}排，就是${b}个${a}相加，用乘法：${a}×${b}=${a*b}` }),
-              () => ({ text:`${s.person}每天存${a}元，存了${b}天。一共存了多少元？`, ans:a*b, sol:`每天${a}元，存了${b}天，就是${b}个${a}相加，${a}×${b}=${a*b}` }),
-              () => ({ text:`有${a*b}个${s.item}，平均分给${a}人，每人分几个？`, ans:b, sol:`总数是${a*b}，平均分成${a}份，每份是${a*b}÷${a}=${b}` })
-            ];
-            const t = pick(types)();
-            return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
-          } else if (grade === 3) {
-            const a=rand(10,99), b=rand(2,9);
-            const ops = ['+','-','×','÷'];
-            const op = pick(ops);
-            let ans, sol;
-            if (op==='+') { ans=a+b; sol=`${a}+${b}=${ans}`; }
-            else if (op==='-') { ans=a-b; sol=`${a}-${b}=${ans}`; }
-            else if (op==='×') { ans=a*b; sol=`${a}×${b}=${ans}`; }
-            else { ans=Math.floor(a/b); sol=`${a}÷${b}=${ans}`; }
-            return { text:`${s.person}在做数学题：${a} ${op} ${b} = ?`, type:'input', answer:String(ans), solution:sol };
-          } else if (grade === 4) {
-            const a=rand(100,9999), b=rand(10,999);
-            const op = pick(['+','-']);
-            const ans = op==='+' ? a+b : a-b;
-            return { text:`图书馆原有${a}本书，今年${op==='+'?'购入':'清理'}${b}本。现在共有多少本？`, type:'input', answer:String(ans), solution:`原有${a}本，${op==='+'?'增加':'减少'}${b}本，所以 ${a} ${op} ${b} = ${ans}` };
-          } else if (grade === 5) {
-            const a=(rand(10,99)/10).toFixed(1), b=(rand(10,99)/10).toFixed(1);
-            const op = pick(['+','-']);
-            const ans = op==='+' ? (parseFloat(a)+parseFloat(b)).toFixed(2) : (parseFloat(a)-parseFloat(b)).toFixed(2);
-            return { text:`液体重${a}克，${op==='+'?'倒入':'倒出'}${b}克。现在多重？`, type:'input', answer:ans, solution:`原来${a}克，${op==='+'?'增加':'减少'}${b}克，所以 ${a} ${op} ${b} = ${ans} 克` };
-          } else if (grade === 6) {
-            const a=rand(2,9), b=rand(2,9);
-            const types = [
-              () => ({ text:`正方形边长${a}米，面积？`, ans:a*a, sol:`正方形面积 = 边长×边长 = ${a}×${a}=${a*a} 平方米` }),
-              () => ({ text:`立方体棱长${a}厘米，体积？`, ans:a*a*a, sol:`立方体体积 = 棱长×棱长×棱长 = ${a}×${a}×${a}=${a*a*a} 立方厘米` })
-            ];
-            const t = pick(types)();
-            return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
+        if (grade === 3) {
+          const a = rand(10, 99), b = rand(2, 9);
+          const ops = ['+', '-', '×', '÷'];
+          const op = pick(ops);
+          let ans, sol;
+          if (op === '+') { ans = a + b; sol = `${a}+${b}=${ans}`; }
+          else if (op === '-') { ans = a - b; sol = `${a}-${b}=${ans}`; }
+          else if (op === '×') { ans = a * b; sol = `${a}×${b}=${ans}`; }
+          else { ans = Math.floor(a / b); sol = `${a}÷${b}=${ans}`; }
+          return { text: `计算：${a} ${op} ${b} = ?`, type: 'input', answer: String(ans), solution: sol };
+        }
+        if (grade === 4) {
+          let a, b, op = pick(['+', '-']);
+          if (op === '+') { a = rand(100, 9999); b = rand(10, 999); }
+          else { b = rand(10, 999); a = rand(b, 9999); }
+          const ans = op === '+' ? a + b : a - b;
+          return { text: `图书馆原有${a}本书，今年${op === '+' ? '购入' : '清理'}${b}本。现在有多少本？`, type: 'input', answer: String(ans), solution: `${a} ${op} ${b} = ${ans}` };
+        }
+        if (grade === 5) {
+          let a, b, op = pick(['+', '-']);
+          if (op === '+') { a = (rand(10, 99) / 10).toFixed(1); b = (rand(10, 99) / 10).toFixed(1); }
+          else {
+            b = (rand(10, 99) / 10).toFixed(1);
+            const minA = parseFloat(b) + 0.1;
+            a = (Math.floor(Math.random() * (99 - minA * 10 + 1)) + minA * 10) / 10;
+            a = a.toFixed(1);
           }
+          const ans = op === '+' ? (parseFloat(a) + parseFloat(b)).toFixed(2) : (parseFloat(a) - parseFloat(b)).toFixed(2);
+          return { text: `液体重${a}克，${op === '+' ? '倒入' : '倒出'}${b}克。现在多重？`, type: 'input', answer: ans, solution: `原来${a}克，${op === '+' ? '增加' : '减少'}${b}克，所以 ${a} ${op} ${b} = ${ans}克` };
         }
-
-        // ----- 图形树屋（详细几何思路） -----
-        function geometryTemplates(grade) {
-          if (grade === 0) {
-            const shapes = ['圆形','正方形','三角形','长方形','五角星','六边形'];
-            const s = pick(shapes);
-            const sym = { '圆形':'●', '正方形':'■', '三角形':'▲', '长方形':'▬', '五角星':'★', '六边形':'⬡' };
-            return {
-              text:`魔法图形箱里有一个图形叫“${s}”。选一选它的样子。`, image:'🎁', type:'choice', answer:sym[s],
-              solution:`${sym[s]}就是${s}。${s==='圆形'?'它圆圆的，没有角':s==='正方形'?'它有四条一样长的边和四个直角':s==='三角形'?'它有三条边和三个角':s==='长方形'?'它有四条边，对边相等':''}`,
-              options:shuffle(Object.values(sym))
-            };
-          } else if (grade === 1) {
-            const a=rand(3,8), b=rand(3,8);
-            return { text:`长方形草地长${a}米宽${b}米，周长？`, type:'input', answer:String((a+b)*2), solution:`长方形周长 = (长+宽)×2 = (${a}+${b})×2 = ${(a+b)*2} 米` };
-          } else if (grade === 2) {
-            const a=rand(3,8), b=rand(3,8);
-            const types = [
-              () => ({ text:`长方形长${a}cm宽${b}cm，面积？`, ans:a*b, sol:`长方形面积 = 长×宽 = ${a}×${b} = ${a*b} 平方厘米` }),
-              () => ({ text:`正方形边长${a}cm，面积？`, ans:a*a, sol:`正方形面积 = 边长×边长 = ${a}×${a} = ${a*a} 平方厘米` })
-            ];
-            const t = pick(types)();
-            return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
-          } else if (grade === 3) {
-            const a=rand(3,8);
-            return { text:`正方体棱长${a}cm，体积？`, type:'input', answer:String(a*a*a), solution:`正方体体积 = 棱长³ = ${a}×${a}×${a} = ${a*a*a} 立方厘米` };
-          } else if (grade === 4) {
-            const a=rand(10,80)*10;
-            return { text:`一个角${a}°，补角？`, type:'input', answer:String(180-a), solution:`补角 = 180° - ${a}° = ${180-a}°` };
-          } else if (grade === 5) {
-            const r=rand(2,5);
-            const ans=(2*3.14*r).toFixed(2);
-            return { text:`圆半径${r}米，周长？(π≈3.14)`, type:'input', answer:ans, solution:`圆周长 = 2πr = 2×3.14×${r} ≈ ${ans} 米` };
-          } else if (grade === 6) {
-            const r=rand(2,5), h=rand(5,10);
-            const ans=(3.14*r*r*h).toFixed(2);
-            return { text:`圆柱半径${r}cm高${h}cm，体积？`, type:'input', answer:ans, solution:`圆柱体积 = πr²h = 3.14×${r}²×${h} ≈ ${ans} 立方厘米` };
-          }
+        if (grade === 6) {
+          const a = rand(2, 9), b = rand(2, 9);
+          const types = [
+            () => ({ t: `正方形边长${a}米，面积？`, ans: a * a, sol: `正方形面积=边长×边长=${a}×${a}=${a * a}平方米` }),
+            () => ({ t: `立方体棱长${a}厘米，体积？`, ans: a * a * a, sol: `立方体体积=棱长³=${a}×${a}×${a}=${a * a * a}立方厘米` })
+          ];
+          const q = pick(types)();
+          return { text: q.t, type: 'input', answer: String(q.ans), solution: q.sol };
         }
+      }
 
-        // 分数厨房
-        function fractionTemplates(grade) {
-          if (grade===0) {
-            const t=rand(4,8);
-            return { text:`${t}块饼干分给2人，每人几块？`, type:'choice', answer:String(t/2), solution:`把${t}平均分成2份，每份是 ${t}÷2 = ${t/2} 块`, options:uniqueArray([String(t/2),String(t/2+1),String(t/2-1)].filter(n=>parseFloat(n)>=0)) };
-          } else if (grade===1) {
-            const a=rand(2,6),b=rand(2,6);
-            return { text:`蛋糕切成了${a+b}块，吃了${a}块，剩几块？`, type:'choice', answer:String(b), solution:`总块数${a+b} - 吃了的${a}块 = 剩${b}块`, options:uniqueArray([String(b),String(a),String(a+b)]) };
-          } else if (grade===2) {
-            const t=rand(6,12),p=rand(2,4);
-            return { text:`披萨${t}片分给${p}人，每人几片？`, type:'input', answer:String(Math.floor(t/p)), solution:`${t}÷${p} = ${Math.floor(t/p)} 片（还剩${t%p}片）` };
-          } else if (grade===3) {
-            const d=rand(2,6),n=rand(1,d-1);
-            return { text:`长方形分${d}格，涂色${n}格，涂色占几分之几？`, image:'⬛'.repeat(n)+'⬜'.repeat(d-n), type:'choice', answer:`${n}/${d}`, solution:`涂色部分有${n}份，整体被分成了${d}份，所以是 ${n}/${d}`, options:uniqueArray([`${n}/${d}`,`${d-n}/${d}`,`${n+1}/${d}`]) };
-          } else if (grade===4) {
-            const d=rand(3,8),n1=rand(1,d-1),n2=rand(1,n1);
-            return { text:`${n1}/${d} - ${n2}/${d} = ?`, type:'input', answer:`${n1-n2}/${d}`, solution:`分母相同，分子相减：${n1}-${n2}=${n1-n2}，所以答案是 ${n1-n2}/${d}` };
-          } else if (grade===5) {
-            const a=rand(1,5),b=rand(2,6),c=rand(1,5),d=rand(2,6);
-            return { text:`${a}/${b} × ${c}/${d} = ?`, type:'input', answer:`${a*c}/${b*d}`, solution:`分子乘分子：${a}×${c}=${a*c}，分母乘分母：${b}×${d}=${b*d}，所以是 ${a*c}/${b*d}` };
-          } else {
-            const dec=(rand(1,99)/100).toFixed(2);
-            return { text:`小数${dec}化成分数（分母100）`, type:'input', answer:`${Math.round(dec*100)}/100`, solution:`${dec} 是两位小数，可以直接写成分母为100的分数：${Math.round(dec*100)}/100` };
-          }
+      // ----- 图形树屋 -----
+      function geometryTemplates(grade) {
+        if (grade === 0) {
+          const shapes = ['圆形', '正方形', '三角形', '长方形', '五角星', '六边形'];
+          const s = pick(shapes);
+          const sym = { '圆形': '●', '正方形': '■', '三角形': '▲', '长方形': '▬', '五角星': '★', '六边形': '⬡' };
+          return {
+            text: `下面哪个是${s}？`, image: '🎁', type: 'choice', answer: sym[s],
+            solution: `${sym[s]}是${s}`, options: shuffle(Object.values(sym))
+          };
         }
-
-        // 应用小岛
-        function wordTemplates(grade) {
-          const s = randomStory();
-          if (grade===0) {
-            const a=rand(3,6), b=rand(1,a-1);
-            return { text:`树上有${a}只鸟，飞走${b}只，剩几只？`, type:'choice', answer:String(a-b), solution:`原来有${a}只，飞走${b}只，用减法：${a}-${b}=${a-b}`, options:uniqueArray([a-b,a-b+1,a-b-1].filter(n=>n>=0).map(String)) };
-          } else if (grade===1) {
-            const a=rand(3,9),b=rand(2,5);
-            const types = [
-              () => ({ text:`${s.person}有${a}个${s.item}，又买了${b}个，共几个？`, ans:a+b, sol:`原来${a}个，又买来${b}个，合起来就是 ${a}+${b}=${a+b} 个` }),
-              () => ({ text:`${s.person}有${a}元，花了${b}元，剩几元？`, ans:a-b, sol:`原来${a}元，花掉${b}元，还剩 ${a}-${b}=${a-b} 元` })
-            ];
-            const t = pick(types)();
-            return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
-          } else if (grade===2) {
-            const price=rand(5,15), n=rand(2,8);
-            return { text:`钢笔每支${price}元，买${n}支付100元，找回？`, type:'input', answer:String(100-price*n), solution:`先算总价：${price}×${n}=${price*n}元，付了100元，应找回 100-${price*n}=${100-price*n}元` };
-          } else if (grade===3) {
-            const v=rand(30,80), t=rand(2,5);
-            return { text:`汽车每小时${v}千米，${t}小时行多少？`, type:'input', answer:String(v*t), solution:`速度×时间=路程：${v}×${t}=${v*t}千米` };
-          } else if (grade===4) {
-            const a=rand(10,30), b=rand(2,8);
-            const types = [
-              () => ({ text:`甲有${a}个球，乙比甲多${b}个。乙有多少？`, ans:a+b, sol:`乙 = 甲 + 多的部分 = ${a}+${b}=${a+b}个` }),
-              () => ({ text:`甲有${a}个球，乙比甲少${b}个。乙有多少？`, ans:a-b, sol:`乙 = 甲 - 少的部分 = ${a}-${b}=${a-b}个` })
-            ];
-            const t = pick(types)();
-            return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
-          } else if (grade===5) {
-            const total=rand(100,500), pct=rand(10,90);
-            return { text:`原价${total}元，打${pct}%折，现价？`, type:'input', answer:String(Math.round(total*pct/100)), solution:`打折就是乘百分之几：${total}×${pct}% = ${total}×${pct}/100 = ${Math.round(total*pct/100)}元` };
-          } else {
-            const a=rand(2,6), b=rand(2,6);
-            return { text:`解比例 3:4 = ${a}:x，求x`, type:'input', answer:(a*4/3).toFixed(1), solution:`内项积等于外项积：4×${a} = 3×x，所以 x = ${4*a}÷3 ≈ ${(a*4/3).toFixed(1)}` };
-          }
+        if (grade === 1) { const a = rand(3, 8), b = rand(3, 8); return { text: `长方形长${a}米宽${b}米，周长？`, type: 'input', answer: String((a + b) * 2), solution: `(${a}+${b})×2=${(a + b) * 2}` }; }
+        if (grade === 2) {
+          const a = rand(3, 8), b = rand(3, 8);
+          return pick([
+            () => ({ text: `长方形长${a}cm宽${b}cm面积？`, ans: a * b, sol: `${a}×${b}=${a * b}` }),
+            () => ({ text: `正方形边长${a}cm面积？`, ans: a * a, sol: `${a}×${a}=${a * a}` })
+          ])();
         }
+        if (grade === 3) { const a = rand(3, 8); return { text: `正方体棱长${a}cm体积？`, type: 'input', answer: String(a * a * a), solution: `${a}³=${a * a * a}` }; }
+        if (grade === 4) { const a = rand(10, 80) * 10; return { text: `一个角${a}°，补角？`, type: 'input', answer: String(180 - a), solution: `180°-${a}°=${180 - a}°` }; }
+        if (grade === 5) { const r = rand(2, 5); const ans = (2 * 3.14 * r).toFixed(2); return { text: `圆半径${r}米周长？(π≈3.14)`, type: 'input', answer: ans, solution: `2πr=2×3.14×${r}=${ans}` }; }
+        if (grade === 6) { const r = rand(2, 5), h = rand(5, 10); const ans = (3.14 * r * r * h).toFixed(2); return { text: `圆柱半径${r}cm高${h}cm体积？`, type: 'input', answer: ans, solution: `πr²h≈${ans}` }; }
+      }
 
-        // 逻辑密室（鸡兔同笼详细版）
-        function logicTemplates(grade) {
-          if (grade===0) {
-            const start=rand(1,5), step=rand(1,3);
-            const seq=[start, start+step, start+step*2];
-            return { text:`数字排队：${seq.join('、')}，接下来是谁？`, type:'input', answer:String(start+step*3), solution:`每次增加${step}，所以 ${seq[2]}+${step}=${start+step*3}` };
-          } else if (grade===1) {
-            const a=rand(2,7);
-            return { text:`如果 ☆ = ${a}，那么 ☆ + ${a+2} = ?`, type:'input', answer:String(a+a+2), solution:`把☆换成${a}，算式变成 ${a}+${a+2}=${a*2+2}` };
-          } else if (grade===2) {
-            const a=rand(2,9);
-            return { text:`○ × ○ = ${a*a}，○ 是几？`, type:'input', answer:String(a), solution:`两个相同的数相乘得${a*a}，只有 ${a}×${a}=${a*a}` };
-          } else if (grade===3) {
-            const a=rand(2,5), b=rand(2,5);
-            const totalHeads = a + b;
-            const totalLegs = a*2 + b*4;
-            const ifAllChickenLegs = totalHeads * 2;
-            const diffLegs = totalLegs - ifAllChickenLegs;
-            return {
-              text: `鸡兔同笼，共${totalHeads}头，${totalLegs}脚。兔几只？`,
-              type: 'input',
-              answer: String(b),
-              solution: `假设全是鸡，脚数应为 ${totalHeads}×2 = ${ifAllChickenLegs} 只，实际有 ${totalLegs} 只，少了 ${totalLegs}-${ifAllChickenLegs}=${diffLegs} 只脚。每只兔比鸡多 2 只脚，所以兔的数量 = ${diffLegs}÷2 = ${b} 只。`
-            };
-          } else if (grade===4) {
-            const a=rand(2,6);
-            return { text:`△+□=${a+2}，△-□=${a-2}，△=？`, type:'input', answer:String(a), solution:`两式相加：(△+□)+(△-□)=${a+2}+${a-2}，即 2△=${2*a}，所以 △=${a}` };
-          } else if (grade===5) {
-            const a=rand(2,9), b=rand(2,9);
-            return { text:`若 x+${b}=${a+b}，则 x=？`, type:'input', answer:String(a), solution:`等式两边同时减去${b}：x = ${a+b}-${b} = ${a}` };
-          } else {
-            const a=rand(2,9);
-            return { text:`√x = ${a}，求 x`, type:'input', answer:String(a*a), solution:`平方根的定义：如果一个数的平方根是${a}，那么这个数就是 ${a}² = ${a*a}` };
-          }
+      // ----- 分数厨房 -----
+      function fractionTemplates(grade) {
+        if (grade === 0) { const t = rand(4, 8); return { text: `${t}块饼干分2人，每人几块？`, type: 'choice', answer: String(t / 2), solution: `${t}÷2=${t / 2}`, options: uniqueArray([String(t / 2), String(t / 2 + 1), String(t / 2 - 1)].filter(n => parseFloat(n) >= 0)) }; }
+        if (grade === 1) { const a = rand(2, 6), b = rand(2, 6); return { text: `蛋糕切成了${a + b}块，吃了${a}块，剩几块？`, type: 'choice', answer: String(b), solution: `${a + b}-${a}=${b}`, options: uniqueArray([String(b), String(a), String(a + b)]) }; }
+        if (grade === 2) { const t = rand(6, 12), p = rand(2, 4); return { text: `披萨${t}片分${p}人，每人几片？`, type: 'input', answer: String(Math.floor(t / p)), solution: `${t}÷${p}=${Math.floor(t / p)}` }; }
+        if (grade === 3) { const d = rand(2, 6), n = rand(1, d - 1); return { text: `长方形分${d}格涂色${n}格，涂色占几分之几？`, image: '⬛'.repeat(n) + '⬜'.repeat(d - n), type: 'choice', answer: `${n}/${d}`, solution: `${n}/${d}`, options: uniqueArray([`${n}/${d}`, `${d - n}/${d}`, `${n + 1}/${d}`]) }; }
+        if (grade === 4) { const d = rand(3, 8), n1 = rand(1, d - 1), n2 = rand(1, n1); return { text: `${n1}/${d} - ${n2}/${d} = ?`, type: 'input', answer: `${n1 - n2}/${d}`, solution: `分子相减` }; }
+        if (grade === 5) { const a = rand(1, 5), b = rand(2, 6), c = rand(1, 5), d = rand(2, 6); return { text: `${a}/${b} × ${c}/${d} = ?`, type: 'input', answer: `${a * c}/${b * d}`, solution: `分子乘分子，分母乘分母` }; }
+        const dec = (rand(1, 99) / 100).toFixed(2); return { text: `小数${dec}化成分数（分母100）`, type: 'input', answer: `${Math.round(dec * 100)}/100`, solution: `${dec}=${Math.round(dec * 100)}/100` };
+      }
+
+      // ----- 应用小岛 -----
+      function wordTemplates(grade) {
+        const s = randomStory();
+        if (grade === 0) { const a = rand(3, 6), b = rand(1, a - 1); return { text: `树上有${a}只鸟飞走${b}只，剩几只？`, type: 'choice', answer: String(a - b), solution: `${a}-${b}=${a - b}`, options: uniqueArray([a - b, a - b + 1, a - b - 1].filter(n => n >= 0).map(String)) }; }
+        if (grade === 1) { const a = rand(5, 12), b = rand(2, a - 1); return pick([() => ({ t: `${s.person}有${a}个${s.item}，又买了${b}个，共几个？`, ans: a + b, sol: `${a}+${b}` }), () => ({ t: `${s.person}有${a}元，花了${b}元，剩几元？`, ans: a - b, sol: `${a}-${b}` })])(); }
+        if (grade === 2) { const price = rand(5, 15), n = rand(2, 8); return { text: `钢笔每支${price}元，买${n}支付100元，找回？`, type: 'input', answer: String(100 - price * n), solution: `总价${price}×${n}=${price * n}，找回100-${price * n}=${100 - price * n}` }; }
+        if (grade === 3) { const v = rand(30, 80), t = rand(2, 5); return { text: `汽车每小时${v}千米，${t}小时行多少？`, type: 'input', answer: String(v * t), solution: `${v}×${t}=${v * t}` }; }
+        if (grade === 4) { const a = rand(10, 30), b = rand(2, 8); return pick([() => ({ t: `甲有${a}个球，乙比甲多${b}个，乙有几个？`, ans: a + b, sol: `${a}+${b}` }), () => ({ t: `甲有${a}个球，乙比甲少${b}个，乙有几个？`, ans: a - b, sol: `${a}-${b}` })])(); }
+        if (grade === 5) { const total = rand(100, 500), pct = rand(10, 90); return { text: `原价${total}元打${pct}%折，现价？`, type: 'input', answer: String(Math.round(total * pct / 100)), solution: `${total}×${pct}%=${Math.round(total * pct / 100)}` }; }
+        const a = rand(2, 6), b = rand(2, 6); return { text: `解比例 3:4 = ${a}:x，求x`, type: 'input', answer: (a * 4 / 3).toFixed(1), solution: `4×${a}=3x，x=${(a * 4 / 3).toFixed(1)}` };
+      }
+
+      // ----- 逻辑密室（鸡兔同笼详细版） -----
+      function logicTemplates(grade) {
+        if (grade === 0) { const start = rand(1, 5), step = rand(1, 3); const seq = [start, start + step, start + step * 2]; return { text: `数字排队：${seq.join('、')}，接下来是谁？`, type: 'input', answer: String(start + step * 3), solution: `每次增加${step}，${seq[2]}+${step}=${start + step * 3}` }; }
+        if (grade === 1) { const a = rand(2, 7); return { text: `如果 ☆ = ${a}，那么 ☆ + ${a + 2} = ?`, type: 'input', answer: String(a + a + 2), solution: `代入：${a}+${a + 2}=${a * 2 + 2}` }; }
+        if (grade === 2) { const a = rand(2, 9); return { text: `○ × ○ = ${a * a}，○ 是几？`, type: 'input', answer: String(a), solution: `只有${a}×${a}=${a * a}` }; }
+        if (grade === 3) {
+          const a = rand(2, 5), b = rand(2, 5);
+          const heads = a + b, legs = a * 2 + b * 4, diff = legs - heads * 2;
+          return { text: `鸡兔同笼，共${heads}头，${legs}脚。兔几只？`, type: 'input', answer: String(b), solution: `假设全是鸡：${heads}×2=${heads * 2}只脚，少了${diff}只脚。每只兔多2只脚，兔=${diff}÷2=${b}只` };
         }
+        if (grade === 4) { const a = rand(2, 6); return { text: `△+□=${a + 2}，△-□=${a - 2}，△=？`, type: 'input', answer: String(a), solution: `两式相加：2△=${2 * a}，△=${a}` }; }
+        if (grade === 5) { const a = rand(2, 9), b = rand(2, 9); return { text: `x+${b}=${a + b}，x=？`, type: 'input', answer: String(a), solution: `两边减${b}：x=${a}` }; }
+        const a = rand(2, 9); return { text: `√x=${a}，x=？`, type: 'input', answer: String(a * a), solution: `平方：${a}²=${a * a}` };
+      }
 
-        // 度量工坊
-        function measureTemplates(grade) {
-          if (grade===0) {
-            const a=rand(3,10);
-            return { text:`铅笔长${a}厘米，合多少毫米？`, type:'input', answer:String(a*10), solution:`1厘米=10毫米，所以 ${a}×10=${a*10} 毫米` };
-          } else if (grade===1) {
-            return { text:'1千克等于多少克？', type:'choice', answer:'1000', solution:'1千克=1000克', options:['100','1000','10000'] };
-          } else if (grade===2) {
-            const a=rand(2,6);
-            return { text:`水壶${a}升，合多少毫升？`, type:'input', answer:String(a*1000), solution:`1升=1000毫升，${a}×1000=${a*1000} 毫升` };
-          } else if (grade===3) {
-            const a=rand(10, 120);
-            const h = Math.floor(a/60);
-            const m = a % 60;
-            return {
-              text: `${a}分钟是几小时几分钟？`,
-              type: 'time',
-              answer: `${h}小时${m}分钟`,
-              solution: `${a}÷60 = ${h} 小时余 ${m} 分钟，所以是 ${h}小时${m}分钟`,
-              hours: h,
-              minutes: m
-            };
-          } else if (grade===4) {
-            const a=rand(2,10);
-            return { text:`正方形操场边长${a}米，周长多少厘米？`, type:'input', answer:String(a*4*100), solution:`周长=${a}×4=${a*4}米，1米=100厘米，所以 ${a*4}×100=${a*4*100}厘米` };
-          } else if (grade===5) {
-            const a=rand(2,8);
-            return { text:`速度${a}米/秒，10秒跑多少米？`, type:'input', answer:String(a*10), solution:`路程=速度×时间：${a}×10=${a*10}米` };
-          } else {
-            return { text:'1立方米等于多少立方分米？', type:'choice', answer:'1000', solution:'1立方米=1000立方分米', options:['100','1000','10000'] };
-          }
+      // ----- 度量工坊（时间题双输入框） -----
+      function measureTemplates(grade) {
+        if (grade === 0) { const a = rand(3, 10); return { text: `铅笔长${a}厘米，合多少毫米？`, type: 'input', answer: String(a * 10), solution: `1厘米=10毫米，${a}×10=${a * 10}` }; }
+        if (grade === 1) { return { text: '1千克等于多少克？', type: 'choice', answer: '1000', solution: '1千克=1000克', options: ['100', '1000', '10000'] }; }
+        if (grade === 2) { const a = rand(2, 6); return { text: `水壶${a}升，合多少毫升？`, type: 'input', answer: String(a * 1000), solution: `1升=1000毫升，${a}×1000=${a * 1000}` }; }
+        if (grade === 3) {
+          const a = rand(10, 120); const h = Math.floor(a / 60), m = a % 60;
+          return { text: `${a}分钟是几小时几分钟？`, type: 'time', answer: `${h}小时${m}分钟`, solution: `${a}÷60=${h}小时余${m}分钟`, hours: h, minutes: m };
         }
+        if (grade === 4) { const a = rand(2, 10); return { text: `正方形操场边长${a}米，周长多少厘米？`, type: 'input', answer: String(a * 4 * 100), solution: `周长${a}×4=${a * 4}米=${a * 4 * 100}厘米` }; }
+        if (grade === 5) { const a = rand(2, 8); return { text: `速度${a}米/秒，10秒跑多少米？`, type: 'input', answer: String(a * 10), solution: `路程=速度×时间=${a}×10=${a * 10}米` }; }
+        return { text: '1立方米等于多少立方分米？', type: 'choice', answer: '1000', solution: '1m³=1000dm³', options: ['100', '1000', '10000'] };
+      }
 
-        function generateQuestion(category, grade) {
-          const funcs = { arithmetic:arithmeticTemplates, geometry:geometryTemplates, fraction:fractionTemplates, word:wordTemplates, logic:logicTemplates, measure:measureTemplates };
-          const fn = funcs[category];
-          if (!fn) return null;
-          return fn(grade);
-        }
+      // ========== 统一生成与缓存 ==========
+      function generateQuestion(category, grade) {
+        const funcs = { arithmetic: arithmeticTemplates, geometry: geometryTemplates, fraction: fractionTemplates, word: wordTemplates, logic: logicTemplates, measure: measureTemplates };
+        return funcs[category] ? funcs[category](grade) : null;
+      }
 
-        function generateUniqueQuestions(category, grade, count) {
-          const questions = [];
-          const usedKeys = new Set();
-          let tries = 0;
-          while (questions.length < count && tries < 300) {
-            const q = generateQuestion(category, grade);
-            if (q) {
-              const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) {
-                usedKeys.add(key);
-                if (q.type==='choice'&&q.options) q.options = uniqueArray(q.options);
-                questions.push(q);
-              }
-            }
-            tries++;
-          }
-          while (questions.length < count) {
-            const q = generateQuestion(category, grade);
-            if (q) {
-              if (q.type==='choice'&&q.options) q.options = uniqueArray(q.options);
+      function generateUniqueQuestions(category, grade, count) {
+        const questions = [], usedKeys = new Set();
+        for (let tries = 0; questions.length < count && tries < 300; tries++) {
+          const q = generateQuestion(category, grade);
+          if (q) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              if (q.type === 'choice' && q.options) q.options = uniqueArray(q.options);
               questions.push(q);
             }
           }
-          return shuffle(questions);
         }
-
-        function generateQuestionBatch() {
-          feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
-          showCorrectModal.value = false;
-          const grade = currentGrade.value, game = currentGame.value;
-          const count = Math.min(Math.max(questionCount.value, 1), 20);
-          questionQueue.value = generateUniqueQuestions(game, grade, count);
-          gameStarted.value = true; questionCount.value = count;
-          showNextQuestion();
-        }
-
-        function showNextQuestion() {
-          if (questionQueue.value.length > 0) {
-            question.value = questionQueue.value.shift();
-            feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
-          } else {
-            question.value = null; gameStarted.value = false;
-            showToast('🎉 本轮练习完成！');
+        while (questions.length < count) {
+          const q = generateQuestion(category, grade);
+          if (q) {
+            if (q.type === 'choice' && q.options) q.options = uniqueArray(q.options);
+            questions.push(q);
           }
         }
-
-        function answer(userAnswer) {
-          if (!question.value || showCorrectModal.value) return;
-          if (isAnswerCorrect(userAnswer, question.value.answer)) {
-            handleCorrect();
-          } else {
-            feedback.value = '❌ 再想想吧，试试看！';
-          }
-        }
-
-        function answerTime() {
-          if (!question.value || showCorrectModal.value) return;
-          const h = parseInt(userHours.value) || 0;
-          const m = parseInt(userMinutes.value) || 0;
-          if (isAnswerCorrect(`${h}小时${m}分钟`, question.value.answer)) {
-            handleCorrect();
-          } else {
-            feedback.value = '❌ 再想想吧，试试看！';
-          }
-        }
-
-        function handleCorrect() {
-          feedback.value = '';
-          encourageText.value = pick(['太厉害了！🌟','你真是数学小天才！','完全正确，棒棒哒！','哇，答对了！继续加油！','好聪明！✨']);
-          currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
-          showCorrectModal.value = true;
-          stars.value += 1 + Math.floor(currentGrade.value / 2);
-          const game = currentGame.value;
-          plantProgress[game] += PROGRESS_PER_CORRECT;
-          if (plantProgress[game] >= MAX_PROGRESS) {
-            plantProgress[game] = 0;
-            showToast('🌱 植物升级了！获得额外星星！');
-            stars.value += LEVEL_UP_BONUS;
-          }
-        }
-
-        function closeCorrectModal() {
-          if (modalClosing.value) return;
-          modalClosing.value = true;
-          showCorrectModal.value = false;
-          setTimeout(() => { modalClosing.value = false; showNextQuestion(); }, 300);
-        }
-
-        function beginExam() {
-          examStarted.value = true;
-          const grade = currentGrade.value;
-          const count = Math.min(Math.max(questionCount.value, 5), 20);
-          const categories = ['arithmetic','geometry','fraction','word','logic','measure'];
-          const questions = [];
-          const usedKeys = new Set();
-          for (const cat of categories) {
-            if (questions.length >= count) break;
-            const catQs = generateUniqueQuestions(cat, grade, 1);
-            for (const q of catQs) {
-              const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
-            }
-          }
-          while (questions.length < count) {
-            const cat = pick(categories);
-            const catQs = generateUniqueQuestions(cat, grade, 1);
-            for (const q of catQs) {
-              const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
-            }
-          }
-          examQuestions.value = shuffle(questions);
-          examAnswers.value = new Array(questions.length).fill('');
-          examSubmitted.value = false;
-        }
-
-        function submitExam() {
-          let correctCount = 0;
-          const results = [];
-          for (let i = 0; i < examQuestions.value.length; i++) {
-            const q = examQuestions.value[i];
-            const userAns = examAnswers.value[i] || '';
-            const ok = isAnswerCorrect(userAns, q.answer);
-            results.push(ok);
-            if (ok) correctCount++;
-          }
-          examResults.value = results;
-          examCorrect.value = correctCount;
-          examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
-          examSubmitted.value = true;
-          stars.value += correctCount * 2;
-          showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
-        }
-
-        function printExam() {
-          const grade = currentGrade.value;
-          const count = Math.min(Math.max(questionCount.value, 5), 20);
-          const categories = ['arithmetic','geometry','fraction','word','logic','measure'];
-          const questions = [];
-          const usedKeys = new Set();
-          for (const cat of categories) {
-            if (questions.length >= count) break;
-            const catQs = generateUniqueQuestions(cat, grade, 1);
-            for (const q of catQs) {
-              const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
-            }
-          }
-          while (questions.length < count) {
-            const cat = pick(categories);
-            const catQs = generateUniqueQuestions(cat, grade, 1);
-            for (const q of catQs) {
-              const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
-            }
-          }
-          const printWindow = window.open('', '_blank', 'width=800,height=600');
-          if (!printWindow) { showToast('请允许弹出窗口'); return; }
-          let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>试卷</title><style>body{font-family:PingFang SC,Microsoft YaHei,sans-serif;margin:20px}h1{text-align:center}.info{text-align:center;margin-bottom:20px}.q{margin-bottom:18px}.q-text{font-size:16px;font-weight:bold}.q-image{font-size:40px;text-align:center}.options{margin-left:20px;font-size:16px}.options span{margin-right:20px}.answer-line{border-bottom:1px solid #000;width:120px;display:inline-block;margin-left:10px}@media print{body{margin:0}.page-break{page-break-after:always}}</style></head><body>';
-          html += `<h1>🌻 啾啾数学花园 试卷</h1><div class="info">年级：${gradeNames[grade]} | 姓名：________ 日期：________</div>`;
-          questions.forEach((q, i) => {
-            html += `<div class="q"><div class="q-text">${i+1}. ${q.text}</div>`;
-            if (q.image) html += `<div class="q-image">${q.image}</div>`;
-            if (q.type === 'choice') {
-              html += '<div class="options">';
-              q.options.forEach(opt => html += `<span>○ ${opt}</span>`);
-              html += '</div>';
-            } else {
-              html += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
-            }
-            html += '</div>';
-          });
-          html += '<div class="page-break"></div><h1>🧠 答案与解题思路</h1>';
-          questions.forEach((q, i) => {
-            html += `<div class="q"><div class="q-text">${i+1}. 答案：<strong>${q.answer}</strong></div><div style="font-size:14px;color:#555">${q.solution}</div></div>`;
-          });
-          html += '</body></html>';
-          printWindow.document.write(html);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => printWindow.print(), 500);
-        }
-
-        watch(currentGrade, () => {
-          if (view.value === 'game' && !gameStarted.value) resetGameBatch();
-        });
-
-        return {
-          gradeNames, currentGrade, prevGrade, nextGrade,
-          stars, gardenLevel, toast, showToast,
-          plantProgress, view, currentGame, gameTitle,
-          questionCount, questionQueue, gameStarted,
-          openGame, generateQuestionBatch, resetGameBatch,
-          question, feedback, userInput, userHours, userMinutes,
-          answer, answerTime, showCorrectModal, encourageText, currentSolution, closeCorrectModal, modalClosing,
-          examStarted, examQuestions, examAnswers, examSubmitted,
-          examResults, examCorrect, examScore, examGrade,
-          startExam, beginExam, submitExam, resetExam,
-          printExam
-        };
+        return shuffle(questions);
       }
-    }).mount('#app');
-  })();
+
+      function generateQuestionBatch() {
+        feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
+        showCorrectModal.value = false;
+        const grade = currentGrade.value, game = currentGame.value;
+        const count = Math.min(Math.max(questionCount.value, 1), 20);
+        questionQueue.value = generateUniqueQuestions(game, grade, count);
+        gameStarted.value = true; questionCount.value = count;
+        showNextQuestion();
+      }
+
+      function showNextQuestion() {
+        if (questionQueue.value.length > 0) {
+          question.value = questionQueue.value.shift();
+          feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
+        } else {
+          question.value = null; gameStarted.value = false;
+          showToast('🎉 本轮练习完成！');
+        }
+      }
+
+      function answer(userAnswer) {
+        if (!question.value || showCorrectModal.value) return;
+        if (isAnswerCorrect(userAnswer, question.value.answer)) {
+          handleCorrect();
+        } else {
+          feedback.value = '❌ 再想想吧，试试看！';
+        }
+      }
+
+      function answerTime() {
+        if (!question.value || showCorrectModal.value) return;
+        const h = parseInt(userHours.value) || 0, m = parseInt(userMinutes.value) || 0;
+        if (isAnswerCorrect(`${h}小时${m}分钟`, question.value.answer)) {
+          handleCorrect();
+        } else {
+          feedback.value = '❌ 再想想吧，试试看！';
+        }
+      }
+
+      function handleCorrect() {
+        feedback.value = '';
+        encourageText.value = pick(['太厉害了！🌟', '你真是数学小天才！', '完全正确，棒棒哒！', '哇，答对了！继续加油！', '好聪明！✨']);
+        currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
+        showCorrectModal.value = true;
+        stars.value += 1 + Math.floor(currentGrade.value / 2);
+        const game = currentGame.value;
+        plantProgress[game] += PROGRESS_PER_CORRECT;
+        if (plantProgress[game] >= MAX_PROGRESS) {
+          plantProgress[game] = 0;
+          showToast('🌱 植物升级了！获得额外星星！');
+          stars.value += LEVEL_UP_BONUS;
+        }
+      }
+
+      function closeCorrectModal() {
+        if (modalClosing.value) return;
+        modalClosing.value = true;
+        showCorrectModal.value = false;
+        setTimeout(() => { modalClosing.value = false; showNextQuestion(); }, 300);
+      }
+
+      // ========== 考试模式 ==========
+      function beginExam() {
+        examStarted.value = true;
+        const grade = currentGrade.value, count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        const questions = [], usedKeys = new Set();
+        for (const cat of categories) {
+          if (questions.length >= count) break;
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
+          }
+        }
+        while (questions.length < count) {
+          const cat = pick(categories);
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
+          }
+        }
+        examQuestions.value = shuffle(questions);
+        examAnswers.value = new Array(questions.length).fill('');
+        examTimeHours.value = new Array(questions.length).fill(0);
+        examTimeMinutes.value = new Array(questions.length).fill(0);
+        examSubmitted.value = false;
+      }
+
+      function submitExam() {
+        let correctCount = 0;
+        const results = [];
+        for (let i = 0; i < examQuestions.value.length; i++) {
+          const q = examQuestions.value[i];
+          let userAns = examAnswers.value[i] || '';
+          // 如果是时间题，拼接小时分钟
+          if (q.type === 'time') {
+            const h = parseInt(examTimeHours.value[i]) || 0;
+            const m = parseInt(examTimeMinutes.value[i]) || 0;
+            userAns = `${h}小时${m}分钟`;
+          }
+          const ok = isAnswerCorrect(userAns, q.answer);
+          results.push(ok);
+          if (ok) correctCount++;
+        }
+        examResults.value = results;
+        examCorrect.value = correctCount;
+        examScore.value = Math.round(correctCount * 100 / examQuestions.value.length);
+        examSubmitted.value = true;
+        stars.value += correctCount * 2;
+        showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
+      }
+
+      // ========== 打印试卷 ==========
+      function printExam() {
+        const grade = currentGrade.value, count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        const questions = [], usedKeys = new Set();
+        for (const cat of categories) {
+          if (questions.length >= count) break;
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
+          }
+        }
+        while (questions.length < count) {
+          const cat = pick(categories);
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
+          }
+        }
+        const pw = window.open('', '_blank', 'width=800,height=600');
+        if (!pw) { showToast('请允许弹出窗口'); return; }
+        let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>试卷</title><style>body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;margin:20px}h1{text-align:center}.q{margin-bottom:18px}.q-text{font-size:16px;font-weight:bold}.options{margin-left:20px}.options span{margin-right:20px}.answer-line{border-bottom:1px solid #000;width:120px;display:inline-block;margin-left:10px}@media print{body{margin:0}.page-break{page-break-after:always}}</style></head><body>';
+        html += `<h1>🌻 啾啾数学花园 试卷</h1><div class="info">年级：${gradeNames[grade]} | 姓名：________ 日期：________</div>`;
+        questions.forEach((q, i) => {
+          html += `<div class="q"><div class="q-text">${i + 1}. ${q.text}</div>`;
+          if (q.image) html += `<div style="font-size:40px;text-align:center">${q.image}</div>`;
+          if (q.type === 'choice') {
+            html += '<div class="options">';
+            q.options.forEach(o => html += `<span>○ ${o}</span>`);
+            html += '</div>';
+          } else {
+            html += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
+          }
+          html += '</div>';
+        });
+        html += '<div class="page-break"></div><h1>🧠 答案与解题思路</h1>';
+        questions.forEach((q, i) => {
+          html += `<div class="q"><div class="q-text">${i + 1}. 答案：<strong>${q.answer}</strong></div><div style="font-size:14px;color:#555">${q.solution}</div></div>`;
+        });
+        html += '</body></html>';
+        pw.document.write(html); pw.document.close(); pw.focus();
+        setTimeout(() => pw.print(), 500);
+      }
+
+      watch(currentGrade, () => { if (view.value === 'game' && !gameStarted.value) resetGameBatch(); });
+
+      return {
+        gradeNames, currentGrade, prevGrade, nextGrade,
+        stars, gardenLevel, toast, showToast,
+        plantProgress, view, currentGame, gameTitle,
+        questionCount, questionQueue, gameStarted,
+        openGame, generateQuestionBatch, resetGameBatch,
+        question, feedback, userInput, userHours, userMinutes,
+        answer, answerTime, showCorrectModal, encourageText, currentSolution, closeCorrectModal, modalClosing,
+        examStarted, examQuestions, examAnswers, examTimeHours, examTimeMinutes, examSubmitted,
+        examResults, examCorrect, examScore, examGrade,
+        startExam, beginExam, submitExam, resetExam, printExam
+      };
+    }
+  }).mount('#app');
+})();
 </script>
 </body>
 </html>
