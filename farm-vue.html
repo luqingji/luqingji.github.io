@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>啾啾数学花园 · 最终修复版</title>
+  <title>啾啾数学花园 · 终极版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -92,6 +92,9 @@
     .exam-question.wrong { border-color: #e74c3c; background: #fff0f0; }
     .result-box { text-align: center; padding: 20px; }
     .result-grade { font-size: 40px; margin: 10px 0; }
+    .q-number-input {
+      width: 60px; text-align: center; font-size: 18px; padding: 4px; border: 2px solid #f1c40f; border-radius: 10px;
+    }
   </style>
 </head>
 <body>
@@ -148,15 +151,18 @@
         </div>
       </div>
 
-      <!-- 游戏视图 -->
+      <!-- 游戏视图（支持批量出题） -->
       <div v-if="view === 'game'">
-        <button class="btn" @click="view='garden'">← 回花园</button>
+        <button class="btn" @click="view='garden'; resetGameBatch()">← 回花园</button>
         <h3 style="text-align: center;">{{ gameTitle }}</h3>
-        <div v-if="!question" style="text-align: center; padding: 20px;">
-          <p>点击下方按钮开始挑战吧！</p>
-          <button class="btn" @click="generateQuestion">出题！</button>
+        <div v-if="!question && !gameStarted" style="text-align: center; padding: 20px;">
+          <p>选择题目数量：
+            <input v-model.number="questionCount" type="number" min="1" max="20" class="q-number-input"> 题
+          </p>
+          <button class="btn" @click="generateQuestionBatch">出题！</button>
         </div>
-        <div v-else class="card" style="text-align: center;">
+        <div v-else-if="question" class="card" style="text-align: center;">
+          <div style="font-size: 14px; color: #888;">剩余 {{ questionQueue.length + 1 }} / {{ questionCount }} 题</div>
           <div style="font-size: 22px; margin-bottom: 15px; line-height: 1.6; color: #4a2c1a;">{{ question.text }}</div>
           <div v-if="question.image" style="font-size: 50px; margin: 10px;">{{ question.image }}</div>
           <div v-if="question.type === 'choice'">
@@ -169,15 +175,20 @@
           </div>
           <p v-if="feedback" style="margin-top:12px;font-weight:bold;">{{ feedback }}</p>
         </div>
+        <div v-else-if="gameStarted && !question" style="text-align: center; padding: 20px;">
+          <p>🎉 本轮练习完成！</p>
+          <button class="btn" @click="generateQuestionBatch">再来一组</button>
+        </div>
       </div>
 
-      <!-- 考试视图 -->
+      <!-- 考试视图（支持自定义题数+去重） -->
       <div v-if="view === 'exam'">
         <button class="btn" @click="view='garden'; resetExam()">← 退出考试</button>
         <h3 style="text-align: center;">📝 综合考试 ({{ gradeNames[currentGrade] }})</h3>
         <div v-if="!examStarted" style="text-align: center; padding: 20px;">
-          <p>即将生成一套综合试卷，涵盖多种题型。</p>
-          <p>题目数量：10 题</p>
+          <p>选择题目数量：
+            <input v-model.number="questionCount" type="number" min="5" max="20" class="q-number-input"> 题
+          </p>
           <button class="btn" @click="beginExam" style="font-size: 20px;">开始考试</button>
           <button class="btn" @click="printExam" style="font-size: 20px;">🖨️ 打印试卷</button>
         </div>
@@ -225,6 +236,7 @@
       <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
     </div>
 
+    <!-- 正确弹窗（仅游戏模式单题答对时显示，批量模式不用） -->
     <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
       <div class="modal-content correct-modal-content">
         <div style="font-size: 60px;">🎉</div>
@@ -283,15 +295,27 @@
         return map[currentGame.value] || '';
       });
 
+      // 自定义题数
+      const questionCount = ref(10);
+
+      // 游戏批量模式
+      const questionQueue = ref([]);
+      const gameStarted = ref(false);
+
       function openGame(gameType) {
         currentGame.value = gameType;
         view.value = 'game';
+        resetGameBatch();
+      }
+
+      function resetGameBatch() {
         question.value = null;
+        questionQueue.value = [];
+        gameStarted.value = false;
         feedback.value = '';
         userInput.value = '';
         showCorrectModal.value = false;
         modalClosing.value = false;
-        generateQuestion();
       }
 
       const question = ref(null);
@@ -302,6 +326,7 @@
       const currentSolution = ref('');
       const modalClosing = ref(false);
 
+      // 考试状态
       const examStarted = ref(false);
       const examQuestions = ref([]);
       const examAnswers = ref([]);
@@ -332,6 +357,7 @@
         view.value = 'exam';
       }
 
+      // 工具函数
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
       function shuffle(arr) {
@@ -342,13 +368,8 @@
         }
         return a;
       }
-      function shuffleUnique(arr) {
-        var unique = [];
-        var seen = {};
-        for (var i = 0; i < arr.length; i++) {
-          if (!seen[arr[i]]) { seen[arr[i]] = true; unique.push(arr[i]); }
-        }
-        return shuffle(unique);
+      function uniqueArray(arr) {
+        return [...new Set(arr)];
       }
       function fib(n) {
         if (n <= 0) return 0;
@@ -373,9 +394,10 @@
         return false;
       }
 
+      // ========== 题目生成器（修复所有已知问题） ==========
       var generators = {};
 
-      // 算术
+      // 算术花田
       generators.arithmetic = [];
       generators.arithmetic[0] = [
         function() {
@@ -386,7 +408,7 @@
             text: '🌿 森林里来了一群小动物，你瞧：' + animals + '。数一数，一共有几只小可爱呀？',
             image: animals, type: 'choice', answer: String(c),
             solution: '小动物们排成一排，我们挨个点数，一共是 ' + c + ' 只。',
-            options: shuffleUnique([c, c+1, c-1].filter(function(n){return n>0 && n <= e.length;}).map(String))
+            options: uniqueArray([c, c+1, c-1].filter(function(n){return n>0 && n <= e.length;}).map(String))
           };
         },
         function() {
@@ -410,7 +432,7 @@
             text: '🔢 数字宝宝 ' + a + ' 正在排队，排在它后面的下一个数字是谁呢？',
             type: 'choice', answer: String(a+1),
             solution: '数数的时候，' + a + ' 的后面紧跟着就是 ' + (a+1) + '。',
-            options: shuffleUnique([a-1, a+1, a+2].filter(function(n){return n>0;}).map(String))
+            options: uniqueArray([a-1, a+1, a+2].filter(function(n){return n>0;}).map(String))
           };
         }
       ];
@@ -421,7 +443,7 @@
             text: '🐦 树上有 ' + a + ' 只小鸟，又飞来了 ' + b + ' 只。现在树上共有几只小鸟呢？',
             type: 'choice', answer: String(a+b),
             solution: '原来有 ' + a + ' 只，加上飞来的 ' + b + ' 只，算式是 ' + a + '+' + b + '=' + (a+b) + '。',
-            options: shuffleUnique([a+b, a+b+1, a+b-1].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a+b, a+b+1, a+b-1].filter(function(n){return n>=0;}).map(String))
           };
         },
         function() {
@@ -430,7 +452,7 @@
             text: '🍬 小明有 ' + a + ' 颗糖，他分给了小红 ' + b + ' 颗。小明还剩几颗糖？',
             type: 'choice', answer: String(a-b),
             solution: '从 ' + a + ' 里拿走 ' + b + '，用减法：' + a + '-' + b + '=' + (a-b) + '。',
-            options: shuffleUnique([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String))
           };
         },
         function() {
@@ -451,7 +473,7 @@
             text: '🌸 花坛里每排放 ' + a + ' 盆花，一共种了 ' + b + ' 排。总共有多少盆花呢？',
             type: 'choice', answer: String(a*b),
             solution: '每排 ' + a + ' 盆，有 ' + b + ' 排，就是 ' + b + ' 个 ' + a + ' 相加，用乘法：' + a + '×' + b + '=' + (a*b) + '。',
-            options: shuffleUnique([a*b, a*b+a, a*b-a].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a*b, a*b+a, a*b-a].filter(function(n){return n>=0;}).map(String))
           };
         },
         function() {
@@ -460,7 +482,7 @@
             text: '🍪 妈妈烤了 ' + a + ' 块饼干，平均分给 ' + b + ' 个小朋友。每人分到几块？',
             type: 'choice', answer: String(ans),
             solution: '把 ' + a + ' 平均分成 ' + b + ' 份，用除法：' + a + '÷' + b + '=' + ans + '。',
-            options: shuffleUnique([ans, ans+1, ans-1].filter(function(n){return n>0;}).map(String))
+            options: uniqueArray([ans, ans+1, ans-1].filter(function(n){return n>0;}).map(String))
           };
         }
       ];
@@ -517,7 +539,6 @@
       // 图形树屋
       generators.geometry = [];
       generators.geometry[0] = [
-        // 修复：image 改为🎁，不泄露答案
         function() {
           var shapes = ['圆形','正方形','三角形'];
           var s = pick(shapes);
@@ -526,16 +547,14 @@
           var descMap = { '圆形':'圆圆的，没有角', '正方形':'有四条一样长的边和四个直角', '三角形':'有三条边和三个角' };
           return {
             text: '🔍 魔法图形箱里有一个图形，它叫做"' + s + '"。下面哪一个才是它的样子呢？',
-            image: '🎁',
-            type: 'choice',
-            answer: symbol,
+            image: '🎁', type: 'choice', answer: symbol,
             solution: symbol + '（' + s + '）的特征是：' + descMap[s] + '。',
             options: shuffle(['●','■','▲'])
           };
         },
         function() {
           var a = rand(5,15), b = rand(1,5);
-          return { text: '📏 一支铅笔长 ' + a + ' 厘米，一块橡皮长 ' + b + ' 厘米。把它们首尾相接，一共有多长？', type: 'choice', answer: String(a+b), solution: '把两段长度加起来：' + a + ' + ' + b + ' = ' + (a+b) + ' 厘米。', options: shuffleUnique([a+b, a+b+1, a+b-1].map(String)) };
+          return { text: '📏 一支铅笔长 ' + a + ' 厘米，一块橡皮长 ' + b + ' 厘米。把它们首尾相接，一共有多长？', type: 'choice', answer: String(a+b), solution: '把两段长度加起来：' + a + ' + ' + b + ' = ' + (a+b) + ' 厘米。', options: uniqueArray([a+b, a+b+1, a+b-1].map(String)) };
         }
       ];
       generators.geometry[1] = [
@@ -594,18 +613,18 @@
         }
       ];
 
-      // 分数厨房
+      // 分数厨房（选项自动去重）
       generators.fraction = [];
       generators.fraction[0] = [
         function() {
           var total = rand(4,8), parts = 2;
-          return { text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？', type: 'choice', answer: String(total/2), solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。', options: [String(total/2), String(total/2+1), String(total/2-1)].filter(function(n){return parseFloat(n)>=0;}) };
+          return { text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？', type: 'choice', answer: String(total/2), solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。', options: uniqueArray([String(total/2), String(total/2+1), String(total/2-1)].filter(function(n){return parseFloat(n)>=0;})) };
         }
       ];
       generators.fraction[1] = [
         function() {
           var a = rand(2,6), b = rand(2,6);
-          return { text: '🍰 妈妈把一块蛋糕切成了 ' + (a+b) + ' 小块，小明吃了 ' + a + ' 块，还剩几块？', type: 'choice', answer: String(b), solution: '总块数减去吃掉的就是剩下的：' + (a+b) + ' - ' + a + ' = ' + b + '。', options: shuffleUnique([b, a, a+b].map(String)) };
+          return { text: '🍰 妈妈把一块蛋糕切成了 ' + (a+b) + ' 小块，小明吃了 ' + a + ' 块，还剩几块？', type: 'choice', answer: String(b), solution: '总块数减去吃掉的就是剩下的：' + (a+b) + ' - ' + a + ' = ' + b + '。', options: uniqueArray([String(b), String(a), String(a+b)]) };
         }
       ];
       generators.fraction[2] = [
@@ -617,17 +636,17 @@
       generators.fraction[3] = [
         function() {
           var d = rand(2,6), n = rand(1,d-1);
-          return { text: '⬛ 下面这个长方形被分成了 ' + d + ' 个小格，其中 ' + n + ' 个是黑色的。黑色部分占整个长方形的几分之几？', image: '⬛'.repeat(n) + '⬜'.repeat(d-n), type: 'choice', answer: n + '/' + d, solution: '整体被分成 ' + d + ' 份，涂色部分有 ' + n + ' 份，所以是 ' + n + '/' + d + '。', options: [n + '/' + d, (d-n) + '/' + d, (n+1) + '/' + d] };
+          return { text: '⬛ 下面这个长方形被分成了 ' + d + ' 个小格，其中 ' + n + ' 个是黑色的。黑色部分占整个长方形的几分之几？', image: '⬛'.repeat(n) + '⬜'.repeat(d-n), type: 'choice', answer: n + '/' + d, solution: '整体被分成 ' + d + ' 份，涂色部分有 ' + n + ' 份，所以是 ' + n + '/' + d + '。', options: uniqueArray([n + '/' + d, (d-n) + '/' + d, (n+1) + '/' + d]) };
         },
         function() {
           var d = rand(2,6), n1 = rand(1,d-1), n2 = rand(1,d-1);
-          return { text: '🧮 计算：' + n1 + '/' + d + ' + ' + n2 + '/' + d + ' = ? （同分母分数相加）', type: 'choice', answer: (n1+n2) + '/' + d, solution: '分母相同，分子直接相加：' + n1 + ' + ' + n2 + ' = ' + (n1+n2) + '，所以答案是 ' + (n1+n2) + '/' + d + '。', options: [(n1+n2) + '/' + d, (n1+n2+1) + '/' + d, (n1+n2-1) + '/' + d] };
+          return { text: '🧮 计算：' + n1 + '/' + d + ' + ' + n2 + '/' + d + ' = ? （同分母分数相加）', type: 'choice', answer: (n1+n2) + '/' + d, solution: '分母相同，分子直接相加：' + n1 + ' + ' + n2 + ' = ' + (n1+n2) + '，所以答案是 ' + (n1+n2) + '/' + d + '。', options: uniqueArray([(n1+n2) + '/' + d, (n1+n2+1) + '/' + d, (n1+n2-1) + '/' + d]) };
         }
       ];
       generators.fraction[4] = [
         function() {
           var d = rand(3,8), n1 = rand(1,d-1), n2 = rand(1,n1);
-          return { text: '📝 计算：' + n1 + '/' + d + ' - ' + n2 + '/' + d + ' = ? （同分母分数相减）', type: 'choice', answer: (n1-n2) + '/' + d, solution: '分母相同，分子相减：' + n1 + ' - ' + n2 + ' = ' + (n1-n2) + '，所以是 ' + (n1-n2) + '/' + d + '。', options: [(n1-n2) + '/' + d, (n1-n2+1) + '/' + d, (n1-n2-1) + '/' + d] };
+          return { text: '📝 计算：' + n1 + '/' + d + ' - ' + n2 + '/' + d + ' = ? （同分母分数相减）', type: 'choice', answer: (n1-n2) + '/' + d, solution: '分母相同，分子相减：' + n1 + ' - ' + n2 + ' = ' + (n1-n2) + '，所以是 ' + (n1-n2) + '/' + d + '。', options: uniqueArray([(n1-n2) + '/' + d, (n1-n2+1) + '/' + d, (n1-n2-1) + '/' + d]) };
         },
         function() {
           var a = rand(1,3), b = rand(2,4), c = rand(1,3), d = rand(2,4);
@@ -661,11 +680,11 @@
       generators.word[0] = [
         function() {
           var a = rand(2,5), b = rand(1,3);
-          return { text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？', type: 'choice', answer: String(a-b), solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。', options: shuffleUnique([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String)) };
+          return { text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？', type: 'choice', answer: String(a-b), solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。', options: uniqueArray([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String)) };
         },
         function() {
           var a = rand(2,6), b = rand(2,5);
-          return { text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？', type: 'choice', answer: String(a-b), solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。', options: shuffleUnique([a-b, a-b+1, a-b-1].map(String)) };
+          return { text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？', type: 'choice', answer: String(a-b), solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。', options: uniqueArray([a-b, a-b+1, a-b-1].map(String)) };
         }
       ];
       generators.word[1] = [
@@ -876,55 +895,134 @@
         }
       ];
 
-      function generateExamQuestions(grade) {
-        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+      // 生成带去重的题目列表
+      function generateUniqueQuestions(category, grade, count) {
+        var list = generators[category];
+        if (!list || !list[grade]) return [];
+        var funcs = list[grade];
         var questions = [];
-        var perCat = 1;
-        var remaining = 10 - categories.length;
-        if (remaining < 0) remaining = 0;
-        for (var i = 0; i < categories.length; i++) {
-          var cat = categories[i];
-          var num = perCat + (remaining > 0 ? Math.floor(Math.random() * (remaining + 1)) : 0);
-          if (num > 0) {
-            var list = generators[cat];
-            if (list && list[grade]) {
-              var funcs = list[grade];
-              for (var j = 0; j < num; j++) {
-                var q = funcs[rand(0, funcs.length-1)]();
-                if (!q.solution) q.solution = '本题考察基础知识，细心计算即可。';
-                questions.push(q);
+        var usedKeys = new Set();
+        var tries = 0;
+        while (questions.length < count && tries < 200) {
+          var q = funcs[rand(0, funcs.length-1)]();
+          if (q) {
+            var key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              // 确保选项不重复
+              if (q.type === 'choice' && q.options) {
+                q.options = uniqueArray(q.options);
               }
-              remaining -= (num - 1);
+              questions.push(q);
             }
           }
+          tries++;
         }
-        while (questions.length < 10) {
-          var cat2 = categories[rand(0, categories.length-1)];
-          var list2 = generators[cat2];
-          if (list2 && list2[grade]) {
-            var funcs2 = list2[grade];
-            var q2 = funcs2[rand(0, funcs2.length-1)]();
-            if (!q2.solution) q2.solution = '本题考察基础知识，细心计算即可。';
+        // 如果不够，从原题库补充（可能轻微重复）
+        while (questions.length < count) {
+          var q2 = funcs[rand(0, funcs.length-1)]();
+          if (q2) {
+            if (q2.type === 'choice' && q2.options) {
+              q2.options = uniqueArray(q2.options);
+            }
             questions.push(q2);
           }
         }
         return shuffle(questions);
       }
 
+      // 游戏模式批量生成
+      function generateQuestionBatch() {
+        feedback.value = '';
+        userInput.value = '';
+        showCorrectModal.value = false;
+        const grade = currentGrade.value;
+        const game = currentGame.value;
+        const count = Math.min(Math.max(questionCount.value, 1), 20);
+        questionQueue.value = generateUniqueQuestions(game, grade, count);
+        gameStarted.value = true;
+        questionCount.value = count; // 同步显示
+        showNextQuestion();
+      }
+
+      function showNextQuestion() {
+        if (questionQueue.value.length > 0) {
+          question.value = questionQueue.value.shift();
+          feedback.value = '';
+          userInput.value = '';
+        } else {
+          question.value = null;
+          gameStarted.value = false;
+          showToast('🎉 本轮练习完成！');
+        }
+      }
+
+      // 答案处理（批量模式）
+      function answer(userAnswer) {
+        if (!question.value || showCorrectModal.value) return;
+        const isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
+        if (isCorrect) {
+          feedback.value = '✅ 正确！';
+          stars.value += 1 + Math.floor(currentGrade.value / 2);
+          const game = currentGame.value;
+          plantProgress[game] += PROGRESS_PER_CORRECT;
+          if (plantProgress[game] >= MAX_PROGRESS) {
+            plantProgress[game] = 0;
+            showToast('🌱 植物升级了！获得额外星星！');
+            stars.value += LEVEL_UP_BONUS;
+          }
+          setTimeout(() => showNextQuestion(), 400);
+        } else {
+          feedback.value = '❌ 再想想，试试看！';
+        }
+      }
+
+      // 考试模式生成（去重）
       function beginExam() {
         examStarted.value = true;
-        examQuestions.value = generateExamQuestions(currentGrade.value);
-        examAnswers.value = new Array(examQuestions.value.length).fill('');
+        const grade = currentGrade.value;
+        const count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        let questions = [];
+        const usedKeys = new Set();
+        // 从每个类别至少取1题
+        for (let i = 0; i < categories.length && questions.length < count; i++) {
+          const catQs = generateUniqueQuestions(categories[i], grade, 1);
+          for (let q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
+              if (questions.length >= count) break;
+            }
+          }
+        }
+        // 如果还不够，继续随机补充
+        while (questions.length < count) {
+          const cat = categories[rand(0, categories.length-1)];
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (let q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
+              if (questions.length >= count) break;
+            }
+          }
+        }
+        questions = shuffle(questions);
+        examQuestions.value = questions;
+        examAnswers.value = new Array(questions.length).fill('');
         examSubmitted.value = false;
       }
 
       function submitExam() {
-        var correctCount = 0;
-        var results = [];
-        for (var i = 0; i < examQuestions.value.length; i++) {
-          var q = examQuestions.value[i];
-          var userAns = examAnswers.value[i] || '';
-          var isCorrect = isAnswerCorrect(userAns, q.answer);
+        let correctCount = 0;
+        const results = [];
+        for (let i = 0; i < examQuestions.value.length; i++) {
+          const q = examQuestions.value[i];
+          const userAns = examAnswers.value[i] || '';
+          const isCorrect = isAnswerCorrect(userAns, q.answer);
           results.push(isCorrect);
           if (isCorrect) correctCount++;
         }
@@ -936,121 +1034,79 @@
         showToast('考试完成！获得 ' + (correctCount * 2) + ' 颗星星！');
       }
 
+      // 打印试卷
       function printExam() {
-        var grade = currentGrade.value;
-        var questions = generateExamQuestions(grade);
-        var printWindow = window.open('', '_blank', 'width=800,height=600');
+        const grade = currentGrade.value;
+        const count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
+        let questions = [];
+        const usedKeys = new Set();
+        for (let i = 0; i < categories.length && questions.length < count; i++) {
+          const catQs = generateUniqueQuestions(categories[i], grade, 1);
+          for (let q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
+              if (questions.length >= count) break;
+            }
+          }
+        }
+        while (questions.length < count) {
+          const cat = categories[rand(0, categories.length-1)];
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (let q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
+              if (questions.length >= count) break;
+            }
+          }
+        }
+        questions = shuffle(questions);
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
         if (!printWindow) {
           showToast('请允许弹出窗口以打印试卷');
           return;
         }
-        var examHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>啾啾数学试卷</title>';
-        examHtml += '<style>';
-        examHtml += 'body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; margin: 20px; }';
-        examHtml += 'h1 { text-align: center; font-size: 24px; margin-bottom: 10px; }';
-        examHtml += '.info { text-align: center; margin-bottom: 20px; font-size: 16px; }';
-        examHtml += '.question { margin-bottom: 18px; page-break-inside: avoid; }';
-        examHtml += '.q-text { font-size: 16px; font-weight: bold; margin-bottom: 6px; }';
-        examHtml += '.q-image { font-size: 40px; text-align: center; margin: 6px 0; }';
-        examHtml += '.options { margin-left: 20px; font-size: 16px; }';
-        examHtml += '.options span { margin-right: 20px; }';
-        examHtml += '.answer-line { border-bottom: 1px solid #000; width: 120px; display: inline-block; margin-left: 10px; }';
-        examHtml += '@media print { body { margin: 0; } .page-break { page-break-after: always; } }';
-        examHtml += '</style></head><body>';
-        examHtml += '<h1>🌻 啾啾数学花园 试卷</h1>';
-        examHtml += '<div class="info">年级：' + gradeNames[grade] + ' | 姓名：________ 日期：________</div>';
-        for (var i = 0; i < questions.length; i++) {
-          var q = questions[i];
-          examHtml += '<div class="question">';
-          examHtml += '<div class="q-text">' + (i+1) + '. ' + q.text + '</div>';
+        let examHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>啾啾数学试卷</title>';
+        examHtml += '<style>body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;margin:20px;}h1{text-align:center;font-size:24px;}.info{text-align:center;margin-bottom:20px;}.q{margin-bottom:18px;}.q-text{font-size:16px;font-weight:bold;}.q-image{font-size:40px;text-align:center;}.options{margin-left:20px;font-size:16px;}.options span{margin-right:20px;}.answer-line{border-bottom:1px solid #000;width:120px;display:inline-block;margin-left:10px;}@media print{body{margin:0;}.page-break{page-break-after:always;}}</style></head><body>';
+        examHtml += '<h1>🌻 啾啾数学花园 试卷</h1><div class="info">年级：' + gradeNames[grade] + ' | 姓名：________ 日期：________</div>';
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          examHtml += '<div class="q"><div class="q-text">' + (i+1) + '. ' + q.text + '</div>';
           if (q.image) examHtml += '<div class="q-image">' + q.image + '</div>';
           if (q.type === 'choice') {
             examHtml += '<div class="options">';
-            for (var j = 0; j < q.options.length; j++) {
-              examHtml += '<span>○ ' + q.options[j] + '</span>';
-            }
+            for (let j = 0; j < q.options.length; j++) examHtml += '<span>○ ' + q.options[j] + '</span>';
             examHtml += '</div>';
           } else {
             examHtml += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
           }
           examHtml += '</div>';
         }
-        examHtml += '<div class="page-break"></div>';
-        examHtml += '<h1>🧠 答案与解题思路</h1>';
-        for (var k = 0; k < questions.length; k++) {
-          var aq = questions[k];
-          examHtml += '<div class="question">';
-          examHtml += '<div class="q-text">' + (k+1) + '. 答案：<strong>' + aq.answer + '</strong></div>';
-          examHtml += '<div style="font-size:14px; color:#555;">' + aq.solution + '</div>';
-          examHtml += '</div>';
+        examHtml += '<div class="page-break"></div><h1>🧠 答案与解题思路</h1>';
+        for (let k = 0; k < questions.length; k++) {
+          const aq = questions[k];
+          examHtml += '<div class="q"><div class="q-text">' + (k+1) + '. 答案：<strong>' + aq.answer + '</strong></div><div style="font-size:14px;color:#555;">' + aq.solution + '</div></div>';
         }
         examHtml += '</body></html>';
         printWindow.document.write(examHtml);
         printWindow.document.close();
         printWindow.focus();
-        setTimeout(function() { printWindow.print(); }, 500);
+        setTimeout(() => printWindow.print(), 500);
       }
 
+      // 单题模式生成器（旧版兼容，实际游戏模式已不再使用，但保留）
       function genQuestion(category, grade) {
-        var list = generators[category];
+        const list = generators[category];
         if (!list || !list[grade]) return null;
-        var funcs = list[grade];
-        return funcs[rand(0, funcs.length-1)]();
+        return list[grade][rand(0, list[grade].length-1)]();
       }
 
-      function generateQuestion() {
-        feedback.value = '';
-        userInput.value = '';
-        var grade = currentGrade.value;
-        var game = currentGame.value;
-        var q = genQuestion(game, grade);
-        if (!q) {
-          q = { text: '题目准备中，请稍后再试~', type: 'choice', answer: '好的', solution: '暂无题目，请切换年级或游戏。', options: ['好的', '知道了'] };
-        }
-        if (!q.solution) q.solution = '这道题考察了基本的数学知识，细心计算就能得出答案。';
-        if (q.type === 'choice' && q.options) {
-          if (q.options.indexOf(q.answer) === -1) q.options.push(q.answer);
-          q.options = shuffleUnique(q.options).slice(0,4);
-        }
-        question.value = q;
-      }
-
-      function answer(userAnswer) {
-        if (!question.value || showCorrectModal.value) return;
-        var isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
-        if (isCorrect) {
-          feedback.value = '';
-          encourageText.value = pick(['太厉害了！🌟', '你真是数学小天才！', '完全正确，棒棒哒！', '哇，答对了！继续加油！', '好聪明！✨']);
-          currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
-          showCorrectModal.value = true;
-          stars.value += 1 + Math.floor(currentGrade.value / 2);
-          var game = currentGame.value;
-          plantProgress[game] += PROGRESS_PER_CORRECT;
-          if (plantProgress[game] >= MAX_PROGRESS) {
-            plantProgress[game] = 0;
-            showToast('🌱 植物升级了！获得额外星星！');
-            stars.value += LEVEL_UP_BONUS;
-          }
-        } else {
-          feedback.value = '❌ 再想想吧，试试看！';
-          showToast('不对哦，再试一次～');
-        }
-      }
-
-      function closeCorrectModal() {
-        if (modalClosing.value) return;
-        modalClosing.value = true;
-        showCorrectModal.value = false;
-        setTimeout(function() {
-          modalClosing.value = false;
-          generateQuestion();
-        }, 300);
-      }
-
-      watch(currentGrade, function() {
-        if (view.value === 'game' && currentGame.value) {
-          generateQuestion();
-        }
+      watch(currentGrade, () => {
+        if (view.value === 'game' && !gameStarted.value) resetGameBatch();
       });
 
       return {
@@ -1059,7 +1115,9 @@
         stars, gardenLevel, toast, showToast,
         plantProgress,
         view, currentGame, gameTitle,
-        openGame, generateQuestion, question, feedback, userInput, answer,
+        questionCount, questionQueue, gameStarted,
+        openGame, generateQuestionBatch, resetGameBatch,
+        question, feedback, userInput, answer,
         showCorrectModal, encourageText, currentSolution, closeCorrectModal,
         modalClosing,
         examStarted, examQuestions, examAnswers, examSubmitted, examResults, examCorrect, examScore, examGrade,
