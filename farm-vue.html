@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>啾啾数学花园 · 终极修复版</title>
+  <title>啾啾数学花园 · AI 增强版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -95,6 +95,7 @@
     .q-number-input {
       width: 60px; text-align: center; font-size: 18px; padding: 4px; border: 2px solid #f1c40f; border-radius: 10px;
     }
+    .ai-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -145,16 +146,20 @@
             <div class="progress-bar"><div class="progress-fill" :style="{width: plantProgress.measure+'%'}"></div></div>
           </div>
         </div>
+        <div class="ai-toggle">
+          <label style="font-size:16px;">🧠 AI 智能出题</label>
+          <input type="checkbox" v-model="useAI" style="transform: scale(1.3);">
+        </div>
         <div style="text-align:center; margin-top: 15px;">
           <button class="btn" @click="startExam" style="font-size: 20px; padding: 12px 30px;">📝 进入考试</button>
           <button class="btn" @click="printExam" style="font-size: 20px; padding: 12px 30px;">🖨️ 打印试卷</button>
         </div>
       </div>
 
-      <!-- 游戏视图（批量出题） -->
+      <!-- 游戏视图 -->
       <div v-if="view === 'game'">
         <button class="btn" @click="view='garden'; resetGameBatch()">← 回花园</button>
-        <h3 style="text-align: center;">{{ gameTitle }}</h3>
+        <h3 style="text-align: center;">{{ gameTitle }} <span v-if="useAI" style="color:#27ae60;">🧠 AI 出题</span></h3>
         <div v-if="!question && !gameStarted" style="text-align: center; padding: 20px;">
           <p>选择题目数量：
             <input v-model.number="questionCount" type="number" min="1" max="20" class="q-number-input"> 题
@@ -236,7 +241,6 @@
       <button @click="view='garden'" style="flex:1;padding:14px;border:none;background:transparent;font-size:20px;cursor:pointer;">🏡 花园</button>
     </div>
 
-    <!-- 正确弹窗（仅在单题模式下可能用到，批量模式不会触发） -->
     <div v-if="showCorrectModal" class="modal" @click.self="closeCorrectModal">
       <div class="modal-content correct-modal-content">
         <div style="font-size: 60px;">🎉</div>
@@ -270,54 +274,31 @@
       const MAX_PROGRESS = 100;
       const LEVEL_UP_BONUS = 3;
 
-      const gradeNames = ['幼儿园', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+      const gradeNames = ['幼儿园','一年级','二年级','三年级','四年级','五年级','六年级'];
       const currentGrade = ref(0);
       function prevGrade() { if (currentGrade.value > 0) currentGrade.value--; }
       function nextGrade() { if (currentGrade.value < gradeNames.length-1) currentGrade.value++; }
 
       const stars = ref(0);
-      const gardenLevel = computed(function() { return Math.floor(stars.value / STARS_PER_LEVEL) + 1; });
+      const gardenLevel = computed(() => Math.floor(stars.value / STARS_PER_LEVEL) + 1);
       const toast = reactive({ show: false, message: '' });
-      function showToast(msg) { toast.message = msg; toast.show = true; setTimeout(function() { toast.show = false; }, 2000); }
+      function showToast(msg) { toast.message = msg; toast.show = true; setTimeout(() => toast.show = false, 2000); }
 
       const plantProgress = reactive({
-        arithmetic: 0, geometry: 0, fraction: 0,
-        word: 0, logic: 0, measure: 0
+        arithmetic:0, geometry:0, fraction:0, word:0, logic:0, measure:0
       });
 
       const view = ref('garden');
       const currentGame = ref('');
-      const gameTitle = computed(function() {
-        var map = {
-          arithmetic: '算术花田', geometry: '图形树屋', fraction: '分数厨房',
-          word: '应用小岛', logic: '逻辑密室', measure: '度量工坊'
-        };
-        return map[currentGame.value] || '';
-      });
+      const gameTitle = computed(() => ({
+        arithmetic:'算术花田', geometry:'图形树屋', fraction:'分数厨房',
+        word:'应用小岛', logic:'逻辑密室', measure:'度量工坊'
+      })[currentGame.value] || '');
 
-      // 自定义题数
+      const useAI = ref(false); // AI 开关
       const questionCount = ref(10);
-
-      // 游戏批量模式
       const questionQueue = ref([]);
       const gameStarted = ref(false);
-
-      function openGame(gameType) {
-        currentGame.value = gameType;
-        view.value = 'game';
-        resetGameBatch();
-      }
-
-      function resetGameBatch() {
-        question.value = null;
-        questionQueue.value = [];
-        gameStarted.value = false;
-        feedback.value = '';
-        userInput.value = '';
-        showCorrectModal.value = false;
-        modalClosing.value = false;
-      }
-
       const question = ref(null);
       const feedback = ref('');
       const userInput = ref('');
@@ -326,7 +307,6 @@
       const currentSolution = ref('');
       const modalClosing = ref(false);
 
-      // 考试状态
       const examStarted = ref(false);
       const examQuestions = ref([]);
       const examAnswers = ref([]);
@@ -334,8 +314,8 @@
       const examResults = ref([]);
       const examCorrect = ref(0);
       const examScore = ref(0);
-      const examGrade = computed(function() {
-        var pct = examCorrect.value / examQuestions.value.length;
+      const examGrade = computed(() => {
+        const pct = examCorrect.value / examQuestions.value.length;
         if (pct === 1) return '🌟🌟🌟 满分达人！';
         if (pct >= 0.8) return '🌟🌟 非常优秀！';
         if (pct >= 0.6) return '🌟 继续加油！';
@@ -351,20 +331,30 @@
         examCorrect.value = 0;
         examScore.value = 0;
       }
-
-      function startExam() {
-        resetExam();
-        view.value = 'exam';
+      function startExam() { resetExam(); view.value = 'exam'; }
+      function openGame(gameType) {
+        currentGame.value = gameType;
+        view.value = 'game';
+        resetGameBatch();
+      }
+      function resetGameBatch() {
+        question.value = null;
+        questionQueue.value = [];
+        gameStarted.value = false;
+        feedback.value = '';
+        userInput.value = '';
+        showCorrectModal.value = false;
+        modalClosing.value = false;
       }
 
       // 工具函数
       function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
       function pick(arr) { return arr[rand(0, arr.length-1)]; }
       function shuffle(arr) {
-        var a = arr.slice();
-        for (var i = a.length - 1; i > 0; i--) {
-          var j = Math.floor(Math.random() * (i + 1));
-          var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
         }
         return a;
       }
@@ -372,27 +362,24 @@
       function fib(n) {
         if (n <= 0) return 0;
         if (n <= 2) return 1;
-        var a = 1, b = 1;
-        for (var i = 3; i <= n; i++) { var c = a + b; a = b; b = c; }
+        let a = 1, b = 1;
+        for (let i = 3; i <= n; i++) { const c = a + b; a = b; b = c; }
         return b;
       }
-
       function normalizeAnswer(str) {
         if (str === null || str === undefined) return '';
         return String(str).replace(/\s+/g, '').toLowerCase();
       }
-
       function isAnswerCorrect(userAnswer, correctAnswer) {
-        var userStr = normalizeAnswer(userAnswer);
-        var correctStr = normalizeAnswer(String(correctAnswer));
+        const userStr = normalizeAnswer(userAnswer);
+        const correctStr = normalizeAnswer(String(correctAnswer));
         if (userStr === correctStr) return true;
-        var numUser = parseFloat(userStr);
-        var numCorrect = parseFloat(correctStr);
-        if (!isNaN(numUser) && !isNaN(numCorrect) && Math.abs(numUser - numCorrect) < 0.001) return true;
-        return false;
+        const numUser = parseFloat(userStr);
+        const numCorrect = parseFloat(correctStr);
+        return !isNaN(numUser) && !isNaN(numCorrect) && Math.abs(numUser - numCorrect) < 0.001;
       }
 
-      // ========== 题目生成器 ==========
+      // ========== 本地题库（完整生成器） ==========
       var generators = {};
 
       // 算术花田
@@ -406,7 +393,7 @@
             text: '🌿 森林里来了一群小动物，你瞧：' + animals + '。数一数，一共有几只小可爱呀？',
             image: animals, type: 'choice', answer: String(c),
             solution: '小动物们排成一排，我们挨个点数，一共是 ' + c + ' 只。',
-            options: uniqueArray([c, c+1, c-1].filter(function(n){return n>0 && n <= e.length;}).map(String))
+            options: uniqueArray([c, c+1, c-1].filter(n => n>0 && n <= e.length).map(String))
           };
         },
         function() {
@@ -430,7 +417,7 @@
             text: '🔢 数字宝宝 ' + a + ' 正在排队，排在它后面的下一个数字是谁呢？',
             type: 'choice', answer: String(a+1),
             solution: '数数的时候，' + a + ' 的后面紧跟着就是 ' + (a+1) + '。',
-            options: uniqueArray([a-1, a+1, a+2].filter(function(n){return n>0;}).map(String))
+            options: uniqueArray([a-1, a+1, a+2].filter(n => n>0).map(String))
           };
         }
       ];
@@ -441,7 +428,7 @@
             text: '🐦 树上有 ' + a + ' 只小鸟，又飞来了 ' + b + ' 只。现在树上共有几只小鸟呢？',
             type: 'choice', answer: String(a+b),
             solution: '原来有 ' + a + ' 只，加上飞来的 ' + b + ' 只，算式是 ' + a + '+' + b + '=' + (a+b) + '。',
-            options: uniqueArray([a+b, a+b+1, a+b-1].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a+b, a+b+1, a+b-1].filter(n => n>=0).map(String))
           };
         },
         function() {
@@ -450,7 +437,7 @@
             text: '🍬 小明有 ' + a + ' 颗糖，他分给了小红 ' + b + ' 颗。小明还剩几颗糖？',
             type: 'choice', answer: String(a-b),
             solution: '从 ' + a + ' 里拿走 ' + b + '，用减法：' + a + '-' + b + '=' + (a-b) + '。',
-            options: uniqueArray([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a-b, a-b+1, a-b-1].filter(n => n>=0).map(String))
           };
         },
         function() {
@@ -471,7 +458,7 @@
             text: '🌸 花坛里每排放 ' + a + ' 盆花，一共种了 ' + b + ' 排。总共有多少盆花呢？',
             type: 'choice', answer: String(a*b),
             solution: '每排 ' + a + ' 盆，有 ' + b + ' 排，就是 ' + b + ' 个 ' + a + ' 相加，用乘法：' + a + '×' + b + '=' + (a*b) + '。',
-            options: uniqueArray([a*b, a*b+a, a*b-a].filter(function(n){return n>=0;}).map(String))
+            options: uniqueArray([a*b, a*b+a, a*b-a].filter(n => n>=0).map(String))
           };
         },
         function() {
@@ -480,7 +467,7 @@
             text: '🍪 妈妈烤了 ' + a + ' 块饼干，平均分给 ' + b + ' 个小朋友。每人分到几块？',
             type: 'choice', answer: String(ans),
             solution: '把 ' + a + ' 平均分成 ' + b + ' 份，用除法：' + a + '÷' + b + '=' + ans + '。',
-            options: uniqueArray([ans, ans+1, ans-1].filter(function(n){return n>0;}).map(String))
+            options: uniqueArray([ans, ans+1, ans-1].filter(n => n>0).map(String))
           };
         }
       ];
@@ -611,12 +598,12 @@
         }
       ];
 
-      // 分数厨房（选项自动去重）
+      // 分数厨房
       generators.fraction = [];
       generators.fraction[0] = [
         function() {
           var total = rand(4,8), parts = 2;
-          return { text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？', type: 'choice', answer: String(total/2), solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。', options: uniqueArray([String(total/2), String(total/2+1), String(total/2-1)].filter(function(n){return parseFloat(n)>=0;})) };
+          return { text: '🍪 盘子里有 ' + total + ' 块饼干，分给 ' + parts + ' 个小朋友，每人分到几块？', type: 'choice', answer: String(total/2), solution: '把 ' + total + ' 块饼干平均分成 ' + parts + ' 份，每份就是 ' + (total/2) + ' 块。', options: uniqueArray([String(total/2), String(total/2+1), String(total/2-1)].filter(n => parseFloat(n)>=0)) };
         }
       ];
       generators.fraction[1] = [
@@ -678,11 +665,12 @@
       generators.word[0] = [
         function() {
           var a = rand(2,5), b = rand(1,3);
-          return { text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？', type: 'choice', answer: String(a-b), solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。', options: uniqueArray([a-b, a-b+1, a-b-1].filter(function(n){return n>=0;}).map(String)) };
+          return { text: '🐦 树上有 ' + a + ' 只小鸟，飞走了 ' + b + ' 只，树上还剩几只小鸟？', type: 'choice', answer: String(a-b), solution: '原来有 ' + a + ' 只，飞走 ' + b + ' 只，减法：' + a + ' - ' + b + ' = ' + (a-b) + '。', options: uniqueArray([a-b, a-b+1, a-b-1].filter(n => n>=0).map(String)) };
         },
         function() {
-          var a = rand(2,6), b = rand(2,5);
-          return { text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？', type: 'choice', answer: String(a-b), solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。', options: uniqueArray([a-b, a-b+1, a-b-1].map(String)) };
+          var a = rand(3,9);
+          var b = rand(1, a-1); // 确保吃了至少1个，且至少剩1个
+          return { text: '🍎 桌上有 ' + a + ' 个苹果，吃了一些后还剩 ' + b + ' 个，请问吃了几个？', type: 'choice', answer: String(a-b), solution: '原来 ' + a + ' 个，剩 ' + b + ' 个，吃掉的就是 ' + a + ' - ' + b + ' = ' + (a-b) + ' 个。', options: uniqueArray([a-b, a-b+1, a-b-1].filter(n => n>=0).map(String)) };
         }
       ];
       generators.word[1] = [
@@ -754,7 +742,7 @@
       generators.logic = [];
       generators.logic[0] = [
         function() {
-          var start = rand(1, 6), step = rand(1, 4);
+          var start = rand(1,6), step = rand(1,4);
           var first = start, second = start + step, third = second + step, next = third + step;
           return { text: '🔢 数字小精灵们排着队：' + first + '、' + second + '、' + third + '，接下来应该是谁呢？', type: 'input', answer: String(next), solution: '规律是每次增加 ' + step + '。' + third + ' + ' + step + ' = ' + next + '。' };
         },
@@ -893,18 +881,18 @@
         }
       ];
 
-      // 带去重的题目生成
+      // 本地批量生成（带去重）
       function generateUniqueQuestions(category, grade, count) {
-        var list = generators[category];
+        const list = generators[category];
         if (!list || !list[grade]) return [];
-        var funcs = list[grade];
-        var questions = [];
-        var usedKeys = new Set();
-        var tries = 0;
+        const funcs = list[grade];
+        const questions = [];
+        const usedKeys = new Set();
+        let tries = 0;
         while (questions.length < count && tries < 200) {
-          var q = funcs[rand(0, funcs.length-1)]();
+          const q = funcs[rand(0, funcs.length-1)]();
           if (q) {
-            var key = q.text + '|||' + q.answer;
+            const key = q.text + '|||' + q.answer;
             if (!usedKeys.has(key)) {
               usedKeys.add(key);
               if (q.type === 'choice' && q.options) q.options = uniqueArray(q.options);
@@ -914,24 +902,77 @@
           tries++;
         }
         while (questions.length < count) {
-          var q2 = funcs[rand(0, funcs.length-1)]();
-          if (q2) {
-            if (q2.type === 'choice' && q2.options) q2.options = uniqueArray(q2.options);
-            questions.push(q2);
+          const q = funcs[rand(0, funcs.length-1)]();
+          if (q) {
+            if (q.type === 'choice' && q.options) q.options = uniqueArray(q.options);
+            questions.push(q);
           }
         }
         return shuffle(questions);
       }
 
-      // 游戏批量生成
-      function generateQuestionBatch() {
+      // ========== AI 出题 ==========
+      const AI_PROXY_URL = 'https://luqingji-github-io.vercel.app/api/deepseek';
+
+      async function generateAIQuestion(grade, subject) {
+        const gradeName = gradeNames[grade];
+        const prompt = `你是小学数学出题助手。请为 ${gradeName} 学生生成1道 ${subject} 题。
+题型要求：选择题（4个选项，选项用字母 A B C D 标记）。
+答案必须是正确的选项字母（例如 "B"）。
+提供解题思路。
+返回纯JSON，不要任何额外文字：
+{"text":"题目内容","options":["A. ...","B. ...","C. ...","D. ..."],"answer":"B","solution":"解题思路"}`;
+
+        try {
+          const response = await fetch(AI_PROXY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: 'deepseek-chat',
+              messages: [{ role: 'user', content: prompt }],
+              temperature: 0.7,
+              max_tokens: 500
+            })
+          });
+          const data = await response.json();
+          const aiMsg = data.choices[0].message.content;
+          const jsonStr = aiMsg.replace(/```json|```/g, '').trim();
+          const q = JSON.parse(jsonStr);
+          q.options = q.options.map(opt => opt.replace(/^[A-D]\.\s*/, ''));
+          return q;
+        } catch (e) {
+          console.error('AI 出题失败:', e);
+          return null;
+        }
+      }
+
+      // 游戏模式批量生成（AI优先）
+      async function generateQuestionBatch() {
         feedback.value = '';
         userInput.value = '';
         showCorrectModal.value = false;
-        var grade = currentGrade.value;
-        var game = currentGame.value;
-        var count = Math.min(Math.max(questionCount.value, 1), 20);
-        questionQueue.value = generateUniqueQuestions(game, grade, count);
+        const grade = currentGrade.value;
+        const game = currentGame.value;
+        const count = Math.min(Math.max(questionCount.value, 1), 20);
+
+        if (useAI.value) {
+          showToast('🧠 AI 正在生成题目...');
+          const aiQuestions = [];
+          for (let i = 0; i < count; i++) {
+            const q = await generateAIQuestion(grade, game);
+            if (q) aiQuestions.push(q);
+            else break;
+          }
+          if (aiQuestions.length === count) {
+            questionQueue.value = shuffle(aiQuestions);
+          } else {
+            showToast('AI 出题部分失败，已切换为本地题库');
+            questionQueue.value = generateUniqueQuestions(game, grade, count);
+          }
+        } else {
+          questionQueue.value = generateUniqueQuestions(game, grade, count);
+        }
+
         gameStarted.value = true;
         questionCount.value = count;
         showNextQuestion();
@@ -949,45 +990,43 @@
         }
       }
 
-      // 答案处理（批量模式）
       function answer(userAnswer) {
         if (!question.value || showCorrectModal.value) return;
-        var isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
+        const isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
         if (isCorrect) {
           feedback.value = '✅ 正确！';
           stars.value += 1 + Math.floor(currentGrade.value / 2);
-          var game = currentGame.value;
+          const game = currentGame.value;
           plantProgress[game] += PROGRESS_PER_CORRECT;
           if (plantProgress[game] >= MAX_PROGRESS) {
             plantProgress[game] = 0;
             showToast('🌱 植物升级了！获得额外星星！');
             stars.value += LEVEL_UP_BONUS;
           }
-          setTimeout(function() { showNextQuestion(); }, 400);
+          setTimeout(() => showNextQuestion(), 400);
         } else {
           feedback.value = '❌ 再想想，试试看！';
         }
       }
 
-      // 兼容旧版 closeCorrectModal（即使不用弹窗，也必须定义以避免引用错误）
       function closeCorrectModal() {
         showCorrectModal.value = false;
         generateQuestionBatch();
       }
 
-      // 考试生成（带去重）
+      // 考试模式
       function beginExam() {
         examStarted.value = true;
-        var grade = currentGrade.value;
-        var count = Math.min(Math.max(questionCount.value, 5), 20);
-        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
-        var questions = [];
-        var usedKeys = new Set();
-        for (var i = 0; i < categories.length && questions.length < count; i++) {
-          var catQs = generateUniqueQuestions(categories[i], grade, 1);
-          for (var qi = 0; qi < catQs.length; qi++) {
-            var q = catQs[qi];
-            var key = q.text + '|||' + q.answer;
+        const grade = currentGrade.value;
+        const count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic','geometry','fraction','word','logic','measure'];
+        const questions = [];
+        const usedKeys = new Set();
+        for (const cat of categories) {
+          if (questions.length >= count) break;
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
             if (!usedKeys.has(key)) {
               usedKeys.add(key);
               questions.push(q);
@@ -996,33 +1035,31 @@
           }
         }
         while (questions.length < count) {
-          var cat = categories[rand(0, categories.length-1)];
-          var catQs2 = generateUniqueQuestions(cat, grade, 1);
-          for (var qj = 0; qj < catQs2.length; qj++) {
-            var q2 = catQs2[qj];
-            var key2 = q2.text + '|||' + q2.answer;
-            if (!usedKeys.has(key2)) {
-              usedKeys.add(key2);
-              questions.push(q2);
+          const cat = pick(categories);
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
               if (questions.length >= count) break;
             }
           }
         }
-        questions = shuffle(questions);
-        examQuestions.value = questions;
+        examQuestions.value = shuffle(questions);
         examAnswers.value = new Array(questions.length).fill('');
         examSubmitted.value = false;
       }
 
       function submitExam() {
-        var correctCount = 0;
-        var results = [];
-        for (var i = 0; i < examQuestions.value.length; i++) {
-          var q = examQuestions.value[i];
-          var userAns = examAnswers.value[i] || '';
-          var isCorrect = isAnswerCorrect(userAns, q.answer);
-          results.push(isCorrect);
-          if (isCorrect) correctCount++;
+        let correctCount = 0;
+        const results = [];
+        for (let i = 0; i < examQuestions.value.length; i++) {
+          const q = examQuestions.value[i];
+          const userAns = examAnswers.value[i] || '';
+          const ok = isAnswerCorrect(userAns, q.answer);
+          results.push(ok);
+          if (ok) correctCount++;
         }
         examResults.value = results;
         examCorrect.value = correctCount;
@@ -1034,16 +1071,16 @@
 
       // 打印试卷
       function printExam() {
-        var grade = currentGrade.value;
-        var count = Math.min(Math.max(questionCount.value, 5), 20);
-        var categories = ['arithmetic', 'geometry', 'fraction', 'word', 'logic', 'measure'];
-        var questions = [];
-        var usedKeys = new Set();
-        for (var i = 0; i < categories.length && questions.length < count; i++) {
-          var catQs = generateUniqueQuestions(categories[i], grade, 1);
-          for (var qi = 0; qi < catQs.length; qi++) {
-            var q = catQs[qi];
-            var key = q.text + '|||' + q.answer;
+        const grade = currentGrade.value;
+        const count = Math.min(Math.max(questionCount.value, 5), 20);
+        const categories = ['arithmetic','geometry','fraction','word','logic','measure'];
+        const questions = [];
+        const usedKeys = new Set();
+        for (const cat of categories) {
+          if (questions.length >= count) break;
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
             if (!usedKeys.has(key)) {
               usedKeys.add(key);
               questions.push(q);
@@ -1052,70 +1089,61 @@
           }
         }
         while (questions.length < count) {
-          var cat = categories[rand(0, categories.length-1)];
-          var catQs2 = generateUniqueQuestions(cat, grade, 1);
-          for (var qj = 0; qj < catQs2.length; qj++) {
-            var q2 = catQs2[qj];
-            var key2 = q2.text + '|||' + q2.answer;
-            if (!usedKeys.has(key2)) {
-              usedKeys.add(key2);
-              questions.push(q2);
+          const cat = pick(categories);
+          const catQs = generateUniqueQuestions(cat, grade, 1);
+          for (const q of catQs) {
+            const key = q.text + '|||' + q.answer;
+            if (!usedKeys.has(key)) {
+              usedKeys.add(key);
+              questions.push(q);
               if (questions.length >= count) break;
             }
           }
         }
-        questions = shuffle(questions);
-        var printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (!printWindow) {
-          showToast('请允许弹出窗口以打印试卷');
-          return;
-        }
-        var examHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>啾啾数学试卷</title>';
-        examHtml += '<style>body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;margin:20px;}h1{text-align:center;font-size:24px;}.info{text-align:center;margin-bottom:20px;}.q{margin-bottom:18px;}.q-text{font-size:16px;font-weight:bold;}.q-image{font-size:40px;text-align:center;}.options{margin-left:20px;font-size:16px;}.options span{margin-right:20px;}.answer-line{border-bottom:1px solid #000;width:120px;display:inline-block;margin-left:10px;}@media print{body{margin:0;}.page-break{page-break-after:always;}}</style></head><body>';
-        examHtml += '<h1>🌻 啾啾数学花园 试卷</h1><div class="info">年级：' + gradeNames[grade] + ' | 姓名：________ 日期：________</div>';
-        for (var i = 0; i < questions.length; i++) {
-          var q = questions[i];
-          examHtml += '<div class="q"><div class="q-text">' + (i+1) + '. ' + q.text + '</div>';
-          if (q.image) examHtml += '<div class="q-image">' + q.image + '</div>';
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) { showToast('请允许弹出窗口'); return; }
+        let html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>试卷</title><style>body{font-family:PingFang SC,Microsoft YaHei,sans-serif;margin:20px}h1{text-align:center}.info{text-align:center;margin-bottom:20px}.q{margin-bottom:18px}.q-text{font-size:16px;font-weight:bold}.q-image{font-size:40px;text-align:center}.options{margin-left:20px;font-size:16px}.options span{margin-right:20px}.answer-line{border-bottom:1px solid #000;width:120px;display:inline-block;margin-left:10px}@media print{body{margin:0}.page-break{page-break-after:always}}</style></head><body>';
+        html += '<h1>🌻 啾啾数学花园 试卷</h1><div class="info">年级：' + gradeNames[grade] + ' | 姓名：________ 日期：________</div>';
+        questions.forEach((q, i) => {
+          html += '<div class="q"><div class="q-text">' + (i+1) + '. ' + q.text + '</div>';
+          if (q.image) html += '<div class="q-image">' + q.image + '</div>';
           if (q.type === 'choice') {
-            examHtml += '<div class="options">';
-            for (var j = 0; j < q.options.length; j++) examHtml += '<span>○ ' + q.options[j] + '</span>';
-            examHtml += '</div>';
+            html += '<div class="options">';
+            q.options.forEach(opt => html += '<span>○ ' + opt + '</span>');
+            html += '</div>';
           } else {
-            examHtml += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
+            html += '<div>答案：<span class="answer-line">&nbsp;</span></div>';
           }
-          examHtml += '</div>';
-        }
-        examHtml += '<div class="page-break"></div><h1>🧠 答案与解题思路</h1>';
-        for (var k = 0; k < questions.length; k++) {
-          var aq = questions[k];
-          examHtml += '<div class="q"><div class="q-text">' + (k+1) + '. 答案：<strong>' + aq.answer + '</strong></div><div style="font-size:14px;color:#555;">' + aq.solution + '</div></div>';
-        }
-        examHtml += '</body></html>';
-        printWindow.document.write(examHtml);
+          html += '</div>';
+        });
+        html += '<div class="page-break"></div><h1>🧠 答案与解题思路</h1>';
+        questions.forEach((q, i) => {
+          html += '<div class="q"><div class="q-text">' + (i+1) + '. 答案：<strong>' + q.answer + '</strong></div><div style="font-size:14px;color:#555">' + q.solution + '</div></div>';
+        });
+        html += '</body></html>';
+        printWindow.document.write(html);
         printWindow.document.close();
         printWindow.focus();
-        setTimeout(function() { printWindow.print(); }, 500);
+        setTimeout(() => printWindow.print(), 500);
       }
 
-      watch(currentGrade, function() {
+      watch(currentGrade, () => {
         if (view.value === 'game' && !gameStarted.value) resetGameBatch();
       });
 
       return {
-        vueReady,
-        gradeNames, currentGrade, prevGrade, nextGrade,
+        vueReady, gradeNames, currentGrade, prevGrade, nextGrade,
         stars, gardenLevel, toast, showToast,
-        plantProgress,
-        view, currentGame, gameTitle,
+        plantProgress, view, currentGame, gameTitle,
         questionCount, questionQueue, gameStarted,
         openGame, generateQuestionBatch, resetGameBatch,
         question, feedback, userInput, answer,
         showCorrectModal, encourageText, currentSolution, closeCorrectModal,
         modalClosing,
-        examStarted, examQuestions, examAnswers, examSubmitted, examResults, examCorrect, examScore, examGrade,
+        examStarted, examQuestions, examAnswers, examSubmitted,
+        examResults, examCorrect, examScore, examGrade,
         startExam, beginExam, submitExam, resetExam,
-        printExam
+        printExam, useAI
       };
     }
   }).mount('#app');
