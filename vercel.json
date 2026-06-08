@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/api/deepseek", "destination": "/api/deepseek" }]
+  "functions": {
+    "api/deepseek.js": {
+      "includeFiles": "api/deepseek.js"
+    }
+  }
 }
