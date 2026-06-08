@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0, viewport-fit=cover">
-  <title>啾啾数学花园 · 逻辑修复版</title>
+  <title>数学花园 · 解题详解版</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <style>
     :root {
@@ -86,7 +86,7 @@
     .progress-fill { height: 100%; background: #66bb6a; transition: width 0.3s; }
     .solution-box {
       background: #f0f8e8; border-radius: 15px; padding: 14px; margin: 15px 0;
-      font-size: 18px; text-align: left; line-height: 1.6;
+      font-size: 18px; text-align: left; line-height: 1.8;
     }
     .encourage-text { font-size: 28px; font-weight: bold; color: #27ae60; margin: 10px 0; }
     .exam-question {
@@ -99,7 +99,9 @@
     .q-number-input {
       width: 70px; text-align: center; font-size: 20px; padding: 6px; border: 2px solid #f1c40f; border-radius: 10px;
     }
-    input[type="text"] { font-size: 22px; width: 150px; text-align: center; padding: 8px; }
+    .time-input-group { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+    .time-input-group input { width: 70px; font-size: 22px; text-align: center; padding: 8px; }
+    .time-label { font-size: 20px; }
   </style>
 </head>
 <body>
@@ -165,13 +167,26 @@
         <div style="font-size: 16px; color: #888;">剩余 {{ questionQueue.length + 1 }} / {{ questionCount }} 题</div>
         <div style="font-size: 24px; margin-bottom: 15px; line-height: 1.6; color: #4a2c1a;">{{ question.text }}</div>
         <div v-if="question.image" style="font-size: 60px; margin: 10px;">{{ question.image }}</div>
+
         <div v-if="question.type === 'choice'">
           <button class="option-btn" v-for="opt in question.options" :key="opt" @click="answer(opt)">{{ opt }}</button>
         </div>
+
         <div v-if="question.type === 'input'">
           <input v-model="userInput" type="text" @keyup.enter="answer(userInput)" placeholder="?">
           <button class="btn" @click="answer(userInput)">确定</button>
         </div>
+
+        <div v-if="question.type === 'time'">
+          <div class="time-input-group">
+            <input v-model="userHours" type="number" min="0" placeholder="0" @keyup.enter="answerTime">
+            <span class="time-label">小时</span>
+            <input v-model="userMinutes" type="number" min="0" max="59" placeholder="0" @keyup.enter="answerTime">
+            <span class="time-label">分钟</span>
+          </div>
+          <button class="btn" @click="answerTime">确定</button>
+        </div>
+
         <p v-if="feedback" style="margin-top:12px;font-weight:bold;font-size:20px;">{{ feedback }}</p>
       </div>
       <div v-else-if="gameStarted && !question" style="text-align: center; padding: 20px;">
@@ -295,6 +310,8 @@
         const question = ref(null);
         const feedback = ref('');
         const userInput = ref('');
+        const userHours = ref(0);
+        const userMinutes = ref(0);
         const showCorrectModal = ref(false);
         const encourageText = ref('');
         const currentSolution = ref('');
@@ -302,7 +319,8 @@
 
         function resetGameBatch() {
           question.value = null; questionQueue.value = []; gameStarted.value = false;
-          feedback.value = ''; userInput.value = ''; showCorrectModal.value = false; modalClosing.value = false;
+          feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
+          showCorrectModal.value = false; modalClosing.value = false;
         }
 
         const examStarted = ref(false);
@@ -322,7 +340,6 @@
         function resetExam() { examStarted.value = false; examQuestions.value = []; examAnswers.value = []; examSubmitted.value = false; examResults.value = []; examCorrect.value = 0; examScore.value = 0; }
         function startExam() { resetExam(); view.value = 'exam'; }
 
-        // 工具函数
         function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
         function pick(arr) { return arr[rand(0, arr.length-1)]; }
         function shuffle(arr) { const a = arr.slice(); for (let i=a.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -336,7 +353,6 @@
           return !isNaN(nu) && !isNaN(nc) && Math.abs(nu-nc)<0.001;
         }
 
-        // ========== 丰富生成器（已修复所有减法逻辑） ==========
         const persons = ['小明','小红','小华','小丽','小刚','妈妈','爸爸','爷爷','奶奶','老师','同学','弟弟','妹妹'];
         const items = ['苹果','橘子','铅笔','橡皮','尺子','书本','糖果','饼干','星星','气球','花朵','贝壳','贴纸','弹珠'];
         const places = ['桌子上','书包里','盒子里','地上','树上','篮子里','盘子里','口袋里','抽屉里'];
@@ -345,28 +361,49 @@
           return { person: pick(persons), item: pick(items), place: pick(places) };
         }
 
-        // ----- 算术花田（混合运算） -----
+        // ----- 算术花田（混合运算+详细思路） -----
         function arithmeticTemplates(grade) {
           const s = randomStory();
           if (grade === 0) {
             const a=rand(1,5), b=rand(1,5);
             const opt = uniqueArray([a+b, a+b+1, a+b-1].filter(n=>n>=0).map(String));
-            return { text:`${s.person}在${s.place}有${a}个${s.item}，又放进了${b}个。一共有几个${s.item}？`, type:'choice', answer:String(a+b), solution:`${a}+${b}=${a+b}`, options:opt };
+            return { text:`${s.person}在${s.place}有${a}个${s.item}，又放进了${b}个。一共有几个${s.item}？`, type:'choice', answer:String(a+b), solution:`把两部分合起来：${a}+${b}=${a+b}`, options:opt };
           } else if (grade === 1) {
-            const a=rand(10,20), b=rand(1,a-1); // 减数小于被减数
+            const a=rand(5,20), b=rand(1,a-1), c=rand(1,10);
             const types = [
               () => `${s.person}有${a}个${s.item}，送给了${pick(persons)}${b}个。还剩几个？`,
-              () => `公交车上有${a}人，到站下去${b}人，又上来${rand(2,8)}人。现在车上有几人？`,
-              () => `${s.person}上午写了${a}个字，下午写了${b}个字。一共写了多少个字？`
+              () => `公交车上有${a}人，到站下去${b}人，又上来${c}人。现在车上有几人？`,
+              () => `${s.person}上午写了${a}个字，下午写了${b}个字。一共写了多少个字？`,
+              () => `${s.person}有${a}个${s.item}，飞走了${b}个，又买来了${c}个。现在有几个？`,
+              () => `商店里有${a}个${s.item}，卖掉了${b}个，又进货${c}个。现在有多少个？`,
+              () => `${s.person}吃了${b}个${s.item}后还剩${a}个，妈妈又给了他${c}个。现在一共有几个？`,
+              () => `池塘边原来有${a}只青蛙，跳走${b}只，又跳来${c}只。现在有多少只？`
             ];
             const q = pick(types)();
-            return { text:q, type:'input', answer:String(a-b), solution:`计算过程...` };
+            let ans, sol;
+            if (q.includes('飞走了') && q.includes('又买来') || q.includes('卖掉') && q.includes('进货') || q.includes('跳走') && q.includes('跳来')) {
+              ans = a - b + c;
+              sol = `原来有${a}个，飞走/卖掉${b}个后剩下${a-b}个，又买来/跳来${c}个，所以现在有 ${a-b}+${c}=${ans}个。`;
+            } else if (q.includes('吃了') && q.includes('又给了')) {
+              ans = a + c;
+              sol = `吃了${b}个后还剩${a}个，所以原来有${a+b}个；妈妈又给${c}个，现在共有 ${a}+${c}=${ans}个。`;
+            } else if (q.includes('上午') && q.includes('下午')) {
+              ans = a + b;
+              sol = `上午写${a}个，下午写${b}个，一共 ${a}+${b}=${ans}个字。`;
+            } else if (q.includes('下去') && q.includes('上来')) {
+              ans = a - b + c;
+              sol = `车上原有${a}人，下去${b}人后剩${a-b}人，又上来${c}人，现在有 ${a-b}+${c}=${ans}人。`;
+            } else {
+              ans = a - b;
+              sol = `原来有${a}个，拿走/送走${b}个，剩下 ${a}-${b}=${ans}个。`;
+            }
+            return { text: q, type: 'input', answer: String(ans), solution: sol };
           } else if (grade === 2) {
             const a=rand(1,9), b=rand(1,9);
             const types = [
-              () => ({ text:`每排放${a}个${s.item}，放了${b}排。一共用了多少个${s.item}？`, ans:a*b, sol:`${a}×${b}=${a*b}` }),
-              () => ({ text:`${s.person}每天存${a}元，存了${b}天。一共存了多少元？`, ans:a*b, sol:`${a}×${b}=${a*b}` }),
-              () => ({ text:`有${a*b}个${s.item}，平均分给${a}人，每人分几个？`, ans:b, sol:`${a*b}÷${a}=${b}` })
+              () => ({ text:`每排放${a}个${s.item}，放了${b}排。一共用了多少个${s.item}？`, ans:a*b, sol:`每排${a}个，有${b}排，就是${b}个${a}相加，用乘法：${a}×${b}=${a*b}` }),
+              () => ({ text:`${s.person}每天存${a}元，存了${b}天。一共存了多少元？`, ans:a*b, sol:`每天${a}元，存了${b}天，就是${b}个${a}相加，${a}×${b}=${a*b}` }),
+              () => ({ text:`有${a*b}个${s.item}，平均分给${a}人，每人分几个？`, ans:b, sol:`总数是${a*b}，平均分成${a}份，每份是${a*b}÷${a}=${b}` })
             ];
             const t = pick(types)();
             return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
@@ -384,24 +421,24 @@
             const a=rand(100,9999), b=rand(10,999);
             const op = pick(['+','-']);
             const ans = op==='+' ? a+b : a-b;
-            return { text:`图书馆原有${a}本书，今年${op==='+'?'购入':'清理'}${b}本。现在共有多少本？`, type:'input', answer:String(ans), solution:`${a} ${op} ${b} = ${ans}` };
+            return { text:`图书馆原有${a}本书，今年${op==='+'?'购入':'清理'}${b}本。现在共有多少本？`, type:'input', answer:String(ans), solution:`原有${a}本，${op==='+'?'增加':'减少'}${b}本，所以 ${a} ${op} ${b} = ${ans}` };
           } else if (grade === 5) {
             const a=(rand(10,99)/10).toFixed(1), b=(rand(10,99)/10).toFixed(1);
             const op = pick(['+','-']);
             const ans = op==='+' ? (parseFloat(a)+parseFloat(b)).toFixed(2) : (parseFloat(a)-parseFloat(b)).toFixed(2);
-            return { text:`液体重${a}克，${op==='+'?'倒入':'倒出'}${b}克。现在多重？`, type:'input', answer:ans, solution:`${a} ${op} ${b} = ${ans}` };
+            return { text:`液体重${a}克，${op==='+'?'倒入':'倒出'}${b}克。现在多重？`, type:'input', answer:ans, solution:`原来${a}克，${op==='+'?'增加':'减少'}${b}克，所以 ${a} ${op} ${b} = ${ans} 克` };
           } else if (grade === 6) {
             const a=rand(2,9), b=rand(2,9);
             const types = [
-              () => ({ text:`正方形边长${a}米，面积？`, ans:a*a, sol:`${a}²=${a*a}` }),
-              () => ({ text:`立方体棱长${a}厘米，体积？`, ans:a*a*a, sol:`${a}³=${a*a*a}` })
+              () => ({ text:`正方形边长${a}米，面积？`, ans:a*a, sol:`正方形面积 = 边长×边长 = ${a}×${a}=${a*a} 平方米` }),
+              () => ({ text:`立方体棱长${a}厘米，体积？`, ans:a*a*a, sol:`立方体体积 = 棱长×棱长×棱长 = ${a}×${a}×${a}=${a*a*a} 立方厘米` })
             ];
             const t = pick(types)();
             return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
           }
         }
 
-        // ----- 图形树屋（丰富几何） -----
+        // ----- 图形树屋（详细几何思路） -----
         function geometryTemplates(grade) {
           if (grade === 0) {
             const shapes = ['圆形','正方形','三角形','长方形','五角星','六边形'];
@@ -409,151 +446,169 @@
             const sym = { '圆形':'●', '正方形':'■', '三角形':'▲', '长方形':'▬', '五角星':'★', '六边形':'⬡' };
             return {
               text:`魔法图形箱里有一个图形叫“${s}”。选一选它的样子。`, image:'🎁', type:'choice', answer:sym[s],
-              solution:`${sym[s]}就是${s}。`, options:shuffle(Object.values(sym))
+              solution:`${sym[s]}就是${s}。${s==='圆形'?'它圆圆的，没有角':s==='正方形'?'它有四条一样长的边和四个直角':s==='三角形'?'它有三条边和三个角':s==='长方形'?'它有四条边，对边相等':''}`,
+              options:shuffle(Object.values(sym))
             };
           } else if (grade === 1) {
             const a=rand(3,8), b=rand(3,8);
-            return { text:`长方形草地长${a}米宽${b}米，周长？`, type:'input', answer:String((a+b)*2), solution:`(${a}+${b})×2=${(a+b)*2}` };
+            return { text:`长方形草地长${a}米宽${b}米，周长？`, type:'input', answer:String((a+b)*2), solution:`长方形周长 = (长+宽)×2 = (${a}+${b})×2 = ${(a+b)*2} 米` };
           } else if (grade === 2) {
             const a=rand(3,8), b=rand(3,8);
             const types = [
-              () => ({ text:`长方形长${a}cm宽${b}cm，面积？`, ans:a*b, sol:`${a}×${b}=${a*b}` }),
-              () => ({ text:`正方形边长${a}cm，面积？`, ans:a*a, sol:`${a}×${a}=${a*a}` })
+              () => ({ text:`长方形长${a}cm宽${b}cm，面积？`, ans:a*b, sol:`长方形面积 = 长×宽 = ${a}×${b} = ${a*b} 平方厘米` }),
+              () => ({ text:`正方形边长${a}cm，面积？`, ans:a*a, sol:`正方形面积 = 边长×边长 = ${a}×${a} = ${a*a} 平方厘米` })
             ];
             const t = pick(types)();
             return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
           } else if (grade === 3) {
             const a=rand(3,8);
-            return { text:`正方体棱长${a}cm，体积？`, type:'input', answer:String(a*a*a), solution:`${a}³=${a*a*a}` };
+            return { text:`正方体棱长${a}cm，体积？`, type:'input', answer:String(a*a*a), solution:`正方体体积 = 棱长³ = ${a}×${a}×${a} = ${a*a*a} 立方厘米` };
           } else if (grade === 4) {
             const a=rand(10,80)*10;
-            return { text:`一个角${a}°，补角？`, type:'input', answer:String(180-a), solution:`180°-${a}°=${180-a}°` };
+            return { text:`一个角${a}°，补角？`, type:'input', answer:String(180-a), solution:`补角 = 180° - ${a}° = ${180-a}°` };
           } else if (grade === 5) {
             const r=rand(2,5);
             const ans=(2*3.14*r).toFixed(2);
-            return { text:`圆半径${r}米，周长？(π≈3.14)`, type:'input', answer:ans, solution:`2×3.14×${r}=${ans}` };
+            return { text:`圆半径${r}米，周长？(π≈3.14)`, type:'input', answer:ans, solution:`圆周长 = 2πr = 2×3.14×${r} ≈ ${ans} 米` };
           } else if (grade === 6) {
             const r=rand(2,5), h=rand(5,10);
             const ans=(3.14*r*r*h).toFixed(2);
-            return { text:`圆柱半径${r}cm高${h}cm，体积？`, type:'input', answer:ans, solution:`πr²h≈${ans}` };
+            return { text:`圆柱半径${r}cm高${h}cm，体积？`, type:'input', answer:ans, solution:`圆柱体积 = πr²h = 3.14×${r}²×${h} ≈ ${ans} 立方厘米` };
           }
         }
 
-        // ----- 分数厨房（保留） -----
+        // 分数厨房
         function fractionTemplates(grade) {
           if (grade===0) {
             const t=rand(4,8);
-            return { text:`${t}块饼干分给2人，每人几块？`, type:'choice', answer:String(t/2), solution:`${t}÷2=${t/2}`, options:uniqueArray([String(t/2),String(t/2+1),String(t/2-1)].filter(n=>parseFloat(n)>=0)) };
+            return { text:`${t}块饼干分给2人，每人几块？`, type:'choice', answer:String(t/2), solution:`把${t}平均分成2份，每份是 ${t}÷2 = ${t/2} 块`, options:uniqueArray([String(t/2),String(t/2+1),String(t/2-1)].filter(n=>parseFloat(n)>=0)) };
           } else if (grade===1) {
             const a=rand(2,6),b=rand(2,6);
-            return { text:`蛋糕切成了${a+b}块，吃了${a}块，剩几块？`, type:'choice', answer:String(b), solution:`${a+b}-${a}=${b}`, options:uniqueArray([String(b),String(a),String(a+b)]) };
+            return { text:`蛋糕切成了${a+b}块，吃了${a}块，剩几块？`, type:'choice', answer:String(b), solution:`总块数${a+b} - 吃了的${a}块 = 剩${b}块`, options:uniqueArray([String(b),String(a),String(a+b)]) };
           } else if (grade===2) {
             const t=rand(6,12),p=rand(2,4);
-            return { text:`披萨${t}片分给${p}人，每人几片？`, type:'input', answer:String(Math.floor(t/p)), solution:`${t}÷${p}=${Math.floor(t/p)}` };
+            return { text:`披萨${t}片分给${p}人，每人几片？`, type:'input', answer:String(Math.floor(t/p)), solution:`${t}÷${p} = ${Math.floor(t/p)} 片（还剩${t%p}片）` };
           } else if (grade===3) {
             const d=rand(2,6),n=rand(1,d-1);
-            return { text:`长方形分${d}格，涂色${n}格，涂色占几分之几？`, image:'⬛'.repeat(n)+'⬜'.repeat(d-n), type:'choice', answer:`${n}/${d}`, solution:`${n}/${d}`, options:uniqueArray([`${n}/${d}`,`${d-n}/${d}`,`${n+1}/${d}`]) };
+            return { text:`长方形分${d}格，涂色${n}格，涂色占几分之几？`, image:'⬛'.repeat(n)+'⬜'.repeat(d-n), type:'choice', answer:`${n}/${d}`, solution:`涂色部分有${n}份，整体被分成了${d}份，所以是 ${n}/${d}`, options:uniqueArray([`${n}/${d}`,`${d-n}/${d}`,`${n+1}/${d}`]) };
           } else if (grade===4) {
             const d=rand(3,8),n1=rand(1,d-1),n2=rand(1,n1);
-            return { text:`${n1}/${d} - ${n2}/${d} = ?`, type:'input', answer:`${n1-n2}/${d}`, solution:`分子相减` };
+            return { text:`${n1}/${d} - ${n2}/${d} = ?`, type:'input', answer:`${n1-n2}/${d}`, solution:`分母相同，分子相减：${n1}-${n2}=${n1-n2}，所以答案是 ${n1-n2}/${d}` };
           } else if (grade===5) {
             const a=rand(1,5),b=rand(2,6),c=rand(1,5),d=rand(2,6);
-            return { text:`${a}/${b} × ${c}/${d} = ?`, type:'input', answer:`${a*c}/${b*d}`, solution:`分子乘分子，分母乘分母` };
+            return { text:`${a}/${b} × ${c}/${d} = ?`, type:'input', answer:`${a*c}/${b*d}`, solution:`分子乘分子：${a}×${c}=${a*c}，分母乘分母：${b}×${d}=${b*d}，所以是 ${a*c}/${b*d}` };
           } else {
             const dec=(rand(1,99)/100).toFixed(2);
-            return { text:`小数${dec}化成分数（分母100）`, type:'input', answer:`${Math.round(dec*100)}/100`, solution:`${dec}=${Math.round(dec*100)}/100` };
+            return { text:`小数${dec}化成分数（分母100）`, type:'input', answer:`${Math.round(dec*100)}/100`, solution:`${dec} 是两位小数，可以直接写成分母为100的分数：${Math.round(dec*100)}/100` };
           }
         }
 
-        // ----- 应用小岛（修复减法逻辑） -----
+        // 应用小岛
         function wordTemplates(grade) {
           const s = randomStory();
           if (grade===0) {
-            const a=rand(3,6), b=rand(1,a-1); // 保证 a > b
-            return { text:`树上有${a}只鸟，飞走${b}只，剩几只？`, type:'choice', answer:String(a-b), solution:`${a}-${b}=${a-b}`, options:uniqueArray([a-b,a-b+1,a-b-1].filter(n=>n>=0).map(String)) };
+            const a=rand(3,6), b=rand(1,a-1);
+            return { text:`树上有${a}只鸟，飞走${b}只，剩几只？`, type:'choice', answer:String(a-b), solution:`原来有${a}只，飞走${b}只，用减法：${a}-${b}=${a-b}`, options:uniqueArray([a-b,a-b+1,a-b-1].filter(n=>n>=0).map(String)) };
           } else if (grade===1) {
             const a=rand(3,9),b=rand(2,5);
             const types = [
-              () => ({ text:`${s.person}有${a}个${s.item}，又买了${b}个，共几个？`, ans:a+b, sol:`${a}+${b}` }),
-              () => ({ text:`${s.person}有${a}元，花了${b}元，剩几元？`, ans:a-b, sol:`${a}-${b}` })
+              () => ({ text:`${s.person}有${a}个${s.item}，又买了${b}个，共几个？`, ans:a+b, sol:`原来${a}个，又买来${b}个，合起来就是 ${a}+${b}=${a+b} 个` }),
+              () => ({ text:`${s.person}有${a}元，花了${b}元，剩几元？`, ans:a-b, sol:`原来${a}元，花掉${b}元，还剩 ${a}-${b}=${a-b} 元` })
             ];
             const t = pick(types)();
             return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
           } else if (grade===2) {
             const price=rand(5,15), n=rand(2,8);
-            return { text:`钢笔每支${price}元，买${n}支付100元，找回？`, type:'input', answer:String(100-price*n), solution:`100-${price* n}=${100-price*n}` };
+            return { text:`钢笔每支${price}元，买${n}支付100元，找回？`, type:'input', answer:String(100-price*n), solution:`先算总价：${price}×${n}=${price*n}元，付了100元，应找回 100-${price*n}=${100-price*n}元` };
           } else if (grade===3) {
             const v=rand(30,80), t=rand(2,5);
-            return { text:`汽车每小时${v}千米，${t}小时行多少？`, type:'input', answer:String(v*t), solution:`${v}×${t}=${v*t}` };
+            return { text:`汽车每小时${v}千米，${t}小时行多少？`, type:'input', answer:String(v*t), solution:`速度×时间=路程：${v}×${t}=${v*t}千米` };
           } else if (grade===4) {
             const a=rand(10,30), b=rand(2,8);
             const types = [
-              () => ({ text:`甲有${a}个球，乙比甲多${b}个。乙有多少？`, ans:a+b, sol:`${a}+${b}` }),
-              () => ({ text:`甲有${a}个球，乙比甲少${b}个。乙有多少？`, ans:a-b, sol:`${a}-${b}` })
+              () => ({ text:`甲有${a}个球，乙比甲多${b}个。乙有多少？`, ans:a+b, sol:`乙 = 甲 + 多的部分 = ${a}+${b}=${a+b}个` }),
+              () => ({ text:`甲有${a}个球，乙比甲少${b}个。乙有多少？`, ans:a-b, sol:`乙 = 甲 - 少的部分 = ${a}-${b}=${a-b}个` })
             ];
             const t = pick(types)();
             return { text:t.text, type:'input', answer:String(t.ans), solution:t.sol };
           } else if (grade===5) {
             const total=rand(100,500), pct=rand(10,90);
-            return { text:`原价${total}元，打${pct}%折，现价？`, type:'input', answer:String(Math.round(total*pct/100)), solution:`${total}×${pct}%=${Math.round(total*pct/100)}` };
+            return { text:`原价${total}元，打${pct}%折，现价？`, type:'input', answer:String(Math.round(total*pct/100)), solution:`打折就是乘百分之几：${total}×${pct}% = ${total}×${pct}/100 = ${Math.round(total*pct/100)}元` };
           } else {
             const a=rand(2,6), b=rand(2,6);
-            return { text:`解比例 3:4 = ${a}:x，求x`, type:'input', answer:(a*4/3).toFixed(1), solution:`4×${a}=3x，x=${(a*4/3).toFixed(1)}` };
+            return { text:`解比例 3:4 = ${a}:x，求x`, type:'input', answer:(a*4/3).toFixed(1), solution:`内项积等于外项积：4×${a} = 3×x，所以 x = ${4*a}÷3 ≈ ${(a*4/3).toFixed(1)}` };
           }
         }
 
-        // ----- 逻辑密室（加强） -----
+        // 逻辑密室（鸡兔同笼详细版）
         function logicTemplates(grade) {
           if (grade===0) {
             const start=rand(1,5), step=rand(1,3);
             const seq=[start, start+step, start+step*2];
-            return { text:`数字排队：${seq.join('、')}，接下来是谁？`, type:'input', answer:String(start+step*3), solution:`每次增加${step}` };
+            return { text:`数字排队：${seq.join('、')}，接下来是谁？`, type:'input', answer:String(start+step*3), solution:`每次增加${step}，所以 ${seq[2]}+${step}=${start+step*3}` };
           } else if (grade===1) {
             const a=rand(2,7);
-            return { text:`如果 ☆ = ${a}，那么 ☆ + ${a+2} = ?`, type:'input', answer:String(a+a+2), solution:`${a}+${a+2}=${a*2+2}` };
+            return { text:`如果 ☆ = ${a}，那么 ☆ + ${a+2} = ?`, type:'input', answer:String(a+a+2), solution:`把☆换成${a}，算式变成 ${a}+${a+2}=${a*2+2}` };
           } else if (grade===2) {
             const a=rand(2,9);
-            return { text:`○ × ○ = ${a*a}，○ 是几？`, type:'input', answer:String(a), solution:`只有${a}×${a}=${a*a}` };
+            return { text:`○ × ○ = ${a*a}，○ 是几？`, type:'input', answer:String(a), solution:`两个相同的数相乘得${a*a}，只有 ${a}×${a}=${a*a}` };
           } else if (grade===3) {
             const a=rand(2,5), b=rand(2,5);
-            return { text:`鸡兔同笼，共${a+b}头，${a*2+b*4}脚。兔几只？`, type:'input', answer:String(b), solution:`假设全是鸡，兔=${b}` };
+            const totalHeads = a + b;
+            const totalLegs = a*2 + b*4;
+            const ifAllChickenLegs = totalHeads * 2;
+            const diffLegs = totalLegs - ifAllChickenLegs;
+            return {
+              text: `鸡兔同笼，共${totalHeads}头，${totalLegs}脚。兔几只？`,
+              type: 'input',
+              answer: String(b),
+              solution: `假设全是鸡，脚数应为 ${totalHeads}×2 = ${ifAllChickenLegs} 只，实际有 ${totalLegs} 只，少了 ${totalLegs}-${ifAllChickenLegs}=${diffLegs} 只脚。每只兔比鸡多 2 只脚，所以兔的数量 = ${diffLegs}÷2 = ${b} 只。`
+            };
           } else if (grade===4) {
             const a=rand(2,6);
-            return { text:`△+□=${a+2}，△-□=${a-2}，△=？`, type:'input', answer:String(a), solution:`两式相加得2△=${2*a}` };
+            return { text:`△+□=${a+2}，△-□=${a-2}，△=？`, type:'input', answer:String(a), solution:`两式相加：(△+□)+(△-□)=${a+2}+${a-2}，即 2△=${2*a}，所以 △=${a}` };
           } else if (grade===5) {
             const a=rand(2,9), b=rand(2,9);
-            return { text:`若 x+${b}=${a+b}，则 x=？`, type:'input', answer:String(a), solution:`移项` };
+            return { text:`若 x+${b}=${a+b}，则 x=？`, type:'input', answer:String(a), solution:`等式两边同时减去${b}：x = ${a+b}-${b} = ${a}` };
           } else {
             const a=rand(2,9);
-            return { text:`√x = ${a}，求 x`, type:'input', answer:String(a*a), solution:`平方得${a*a}` };
+            return { text:`√x = ${a}，求 x`, type:'input', answer:String(a*a), solution:`平方根的定义：如果一个数的平方根是${a}，那么这个数就是 ${a}² = ${a*a}` };
           }
         }
 
-        // ----- 度量工坊（保留） -----
+        // 度量工坊
         function measureTemplates(grade) {
           if (grade===0) {
             const a=rand(3,10);
-            return { text:`铅笔长${a}厘米，合多少毫米？`, type:'input', answer:String(a*10), solution:`1cm=10mm，${a}×10=${a*10}` };
+            return { text:`铅笔长${a}厘米，合多少毫米？`, type:'input', answer:String(a*10), solution:`1厘米=10毫米，所以 ${a}×10=${a*10} 毫米` };
           } else if (grade===1) {
             return { text:'1千克等于多少克？', type:'choice', answer:'1000', solution:'1千克=1000克', options:['100','1000','10000'] };
           } else if (grade===2) {
             const a=rand(2,6);
-            return { text:`水壶${a}升，合多少毫升？`, type:'input', answer:String(a*1000), solution:`1L=1000mL` };
+            return { text:`水壶${a}升，合多少毫升？`, type:'input', answer:String(a*1000), solution:`1升=1000毫升，${a}×1000=${a*1000} 毫升` };
           } else if (grade===3) {
-            const a=rand(10,60);
-            return { text:`${a}分钟是几小时几分钟？`, type:'input', answer:`${Math.floor(a/60)}小时${a%60}分钟`, solution:`${a}÷60` };
+            const a=rand(10, 120);
+            const h = Math.floor(a/60);
+            const m = a % 60;
+            return {
+              text: `${a}分钟是几小时几分钟？`,
+              type: 'time',
+              answer: `${h}小时${m}分钟`,
+              solution: `${a}÷60 = ${h} 小时余 ${m} 分钟，所以是 ${h}小时${m}分钟`,
+              hours: h,
+              minutes: m
+            };
           } else if (grade===4) {
             const a=rand(2,10);
-            return { text:`正方形操场边长${a}米，周长多少厘米？`, type:'input', answer:String(a*4*100), solution:`${a*4}米=${a*4*100}厘米` };
+            return { text:`正方形操场边长${a}米，周长多少厘米？`, type:'input', answer:String(a*4*100), solution:`周长=${a}×4=${a*4}米，1米=100厘米，所以 ${a*4}×100=${a*4*100}厘米` };
           } else if (grade===5) {
             const a=rand(2,8);
-            return { text:`速度${a}米/秒，10秒跑多少米？`, type:'input', answer:String(a*10), solution:`${a}×10` };
+            return { text:`速度${a}米/秒，10秒跑多少米？`, type:'input', answer:String(a*10), solution:`路程=速度×时间：${a}×10=${a*10}米` };
           } else {
-            return { text:'1立方米等于多少立方分米？', type:'choice', answer:'1000', solution:'1m³=1000dm³', options:['100','1000','10000'] };
+            return { text:'1立方米等于多少立方分米？', type:'choice', answer:'1000', solution:'1立方米=1000立方分米', options:['100','1000','10000'] };
           }
         }
 
-        // 统一生成函数
         function generateQuestion(category, grade) {
           const funcs = { arithmetic:arithmeticTemplates, geometry:geometryTemplates, fraction:fractionTemplates, word:wordTemplates, logic:logicTemplates, measure:measureTemplates };
           const fn = funcs[category];
@@ -588,7 +643,8 @@
         }
 
         function generateQuestionBatch() {
-          feedback.value = ''; userInput.value = ''; showCorrectModal.value = false;
+          feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
+          showCorrectModal.value = false;
           const grade = currentGrade.value, game = currentGame.value;
           const count = Math.min(Math.max(questionCount.value, 1), 20);
           questionQueue.value = generateUniqueQuestions(game, grade, count);
@@ -599,7 +655,7 @@
         function showNextQuestion() {
           if (questionQueue.value.length > 0) {
             question.value = questionQueue.value.shift();
-            feedback.value = ''; userInput.value = '';
+            feedback.value = ''; userInput.value = ''; userHours.value = 0; userMinutes.value = 0;
           } else {
             question.value = null; gameStarted.value = false;
             showToast('🎉 本轮练习完成！');
@@ -608,22 +664,36 @@
 
         function answer(userAnswer) {
           if (!question.value || showCorrectModal.value) return;
-          const isCorrect = isAnswerCorrect(userAnswer, question.value.answer);
-          if (isCorrect) {
-            feedback.value = '';
-            encourageText.value = pick(['太厉害了！🌟','你真是数学小天才！','完全正确，棒棒哒！','哇，答对了！继续加油！','好聪明！✨']);
-            currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
-            showCorrectModal.value = true;
-            stars.value += 1 + Math.floor(currentGrade.value / 2);
-            const game = currentGame.value;
-            plantProgress[game] += PROGRESS_PER_CORRECT;
-            if (plantProgress[game] >= MAX_PROGRESS) {
-              plantProgress[game] = 0;
-              showToast('🌱 植物升级了！获得额外星星！');
-              stars.value += LEVEL_UP_BONUS;
-            }
+          if (isAnswerCorrect(userAnswer, question.value.answer)) {
+            handleCorrect();
           } else {
             feedback.value = '❌ 再想想吧，试试看！';
+          }
+        }
+
+        function answerTime() {
+          if (!question.value || showCorrectModal.value) return;
+          const h = parseInt(userHours.value) || 0;
+          const m = parseInt(userMinutes.value) || 0;
+          if (isAnswerCorrect(`${h}小时${m}分钟`, question.value.answer)) {
+            handleCorrect();
+          } else {
+            feedback.value = '❌ 再想想吧，试试看！';
+          }
+        }
+
+        function handleCorrect() {
+          feedback.value = '';
+          encourageText.value = pick(['太厉害了！🌟','你真是数学小天才！','完全正确，棒棒哒！','哇，答对了！继续加油！','好聪明！✨']);
+          currentSolution.value = question.value.solution || '仔细读题，用学过的知识就能解决啦。';
+          showCorrectModal.value = true;
+          stars.value += 1 + Math.floor(currentGrade.value / 2);
+          const game = currentGame.value;
+          plantProgress[game] += PROGRESS_PER_CORRECT;
+          if (plantProgress[game] >= MAX_PROGRESS) {
+            plantProgress[game] = 0;
+            showToast('🌱 植物升级了！获得额外星星！');
+            stars.value += LEVEL_UP_BONUS;
           }
         }
 
@@ -631,10 +701,7 @@
           if (modalClosing.value) return;
           modalClosing.value = true;
           showCorrectModal.value = false;
-          setTimeout(() => {
-            modalClosing.value = false;
-            showNextQuestion();
-          }, 300);
+          setTimeout(() => { modalClosing.value = false; showNextQuestion(); }, 300);
         }
 
         function beginExam() {
@@ -649,11 +716,7 @@
             const catQs = generateUniqueQuestions(cat, grade, 1);
             for (const q of catQs) {
               const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) {
-                usedKeys.add(key);
-                questions.push(q);
-                if (questions.length >= count) break;
-              }
+              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
             }
           }
           while (questions.length < count) {
@@ -661,11 +724,7 @@
             const catQs = generateUniqueQuestions(cat, grade, 1);
             for (const q of catQs) {
               const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) {
-                usedKeys.add(key);
-                questions.push(q);
-                if (questions.length >= count) break;
-              }
+              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
             }
           }
           examQuestions.value = shuffle(questions);
@@ -702,11 +761,7 @@
             const catQs = generateUniqueQuestions(cat, grade, 1);
             for (const q of catQs) {
               const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) {
-                usedKeys.add(key);
-                questions.push(q);
-                if (questions.length >= count) break;
-              }
+              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
             }
           }
           while (questions.length < count) {
@@ -714,11 +769,7 @@
             const catQs = generateUniqueQuestions(cat, grade, 1);
             for (const q of catQs) {
               const key = q.text + '|||' + q.answer;
-              if (!usedKeys.has(key)) {
-                usedKeys.add(key);
-                questions.push(q);
-                if (questions.length >= count) break;
-              }
+              if (!usedKeys.has(key)) { usedKeys.add(key); questions.push(q); if (questions.length >= count) break; }
             }
           }
           const printWindow = window.open('', '_blank', 'width=800,height=600');
@@ -758,8 +809,8 @@
           plantProgress, view, currentGame, gameTitle,
           questionCount, questionQueue, gameStarted,
           openGame, generateQuestionBatch, resetGameBatch,
-          question, feedback, userInput, answer,
-          showCorrectModal, encourageText, currentSolution, closeCorrectModal, modalClosing,
+          question, feedback, userInput, userHours, userMinutes,
+          answer, answerTime, showCorrectModal, encourageText, currentSolution, closeCorrectModal, modalClosing,
           examStarted, examQuestions, examAnswers, examSubmitted,
           examResults, examCorrect, examScore, examGrade,
           startExam, beginExam, submitExam, resetExam,
