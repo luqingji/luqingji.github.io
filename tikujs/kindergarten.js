@@ -69,7 +69,7 @@ const kindergartenData = [
     "id": 8,
     "category": "数数与认知",
     "difficulty": "基础",
-    "question": "圈出最小的数：8、4、9、2",
+    "question": "圈出最小的数：8、4、9、1、2",
     "answer": "1",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
