@@ -2,100 +2,124 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>小学数学练习系统 | 在线题库 + 模拟考试 + 打印试卷</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>小学数学练习系统 | 护眼模式 + 错题本 + 智能匹配</title>
     <style>
         * {
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* 默认主题（清爽蓝） */
+        :root {
+            --bg-body: #f0f7ff;
+            --bg-container: white;
+            --text-primary: #1e2a3e;
+            --text-secondary: #475569;
+            --card-border: #e2e8f0;
+            --btn-bg: white;
+            --btn-border: #cbd5e1;
+            --badge-base: #e2e8f0;
+            --success-bg: #dcfce7;
+            --success-text: #166534;
+            --error-bg: #fee2e2;
+            --error-text: #b91c1c;
+        }
+        /* 护眼主题（暖米色） */
+        body.eye-care {
+            --bg-body: #fef9e6;
+            --bg-container: #fffaf2;
+            --text-primary: #2c3e3f;
+            --text-secondary: #5a6c6e;
+            --card-border: #e2dccd;
+            --btn-bg: #ede7d9;
+            --btn-border: #d4c2a7;
+            --badge-base: #e8e0cf;
+            --success-bg: #e0f0e0;
+            --success-text: #2d6a2d;
+            --error-bg: #f5e0db;
+            --error-text: #b85c4a;
         }
         body {
             font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
-            background: #f0f7ff;
+            background: var(--bg-body);
             margin: 0;
             padding: 20px;
-            color: #1e2a3e;
+            color: var(--text-primary);
+            transition: background 0.2s, color 0.2s;
         }
         .container {
             max-width: 1300px;
             margin: 0 auto;
-            background: white;
+            background: var(--bg-container);
             border-radius: 32px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             overflow: hidden;
             padding: 20px 24px 40px;
+            transition: background 0.2s;
         }
         h1 {
             font-size: 1.8rem;
             margin: 0 0 8px 0;
-            color: #2c3e66;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
             gap: 12px;
             flex-wrap: wrap;
         }
-        h1 small {
-            font-size: 0.8rem;
-            font-weight: normal;
-            background: #eef2ff;
-            padding: 4px 12px;
-            border-radius: 40px;
-            color: #1e40af;
-        }
         .toolbar {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
             margin: 20px 0 24px;
             padding-bottom: 16px;
-            border-bottom: 2px solid #e2e8f0;
+            border-bottom: 2px solid var(--card-border);
         }
         .filter-group {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 12px;
-            background: #f8fafc;
-            padding: 8px 16px;
+            gap: 8px;
+            background: var(--bg-body);
+            padding: 6px 14px;
             border-radius: 60px;
         }
         .filter-group label {
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-secondary);
         }
         select, button {
-            background: white;
-            border: 1px solid #cbd5e1;
+            background: var(--btn-bg);
+            border: 1px solid var(--btn-border);
             padding: 8px 16px;
             border-radius: 40px;
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s;
             font-weight: 500;
+            color: var(--text-primary);
         }
         select:hover, button:hover {
-            background: #f1f5f9;
-            border-color: #94a3b8;
+            background: var(--card-border);
         }
         button.primary {
             background: #1e3a8a;
             border-color: #1e3a8a;
             color: white;
         }
-        button.primary:hover {
-            background: #1e40af;
+        body.eye-care button.primary {
+            background: #c1a57b;
+            border-color: #c1a57b;
+            color: #2c3e3f;
         }
         button.warning {
             background: #f59e0b;
             border-color: #f59e0b;
             color: white;
         }
-        button.warning:hover {
-            background: #d97706;
-        }
         .mode-switch {
             display: flex;
             gap: 8px;
-            background: #f1f5f9;
+            background: var(--bg-body);
             padding: 4px;
             border-radius: 48px;
         }
@@ -106,22 +130,20 @@
             border-radius: 40px;
         }
         .mode-btn.active {
-            background: white;
+            background: var(--bg-container);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             color: #1e3a8a;
             font-weight: bold;
         }
-        .question-area {
-            margin-top: 20px;
+        body.eye-care .mode-btn.active {
+            color: #c1a57b;
         }
         .question-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--bg-container);
+            border: 1px solid var(--card-border);
             border-radius: 24px;
             padding: 20px;
             margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-            transition: 0.1s;
         }
         .question-header {
             display: flex;
@@ -130,26 +152,29 @@
             flex-wrap: wrap;
             margin-bottom: 12px;
             font-size: 0.85rem;
-            color: #475569;
+            color: var(--text-secondary);
         }
         .badge {
-            background: #e2e8f0;
+            background: var(--badge-base);
             padding: 2px 10px;
             border-radius: 20px;
             font-size: 0.75rem;
+            color: var(--text-primary);
         }
         .badge.difficulty-基础 { background: #dcfce7; color: #166534; }
         .badge.difficulty-提高 { background: #fff3e3; color: #b45309; }
         .badge.difficulty-挑战 { background: #fee2e2; color: #b91c1c; }
-        .badge.no-answer { background: #f1f5f9; color: #64748b; font-style: italic; }
+        body.eye-care .badge.difficulty-基础 { background: #e0f0e0; color: #2d6a2d; }
+        body.eye-care .badge.difficulty-提高 { background: #fcead8; color: #b45309; }
+        body.eye-care .badge.difficulty-挑战 { background: #f5e0db; color: #b85c4a; }
+        .badge.no-answer { background: var(--badge-base); color: var(--text-secondary); font-style: italic; }
         .question-text {
             font-size: 1.1rem;
             line-height: 1.5;
             margin: 12px 0;
-            font-weight: 600;      /* 加粗 */
+            font-weight: 600;
             white-space: pre-wrap;
             word-break: break-word;
-            font-family: 'Segoe UI', 'Noto Sans', system-ui, -apple-system, 'Courier New', monospace;
         }
         .answer-input {
             margin: 16px 0 12px;
@@ -161,20 +186,22 @@
         .answer-input input {
             padding: 10px 16px;
             width: 200px;
-            border: 1px solid #cbd5e1;
+            border: 1px solid var(--btn-border);
             border-radius: 40px;
             font-size: 1rem;
+            background: var(--bg-container);
+            color: var(--text-primary);
         }
-        .btn-show-solution, .btn-show-answer {
-            background: #f1f5f9;
+        .btn-show-solution, .btn-show-answer, .btn-add-mistake {
+            background: var(--btn-bg);
             border: none;
             padding: 6px 14px;
             border-radius: 30px;
             font-size: 0.8rem;
             cursor: pointer;
         }
-        .solution {
-            background: #f8fafc;
+        .solution, .answer-display {
+            background: var(--bg-body);
             padding: 12px 16px;
             border-radius: 20px;
             margin-top: 12px;
@@ -182,15 +209,13 @@
             font-size: 0.95rem;
             border-left: 4px solid #3b82f6;
         }
-        .feedback, .answer-display {
+        .answer-display {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        .feedback {
             margin-top: 12px;
             font-weight: 500;
-        }
-        .answer-display {
-            background: #e6f7e6;
-            padding: 8px 12px;
-            border-radius: 20px;
-            color: #166534;
         }
         .exam-panel, .print-preview {
             background: #fefce8;
@@ -200,7 +225,7 @@
             margin-top: 24px;
         }
         .no-answer-notice {
-            color: #64748b;
+            color: var(--text-secondary);
             font-size: 0.85rem;
             margin-top: 8px;
             font-style: italic;
@@ -220,32 +245,20 @@
             }
             .toolbar, .mode-switch, .btn-show-solution, .answer-input, .feedback,
             button:not(.do-print), .no-print, .exam-panel, .print-preview button,
-            .btn-show-answer, .answer-display {
+            .btn-show-answer, .answer-display, .btn-add-mistake {
                 display: none !important;
             }
             .question-card {
                 break-inside: avoid;
-                page-break-inside: avoid;
-                border: 1px solid #aaa;
+                border: 1px solid #ccc;
                 margin-bottom: 8px;
                 padding: 6px 8px;
                 border-radius: 0;
-                background: white;
-            }
-            .question-header {
-                margin-bottom: 4px;
-                font-size: 0.7rem;
-            }
-            .badge {
-                padding: 0 4px;
-                font-size: 0.65rem;
             }
             .question-text {
                 font-size: 0.85rem;
-                line-height: 1.3;
-                margin: 4px 0;
                 white-space: pre-wrap;
-                font-weight: 600;   /* 打印也加粗 */
+                font-weight: 600;
             }
             u {
                 text-decoration: none;
@@ -253,41 +266,31 @@
                 display: inline-block;
                 min-width: 100px;
             }
-            h1 {
-                font-size: 14pt;
-                margin: 0 0 4px;
-            }
-            h2 {
-                font-size: 12pt;
-                margin: 4px 0;
-            }
-            body {
-                font-size: 9pt;
-            }
-            .print-preview p {
-                margin: 2px 0;
-                font-size: 0.7rem;
-            }
-            .no-answer-notice {
-                display: none;
-            }
         }
         .footer {
             margin-top: 40px;
             text-align: center;
             font-size: 0.8rem;
-            color: #6c757d;
+            color: var(--text-secondary);
         }
         .stats {
             font-size: 0.9rem;
-            background: #eef2ff;
+            background: var(--bg-body);
             padding: 6px 12px;
             border-radius: 40px;
             display: inline-block;
         }
-        .page-info {
-            font-size: 0.85rem;
-            color: #b45309;
+        .mistake-badge {
+            background: #fde047;
+            color: #854d0e;
+            margin-left: 8px;
+        }
+        @media (max-width: 640px) {
+            body { padding: 10px; }
+            .container { padding: 16px; }
+            .question-text { font-size: 1rem; }
+            .answer-input input { width: 140px; }
+            button, select { padding: 6px 12px; font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -295,50 +298,26 @@
 <div class="container" id="app">
     <h1>📚 数学小天才练习系统
         <small>幼儿园 → 六年级</small>
+        <button id="eyeCareBtn" style="margin-left:auto;">🌙 护眼模式</button>
     </h1>
 
     <div class="toolbar no-print">
-        <div class="filter-group">
-            <label>📖 年级：</label>
-            <select id="gradeSelect"></select>
-        </div>
-        <div class="filter-group">
-            <label>🏷️ 知识点：</label>
-            <select id="categorySelect">
-                <option value="all">全部</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>📝 答案状态：</label>
-            <select id="answerStatusSelect">
-                <option value="all">全部</option>
-                <option value="has">有答案</option>
-                <option value="no">无答案</option>
-            </select>
-        </div>
-        <div class="filter-group">
-            <label>📄 每页显示：</label>
-            <select id="pageSizeSelect">
-                <option value="10">10题</option>
-                <option value="20" selected>20题</option>
-                <option value="50">50题</option>
-                <option value="all">全部</option>
-            </select>
-        </div>
+        <div class="filter-group"><label>📖 年级：</label><select id="gradeSelect"></select></div>
+        <div class="filter-group"><label>🏷️ 知识点：</label><select id="categorySelect"></select></div>
+        <div class="filter-group"><label>⭐ 难度：</label><select id="difficultySelect"><option value="all">全部</option><option value="基础">基础</option><option value="提高">提高</option><option value="挑战">挑战</option></select></div>
+        <div class="filter-group"><label>📝 答案状态：</label><select id="answerStatusSelect"><option value="all">全部</option><option value="has">有答案</option><option value="no">无答案</option></select></div>
+        <div class="filter-group"><label>📄 每页显示：</label><select id="pageSizeSelect"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="all">全部</option></select></div>
+        <div class="filter-group"><label>🎲 顺序：</label><select id="orderSelect"><option value="normal">正常</option><option value="random">随机</option></select></div>
         <div class="mode-switch">
-            <button id="modePractice" class="mode-btn active">✏️ 练习模式</button>
-            <button id="modeExam" class="mode-btn">📝 模拟考试</button>
-            <button id="modePrintPaper" class="mode-btn">🖨️ 生成打印试卷</button>
+            <button id="modePractice" class="mode-btn active">✏️ 练习</button>
+            <button id="modeExam" class="mode-btn">📝 考试</button>
+            <button id="modePrintPaper" class="mode-btn">🖨️ 打印</button>
+            <button id="modeMistake" class="mode-btn">❌ 错题本</button>
         </div>
     </div>
 
-    <div id="contentArea" class="question-area">
-        <div style="text-align:center; padding:40px;">加载题库中...</div>
-    </div>
-
-    <div class="footer no-print">
-        ✅ 可在线练习 · 点击“显示答案”直接查看正确答案 · 模拟考试自动批改 · 一键生成纸质试卷
-    </div>
+    <div id="contentArea" class="question-area">加载题库中...</div>
+    <div class="footer no-print">✅ 智能匹配答案 · 错题自动记录 · 模拟考试计时 · 护眼可切换</div>
 </div>
 
 <script src="tikujs/kindergarten.js"></script>
@@ -350,386 +329,138 @@
 <script src="tikujs/grade6.js"></script>
 
 <script>
-    // 年级数据映射
-    const gradeMap = {
-        "幼儿园": window.kindergarten || [],
-        "一年级": window.grade1 || [],
-        "二年级": window.grade2 || [],
-        "三年级": window.grade3 || [],
-        "四年级": window.grade4 || [],
-        "五年级": window.grade5 || [],
-        "六年级": window.grade6 || []
-    };
-    let currentGrade = "一年级";
-    let currentMode = "practice";
-    let currentQuestions = [];
-    let allFilteredQuestions = [];
-    let userAnswers = [];
+    // ---------- 全局变量 ----------
+    const gradeMap = { "幼儿园": window.kindergarten || [], "一年级": window.grade1 || [], "二年级": window.grade2 || [], "三年级": window.grade3 || [], "四年级": window.grade4 || [], "五年级": window.grade5 || [], "六年级": window.grade6 || [] };
+    let currentGrade = "一年级", currentMode = "practice", currentQuestions = [], allFilteredQuestions = [], userAnswers = [], examTimer = null, examTimeLeft = 1800;
+    let mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
+    const saveMistakes = () => localStorage.setItem('mistakeList', JSON.stringify(mistakeList));
+    // DOM
+    const gradeSelect = document.getElementById("gradeSelect"), categorySelect = document.getElementById("categorySelect"), answerStatusSelect = document.getElementById("answerStatusSelect"), difficultySelect = document.getElementById("difficultySelect"), pageSizeSelect = document.getElementById("pageSizeSelect"), orderSelect = document.getElementById("orderSelect");
+    const modePractice = document.getElementById("modePractice"), modeExam = document.getElementById("modeExam"), modePrintPaper = document.getElementById("modePrintPaper"), modeMistake = document.getElementById("modeMistake"), contentArea = document.getElementById("contentArea"), eyeCareBtn = document.getElementById("eyeCareBtn");
 
-    const gradeSelect = document.getElementById("gradeSelect");
-    const categorySelect = document.getElementById("categorySelect");
-    const answerStatusSelect = document.getElementById("answerStatusSelect");
-    const pageSizeSelect = document.getElementById("pageSizeSelect");
-    const modePractice = document.getElementById("modePractice");
-    const modeExam = document.getElementById("modeExam");
-    const modePrintPaper = document.getElementById("modePrintPaper");
-    const contentArea = document.getElementById("contentArea");
+    // 护眼模式
+    if(localStorage.getItem('eyeCare') === 'true') document.body.classList.add('eye-care');
+    eyeCareBtn.addEventListener('click', () => { document.body.classList.toggle('eye-care'); localStorage.setItem('eyeCare', document.body.classList.contains('eye-care')); });
 
-    function getAllCategories(grade) {
-        const questions = gradeMap[grade] || [];
-        const cats = new Set();
-        questions.forEach(q => { if(q.category) cats.add(q.category); });
-        return Array.from(cats).sort();
-    }
-
-    function filterQuestionsByStatus(questions, status) {
-        if (status === 'has') return questions.filter(q => q.hasAnswer === true);
-        if (status === 'no') return questions.filter(q => q.hasAnswer === false);
-        return questions;
-    }
-
-    function getFilteredQuestions() {
-        const all = gradeMap[currentGrade] || [];
-        let filtered = all;
-        const category = categorySelect.value;
-        if (category !== 'all') {
-            filtered = filtered.filter(q => q.category === category);
-        }
-        const answerStatus = answerStatusSelect.value;
-        filtered = filterQuestionsByStatus(filtered, answerStatus);
+    // 辅助函数
+    function getAllCategories(grade) { const cats = new Set(); (gradeMap[grade] || []).forEach(q => q.category && cats.add(q.category)); return Array.from(cats).sort(); }
+    function filterQuestions(questions) {
+        let filtered = questions;
+        const cat = categorySelect.value; if(cat !== 'all') filtered = filtered.filter(q => q.category === cat);
+        const diff = difficultySelect.value; if(diff !== 'all') filtered = filtered.filter(q => q.difficulty === diff);
+        const ansStat = answerStatusSelect.value; if(ansStat === 'has') filtered = filtered.filter(q => q.hasAnswer); else if(ansStat === 'no') filtered = filtered.filter(q => !q.hasAnswer);
+        if(orderSelect.value === 'random') filtered = [...filtered].sort(() => Math.random() - 0.5);
         return filtered;
     }
-
-    function updateCategorySelect(grade) {
-        const cats = getAllCategories(grade);
-        categorySelect.innerHTML = '<option value="all">全部</option>';
-        cats.forEach(cat => {
-            const opt = document.createElement("option");
-            opt.value = cat;
-            opt.textContent = cat;
-            categorySelect.appendChild(opt);
-        });
-        categorySelect.value = "all";
+    function getFilteredQuestions() { return filterQuestions(gradeMap[currentGrade] || []); }
+    function updateCategorySelect(grade) { const cats = getAllCategories(grade); categorySelect.innerHTML = '<option value="all">全部</option>'; cats.forEach(c => { const opt = document.createElement("option"); opt.value = c; opt.textContent = c; categorySelect.appendChild(opt); }); categorySelect.value = "all"; }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    // 智能答案匹配
+    function isAnswerEqual(user, correct) {
+        if(user === correct) return true;
+        let u = user.trim().toLowerCase().replace(/\s/g, ''), c = correct.trim().toLowerCase().replace(/\s/g, '');
+        if(u === c) return true;
+        // 分数 vs 小数
+        const fracMatch = u.match(/^(\d+)\/(\d+)$/); if(fracMatch) { const val = parseInt(fracMatch[1])/parseInt(fracMatch[2]); if(Math.abs(val - parseFloat(c)) < 1e-6) return true; }
+        const fracMatchC = c.match(/^(\d+)\/(\d+)$/); if(fracMatchC) { const val = parseInt(fracMatchC[1])/parseInt(fracMatchC[2]); if(Math.abs(val - parseFloat(u)) < 1e-6) return true; }
+        // 带分数简化处理略
+        if(!isNaN(parseFloat(u)) && !isNaN(parseFloat(c))) return Math.abs(parseFloat(u) - parseFloat(c)) < 1e-6;
+        return false;
     }
-
-    function escapeHtml(str) {
-        if(!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if(m === '&') return '&amp;';
-            if(m === '<') return '&lt;';
-            if(m === '>') return '&gt;';
-            return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
-        });
-    }
-
-    // 练习模式（加粗字体已通过CSS实现）
+    // 错题本记录
+    function addMistake(question) { if(!mistakeList.some(m => m.id === question.id && m.grade === currentGrade)) { mistakeList.push({ id: question.id, grade: currentGrade, question: question.question, category: question.category, difficulty: question.difficulty, answer: question.answer, solution: question.solution }); saveMistakes(); } }
+    // 渲染练习/考试/打印/错题本
     function renderPracticeMode() {
-        const allQuestions = getFilteredQuestions();
-        if (!allQuestions.length) {
-            contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选条件下没有题目，请调整筛选条件。</div>`;
-            return;
-        }
-        allFilteredQuestions = allQuestions;
-        let pageSize = pageSizeSelect.value;
-        let displayQuestions = allQuestions;
-        let totalCount = allQuestions.length;
-
-        if (pageSize !== 'all') {
-            let limit = parseInt(pageSize, 10);
-            if (!isNaN(limit) && totalCount > limit) {
-                displayQuestions = allQuestions.slice(0, limit);
-            }
-        }
-        currentQuestions = displayQuestions;
-
-        let html = `<div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                        <span class="stats">📊 共 ${totalCount} 道题，当前显示 ${displayQuestions.length} 题</span>
-                        ${totalCount > displayQuestions.length ? `<span class="page-info">⚠️ 仅显示前 ${displayQuestions.length} 题，调整“每页显示”可查看更多</span>` : ''}
-                    </div>`;
-
-        displayQuestions.forEach((q, idx) => {
-            const diffClass = `difficulty-${q.difficulty}`;
-            const hasAnswer = q.hasAnswer === true;
-            html += `
-                <div class="question-card" data-idx="${idx}">
-                    <div class="question-header">
-                        <span class="badge ${diffClass}">${q.difficulty || '基础'}</span>
-                        <span class="badge">${q.category || '其他'}</span>
-                        ${!hasAnswer ? '<span class="badge no-answer">📌 无标准答案</span>' : ''}
-                    </div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>
-                    <div class="answer-input">
-                        <input type="text" id="ans_${idx}" placeholder="输入你的答案" data-qidx="${idx}" ${!hasAnswer ? 'disabled style="background:#f1f5f9;"' : ''}>
-                        ${hasAnswer ? `<button class="btn-check" data-idx="${idx}">✅ 核对答案</button>` : ''}
-                        <button class="btn-show-answer" data-idx="${idx}" ${!hasAnswer ? 'disabled style="opacity:0.5;"' : ''}>🔍 显示答案</button>
-                        <button class="btn-show-solution" data-idx="${idx}">💡 显示解题思路</button>
-                    </div>
-                    <div id="feedback_${idx}" class="feedback"></div>
-                    <div id="answerDisplay_${idx}" class="answer-display" style="display:none;"></div>
-                    <div id="solution_${idx}" class="solution">${escapeHtml(q.solution || '暂无详细解析，请根据题目类型思考。')}</div>
-                    ${!hasAnswer ? '<div class="no-answer-notice">⚠️ 本题为开放性问题，无标准答案，请参考解题思路自行判断。</div>' : ''}
+        let questions = getFilteredQuestions();
+        if(!questions.length) { contentArea.innerHTML = `<div class="question-card">⚠️ 无题目，请调整筛选</div>`; return; }
+        let pageSize = pageSizeSelect.value; let display = questions; let total = questions.length;
+        if(pageSize !== 'all') { let limit = parseInt(pageSize); if(!isNaN(limit) && total>limit) display = questions.slice(0, limit); }
+        currentQuestions = display;
+        let html = `<div style="margin-bottom:16px;"><span class="stats">📊 共 ${total} 题，显示 ${display.length} 题</span></div>`;
+        display.forEach((q, idx) => {
+            const hasAns = q.hasAnswer;
+            html += `<div class="question-card" data-idx="${idx}">
+                <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span>${!hasAns?'<span class="badge no-answer">无答案</span>':''}</div>
+                <div class="question-text">${escapeHtml(q.question)}</div>
+                <div class="answer-input">
+                    <input type="text" id="ans_${idx}" placeholder="输入答案" ${!hasAns?'disabled style="background:#f1f5f9;"':''}>
+                    ${hasAns?`<button class="btn-check" data-idx="${idx}">核对</button><button class="btn-show-answer" data-idx="${idx}">显示答案</button>`:''}
+                    <button class="btn-show-solution" data-idx="${idx}">思路</button>
+                    <button class="btn-add-mistake" data-idx="${idx}" style="background:#fde047;">📌 错题本</button>
                 </div>
-            `;
-        });
-        contentArea.innerHTML = html;
-
-        // 绑定核对答案事件
-        document.querySelectorAll('.btn-check').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = btn.getAttribute('data-idx');
-                const input = document.getElementById(`ans_${idx}`);
-                const userAns = input.value.trim();
-                const correctAns = currentQuestions[idx].answer;
-                const feedbackDiv = document.getElementById(`feedback_${idx}`);
-                if(userAns === ""){
-                    feedbackDiv.innerHTML = "❓ 请输入答案";
-                    return;
-                }
-                if(userAns == correctAns || parseFloat(userAns) == parseFloat(correctAns)) {
-                    feedbackDiv.innerHTML = "✅ 回答正确！很棒！";
-                    feedbackDiv.style.color = "#15803d";
-                } else {
-                    feedbackDiv.innerHTML = `❌ 答案错误。正确答案是：${correctAns}。再试试看！`;
-                    feedbackDiv.style.color = "#b91c1c";
-                }
-            });
-        });
-        // 绑定显示答案事件
-        document.querySelectorAll('.btn-show-answer').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = btn.getAttribute('data-idx');
-                const q = currentQuestions[idx];
-                const answerDiv = document.getElementById(`answerDisplay_${idx}`);
-                if (q.hasAnswer) {
-                    answerDiv.innerHTML = `📖 正确答案：${escapeHtml(q.answer)}`;
-                    answerDiv.style.display = 'block';
-                    setTimeout(() => {
-                        if (answerDiv) answerDiv.style.display = 'none';
-                    }, 5000);
-                } else {
-                    answerDiv.innerHTML = `⚠️ 本题无标准答案，请参考解题思路。`;
-                    answerDiv.style.display = 'block';
-                    setTimeout(() => {
-                        if (answerDiv) answerDiv.style.display = 'none';
-                    }, 3000);
-                }
-            });
-        });
-        // 绑定显示思路事件
-        document.querySelectorAll('.btn-show-solution').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = btn.getAttribute('data-idx');
-                const solDiv = document.getElementById(`solution_${idx}`);
-                if(solDiv.style.display === 'none' || !solDiv.style.display) {
-                    solDiv.style.display = 'block';
-                    btn.textContent = '🙈 隐藏思路';
-                } else {
-                    solDiv.style.display = 'none';
-                    btn.textContent = '💡 显示解题思路';
-                }
-            });
-        });
-        // 默认隐藏所有思路和答案显示
-        displayQuestions.forEach((_, idx) => {
-            const solDiv = document.getElementById(`solution_${idx}`);
-            if(solDiv) solDiv.style.display = 'none';
-            const ansDiv = document.getElementById(`answerDisplay_${idx}`);
-            if(ansDiv) ansDiv.style.display = 'none';
-        });
-    }
-
-    // 模拟考试（保持原样）
-    function renderExamMode() {
-        let allQ = getFilteredQuestions();
-        allQ = allQ.filter(q => q.hasAnswer === true);
-        if(allQ.length === 0) {
-            contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选下没有<span style="color:red;">有答案的题目</span>，无法组卷。请调整条件（如取消“无答案”筛选）。</div>`;
-            return;
-        }
-        const examCount = Math.min(15, allQ.length);
-        const shuffled = [...allQ];
-        for(let i=shuffled.length - 1; i > 0; i--){
-            const j = Math.floor(Math.random()*(i+1));
-            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-        }
-        const examQuestions = shuffled.slice(0, examCount);
-        currentQuestions = examQuestions;
-        userAnswers = new Array(examCount).fill("");
-
-        let html = `<div class="exam-panel">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                            <h3>📋 模拟考试 (${examCount}题) &nbsp; <span style="font-size:0.9rem;">随机抽题（仅含答案题）</span></h3>
-                            <div>
-                                <button id="submitExamBtn" class="primary">📊 提交批改</button>
-                                <button id="resetExamBtn" class="warning">🔄 重新抽题</button>
-                            </div>
-                        </div>
-                        <div id="examResult" style="margin-top:16px;"></div>
-                    </div>`;
-        examQuestions.forEach((q, idx) => {
-            html += `
-                <div class="question-card">
-                    <div class="question-header">
-                        <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
-                        <span class="badge">${q.category}</span>
-                    </div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>
-                    <div class="answer-input">
-                        <input type="text" id="examAns_${idx}" placeholder="你的答案" data-examidx="${idx}">
-                    </div>
-                    <div id="examSolution_${idx}" class="solution" style="display:none;">💡 解题思路：${escapeHtml(q.solution || '无详细解析')}</div>
-                </div>
-            `;
-        });
-        contentArea.innerHTML = html;
-
-        for(let i=0;i<examQuestions.length;i++){
-            const inp = document.getElementById(`examAns_${i}`);
-            if(inp){
-                inp.addEventListener('input', (e) => {
-                    userAnswers[i] = e.target.value;
-                });
-            }
-        }
-        document.getElementById('submitExamBtn')?.addEventListener('click', () => {
-            let correctCount = 0;
-            let details = "";
-            for(let i=0;i<examQuestions.length;i++){
-                const userAns = userAnswers[i] || "";
-                const correctAns = examQuestions[i].answer;
-                const isCorrect = (userAns == correctAns) || (parseFloat(userAns) == parseFloat(correctAns));
-                if(isCorrect) correctCount++;
-                details += `<div><strong>${i+1}.</strong> 你的答案: ${userAns || "未填"}  | 正确答案: ${correctAns} ${isCorrect ? '✅' : '❌'}</div>`;
-                const solDiv = document.getElementById(`examSolution_${i}`);
-                if(solDiv && !isCorrect) solDiv.style.display = 'block';
-            }
-            const resultDiv = document.getElementById('examResult');
-            resultDiv.innerHTML = `<div style="background:white; border-radius:24px; padding:16px;">
-                <h4>📈 成绩：${correctCount} / ${examQuestions.length} (${Math.round(correctCount/examQuestions.length*100)}分)</h4>
-                <div style="max-height:300px; overflow-y:auto;">${details}</div>
-                <button id="showAllExamSolutions" class="btn-show-solution" style="margin-top:12px;">🔍 显示所有解题思路</button>
+                <div id="feedback_${idx}" class="feedback"></div>
+                <div id="answerDisplay_${idx}" class="answer-display" style="display:none;"></div>
+                <div id="solution_${idx}" class="solution">${escapeHtml(q.solution||'暂无')}</div>
+                ${!hasAns?'<div class="no-answer-notice">开放题，无标准答案</div>':''}
             </div>`;
-            document.getElementById('showAllExamSolutions')?.addEventListener('click', ()=>{
-                for(let i=0;i<examQuestions.length;i++){
-                    const solDiv = document.getElementById(`examSolution_${i}`);
-                    if(solDiv) solDiv.style.display = 'block';
-                }
-            });
         });
-        document.getElementById('resetExamBtn')?.addEventListener('click', () => {
-            renderExamMode();
-        });
+        contentArea.innerHTML = html;
+        // 绑定事件
+        document.querySelectorAll('.btn-check').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, inp = document.getElementById(`ans_${idx}`), user = inp.value.trim(), correct = currentQuestions[idx].answer, fb = document.getElementById(`feedback_${idx}`); if(!user){fb.innerHTML='❓ 请输入答案';return;} if(isAnswerEqual(user,correct)){fb.innerHTML='✅ 正确！';fb.style.color='green';}else{fb.innerHTML=`❌ 错误，正确答案：${correct}`;fb.style.color='red'; addMistake(currentQuestions[idx]);} }));
+        document.querySelectorAll('.btn-show-answer').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, q = currentQuestions[idx], div = document.getElementById(`answerDisplay_${idx}`); div.innerHTML = `📖 答案：${escapeHtml(q.answer)}`; div.style.display='block'; setTimeout(()=>div.style.display='none',4000); }));
+        document.querySelectorAll('.btn-show-solution').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, sol = document.getElementById(`solution_${idx}`); if(sol.style.display==='none'||!sol.style.display){sol.style.display='block';btn.textContent='隐藏思路';}else{sol.style.display='none';btn.textContent='思路';} }));
+        document.querySelectorAll('.btn-add-mistake').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx; addMistake(currentQuestions[idx]); alert('已加入错题本'); }));
+        document.querySelectorAll('.solution, .answer-display').forEach(el => el.style.display='none');
     }
-
-    // 打印试卷模式（不变）
+    // 错题本模式
+    function renderMistakeMode() {
+        if(mistakeList.length===0){ contentArea.innerHTML='<div class="question-card">暂无错题，继续练习~</div>'; return; }
+        let html = `<div style="margin-bottom:16px;"><span class="stats">❌ 错题本 (${mistakeList.length}题)</span><button id="clearMistakes" style="margin-left:16px;">清空错题本</button></div>`;
+        mistakeList.forEach((q, idx) => {
+            html += `<div class="question-card"><div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
+            <div class="question-text">${escapeHtml(q.question)}</div>
+            <div class="answer-input"><button class="btn-show-answer-mistake" data-idx="${idx}">显示答案</button><button class="btn-show-solution-mistake" data-idx="${idx}">思路</button><button class="btn-remove-mistake" data-idx="${idx}">移除</button></div>
+            <div id="mistakeAnswer_${idx}" class="answer-display" style="display:none;"></div><div id="mistakeSolution_${idx}" class="solution" style="display:none;">${escapeHtml(q.solution||'暂无')}</div></div>`;
+        });
+        contentArea.innerHTML = html;
+        document.querySelectorAll('.btn-show-answer-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx, div=document.getElementById(`mistakeAnswer_${i}`); div.innerHTML=`答案：${escapeHtml(mistakeList[i].answer)}`; div.style.display='block'; setTimeout(()=>div.style.display='none',4000); }));
+        document.querySelectorAll('.btn-show-solution-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx, sol=document.getElementById(`mistakeSolution_${i}`); sol.style.display=sol.style.display==='none'?'block':'none'; }));
+        document.querySelectorAll('.btn-remove-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx; mistakeList.splice(i,1); saveMistakes(); renderMistakeMode(); }));
+        document.getElementById('clearMistakes')?.addEventListener('click',()=>{if(confirm('清空所有错题？')){mistakeList=[];saveMistakes();renderMistakeMode();}});
+    }
+    // 模拟考试（计时、批改）
+    function renderExamMode() {
+        if(examTimer) clearInterval(examTimer);
+        let all = getFilteredQuestions().filter(q=>q.hasAnswer);
+        if(all.length===0){ contentArea.innerHTML='<div class="question-card">无有答案题目，无法考试</div>'; return; }
+        let examCount = Math.min(15, all.length);
+        let shuffled = [...all]; for(let i=shuffled.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+        let examQuestions = shuffled.slice(0,examCount);
+        currentQuestions = examQuestions; userAnswers = new Array(examCount).fill("");
+        examTimeLeft = 1800; // 30分钟
+        let timerDisplay = document.createElement('div'); timerDisplay.id = 'examTimerDisplay'; timerDisplay.style.margin='10px 0'; timerDisplay.style.fontWeight='bold';
+        let html = `<div class="exam-panel"><div style="display:flex;justify-content:space-between;"><h3>📋 模拟考试 (${examCount}题)</h3><div><button id="submitExamBtn" class="primary">提交批改</button><button id="resetExamBtn" class="warning">重新抽题</button></div></div><div id="examResult"></div></div>`;
+        examQuestions.forEach((q,idx)=>{
+            html+=`<div class="question-card"><div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div><div class="question-text">${escapeHtml(q.question)}</div><div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="答案"></div><div id="examSolution_${idx}" class="solution" style="display:none;">思路：${escapeHtml(q.solution)}</div></div>`;
+        });
+        contentArea.innerHTML = html;
+        contentArea.insertBefore(timerDisplay, contentArea.firstChild);
+        function updateTimer(){ let mins = Math.floor(examTimeLeft/60), secs = examTimeLeft%60; timerDisplay.innerText = `⏱️ 剩余时间：${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`; if(examTimeLeft<=0){ clearInterval(examTimer); alert('时间到！自动交卷'); document.getElementById('submitExamBtn')?.click(); } }
+        updateTimer();
+        examTimer = setInterval(()=>{ if(examTimeLeft>0) { examTimeLeft--; updateTimer(); } else clearInterval(examTimer); },1000);
+        for(let i=0;i<examQuestions.length;i++) document.getElementById(`examAns_${i}`).addEventListener('input',e=>userAnswers[i]=e.target.value);
+        document.getElementById('submitExamBtn').addEventListener('click',()=>{ clearInterval(examTimer); let correct=0, details=''; for(let i=0;i<examQuestions.length;i++){ let u=userAnswers[i]||'', c=examQuestions[i].answer; if(isAnswerEqual(u,c)) correct++; details+=`<div>${i+1}. 你的答案：${u||'空'} 正确答案：${c} ${isAnswerEqual(u,c)?'✅':'❌'}</div>`; if(!isAnswerEqual(u,c)) document.getElementById(`examSolution_${i}`).style.display='block'; } document.getElementById('examResult').innerHTML=`<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`; document.getElementById('showAllExamSolutions')?.addEventListener('click',()=>{ for(let i=0;i<examQuestions.length;i++) document.getElementById(`examSolution_${i}`).style.display='block'; }); });
+        document.getElementById('resetExamBtn').addEventListener('click',()=>{ if(examTimer) clearInterval(examTimer); renderExamMode(); });
+    }
+    // 打印试卷（可自定义题数）
     function renderPrintPaperMode() {
         let questions = getFilteredQuestions();
-        if(questions.length === 0) {
-            contentArea.innerHTML = `<div class="question-card">⚠️ 没有题目，请调整筛选条件后生成试卷。</div>`;
-            return;
-        }
-        const maxPrint = 20;
-        let originalCount = questions.length;
-        if(questions.length > maxPrint) {
-            questions = questions.slice(0, maxPrint);
-        }
-        let printHtml = `<div class="print-preview" id="printSection">
-                            <div style="text-align:center; margin-bottom:16px;">
-                                <h2>✏️ 数学练习卷</h2>
-                                <p>年级：${currentGrade} &nbsp;|&nbsp; 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text || '全部'}</p>
-                                <p>姓名：__________ &nbsp;&nbsp; 日期：__________</p>
-                                ${originalCount > maxPrint ? `<p style="color:red;">⚠️ 当前共有 ${originalCount} 道题，仅打印前 ${maxPrint} 题。如需更多，请调整知识点筛选。</p>` : ''}
-                            </div>`;
-        questions.forEach((q, idx) => {
-            printHtml += `
-                <div class="question-card" style="border:1px solid #ddd; margin-bottom:12px; padding:10px;">
-                    <div class="question-header">
-                        <span>${idx+1}. 【${q.difficulty}】</span>
-                        <span>${q.category}</span>
-                    </div>
-                    <div class="question-text" style="white-space: pre-wrap;">${escapeHtml(q.question)}</div>
-                    <div style="margin: 8px 0 4px;"><u>答：_________________________________</u></div>
-                </div>
-            `;
-        });
-        printHtml += `<div style="margin-top:20px; text-align:center;"><button class="primary do-print" style="padding:8px 20px;">🖨️ 打印试卷</button></div></div>`;
-        contentArea.innerHTML = printHtml;
-
-        const printBtn = document.querySelector('.do-print');
-        if(printBtn){
-            printBtn.addEventListener('click', () => {
-                window.print();
-            });
-        }
+        if(questions.length===0){ contentArea.innerHTML='<div class="question-card">无题目</div>'; return; }
+        let printCount = prompt(`当前共${questions.length}题，输入打印数量（最多50）`, Math.min(20,questions.length));
+        let count = parseInt(printCount); if(isNaN(count)||count<1) count=20; count = Math.min(count, 50, questions.length);
+        let printQuestions = questions.slice(0,count);
+        let html = `<div class="print-preview"><div style="text-align:center;"><h2>数学练习卷</h2><p>年级：${currentGrade} | 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text||'全部'} | 题数：${count}</p><p>姓名：__________ 日期：__________</p></div>`;
+        printQuestions.forEach((q,idx)=>{ html+=`<div class="question-card"><div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span></div><div class="question-text" style="white-space:pre-wrap;">${escapeHtml(q.question)}</div><div style="margin:8px 0;"><u>答：_________________________________</u></div></div>`; });
+        html+=`<div style="text-align:center;"><button class="primary do-print">打印试卷</button></div></div>`;
+        contentArea.innerHTML = html;
+        document.querySelector('.do-print')?.addEventListener('click',()=>window.print());
     }
-
-    function refreshView() {
-        if(currentMode === 'practice') {
-            renderPracticeMode();
-        } else if(currentMode === 'exam') {
-            renderExamMode();
-        } else if(currentMode === 'print') {
-            renderPrintPaperMode();
-        }
-    }
-
-    function onGradeChange() {
-        currentGrade = gradeSelect.value;
-        updateCategorySelect(currentGrade);
-        categorySelect.value = "all";
-        refreshView();
-    }
-
-    function onFilterChange() {
-        if (currentMode === 'practice') refreshView();
-        else if (currentMode === 'exam') refreshView();
-        else if (currentMode === 'print') refreshView();
-    }
-
-    function onPageSizeChange() {
-        if (currentMode === 'practice') {
-            renderPracticeMode();
-        }
-    }
-
-    function setMode(mode) {
-        currentMode = mode;
-        modePractice.classList.remove('active');
-        modeExam.classList.remove('active');
-        modePrintPaper.classList.remove('active');
-        if(mode === 'practice') modePractice.classList.add('active');
-        if(mode === 'exam') modeExam.classList.add('active');
-        if(mode === 'print') modePrintPaper.classList.add('active');
-        refreshView();
-    }
-
-    function initGradeSelect() {
-        const grades = Object.keys(gradeMap);
-        gradeSelect.innerHTML = '';
-        grades.forEach(grade => {
-            const option = document.createElement('option');
-            option.value = grade;
-            option.textContent = grade;
-            gradeSelect.appendChild(option);
-        });
-        gradeSelect.value = currentGrade;
-    }
-
-    function init() {
-        initGradeSelect();
-        updateCategorySelect(currentGrade);
-        gradeSelect.addEventListener('change', onGradeChange);
-        categorySelect.addEventListener('change', onFilterChange);
-        answerStatusSelect.addEventListener('change', onFilterChange);
-        pageSizeSelect.addEventListener('change', onPageSizeChange);
-        modePractice.addEventListener('click', () => setMode('practice'));
-        modeExam.addEventListener('click', () => setMode('exam'));
-        modePrintPaper.addEventListener('click', () => setMode('print'));
-        setMode('practice');
-    }
-
+    function refreshView() { if(currentMode==='practice') renderPracticeMode(); else if(currentMode==='exam') renderExamMode(); else if(currentMode==='print') renderPrintPaperMode(); else if(currentMode==='mistake') renderMistakeMode(); }
+    function onGradeChange(){ currentGrade=gradeSelect.value; updateCategorySelect(currentGrade); categorySelect.value="all"; refreshView(); }
+    function onFilterChange(){ if(currentMode!=='mistake') refreshView(); }
+    function setMode(mode){ currentMode=mode; document.querySelectorAll('.mode-btn').forEach(btn=>btn.classList.remove('active')); if(mode==='practice') modePractice.classList.add('active'); if(mode==='exam') modeExam.classList.add('active'); if(mode==='print') modePrintPaper.classList.add('active'); if(mode==='mistake') modeMistake.classList.add('active'); refreshView(); }
+    function initGradeSelect(){ const grades=Object.keys(gradeMap); gradeSelect.innerHTML=''; grades.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;gradeSelect.appendChild(opt);}); gradeSelect.value=currentGrade; }
+    function init(){ initGradeSelect(); updateCategorySelect(currentGrade); gradeSelect.addEventListener('change',onGradeChange); categorySelect.addEventListener('change',onFilterChange); answerStatusSelect.addEventListener('change',onFilterChange); difficultySelect.addEventListener('change',onFilterChange); pageSizeSelect.addEventListener('change',()=>{if(currentMode==='practice')refreshView();}); orderSelect.addEventListener('change',()=>{if(currentMode==='practice')refreshView();}); modePractice.addEventListener('click',()=>setMode('practice')); modeExam.addEventListener('click',()=>setMode('exam')); modePrintPaper.addEventListener('click',()=>setMode('print')); modeMistake.addEventListener('click',()=>setMode('mistake')); setMode('practice'); }
     init();
 </script>
 </body>
