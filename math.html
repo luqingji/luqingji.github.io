@@ -141,6 +141,7 @@
         .badge.difficulty-基础 { background: #dcfce7; color: #166534; }
         .badge.difficulty-提高 { background: #fff3e3; color: #b45309; }
         .badge.difficulty-挑战 { background: #fee2e2; color: #b91c1c; }
+        .badge.no-answer { background: #f1f5f9; color: #64748b; font-style: italic; }
         .question-text {
             font-size: 1.2rem;
             line-height: 1.4;
@@ -185,8 +186,11 @@
             padding: 20px;
             margin-top: 24px;
         }
-        .print-only {
-            display: none;
+        .no-answer-notice {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            font-style: italic;
         }
         @media print {
             body {
@@ -196,28 +200,60 @@
             }
             .container {
                 max-width: 100%;
-                padding: 0.5cm;
+                padding: 0.2cm;
+                margin: 0;
                 box-shadow: none;
+                background: white;
             }
-            .toolbar, .mode-switch, .btn-show-solution, .answer-input, .feedback, button:not(.print-button), .no-print {
+            .toolbar, .mode-switch, .btn-show-solution, .answer-input, .feedback,
+            button:not(.do-print), .no-print, .exam-panel, .print-preview button {
                 display: none !important;
             }
             .question-card {
                 break-inside: avoid;
                 page-break-inside: avoid;
-                border: 1px solid #ccc;
-                margin-bottom: 20px;
+                border: 1px solid #aaa;
+                margin-bottom: 8px;
+                padding: 6px 8px;
+                border-radius: 0;
+                background: white;
             }
-            .solution {
-                display: block !important;
-                background: #f9f9f9;
-                border-left: 3px solid #333;
+            .question-header {
+                margin-bottom: 4px;
+                font-size: 0.7rem;
             }
-            .print-button {
-                display: none;
+            .badge {
+                padding: 0 4px;
+                font-size: 0.65rem;
+            }
+            .question-text {
+                font-size: 0.85rem;
+                line-height: 1.3;
+                margin: 4px 0;
+            }
+            u {
+                text-decoration: none;
+                border-bottom: 1px solid #000;
+                display: inline-block;
+                min-width: 100px;
             }
             h1 {
-                font-size: 24pt;
+                font-size: 14pt;
+                margin: 0 0 4px;
+            }
+            h2 {
+                font-size: 12pt;
+                margin: 4px 0;
+            }
+            body {
+                font-size: 9pt;
+            }
+            .print-preview p {
+                margin: 2px 0;
+                font-size: 0.7rem;
+            }
+            .no-answer-notice {
+                display: none;
             }
         }
         .footer {
@@ -232,6 +268,10 @@
             padding: 6px 12px;
             border-radius: 40px;
             display: inline-block;
+        }
+        .page-info {
+            font-size: 0.85rem;
+            color: #b45309;
         }
     </style>
 </head>
@@ -249,6 +289,23 @@
         <div class="filter-group">
             <label>🏷️ 知识点：</label>
             <select id="categorySelect">
+                <option value="all">全部</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>📝 答案状态：</label>
+            <select id="answerStatusSelect">
+                <option value="all">全部</option>
+                <option value="has">有答案</option>
+                <option value="no">无答案</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>📄 每页显示：</label>
+            <select id="pageSizeSelect">
+                <option value="10">10题</option>
+                <option value="20" selected>20题</option>
+                <option value="50">50题</option>
                 <option value="all">全部</option>
             </select>
         </div>
@@ -278,7 +335,7 @@
 <script src="tikujs/grade6.js"></script>
 
 <script>
-    // 年级数据映射 (全局变量名必须与JS文件中导出的变量名一致)
+    // 年级数据映射
     const gradeMap = {
         "幼儿园": window.kindergarten || [],
         "一年级": window.grade1 || [],
@@ -290,11 +347,14 @@
     };
     let currentGrade = "一年级";
     let currentMode = "practice";
-    let currentQuestions = [];
+    let currentQuestions = [];      // 当前显示的题目（可能被截取）
+    let allFilteredQuestions = [];  // 全部筛选后的题目
     let userAnswers = [];
 
     const gradeSelect = document.getElementById("gradeSelect");
     const categorySelect = document.getElementById("categorySelect");
+    const answerStatusSelect = document.getElementById("answerStatusSelect");
+    const pageSizeSelect = document.getElementById("pageSizeSelect");
     const modePractice = document.getElementById("modePractice");
     const modeExam = document.getElementById("modeExam");
     const modePrintPaper = document.getElementById("modePrintPaper");
@@ -307,9 +367,24 @@
         return Array.from(cats).sort();
     }
 
-    function filterQuestionsByCategory(questions, category) {
-        if(category === "all") return questions;
-        return questions.filter(q => q.category === category);
+    function filterQuestionsByStatus(questions, status) {
+        if (status === 'has') return questions.filter(q => q.hasAnswer === true);
+        if (status === 'no') return questions.filter(q => q.hasAnswer === false);
+        return questions;
+    }
+
+    function getFilteredQuestions() {
+        const all = gradeMap[currentGrade] || [];
+        let filtered = all;
+        // 按知识点筛选
+        const category = categorySelect.value;
+        if (category !== 'all') {
+            filtered = filtered.filter(q => q.category === category);
+        }
+        // 按答案状态筛选
+        const answerStatus = answerStatusSelect.value;
+        filtered = filterQuestionsByStatus(filtered, answerStatus);
+        return filtered;
     }
 
     function updateCategorySelect(grade) {
@@ -324,12 +399,6 @@
         categorySelect.value = "all";
     }
 
-    function getFilteredQuestions() {
-        const all = gradeMap[currentGrade] || [];
-        const category = categorySelect.value;
-        return filterQuestionsByCategory(all, category);
-    }
-
     function escapeHtml(str) {
         if(!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -340,41 +409,62 @@
         });
     }
 
+    // 练习模式（支持分页 + 无答案隐藏核对按钮）
     function renderPracticeMode() {
-        const questions = getFilteredQuestions();
-        if(!questions.length) {
-            contentArea.innerHTML = `<div class="question-card">⚠️ 当前年级/知识点下没有题目，请换一个筛选条件。</div>`;
+        const allQuestions = getFilteredQuestions();
+        if (!allQuestions.length) {
+            contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选条件下没有题目，请调整筛选条件。</div>`;
             return;
         }
-        currentQuestions = questions;
-        let html = `<div style="margin-bottom:16px;"><span class="stats">📊 共 ${questions.length} 道题 | 点击“显示思路”查看解析</span></div>`;
-        questions.forEach((q, idx) => {
+        allFilteredQuestions = allQuestions;
+        let pageSize = pageSizeSelect.value;
+        let displayQuestions = allQuestions;
+        let totalCount = allQuestions.length;
+
+        if (pageSize !== 'all') {
+            let limit = parseInt(pageSize, 10);
+            if (!isNaN(limit) && totalCount > limit) {
+                displayQuestions = allQuestions.slice(0, limit);
+            }
+        }
+        currentQuestions = displayQuestions;
+
+        let html = `<div style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                        <span class="stats">📊 共 ${totalCount} 道题，当前显示 ${displayQuestions.length} 题</span>
+                        ${totalCount > displayQuestions.length ? `<span class="page-info">⚠️ 仅显示前 ${displayQuestions.length} 题，调整“每页显示”可查看更多</span>` : ''}
+                    </div>`;
+
+        displayQuestions.forEach((q, idx) => {
             const diffClass = `difficulty-${q.difficulty}`;
+            const hasAnswer = q.hasAnswer === true;
             html += `
                 <div class="question-card" data-idx="${idx}">
                     <div class="question-header">
                         <span class="badge ${diffClass}">${q.difficulty || '基础'}</span>
                         <span class="badge">${q.category || '其他'}</span>
+                        ${!hasAnswer ? '<span class="badge no-answer">📌 无标准答案</span>' : ''}
                     </div>
                     <div class="question-text">${idx+1}. ${escapeHtml(q.question)}</div>
                     <div class="answer-input">
-                        <input type="text" id="ans_${idx}" placeholder="输入你的答案" data-qidx="${idx}">
-                        <button class="btn-check" data-idx="${idx}">✅ 核对答案</button>
+                        <input type="text" id="ans_${idx}" placeholder="输入你的答案" data-qidx="${idx}" ${!hasAnswer ? 'disabled style="background:#f1f5f9;"' : ''}>
+                        ${hasAnswer ? `<button class="btn-check" data-idx="${idx}">✅ 核对答案</button>` : ''}
                         <button class="btn-show-solution" data-idx="${idx}">💡 显示解题思路</button>
                     </div>
                     <div id="feedback_${idx}" class="feedback"></div>
                     <div id="solution_${idx}" class="solution">${escapeHtml(q.solution || '暂无详细解析，请根据题目类型思考。')}</div>
+                    ${!hasAnswer ? '<div class="no-answer-notice">⚠️ 本题为开放性问题，无标准答案，请参考解题思路自行判断。</div>' : ''}
                 </div>
             `;
         });
         contentArea.innerHTML = html;
 
+        // 绑定核对答案事件（仅对存在的按钮）
         document.querySelectorAll('.btn-check').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = btn.getAttribute('data-idx');
                 const input = document.getElementById(`ans_${idx}`);
                 const userAns = input.value.trim();
-                const correctAns = questions[idx].answer;
+                const correctAns = currentQuestions[idx].answer;
                 const feedbackDiv = document.getElementById(`feedback_${idx}`);
                 if(userAns === ""){
                     feedbackDiv.innerHTML = "❓ 请输入答案";
@@ -389,6 +479,7 @@
                 }
             });
         });
+        // 绑定显示思路事件
         document.querySelectorAll('.btn-show-solution').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = btn.getAttribute('data-idx');
@@ -402,16 +493,20 @@
                 }
             });
         });
-        questions.forEach((_, idx) => {
+        // 默认隐藏所有思路
+        displayQuestions.forEach((_, idx) => {
             const solDiv = document.getElementById(`solution_${idx}`);
             if(solDiv) solDiv.style.display = 'none';
         });
     }
 
+    // 模拟考试：只从有答案的题目中抽题
     function renderExamMode() {
-        const allQ = getFilteredQuestions();
+        let allQ = getFilteredQuestions();
+        // 考试模式强制只取有答案的题目
+        allQ = allQ.filter(q => q.hasAnswer === true);
         if(allQ.length === 0) {
-            contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选下无题目，无法组卷。</div>`;
+            contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选下没有<span style="color:red;">有答案的题目</span>，无法组卷。请调整条件（如取消“无答案”筛选）。</div>`;
             return;
         }
         const examCount = Math.min(15, allQ.length);
@@ -426,7 +521,7 @@
 
         let html = `<div class="exam-panel">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                            <h3>📋 模拟考试 (${examCount}题) &nbsp; <span style="font-size:0.9rem;">随机抽题</span></h3>
+                            <h3>📋 模拟考试 (${examCount}题) &nbsp; <span style="font-size:0.9rem;">随机抽题（仅含答案题）</span></h3>
                             <div>
                                 <button id="submitExamBtn" class="primary">📊 提交批改</button>
                                 <button id="resetExamBtn" class="warning">🔄 重新抽题</button>
@@ -489,32 +584,38 @@
         });
     }
 
+    // 打印试卷模式：保留用户筛选结果（包括无答案题目），但最多20题，无核对按钮
     function renderPrintPaperMode() {
-        const questions = getFilteredQuestions();
-        if(questions.length === 0){
+        let questions = getFilteredQuestions();
+        if(questions.length === 0) {
             contentArea.innerHTML = `<div class="question-card">⚠️ 没有题目，请调整筛选条件后生成试卷。</div>`;
             return;
         }
+        const maxPrint = 20;
+        let originalCount = questions.length;
+        if(questions.length > maxPrint) {
+            questions = questions.slice(0, maxPrint);
+        }
         let printHtml = `<div class="print-preview" id="printSection">
-                            <div style="text-align:center; margin-bottom:24px;">
+                            <div style="text-align:center; margin-bottom:16px;">
                                 <h2>✏️ 数学练习卷</h2>
                                 <p>年级：${currentGrade} &nbsp;|&nbsp; 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text || '全部'}</p>
                                 <p>姓名：__________ &nbsp;&nbsp; 日期：__________</p>
+                                ${originalCount > maxPrint ? `<p style="color:red;">⚠️ 当前共有 ${originalCount} 道题，仅打印前 ${maxPrint} 题。如需更多，请调整知识点筛选。</p>` : ''}
                             </div>`;
         questions.forEach((q, idx) => {
             printHtml += `
-                <div class="question-card" style="border:1px solid #ddd; margin-bottom:20px;">
+                <div class="question-card" style="border:1px solid #ddd; margin-bottom:12px; padding:10px;">
                     <div class="question-header">
                         <span>${idx+1}. 【${q.difficulty}】</span>
                         <span>${q.category}</span>
                     </div>
                     <div class="question-text">${escapeHtml(q.question)}</div>
-                    <div style="margin: 12px 0 8px;"><u>答：_________________________________</u></div>
-                    <div class="solution" style="background:#fafafa; margin-top:8px; padding:8px; border-left:3px solid #3b82f6;"><strong>📖 解题思路参考：</strong> ${escapeHtml(q.solution || '请独立思考，查看知识点')}</div>
+                    <div style="margin: 8px 0 4px;"><u>答：_________________________________</u></div>
                 </div>
             `;
         });
-        printHtml += `<div style="margin-top:32px; text-align:center;"><button class="primary do-print" style="padding:10px 24px;">🖨️ 打印试卷</button></div></div>`;
+        printHtml += `<div style="margin-top:20px; text-align:center;"><button class="primary do-print" style="padding:8px 20px;">🖨️ 打印试卷</button></div></div>`;
         contentArea.innerHTML = printHtml;
 
         const printBtn = document.querySelector('.do-print');
@@ -542,8 +643,16 @@
         refreshView();
     }
 
-    function onCategoryChange() {
-        refreshView();
+    function onFilterChange() {
+        if (currentMode === 'practice') refreshView();
+        else if (currentMode === 'exam') refreshView();
+        else if (currentMode === 'print') refreshView();
+    }
+
+    function onPageSizeChange() {
+        if (currentMode === 'practice') {
+            renderPracticeMode();
+        }
     }
 
     function setMode(mode) {
@@ -573,7 +682,9 @@
         initGradeSelect();
         updateCategorySelect(currentGrade);
         gradeSelect.addEventListener('change', onGradeChange);
-        categorySelect.addEventListener('change', onCategoryChange);
+        categorySelect.addEventListener('change', onFilterChange);
+        answerStatusSelect.addEventListener('change', onFilterChange);
+        pageSizeSelect.addEventListener('change', onPageSizeChange);
         modePractice.addEventListener('click', () => setMode('practice'));
         modeExam.addEventListener('click', () => setMode('exam'));
         modePrintPaper.addEventListener('click', () => setMode('print'));
