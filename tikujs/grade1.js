@@ -709,7 +709,7 @@ const grade1Data = [
     "category": "20以内加减法",
     "difficulty": "挑战",
     "question": "□ + □ = 12，□里可以填哪些数？",
-    "answer": "多种答案（6+6=12）",
+    "answer": "1,11;2,10;3,9;4,8;5;7;6;6",
     "hasAnswer": true,
     "solution": "按照运算顺序计算，注意进位退位。 可凑整或拆分。"
   },
