@@ -143,10 +143,13 @@
         .badge.difficulty-挑战 { background: #fee2e2; color: #b91c1c; }
         .badge.no-answer { background: #f1f5f9; color: #64748b; font-style: italic; }
         .question-text {
-            font-size: 1.2rem;
-            line-height: 1.4;
+            font-size: 1rem;
+            line-height: 1.5;
             margin: 12px 0;
-            font-weight: 500;
+            font-weight: normal;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'Courier New', 'SF Mono', monospace;
         }
         .answer-input {
             margin: 16px 0 12px;
@@ -230,6 +233,7 @@
                 font-size: 0.85rem;
                 line-height: 1.3;
                 margin: 4px 0;
+                white-space: pre-wrap;
             }
             u {
                 text-decoration: none;
@@ -347,8 +351,8 @@
     };
     let currentGrade = "一年级";
     let currentMode = "practice";
-    let currentQuestions = [];      // 当前显示的题目（可能被截取）
-    let allFilteredQuestions = [];  // 全部筛选后的题目
+    let currentQuestions = [];
+    let allFilteredQuestions = [];
     let userAnswers = [];
 
     const gradeSelect = document.getElementById("gradeSelect");
@@ -376,12 +380,10 @@
     function getFilteredQuestions() {
         const all = gradeMap[currentGrade] || [];
         let filtered = all;
-        // 按知识点筛选
         const category = categorySelect.value;
         if (category !== 'all') {
             filtered = filtered.filter(q => q.category === category);
         }
-        // 按答案状态筛选
         const answerStatus = answerStatusSelect.value;
         filtered = filterQuestionsByStatus(filtered, answerStatus);
         return filtered;
@@ -406,6 +408,8 @@
             if(m === '<') return '&lt;';
             if(m === '>') return '&gt;';
             return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
         });
     }
 
@@ -444,7 +448,7 @@
                         <span class="badge">${q.category || '其他'}</span>
                         ${!hasAnswer ? '<span class="badge no-answer">📌 无标准答案</span>' : ''}
                     </div>
-                    <div class="question-text">${idx+1}. ${escapeHtml(q.question)}</div>
+                    <div class="question-text">${escapeHtml(q.question)}</div>
                     <div class="answer-input">
                         <input type="text" id="ans_${idx}" placeholder="输入你的答案" data-qidx="${idx}" ${!hasAnswer ? 'disabled style="background:#f1f5f9;"' : ''}>
                         ${hasAnswer ? `<button class="btn-check" data-idx="${idx}">✅ 核对答案</button>` : ''}
@@ -458,7 +462,7 @@
         });
         contentArea.innerHTML = html;
 
-        // 绑定核对答案事件（仅对存在的按钮）
+        // 绑定核对答案事件
         document.querySelectorAll('.btn-check').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const idx = btn.getAttribute('data-idx');
@@ -503,7 +507,6 @@
     // 模拟考试：只从有答案的题目中抽题
     function renderExamMode() {
         let allQ = getFilteredQuestions();
-        // 考试模式强制只取有答案的题目
         allQ = allQ.filter(q => q.hasAnswer === true);
         if(allQ.length === 0) {
             contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选下没有<span style="color:red;">有答案的题目</span>，无法组卷。请调整条件（如取消“无答案”筛选）。</div>`;
@@ -536,7 +539,7 @@
                         <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
                         <span class="badge">${q.category}</span>
                     </div>
-                    <div class="question-text">${idx+1}. ${escapeHtml(q.question)}</div>
+                    <div class="question-text">${escapeHtml(q.question)}</div>
                     <div class="answer-input">
                         <input type="text" id="examAns_${idx}" placeholder="你的答案" data-examidx="${idx}">
                     </div>
@@ -584,7 +587,7 @@
         });
     }
 
-    // 打印试卷模式：保留用户筛选结果（包括无答案题目），但最多20题，无核对按钮
+    // 打印试卷模式：保留筛选结果，最多20题，无按钮
     function renderPrintPaperMode() {
         let questions = getFilteredQuestions();
         if(questions.length === 0) {
@@ -610,7 +613,7 @@
                         <span>${idx+1}. 【${q.difficulty}】</span>
                         <span>${q.category}</span>
                     </div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>
+                    <div class="question-text" style="white-space: pre-wrap;">${escapeHtml(q.question)}</div>
                     <div style="margin: 8px 0 4px;"><u>答：_________________________________</u></div>
                 </div>
             `;
