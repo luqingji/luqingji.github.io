@@ -1,6 +1,7 @@
 // 一年级数学题库
 // 自动生成，共 200 道题
-const grade1 = [
+
+const grade1Data = [
   {
     "id": "一年001",
     "category": "20以内加减法",
@@ -1603,7 +1604,9 @@ const grade1 = [
   }
 ];
 
-// 导出（Node环境或ES模块）
+// 兼容 Node.js 和浏览器
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = grade1;
+  module.exports = grade1Data;
+} else {
+  window.grade1 = grade1Data;
 }
