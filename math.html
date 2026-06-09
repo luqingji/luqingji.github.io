@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>小学数学练习系统 | 护眼模式 + 错题本 + 智能匹配</title>
+    <title>小学数学练习系统 | 护眼模式 + 错题本 + 图形题</title>
     <style>
         * {
             box-sizing: border-box;
@@ -230,6 +230,25 @@
             margin-top: 8px;
             font-style: italic;
         }
+        .graph-canvas {
+            margin: 16px 0;
+            text-align: center;
+        }
+        .graph-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+        .graph-inputs input {
+            width: 60px;
+            padding: 8px;
+            text-align: center;
+            font-size: 1.2rem;
+            border-radius: 12px;
+            border: 1px solid var(--btn-border);
+        }
         @media print {
             body {
                 background: white;
@@ -245,7 +264,7 @@
             }
             .toolbar, .mode-switch, .btn-show-solution, .answer-input, .feedback,
             button:not(.do-print), .no-print, .exam-panel, .print-preview button,
-            .btn-show-answer, .answer-display, .btn-add-mistake {
+            .btn-show-answer, .answer-display, .btn-add-mistake, .graph-inputs, .graph-canvas button {
                 display: none !important;
             }
             .question-card {
@@ -280,17 +299,13 @@
             border-radius: 40px;
             display: inline-block;
         }
-        .mistake-badge {
-            background: #fde047;
-            color: #854d0e;
-            margin-left: 8px;
-        }
         @media (max-width: 640px) {
             body { padding: 10px; }
             .container { padding: 16px; }
             .question-text { font-size: 1rem; }
             .answer-input input { width: 140px; }
             button, select { padding: 6px 12px; font-size: 0.8rem; }
+            .graph-inputs input { width: 50px; font-size: 1rem; }
         }
     </style>
 </head>
@@ -317,7 +332,7 @@
     </div>
 
     <div id="contentArea" class="question-area">加载题库中...</div>
-    <div class="footer no-print">✅ 智能匹配答案 · 错题自动记录 · 模拟考试计时 · 护眼可切换</div>
+    <div class="footer no-print">✅ 智能匹配 · 图形题支持 · 护眼模式 · 错题本</div>
 </div>
 
 <script src="tikujs/kindergarten.js"></script>
@@ -329,139 +344,492 @@
 <script src="tikujs/grade6.js"></script>
 
 <script>
-    // ---------- 全局变量 ----------
-    const gradeMap = { "幼儿园": window.kindergarten || [], "一年级": window.grade1 || [], "二年级": window.grade2 || [], "三年级": window.grade3 || [], "四年级": window.grade4 || [], "五年级": window.grade5 || [], "六年级": window.grade6 || [] };
-    let currentGrade = "一年级", currentMode = "practice", currentQuestions = [], allFilteredQuestions = [], userAnswers = [], examTimer = null, examTimeLeft = 1800;
-    let mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
-    const saveMistakes = () => localStorage.setItem('mistakeList', JSON.stringify(mistakeList));
-    // DOM
-    const gradeSelect = document.getElementById("gradeSelect"), categorySelect = document.getElementById("categorySelect"), answerStatusSelect = document.getElementById("answerStatusSelect"), difficultySelect = document.getElementById("difficultySelect"), pageSizeSelect = document.getElementById("pageSizeSelect"), orderSelect = document.getElementById("orderSelect");
-    const modePractice = document.getElementById("modePractice"), modeExam = document.getElementById("modeExam"), modePrintPaper = document.getElementById("modePrintPaper"), modeMistake = document.getElementById("modeMistake"), contentArea = document.getElementById("contentArea"), eyeCareBtn = document.getElementById("eyeCareBtn");
+    (function(){
+        // ---------- 全局变量 ----------
+        const gradeMap = {
+            "幼儿园": window.kindergarten || [],
+            "一年级": window.grade1 || [],
+            "二年级": window.grade2 || [],
+            "三年级": window.grade3 || [],
+            "四年级": window.grade4 || [],
+            "五年级": window.grade5 || [],
+            "六年级": window.grade6 || []
+        };
+        let currentGrade = "一年级";
+        let currentMode = "practice";
+        let currentQuestions = [];          // 当前显示的题目列表
+        let mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
+        let examTimer = null;
+        let examTimeLeft = 1800;
+        let userAnswers = [];
 
-    // 护眼模式
-    if(localStorage.getItem('eyeCare') === 'true') document.body.classList.add('eye-care');
-    eyeCareBtn.addEventListener('click', () => { document.body.classList.toggle('eye-care'); localStorage.setItem('eyeCare', document.body.classList.contains('eye-care')); });
+        // DOM 元素
+        const gradeSelect = document.getElementById("gradeSelect");
+        const categorySelect = document.getElementById("categorySelect");
+        const answerStatusSelect = document.getElementById("answerStatusSelect");
+        const difficultySelect = document.getElementById("difficultySelect");
+        const pageSizeSelect = document.getElementById("pageSizeSelect");
+        const orderSelect = document.getElementById("orderSelect");
+        const modePractice = document.getElementById("modePractice");
+        const modeExam = document.getElementById("modeExam");
+        const modePrintPaper = document.getElementById("modePrintPaper");
+        const modeMistake = document.getElementById("modeMistake");
+        const contentArea = document.getElementById("contentArea");
+        const eyeCareBtn = document.getElementById("eyeCareBtn");
 
-    // 辅助函数
-    function getAllCategories(grade) { const cats = new Set(); (gradeMap[grade] || []).forEach(q => q.category && cats.add(q.category)); return Array.from(cats).sort(); }
-    function filterQuestions(questions) {
-        let filtered = questions;
-        const cat = categorySelect.value; if(cat !== 'all') filtered = filtered.filter(q => q.category === cat);
-        const diff = difficultySelect.value; if(diff !== 'all') filtered = filtered.filter(q => q.difficulty === diff);
-        const ansStat = answerStatusSelect.value; if(ansStat === 'has') filtered = filtered.filter(q => q.hasAnswer); else if(ansStat === 'no') filtered = filtered.filter(q => !q.hasAnswer);
-        if(orderSelect.value === 'random') filtered = [...filtered].sort(() => Math.random() - 0.5);
-        return filtered;
-    }
-    function getFilteredQuestions() { return filterQuestions(gradeMap[currentGrade] || []); }
-    function updateCategorySelect(grade) { const cats = getAllCategories(grade); categorySelect.innerHTML = '<option value="all">全部</option>'; cats.forEach(c => { const opt = document.createElement("option"); opt.value = c; opt.textContent = c; categorySelect.appendChild(opt); }); categorySelect.value = "all"; }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
-    // 智能答案匹配
-    function isAnswerEqual(user, correct) {
-        if(user === correct) return true;
-        let u = user.trim().toLowerCase().replace(/\s/g, ''), c = correct.trim().toLowerCase().replace(/\s/g, '');
-        if(u === c) return true;
-        // 分数 vs 小数
-        const fracMatch = u.match(/^(\d+)\/(\d+)$/); if(fracMatch) { const val = parseInt(fracMatch[1])/parseInt(fracMatch[2]); if(Math.abs(val - parseFloat(c)) < 1e-6) return true; }
-        const fracMatchC = c.match(/^(\d+)\/(\d+)$/); if(fracMatchC) { const val = parseInt(fracMatchC[1])/parseInt(fracMatchC[2]); if(Math.abs(val - parseFloat(u)) < 1e-6) return true; }
-        // 带分数简化处理略
-        if(!isNaN(parseFloat(u)) && !isNaN(parseFloat(c))) return Math.abs(parseFloat(u) - parseFloat(c)) < 1e-6;
-        return false;
-    }
-    // 错题本记录
-    function addMistake(question) { if(!mistakeList.some(m => m.id === question.id && m.grade === currentGrade)) { mistakeList.push({ id: question.id, grade: currentGrade, question: question.question, category: question.category, difficulty: question.difficulty, answer: question.answer, solution: question.solution }); saveMistakes(); } }
-    // 渲染练习/考试/打印/错题本
-    function renderPracticeMode() {
-        let questions = getFilteredQuestions();
-        if(!questions.length) { contentArea.innerHTML = `<div class="question-card">⚠️ 无题目，请调整筛选</div>`; return; }
-        let pageSize = pageSizeSelect.value; let display = questions; let total = questions.length;
-        if(pageSize !== 'all') { let limit = parseInt(pageSize); if(!isNaN(limit) && total>limit) display = questions.slice(0, limit); }
-        currentQuestions = display;
-        let html = `<div style="margin-bottom:16px;"><span class="stats">📊 共 ${total} 题，显示 ${display.length} 题</span></div>`;
-        display.forEach((q, idx) => {
-            const hasAns = q.hasAnswer;
-            html += `<div class="question-card" data-idx="${idx}">
-                <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span>${!hasAns?'<span class="badge no-answer">无答案</span>':''}</div>
-                <div class="question-text">${escapeHtml(q.question)}</div>
-                <div class="answer-input">
-                    <input type="text" id="ans_${idx}" placeholder="输入答案" ${!hasAns?'disabled style="background:#f1f5f9;"':''}>
-                    ${hasAns?`<button class="btn-check" data-idx="${idx}">核对</button><button class="btn-show-answer" data-idx="${idx}">显示答案</button>`:''}
-                    <button class="btn-show-solution" data-idx="${idx}">思路</button>
-                    <button class="btn-add-mistake" data-idx="${idx}" style="background:#fde047;">📌 错题本</button>
+        // 护眼模式
+        if(localStorage.getItem('eyeCare') === 'true') document.body.classList.add('eye-care');
+        eyeCareBtn.addEventListener('click', () => {
+            document.body.classList.toggle('eye-care');
+            localStorage.setItem('eyeCare', document.body.classList.contains('eye-care'));
+        });
+
+        // 辅助函数
+        function saveMistakes() { localStorage.setItem('mistakeList', JSON.stringify(mistakeList)); }
+        function getAllCategories(grade) {
+            const questions = gradeMap[grade] || [];
+            const cats = new Set();
+            questions.forEach(q => { if(q.category) cats.add(q.category); });
+            return Array.from(cats).sort();
+        }
+        function filterQuestions(questions) {
+            let filtered = questions;
+            const cat = categorySelect.value;
+            if(cat !== 'all') filtered = filtered.filter(q => q.category === cat);
+            const diff = difficultySelect.value;
+            if(diff !== 'all') filtered = filtered.filter(q => q.difficulty === diff);
+            const ansStat = answerStatusSelect.value;
+            if(ansStat === 'has') filtered = filtered.filter(q => q.hasAnswer === true);
+            else if(ansStat === 'no') filtered = filtered.filter(q => q.hasAnswer === false);
+            if(orderSelect.value === 'random') filtered = [...filtered].sort(() => Math.random() - 0.5);
+            return filtered;
+        }
+        function getFilteredQuestions() {
+            return filterQuestions(gradeMap[currentGrade] || []);
+        }
+        function updateCategorySelect(grade) {
+            const cats = getAllCategories(grade);
+            categorySelect.innerHTML = '<option value="all">全部</option>';
+            cats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categorySelect.appendChild(opt);
+            });
+            categorySelect.value = "all";
+        }
+        function escapeHtml(str) {
+            if(!str) return '';
+            return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
+        }
+
+        // 智能答案匹配（支持多答案、分数小数、加法等式）
+        function isAnswerEqual(user, correct, questionText) {
+            let u = user.trim().replace(/\s/g, '');
+            if (Array.isArray(correct)) return correct.some(ans => isAnswerEqual(user, ans, questionText));
+            let c = (typeof correct === 'string' ? correct : String(correct)).trim().replace(/\s/g, '');
+            if (u === c) return true;
+            let numU = parseFloat(u), numC = parseFloat(c);
+            if (!isNaN(numU) && !isNaN(numC) && Math.abs(numU - numC) < 1e-6) return true;
+            // 分数比较
+            let fracU = u.match(/^(\d+)\/(\d+)$/), fracC = c.match(/^(\d+)\/(\d+)$/);
+            if (fracU && fracC) {
+                let valU = parseInt(fracU[1])/parseInt(fracU[2]);
+                let valC = parseInt(fracC[1])/parseInt(fracC[2]);
+                if (Math.abs(valU - valC) < 1e-6) return true;
+            }
+            // 加法等式特殊处理 □+□=N
+            let eqMatch = questionText.match(/□\s*\+\s*□\s*=\s*(\d+)/);
+            if (eqMatch) {
+                let target = parseInt(eqMatch[1], 10);
+                let parts = user.match(/(\d+)\s*\+\s*(\d+)/);
+                if (parts) { let a=parseInt(parts[1]), b=parseInt(parts[2]); if(a+b===target) return true; }
+                let parts2 = user.match(/(\d+)\s+(\d+)/);
+                if (parts2) { let a=parseInt(parts2[1]), b=parseInt(parts2[2]); if(a+b===target) return true; }
+                let single = parseInt(user,10);
+                if (!isNaN(single) && single*2===target) return true;
+            }
+            return false;
+        }
+
+        // 错题本添加
+        function addMistake(question) {
+            if(!mistakeList.some(m => m.id === question.id && m.grade === currentGrade)) {
+                mistakeList.push({
+                    id: question.id,
+                    grade: currentGrade,
+                    question: question.question,
+                    category: question.category,
+                    difficulty: question.difficulty,
+                    answer: question.answer,
+                    solution: question.solution
+                });
+                saveMistakes();
+            }
+        }
+
+        // 判断是否为图形题（三角形填数）
+        function isGraphProblem(questionText) {
+            return questionText.includes('填入○') && (questionText.includes('每条线上三个数的和') || questionText.includes('三角形'));
+        }
+
+        // 渲染三角形填数图形
+        function renderTriangleGraph(containerId, onValidate) {
+            const container = document.getElementById(containerId);
+            if(!container) return;
+            container.innerHTML = `
+                <canvas id="triCanvas" width="300" height="260" style="max-width:100%; height:auto; background:#f9f9f9; border-radius:16px;"></canvas>
+                <div class="graph-inputs">
+                    <input type="number" id="topVal" placeholder="顶"> <input type="number" id="leftMid" placeholder="左中">
+                    <input type="number" id="rightMid" placeholder="右中"> <input type="number" id="leftBottom" placeholder="左下">
+                    <input type="number" id="rightBottom" placeholder="右下"> <input type="number" id="bottomMid" placeholder="底中">
                 </div>
-                <div id="feedback_${idx}" class="feedback"></div>
-                <div id="answerDisplay_${idx}" class="answer-display" style="display:none;"></div>
-                <div id="solution_${idx}" class="solution">${escapeHtml(q.solution||'暂无')}</div>
-                ${!hasAns?'<div class="no-answer-notice">开放题，无标准答案</div>':''}
+                <button id="checkGraphBtn" class="primary">验证三角形</button>
+                <div id="graphFeedback" style="margin-top:12px;"></div>
+            `;
+            const canvas = document.getElementById('triCanvas');
+            const ctx = canvas.getContext('2d');
+            const inputIds = ['topVal','leftMid','rightMid','leftBottom','rightBottom','bottomMid'];
+            const inputs = inputIds.map(id => document.getElementById(id));
+            function getValues() { return inputs.map(inp => parseInt(inp.value) || 0); }
+            function drawTriangle(values) {
+                ctx.clearRect(0,0,300,260);
+                const top = {x:150, y:30};
+                const left = {x:50, y:210};
+                const right = {x:250, y:210};
+                const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
+                const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
+                const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
+                // 画线
+                ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
+                const drawCircle = (x,y,val) => {
+                    ctx.beginPath(); ctx.arc(x,y,18,0,2*Math.PI); ctx.fillStyle='white'; ctx.fill(); ctx.stroke();
+                    ctx.fillStyle='black'; ctx.font='bold 16px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val||'?', x, y);
+                };
+                drawCircle(top.x, top.y, values[0]);
+                drawCircle(leftMid.x, leftMid.y, values[1]);
+                drawCircle(rightMid.x, rightMid.y, values[2]);
+                drawCircle(left.x, left.y, values[3]);
+                drawCircle(right.x, right.y, values[4]);
+                drawCircle(bottomMid.x, bottomMid.y, values[5]);
+            }
+            drawTriangle(getValues());
+            inputs.forEach(inp => inp.addEventListener('input', () => drawTriangle(getValues())));
+            document.getElementById('checkGraphBtn').addEventListener('click', () => {
+                let v = getValues();
+                let sum1 = v[0] + v[1] + v[3];
+                let sum2 = v[0] + v[2] + v[4];
+                let sum3 = v[3] + v[5] + v[4];
+                const allInRange = v.every(x => x>=2 && x<=7);
+                if(sum1===15 && sum2===15 && sum3===15 && allInRange) {
+                    document.getElementById('graphFeedback').innerHTML = '<span style="color:green;">✅ 正确！每条边和都是15。</span>';
+                    if(onValidate) onValidate(true);
+                } else {
+                    document.getElementById('graphFeedback').innerHTML = '<span style="color:red;">❌ 不正确，请确保每条边三个数之和为15，且数字在2~7之间。</span>';
+                    if(onValidate) onValidate(false);
+                }
+            });
+        }
+
+        // 练习模式渲染
+        function renderPracticeMode() {
+            let allQuestions = getFilteredQuestions();
+            if(!allQuestions.length) {
+                contentArea.innerHTML = `<div class="question-card">⚠️ 当前筛选条件下没有题目，请调整筛选条件。</div>`;
+                return;
+            }
+            let pageSize = pageSizeSelect.value;
+            let displayQuestions = allQuestions;
+            let total = allQuestions.length;
+            if(pageSize !== 'all') {
+                let limit = parseInt(pageSize);
+                if(!isNaN(limit) && total > limit) displayQuestions = allQuestions.slice(0, limit);
+            }
+            currentQuestions = displayQuestions;
+            let html = `<div style="margin-bottom:16px;"><span class="stats">📊 共 ${total} 题，显示 ${displayQuestions.length} 题</span></div>`;
+            displayQuestions.forEach((q, idx) => {
+                const hasAns = q.hasAnswer;
+                html += `<div class="question-card" data-idx="${idx}">
+                    <div class="question-header">
+                        <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
+                        <span class="badge">${q.category}</span>
+                        ${!hasAns ? '<span class="badge no-answer">无标准答案</span>' : ''}
+                    </div>
+                    <div class="question-text">${escapeHtml(q.question)}</div>`;
+                if(isGraphProblem(q.question)) {
+                    html += `<div id="graphContainer_${idx}" class="graph-canvas"></div>
+                             <div id="graphResult_${idx}" style="display:none;"></div>`;
+                } else {
+                    html += `<div class="answer-input">
+                        <input type="text" id="ans_${idx}" placeholder="输入答案" ${!hasAns ? 'disabled style="background:#f1f5f9;"' : ''}>
+                        ${hasAns ? `<button class="btn-check" data-idx="${idx}">✅ 核对答案</button>` : ''}
+                        <button class="btn-show-answer" data-idx="${idx}" ${!hasAns ? 'disabled style="opacity:0.5;"' : ''}>🔍 显示答案</button>
+                        <button class="btn-show-solution" data-idx="${idx}">💡 解题思路</button>
+                        <button class="btn-add-mistake" data-idx="${idx}">📌 错题本</button>
+                    </div>
+                    <div id="feedback_${idx}" class="feedback"></div>
+                    <div id="answerDisplay_${idx}" class="answer-display" style="display:none;"></div>
+                    <div id="solution_${idx}" class="solution">${escapeHtml(q.solution || '暂无详细解析')}</div>
+                    ${!hasAns ? '<div class="no-answer-notice">开放性问题，无标准答案，请参考思路。</div>' : ''}`;
+                }
+                html += `</div>`;
+            });
+            contentArea.innerHTML = html;
+
+            // 绑定普通题目的事件
+            for(let idx=0; idx<displayQuestions.length; idx++) {
+                const q = displayQuestions[idx];
+                if(isGraphProblem(q.question)) {
+                    const containerId = `graphContainer_${idx}`;
+                    renderTriangleGraph(containerId, (correct) => {
+                        if(!correct) addMistake(q);
+                    });
+                    continue;
+                }
+                const btnCheck = document.querySelector(`.btn-check[data-idx="${idx}"]`);
+                if(btnCheck) {
+                    btnCheck.addEventListener('click', () => {
+                        const input = document.getElementById(`ans_${idx}`);
+                        const userAns = input.value.trim();
+                        const correctAns = q.answer;
+                        const fb = document.getElementById(`feedback_${idx}`);
+                        if(!userAns) { fb.innerHTML = "❓ 请输入答案"; return; }
+                        if(isAnswerEqual(userAns, correctAns, q.question)) {
+                            fb.innerHTML = "✅ 回答正确！很棒！";
+                            fb.style.color = "green";
+                        } else {
+                            fb.innerHTML = `❌ 答案错误。正确答案是：${correctAns}。`;
+                            fb.style.color = "red";
+                            addMistake(q);
+                        }
+                    });
+                }
+                const btnAnswer = document.querySelector(`.btn-show-answer[data-idx="${idx}"]`);
+                if(btnAnswer) {
+                    btnAnswer.addEventListener('click', () => {
+                        const ansDiv = document.getElementById(`answerDisplay_${idx}`);
+                        ansDiv.innerHTML = `📖 正确答案：${escapeHtml(q.answer)}`;
+                        ansDiv.style.display = 'block';
+                        setTimeout(() => ansDiv.style.display = 'none', 4000);
+                    });
+                }
+                const btnSolution = document.querySelector(`.btn-show-solution[data-idx="${idx}"]`);
+                if(btnSolution) {
+                    btnSolution.addEventListener('click', () => {
+                        const solDiv = document.getElementById(`solution_${idx}`);
+                        if(solDiv.style.display === 'none' || !solDiv.style.display) {
+                            solDiv.style.display = 'block';
+                            btnSolution.textContent = '🙈 隐藏思路';
+                        } else {
+                            solDiv.style.display = 'none';
+                            btnSolution.textContent = '💡 解题思路';
+                        }
+                    });
+                }
+                const btnMistake = document.querySelector(`.btn-add-mistake[data-idx="${idx}"]`);
+                if(btnMistake) {
+                    btnMistake.addEventListener('click', () => { addMistake(q); alert('已加入错题本'); });
+                }
+                // 默认隐藏答案和思路
+                const solDiv = document.getElementById(`solution_${idx}`);
+                if(solDiv) solDiv.style.display = 'none';
+                const ansDiv = document.getElementById(`answerDisplay_${idx}`);
+                if(ansDiv) ansDiv.style.display = 'none';
+            }
+        }
+
+        // 模拟考试模式（省略图形题，只抽有答案的题目）
+        function renderExamMode() {
+            if(examTimer) clearInterval(examTimer);
+            let all = getFilteredQuestions().filter(q => q.hasAnswer === true && !isGraphProblem(q.question));
+            if(all.length === 0) {
+                contentArea.innerHTML = `<div class="question-card">⚠️ 没有有答案的非图形题，无法考试。</div>`;
+                return;
+            }
+            let examCount = Math.min(15, all.length);
+            let shuffled = [...all];
+            for(let i=shuffled.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+            let examQuestions = shuffled.slice(0, examCount);
+            currentQuestions = examQuestions;
+            userAnswers = new Array(examCount).fill("");
+            examTimeLeft = 1800;
+            let timerDisplay = document.createElement('div');
+            timerDisplay.id = 'examTimerDisplay';
+            timerDisplay.style.margin = '10px 0';
+            timerDisplay.style.fontWeight = 'bold';
+            let html = `<div class="exam-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
+                    <h3>📋 模拟考试 (${examCount}题)</h3>
+                    <div><button id="submitExamBtn" class="primary">提交批改</button><button id="resetExamBtn" class="warning">重新抽题</button></div>
+                </div>
+                <div id="examResult"></div>
             </div>`;
-        });
-        contentArea.innerHTML = html;
-        // 绑定事件
-        document.querySelectorAll('.btn-check').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, inp = document.getElementById(`ans_${idx}`), user = inp.value.trim(), correct = currentQuestions[idx].answer, fb = document.getElementById(`feedback_${idx}`); if(!user){fb.innerHTML='❓ 请输入答案';return;} if(isAnswerEqual(user,correct)){fb.innerHTML='✅ 正确！';fb.style.color='green';}else{fb.innerHTML=`❌ 错误，正确答案：${correct}`;fb.style.color='red'; addMistake(currentQuestions[idx]);} }));
-        document.querySelectorAll('.btn-show-answer').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, q = currentQuestions[idx], div = document.getElementById(`answerDisplay_${idx}`); div.innerHTML = `📖 答案：${escapeHtml(q.answer)}`; div.style.display='block'; setTimeout(()=>div.style.display='none',4000); }));
-        document.querySelectorAll('.btn-show-solution').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx, sol = document.getElementById(`solution_${idx}`); if(sol.style.display==='none'||!sol.style.display){sol.style.display='block';btn.textContent='隐藏思路';}else{sol.style.display='none';btn.textContent='思路';} }));
-        document.querySelectorAll('.btn-add-mistake').forEach(btn => btn.addEventListener('click', (e) => { let idx = btn.dataset.idx; addMistake(currentQuestions[idx]); alert('已加入错题本'); }));
-        document.querySelectorAll('.solution, .answer-display').forEach(el => el.style.display='none');
-    }
-    // 错题本模式
-    function renderMistakeMode() {
-        if(mistakeList.length===0){ contentArea.innerHTML='<div class="question-card">暂无错题，继续练习~</div>'; return; }
-        let html = `<div style="margin-bottom:16px;"><span class="stats">❌ 错题本 (${mistakeList.length}题)</span><button id="clearMistakes" style="margin-left:16px;">清空错题本</button></div>`;
-        mistakeList.forEach((q, idx) => {
-            html += `<div class="question-card"><div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
-            <div class="question-text">${escapeHtml(q.question)}</div>
-            <div class="answer-input"><button class="btn-show-answer-mistake" data-idx="${idx}">显示答案</button><button class="btn-show-solution-mistake" data-idx="${idx}">思路</button><button class="btn-remove-mistake" data-idx="${idx}">移除</button></div>
-            <div id="mistakeAnswer_${idx}" class="answer-display" style="display:none;"></div><div id="mistakeSolution_${idx}" class="solution" style="display:none;">${escapeHtml(q.solution||'暂无')}</div></div>`;
-        });
-        contentArea.innerHTML = html;
-        document.querySelectorAll('.btn-show-answer-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx, div=document.getElementById(`mistakeAnswer_${i}`); div.innerHTML=`答案：${escapeHtml(mistakeList[i].answer)}`; div.style.display='block'; setTimeout(()=>div.style.display='none',4000); }));
-        document.querySelectorAll('.btn-show-solution-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx, sol=document.getElementById(`mistakeSolution_${i}`); sol.style.display=sol.style.display==='none'?'block':'none'; }));
-        document.querySelectorAll('.btn-remove-mistake').forEach(btn => btn.addEventListener('click', (e) => { let i=btn.dataset.idx; mistakeList.splice(i,1); saveMistakes(); renderMistakeMode(); }));
-        document.getElementById('clearMistakes')?.addEventListener('click',()=>{if(confirm('清空所有错题？')){mistakeList=[];saveMistakes();renderMistakeMode();}});
-    }
-    // 模拟考试（计时、批改）
-    function renderExamMode() {
-        if(examTimer) clearInterval(examTimer);
-        let all = getFilteredQuestions().filter(q=>q.hasAnswer);
-        if(all.length===0){ contentArea.innerHTML='<div class="question-card">无有答案题目，无法考试</div>'; return; }
-        let examCount = Math.min(15, all.length);
-        let shuffled = [...all]; for(let i=shuffled.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
-        let examQuestions = shuffled.slice(0,examCount);
-        currentQuestions = examQuestions; userAnswers = new Array(examCount).fill("");
-        examTimeLeft = 1800; // 30分钟
-        let timerDisplay = document.createElement('div'); timerDisplay.id = 'examTimerDisplay'; timerDisplay.style.margin='10px 0'; timerDisplay.style.fontWeight='bold';
-        let html = `<div class="exam-panel"><div style="display:flex;justify-content:space-between;"><h3>📋 模拟考试 (${examCount}题)</h3><div><button id="submitExamBtn" class="primary">提交批改</button><button id="resetExamBtn" class="warning">重新抽题</button></div></div><div id="examResult"></div></div>`;
-        examQuestions.forEach((q,idx)=>{
-            html+=`<div class="question-card"><div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div><div class="question-text">${escapeHtml(q.question)}</div><div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="答案"></div><div id="examSolution_${idx}" class="solution" style="display:none;">思路：${escapeHtml(q.solution)}</div></div>`;
-        });
-        contentArea.innerHTML = html;
-        contentArea.insertBefore(timerDisplay, contentArea.firstChild);
-        function updateTimer(){ let mins = Math.floor(examTimeLeft/60), secs = examTimeLeft%60; timerDisplay.innerText = `⏱️ 剩余时间：${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`; if(examTimeLeft<=0){ clearInterval(examTimer); alert('时间到！自动交卷'); document.getElementById('submitExamBtn')?.click(); } }
-        updateTimer();
-        examTimer = setInterval(()=>{ if(examTimeLeft>0) { examTimeLeft--; updateTimer(); } else clearInterval(examTimer); },1000);
-        for(let i=0;i<examQuestions.length;i++) document.getElementById(`examAns_${i}`).addEventListener('input',e=>userAnswers[i]=e.target.value);
-        document.getElementById('submitExamBtn').addEventListener('click',()=>{ clearInterval(examTimer); let correct=0, details=''; for(let i=0;i<examQuestions.length;i++){ let u=userAnswers[i]||'', c=examQuestions[i].answer; if(isAnswerEqual(u,c)) correct++; details+=`<div>${i+1}. 你的答案：${u||'空'} 正确答案：${c} ${isAnswerEqual(u,c)?'✅':'❌'}</div>`; if(!isAnswerEqual(u,c)) document.getElementById(`examSolution_${i}`).style.display='block'; } document.getElementById('examResult').innerHTML=`<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`; document.getElementById('showAllExamSolutions')?.addEventListener('click',()=>{ for(let i=0;i<examQuestions.length;i++) document.getElementById(`examSolution_${i}`).style.display='block'; }); });
-        document.getElementById('resetExamBtn').addEventListener('click',()=>{ if(examTimer) clearInterval(examTimer); renderExamMode(); });
-    }
-    // 打印试卷（可自定义题数）
-    function renderPrintPaperMode() {
-        let questions = getFilteredQuestions();
-        if(questions.length===0){ contentArea.innerHTML='<div class="question-card">无题目</div>'; return; }
-        let printCount = prompt(`当前共${questions.length}题，输入打印数量（最多50）`, Math.min(20,questions.length));
-        let count = parseInt(printCount); if(isNaN(count)||count<1) count=20; count = Math.min(count, 50, questions.length);
-        let printQuestions = questions.slice(0,count);
-        let html = `<div class="print-preview"><div style="text-align:center;"><h2>数学练习卷</h2><p>年级：${currentGrade} | 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text||'全部'} | 题数：${count}</p><p>姓名：__________ 日期：__________</p></div>`;
-        printQuestions.forEach((q,idx)=>{ html+=`<div class="question-card"><div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span></div><div class="question-text" style="white-space:pre-wrap;">${escapeHtml(q.question)}</div><div style="margin:8px 0;"><u>答：_________________________________</u></div></div>`; });
-        html+=`<div style="text-align:center;"><button class="primary do-print">打印试卷</button></div></div>`;
-        contentArea.innerHTML = html;
-        document.querySelector('.do-print')?.addEventListener('click',()=>window.print());
-    }
-    function refreshView() { if(currentMode==='practice') renderPracticeMode(); else if(currentMode==='exam') renderExamMode(); else if(currentMode==='print') renderPrintPaperMode(); else if(currentMode==='mistake') renderMistakeMode(); }
-    function onGradeChange(){ currentGrade=gradeSelect.value; updateCategorySelect(currentGrade); categorySelect.value="all"; refreshView(); }
-    function onFilterChange(){ if(currentMode!=='mistake') refreshView(); }
-    function setMode(mode){ currentMode=mode; document.querySelectorAll('.mode-btn').forEach(btn=>btn.classList.remove('active')); if(mode==='practice') modePractice.classList.add('active'); if(mode==='exam') modeExam.classList.add('active'); if(mode==='print') modePrintPaper.classList.add('active'); if(mode==='mistake') modeMistake.classList.add('active'); refreshView(); }
-    function initGradeSelect(){ const grades=Object.keys(gradeMap); gradeSelect.innerHTML=''; grades.forEach(g=>{let opt=document.createElement('option');opt.value=g;opt.textContent=g;gradeSelect.appendChild(opt);}); gradeSelect.value=currentGrade; }
-    function init(){ initGradeSelect(); updateCategorySelect(currentGrade); gradeSelect.addEventListener('change',onGradeChange); categorySelect.addEventListener('change',onFilterChange); answerStatusSelect.addEventListener('change',onFilterChange); difficultySelect.addEventListener('change',onFilterChange); pageSizeSelect.addEventListener('change',()=>{if(currentMode==='practice')refreshView();}); orderSelect.addEventListener('change',()=>{if(currentMode==='practice')refreshView();}); modePractice.addEventListener('click',()=>setMode('practice')); modeExam.addEventListener('click',()=>setMode('exam')); modePrintPaper.addEventListener('click',()=>setMode('print')); modeMistake.addEventListener('click',()=>setMode('mistake')); setMode('practice'); }
-    init();
+            examQuestions.forEach((q, idx) => {
+                html += `<div class="question-card">
+                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
+                    <div class="question-text">${escapeHtml(q.question)}</div>
+                    <div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="你的答案"></div>
+                    <div id="examSolution_${idx}" class="solution" style="display:none;">💡 思路：${escapeHtml(q.solution)}</div>
+                </div>`;
+            });
+            contentArea.innerHTML = html;
+            contentArea.insertBefore(timerDisplay, contentArea.firstChild);
+            function updateTimer() {
+                let mins = Math.floor(examTimeLeft/60), secs = examTimeLeft%60;
+                timerDisplay.innerText = `⏱️ 剩余时间：${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                if(examTimeLeft <= 0) { clearInterval(examTimer); alert('时间到！自动交卷'); document.getElementById('submitExamBtn')?.click(); }
+            }
+            updateTimer();
+            examTimer = setInterval(() => { if(examTimeLeft>0) { examTimeLeft--; updateTimer(); } else clearInterval(examTimer); }, 1000);
+            for(let i=0;i<examQuestions.length;i++) {
+                document.getElementById(`examAns_${i}`).addEventListener('input', (e) => { userAnswers[i] = e.target.value; });
+            }
+            document.getElementById('submitExamBtn').addEventListener('click', () => {
+                clearInterval(examTimer);
+                let correct=0, details='';
+                for(let i=0;i<examQuestions.length;i++) {
+                    let u = userAnswers[i] || '', c = examQuestions[i].answer;
+                    let ok = isAnswerEqual(u, c, examQuestions[i].question);
+                    if(ok) correct++;
+                    details += `<div>${i+1}. 你的答案：${u||'空'} 正确答案：${c} ${ok?'✅':'❌'}</div>`;
+                    if(!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
+                }
+                document.getElementById('examResult').innerHTML = `<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`;
+                document.getElementById('showAllExamSolutions')?.addEventListener('click', () => {
+                    for(let i=0;i<examQuestions.length;i++) document.getElementById(`examSolution_${i}`).style.display = 'block';
+                });
+            });
+            document.getElementById('resetExamBtn').addEventListener('click', () => { if(examTimer) clearInterval(examTimer); renderExamMode(); });
+        }
+
+        // 错题本模式
+        function renderMistakeMode() {
+            if(mistakeList.length === 0) {
+                contentArea.innerHTML = `<div class="question-card">暂无错题，继续练习吧~</div>`;
+                return;
+            }
+            let html = `<div style="margin-bottom:16px;"><span class="stats">❌ 错题本 (${mistakeList.length}题)</span><button id="clearMistakesBtn" style="margin-left:16px;">清空错题本</button></div>`;
+            mistakeList.forEach((q, idx) => {
+                html += `<div class="question-card">
+                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
+                    <div class="question-text">${escapeHtml(q.question)}</div>
+                    <div class="answer-input">
+                        <button class="btn-show-answer-mistake" data-idx="${idx}">显示答案</button>
+                        <button class="btn-show-solution-mistake" data-idx="${idx}">思路</button>
+                        <button class="btn-remove-mistake" data-idx="${idx}">移除</button>
+                    </div>
+                    <div id="mistakeAnswer_${idx}" class="answer-display" style="display:none;"></div>
+                    <div id="mistakeSolution_${idx}" class="solution" style="display:none;">${escapeHtml(q.solution||'暂无')}</div>
+                </div>`;
+            });
+            contentArea.innerHTML = html;
+            for(let i=0;i<mistakeList.length;i++) {
+                const q = mistakeList[i];
+                document.querySelector(`.btn-show-answer-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
+                    let div = document.getElementById(`mistakeAnswer_${i}`);
+                    div.innerHTML = `📖 答案：${escapeHtml(q.answer)}`;
+                    div.style.display = 'block';
+                    setTimeout(() => div.style.display = 'none', 4000);
+                });
+                document.querySelector(`.btn-show-solution-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
+                    let sol = document.getElementById(`mistakeSolution_${i}`);
+                    sol.style.display = sol.style.display === 'none' ? 'block' : 'none';
+                });
+                document.querySelector(`.btn-remove-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
+                    mistakeList.splice(i,1);
+                    saveMistakes();
+                    renderMistakeMode();
+                });
+            }
+            document.getElementById('clearMistakesBtn')?.addEventListener('click', () => {
+                if(confirm('清空所有错题？')) { mistakeList = []; saveMistakes(); renderMistakeMode(); }
+            });
+        }
+
+        // 打印试卷模式（支持自定义题数）
+        function renderPrintPaperMode() {
+            let questions = getFilteredQuestions();
+            if(questions.length === 0) {
+                contentArea.innerHTML = `<div class="question-card">没有题目，无法打印。</div>`;
+                return;
+            }
+            let maxPrint = parseInt(prompt(`当前共 ${questions.length} 题，输入打印数量（最多50）`, Math.min(20, questions.length)));
+            if(isNaN(maxPrint) || maxPrint < 1) maxPrint = 20;
+            maxPrint = Math.min(maxPrint, 50, questions.length);
+            let printQuestions = questions.slice(0, maxPrint);
+            let html = `<div class="print-preview">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <h2>数学练习卷</h2>
+                    <p>年级：${currentGrade} | 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text || '全部'} | 题数：${maxPrint}</p>
+                    <p>姓名：__________ &nbsp;&nbsp; 日期：__________</p>
+                </div>`;
+            printQuestions.forEach((q, idx) => {
+                html += `<div class="question-card">
+                    <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span></div>
+                    <div class="question-text" style="white-space:pre-wrap;">${escapeHtml(q.question)}</div>
+                    <div style="margin:8px 0;"><u>答：_________________________________</u></div>
+                </div>`;
+            });
+            html += `<div style="text-align:center;"><button class="primary do-print">🖨️ 打印试卷</button></div></div>`;
+            contentArea.innerHTML = html;
+            document.querySelector('.do-print')?.addEventListener('click', () => window.print());
+        }
+
+        function refreshView() {
+            if(currentMode === 'practice') renderPracticeMode();
+            else if(currentMode === 'exam') renderExamMode();
+            else if(currentMode === 'print') renderPrintPaperMode();
+            else if(currentMode === 'mistake') renderMistakeMode();
+        }
+
+        function onGradeChange() {
+            currentGrade = gradeSelect.value;
+            updateCategorySelect(currentGrade);
+            categorySelect.value = "all";
+            refreshView();
+        }
+        function onFilterChange() { if(currentMode !== 'mistake') refreshView(); }
+        function onPageSizeChange() { if(currentMode === 'practice') refreshView(); }
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            if(mode === 'practice') modePractice.classList.add('active');
+            if(mode === 'exam') modeExam.classList.add('active');
+            if(mode === 'print') modePrintPaper.classList.add('active');
+            if(mode === 'mistake') modeMistake.classList.add('active');
+            refreshView();
+        }
+        function initGradeSelect() {
+            const grades = Object.keys(gradeMap);
+            gradeSelect.innerHTML = '';
+            grades.forEach(g => {
+                let opt = document.createElement('option');
+                opt.value = g;
+                opt.textContent = g;
+                gradeSelect.appendChild(opt);
+            });
+            gradeSelect.value = currentGrade;
+        }
+        function init() {
+            initGradeSelect();
+            updateCategorySelect(currentGrade);
+            gradeSelect.addEventListener('change', onGradeChange);
+            categorySelect.addEventListener('change', onFilterChange);
+            answerStatusSelect.addEventListener('change', onFilterChange);
+            difficultySelect.addEventListener('change', onFilterChange);
+            pageSizeSelect.addEventListener('change', onPageSizeChange);
+            orderSelect.addEventListener('change', onFilterChange);
+            modePractice.addEventListener('click', () => setMode('practice'));
+            modeExam.addEventListener('click', () => setMode('exam'));
+            modePrintPaper.addEventListener('click', () => setMode('print'));
+            modeMistake.addEventListener('click', () => setMode('mistake'));
+            setMode('practice');
+        }
+        init();
+    })();
 </script>
 </body>
 </html>
