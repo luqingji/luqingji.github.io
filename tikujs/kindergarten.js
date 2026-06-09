@@ -69,7 +69,7 @@ const kindergartenData = [
     "id": 8,
     "category": "数数与认知",
     "difficulty": "基础",
-    "question": "圈出最小的数：8、4、9、1、2",
+    "question": "圈出最小的数：8、4、9、2",
     "answer": "1",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
@@ -1652,8 +1652,8 @@ const kindergartenData = [
   {
     "id": 184,
     "category": "位置与方向",
-    "difficulty": "基础",
-    "question": "谁在最前面？在后面画√ 小狗 小猫 小兔",
+    "difficulty": "提高",
+    "question": "小狗比小兔慢，小狗比小猫快。谁在最前面？在后面画√  小狗  小猫  小兔",
     "answer": "小兔√",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
