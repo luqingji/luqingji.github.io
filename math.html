@@ -9,7 +9,6 @@
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        /* 默认主题（清爽蓝） */
         :root {
             --bg-body: #f0f7ff;
             --bg-container: white;
@@ -24,7 +23,6 @@
             --error-bg: #fee2e2;
             --error-text: #b91c1c;
         }
-        /* 护眼主题（暖米色） */
         body.eye-care {
             --bg-body: #fef9e6;
             --bg-container: #fffaf2;
@@ -153,6 +151,7 @@
             margin-bottom: 12px;
             font-size: 0.85rem;
             color: var(--text-secondary);
+            gap: 8px;
         }
         .badge {
             background: var(--badge-base);
@@ -357,7 +356,7 @@
         };
         let currentGrade = "一年级";
         let currentMode = "practice";
-        let currentQuestions = [];          // 当前显示的题目列表
+        let currentQuestions = [];
         let mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
         let examTimer = null;
         let examTimeLeft = 1800;
@@ -423,7 +422,7 @@
             return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
         }
 
-        // 智能答案匹配（支持多答案、分数小数、加法等式）
+        // 智能答案匹配
         function isAnswerEqual(user, correct, questionText) {
             let u = user.trim().replace(/\s/g, '');
             if (Array.isArray(correct)) return correct.some(ans => isAnswerEqual(user, ans, questionText));
@@ -431,14 +430,12 @@
             if (u === c) return true;
             let numU = parseFloat(u), numC = parseFloat(c);
             if (!isNaN(numU) && !isNaN(numC) && Math.abs(numU - numC) < 1e-6) return true;
-            // 分数比较
             let fracU = u.match(/^(\d+)\/(\d+)$/), fracC = c.match(/^(\d+)\/(\d+)$/);
             if (fracU && fracC) {
                 let valU = parseInt(fracU[1])/parseInt(fracU[2]);
                 let valC = parseInt(fracC[1])/parseInt(fracC[2]);
                 if (Math.abs(valU - valC) < 1e-6) return true;
             }
-            // 加法等式特殊处理 □+□=N
             let eqMatch = questionText.match(/□\s*\+\s*□\s*=\s*(\d+)/);
             if (eqMatch) {
                 let target = parseInt(eqMatch[1], 10);
@@ -452,7 +449,6 @@
             return false;
         }
 
-        // 错题本添加
         function addMistake(question) {
             if(!mistakeList.some(m => m.id === question.id && m.grade === currentGrade)) {
                 mistakeList.push({
@@ -468,12 +464,10 @@
             }
         }
 
-        // 判断是否为图形题（三角形填数）
         function isGraphProblem(questionText) {
             return questionText.includes('填入○') && (questionText.includes('每条线上三个数的和') || questionText.includes('三角形'));
         }
 
-        // 渲染三角形填数图形
         function renderTriangleGraph(containerId, onValidate) {
             const container = document.getElementById(containerId);
             if(!container) return;
@@ -500,7 +494,6 @@
                 const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
                 const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
                 const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
-                // 画线
                 ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
@@ -534,7 +527,7 @@
             });
         }
 
-        // 练习模式渲染
+        // 练习模式
         function renderPracticeMode() {
             let allQuestions = getFilteredQuestions();
             if(!allQuestions.length) {
@@ -556,6 +549,7 @@
                     <div class="question-header">
                         <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
                         <span class="badge">${q.category}</span>
+                        <span class="badge">题号: ${q.id}</span>
                         ${!hasAns ? '<span class="badge no-answer">无标准答案</span>' : ''}
                     </div>
                     <div class="question-text">${escapeHtml(q.question)}</div>`;
@@ -579,7 +573,6 @@
             });
             contentArea.innerHTML = html;
 
-            // 绑定普通题目的事件
             for(let idx=0; idx<displayQuestions.length; idx++) {
                 const q = displayQuestions[idx];
                 if(isGraphProblem(q.question)) {
@@ -633,7 +626,6 @@
                 if(btnMistake) {
                     btnMistake.addEventListener('click', () => { addMistake(q); alert('已加入错题本'); });
                 }
-                // 默认隐藏答案和思路
                 const solDiv = document.getElementById(`solution_${idx}`);
                 if(solDiv) solDiv.style.display = 'none';
                 const ansDiv = document.getElementById(`answerDisplay_${idx}`);
@@ -641,7 +633,7 @@
             }
         }
 
-        // 模拟考试模式（省略图形题，只抽有答案的题目）
+        // 模拟考试模式（带题号显示）
         function renderExamMode() {
             if(examTimer) clearInterval(examTimer);
             let all = getFilteredQuestions().filter(q => q.hasAnswer === true && !isGraphProblem(q.question));
@@ -669,7 +661,11 @@
             </div>`;
             examQuestions.forEach((q, idx) => {
                 html += `<div class="question-card">
-                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
+                    <div class="question-header">
+                        <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
+                        <span class="badge">${q.category}</span>
+                        <span class="badge">题号: ${q.id}</span>
+                    </div>
                     <div class="question-text">${escapeHtml(q.question)}</div>
                     <div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="你的答案"></div>
                     <div id="examSolution_${idx}" class="solution" style="display:none;">💡 思路：${escapeHtml(q.solution)}</div>
@@ -694,7 +690,7 @@
                     let u = userAnswers[i] || '', c = examQuestions[i].answer;
                     let ok = isAnswerEqual(u, c, examQuestions[i].question);
                     if(ok) correct++;
-                    details += `<div>${i+1}. 你的答案：${u||'空'} 正确答案：${c} ${ok?'✅':'❌'}</div>`;
+                    details += `<div>题号 ${examQuestions[i].id}：你的答案 "${u||'空'}" 正确答案 "${c}" ${ok?'✅':'❌'}</div>`;
                     if(!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
                 }
                 document.getElementById('examResult').innerHTML = `<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`;
@@ -714,7 +710,11 @@
             let html = `<div style="margin-bottom:16px;"><span class="stats">❌ 错题本 (${mistakeList.length}题)</span><button id="clearMistakesBtn" style="margin-left:16px;">清空错题本</button></div>`;
             mistakeList.forEach((q, idx) => {
                 html += `<div class="question-card">
-                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span></div>
+                    <div class="question-header">
+                        <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
+                        <span class="badge">${q.category}</span>
+                        <span class="badge">题号: ${q.id}</span>
+                    </div>
                     <div class="question-text">${escapeHtml(q.question)}</div>
                     <div class="answer-input">
                         <button class="btn-show-answer-mistake" data-idx="${idx}">显示答案</button>
@@ -749,7 +749,7 @@
             });
         }
 
-        // 打印试卷模式（支持自定义题数）
+        // 打印试卷模式
         function renderPrintPaperMode() {
             let questions = getFilteredQuestions();
             if(questions.length === 0) {
@@ -768,7 +768,7 @@
                 </div>`;
             printQuestions.forEach((q, idx) => {
                 html += `<div class="question-card">
-                    <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span></div>
+                    <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span><span>题号: ${q.id}</span></div>
                     <div class="question-text" style="white-space:pre-wrap;">${escapeHtml(q.question)}</div>
                     <div style="margin:8px 0;"><u>答：_________________________________</u></div>
                 </div>`;
