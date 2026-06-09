@@ -663,8 +663,8 @@ const grade1Data = [
     "id": 74,
     "category": "20以内加减法",
     "difficulty": "提高",
-    "question": "□ + □ = 15，□里可以填哪些数？（每个□里的数相同）",
-    "answer": "多种（7.5不行，应填整数）",
+    "question": "□ + □ = 10，□里可以填哪些数？（每个□里的数相同）",
+    "answer": "5",
     "hasAnswer": true,
     "solution": "按照运算顺序计算，注意进位退位。"
   },
