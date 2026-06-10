@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>小学数学练习系统 | 护眼 + 错题本 + 正式试卷</title>
+    <title>小学数学练习系统 | 护眼 + 错题本 + 图形打印</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -86,12 +86,11 @@
         }
         .answer-display { background: var(--success-bg); color: var(--success-text); font-weight: 500; }
         .feedback { margin-top: 10px; font-size: 0.9rem; }
-        .exam-panel, .print-preview {
-            background: #fefce8; border: 1px solid #fde047; border-radius: 24px; padding: 20px; margin-top: 20px;
-        }
+        .exam-panel { background: #fefce8; border: 1px solid #fde047; border-radius: 24px; padding: 20px; margin-top: 20px; }
         .graph-canvas { margin: 16px 0; text-align: center; }
         .graph-inputs { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
         .graph-inputs input { width: 56px; padding: 8px; text-align: center; font-size: 1.1rem; border-radius: 12px; }
+
         /* 试卷预览样式 */
         .paper-preview {
             background: white; padding: 40px 30px; font-size: 16px; line-height: 1.8;
@@ -107,6 +106,9 @@
         .paper-item .question-text { font-weight: normal; margin: 0; }
         .paper-answer-space { margin-top: 5px; }
         .paper-footer { text-align: center; margin-top: 30px; font-size: 14px; }
+        .graph-print-img { display: block; margin: 10px auto; max-width: 250px; height: auto; }
+        .drawing-box { border: 1px dashed #999; padding: 20px; text-align: center; margin: 10px 0; color: #666; }
+
         @media print {
             body { background: white; padding: 0; }
             .container { box-shadow: none; border-radius: 0; padding: 0; }
@@ -323,24 +325,68 @@
         select.value = state.grade;
     }
 
-    // 自动判断题型
+    // 生成三角形图片 (base64)
+    function generateTriangleImage(config) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 250; canvas.height = 220;
+        const ctx = canvas.getContext('2d');
+        const top = {x:125, y:30}, left = {x:40, y:180}, right = {x:210, y:180};
+        const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2};
+        const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2};
+        const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2};
+
+        // 画线
+        ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
+
+        const drawCircle = (x,y) => {
+            ctx.beginPath(); ctx.arc(x,y,14,0,2*Math.PI);
+            ctx.fillStyle='white'; ctx.fill();
+            ctx.strokeStyle='black'; ctx.lineWidth=1; ctx.stroke();
+        };
+        drawCircle(top.x, top.y);
+        drawCircle(leftMid.x, leftMid.y);
+        drawCircle(rightMid.x, rightMid.y);
+        drawCircle(left.x, left.y);
+        drawCircle(right.x, right.y);
+        drawCircle(bottomMid.x, bottomMid.y);
+
+        return canvas.toDataURL();
+    }
+
+    // 判断是否有可用图形
+    function getGraphImageUrl(questionText) {
+        const config = parseGraphConfig(questionText);
+        if (config) return generateTriangleImage(config);
+        // 未来可扩展其他图形
+        return null;
+    }
+
+    // 自动判断题型（优化版）
     function detectQuestionType(questionText) {
         const text = questionText;
+        // 图形题（有○和连线描述）
+        if (/填入○/.test(text) && (/每条线|横行|竖行|三角形|对角线/.test(text))) return '图形';
         if (/[A-D]\s*[\.、．]/.test(text) || /[①②③④]/.test(text)) return '选择';
         if (/判断|正确|错误|√|×|对错/.test(text)) return '判断';
+        // 纯算式（无任何文字描述，只含数字和运算符号）
+        if (/^[\d\s\+\-\×\÷\.\(\)\?\=□]+$/.test(text.replace(/\s/g, '')) && /[\+\-\×\÷]/.test(text)) return '计算';
         if (/□|_{2,}|\(\s*\)/.test(text)) return '填空';
         if (/(一共|多少|还剩|原来|买了|用了|花了|走了|比|谁|几个|几只)/.test(text) && /[？?]/.test(text)) return '应用';
         if (/计算|列竖式|口算|脱式|算一算/.test(text)) return '计算';
-        if (/^[\d\s\+\-\×\÷\.\(\)]+$/.test(text.replace(/\s/g, ''))) return '计算';
-        return '填空'; // 默认
+        // 比较题：含有○但没有“填入”
+        if (/○/.test(text) && !/填入/.test(text)) return '填空'; // 暂时归为填空
+        return '填空';
     }
 
     function getScoreByDifficulty(difficulty) {
         switch(difficulty) {
-            case '基础': return 2;
-            case '提高': return 3;
-            case '挑战': return 5;
-            default: return 2;
+            case '基础': return 1;
+            case '提高': return 2;
+            case '挑战': return 3;
+            default: return 1;
         }
     }
 
@@ -351,7 +397,7 @@
             return;
         }
         const limit = getPageLimit();
-        const printQuestions = limit < questions.length ? questions.slice(0, Math.min(limit, 50)) : questions.slice(0, 50);
+        const printQuestions = limit < questions.length ? questions.slice(0, limit) : questions.slice(0, 50);
 
         // 按题型分组
         const groups = {};
@@ -361,7 +407,7 @@
             groups[type].push(q);
         });
 
-        const typeOrder = ['填空', '选择', '判断', '计算', '应用'];
+        const typeOrder = ['填空', '选择', '判断', '计算', '应用', '图形'];
         let totalScore = 0;
         const groupedSections = typeOrder.map(type => {
             if (!groups[type] || groups[type].length === 0) return null;
@@ -389,9 +435,19 @@
             section.items.forEach(q => {
                 globalIdx++;
                 const score = getScoreByDifficulty(q.difficulty);
+                const graphUrl = getGraphImageUrl(q.question);
                 html += `<div class="paper-item">
                     <div class="question-text">${globalIdx}. ${escapeHtml(q.question)} <span style="font-weight:normal; font-size:0.9em;">(${score}分)</span></div>`;
-                if (section.type === '填空') {
+                
+                if (graphUrl) {
+                    // 有可绘制的图形，直接显示图片
+                    html += `<img src="${graphUrl}" class="graph-print-img" alt="图形">`;
+                    html += `<div class="paper-answer-space">顶点:____  左中:____  右中:____  左下:____  右下:____  底中:____</div>`;
+                } else if (section.type === '图形') {
+                    // 无法自动绘制，留绘图框
+                    html += `<div class="drawing-box">请在下方框内作图</div>`;
+                    html += `<div class="paper-answer-space" style="height:60px;"></div>`;
+                } else if (section.type === '填空') {
                     html += `<div class="paper-answer-space">__________________</div>`;
                 } else if (section.type === '选择') {
                     html += `<div class="paper-answer-space">A.________  B.________  C.________  D.________</div>`;
@@ -411,6 +467,10 @@
 
         document.getElementById('contentArea').innerHTML = html;
     }
+
+    // 练习、考试、错题模式保持原样（略，使用之前的完整代码）
+    // 此处省略剩余函数，但在最终代码中务必包含完整的练习/考试/错题逻辑
+    // 为了完整性，以下补充其他模式的关键函数，确保代码可运行
 
     function renderPracticeMode() {
         let questions = getFilteredQuestions(state.grade);
@@ -527,10 +587,7 @@
             examQuestions.forEach((q, i) => {
                 const u = state.userAnswers[i] || '';
                 const ok = isAnswerEqual(u, q.answer, q.question);
-                if (ok) {
-                    correct++;
-                    toggleMastered(q);
-                }
+                if (ok) { correct++; toggleMastered(q); }
                 details += `<div>题号 ${q.id}：你的答案“${escapeHtml(u) || '空'}” 正确答案“${q.answer}” ${ok?'✅':'❌'}</div>`;
                 if (!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
             });
@@ -546,10 +603,7 @@
     }
 
     function clearExamTimer() {
-        if (state.examTimer) {
-            clearInterval(state.examTimer);
-            state.examTimer = null;
-        }
+        if (state.examTimer) { clearInterval(state.examTimer); state.examTimer = null; }
     }
 
     function renderMistakeMode() {
@@ -755,7 +809,6 @@
         if (state.mode === 'practice' || state.mode === 'printPaper') renderContent();
     });
 
-    // 注意：点击事件传入的模式字符串已修正
     document.getElementById('modePractice').addEventListener('click', () => setMode('practice'));
     document.getElementById('modeExam').addEventListener('click', () => setMode('exam'));
     document.getElementById('modePrintPaper').addEventListener('click', () => setMode('printPaper'));
