@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>小学数学练习系统 | 护眼 + 错题本 + 自动掌握</title>
+    <title>小学数学练习系统 | 护眼 + 错题本 + 正式试卷</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -92,11 +92,29 @@
         .graph-canvas { margin: 16px 0; text-align: center; }
         .graph-inputs { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
         .graph-inputs input { width: 56px; padding: 8px; text-align: center; font-size: 1.1rem; border-radius: 12px; }
+
+        /* 试卷预览样式 */
+        .paper-preview {
+            background: white; padding: 40px 30px; font-size: 16px; line-height: 1.8;
+            max-width: 1000px; margin: 0 auto; box-shadow: 0 2px 15px rgba(0,0,0,0.1); border-radius: 8px;
+        }
+        .paper-title { text-align: center; font-size: 24px; font-weight: bold; margin: 0 0 8px; }
+        .paper-subtitle { text-align: center; font-size: 16px; margin: 0 0 20px; color: #333; }
+        .paper-info { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 16px; }
+        .paper-info span { margin-right: 15px; }
+        .paper-section { margin: 25px 0; }
+        .paper-section h3 { font-size: 18px; margin: 0 0 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+        .paper-item { margin-bottom: 14px; }
+        .paper-item .question-text { font-weight: normal; margin: 0; }
+        .paper-answer-space { margin-top: 5px; }
+        .paper-footer { text-align: center; margin-top: 30px; font-size: 14px; }
+
         @media print {
-            body { background: white; padding: 0; font-size: 12pt; }
-            .toolbar, .mode-switch, .answer-input, button:not(.do-print), .no-print, .graph-inputs { display: none !important; }
-            .question-card { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; box-shadow: none; }
-            .question-text { font-size: 1rem; }
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; border-radius: 0; padding: 0; }
+            .toolbar, .mode-switch, .no-print, .graph-inputs, button { display: none !important; }
+            .paper-preview { box-shadow: none; border-radius: 0; padding: 20px; margin: 0; max-width: 100%; }
+            .paper-preview .question-card { break-inside: avoid; border: none; margin: 0; padding: 5px 0; box-shadow: none; }
         }
         .footer { margin-top: 32px; text-align: center; font-size: 0.8rem; color: var(--text-secondary); }
         .stats { font-size: 0.85rem; background: var(--bg-body); padding: 6px 18px; border-radius: 30px; display: inline-block; }
@@ -139,7 +157,6 @@
     <div class="footer no-print">✅ 智能匹配 · 错题本 · 护眼模式 · 模拟考试计时</div>
 </div>
 
-<!-- 题库文件，请保持 tikujs 文件夹路径 -->
 <script src="tikujs/kindergarten.js"></script>
 <script src="tikujs/grade1.js"></script>
 <script src="tikujs/grade2.js"></script>
@@ -171,7 +188,6 @@
         "六年级": window.grade6 || []
     };
 
-    // 安全加载
     try { state.mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]'); } catch(e) { state.mistakeList = []; localStorage.removeItem('mistakeList'); }
     try { state.masteredList = JSON.parse(localStorage.getItem('masteredList') || '[]'); } catch(e) { state.masteredList = []; localStorage.removeItem('masteredList'); }
 
@@ -255,7 +271,7 @@
             state.masteredList.splice(idx, 1);
         } else {
             state.masteredList.push({ grade: state.grade, id: question.id });
-            removeMistake(state.grade, question.id); // 掌握后移除错题
+            removeMistake(state.grade, question.id);
         }
         saveMastered();
     }
@@ -309,68 +325,104 @@
         select.value = state.grade;
     }
 
-    function renderTriangleGraph(containerId, config, onValidate) {
-        const container = document.getElementById(containerId);
-        if(!container) return;
-        const targetSum = config.targetSum;
-        const numbers = config.numbers;
-        container.innerHTML = `
-            <canvas id="triCanvas" width="300" height="260" style="max-width:100%; height:auto; background:#f9f9f9; border-radius:16px;"></canvas>
-            <div class="graph-inputs">
-                <input type="number" id="topVal" placeholder="顶"> <input type="number" id="leftMid" placeholder="左中">
-                <input type="number" id="rightMid" placeholder="右中"> <input type="number" id="leftBottom" placeholder="左下">
-                <input type="number" id="rightBottom" placeholder="右下"> <input type="number" id="bottomMid" placeholder="底中">
-            </div>
-            <button id="checkGraphBtn" class="primary">验证</button>
-            <div id="graphFeedback" style="margin-top:8px;"></div>
-        `;
-        const canvas = document.getElementById('triCanvas');
-        const ctx = canvas.getContext('2d');
-        const inputIds = ['topVal','leftMid','rightMid','leftBottom','rightBottom','bottomMid'];
-        const inputs = inputIds.map(id => document.getElementById(id));
-        function getValues() { return inputs.map(inp => parseInt(inp.value) || 0); }
-        function drawTriangle(values) {
-            ctx.clearRect(0,0,300,260);
-            const top = {x:150, y:30}, left = {x:50, y:210}, right = {x:250, y:210};
-            const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
-            const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
-            const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
-            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
-            const drawCircle = (x,y,val) => {
-                ctx.beginPath(); ctx.arc(x,y,16,0,2*Math.PI); ctx.fillStyle='white'; ctx.fill(); ctx.stroke();
-                ctx.fillStyle='black'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val||'?', x, y);
-            };
-            drawCircle(top.x, top.y, values[0]); drawCircle(leftMid.x, leftMid.y, values[1]);
-            drawCircle(rightMid.x, rightMid.y, values[2]); drawCircle(left.x, left.y, values[3]);
-            drawCircle(right.x, right.y, values[4]); drawCircle(bottomMid.x, bottomMid.y, values[5]);
+    // 自动判断题型
+    function detectQuestionType(questionText) {
+        const text = questionText;
+        // 选择题：包含选项标识 A. B. C. D. 或 ① ② 等
+        if (/[A-D]\s*[\.、．]/.test(text) || /[①②③④]/.test(text)) return '选择';
+        // 判断题：包含判断、正确/错误、√×等
+        if (/判断|正确|错误|√|×|对错/.test(text)) return '判断';
+        // 填空题：包含 □ 或 __ 或 （ ）
+        if (/□|_{2,}|\(\s*\)/.test(text)) return '填空';
+        // 应用题：包含问句和场景词汇
+        if (/(一共|多少|还剩|原来|买了|用了|花了|走了|比|谁|几个|几只)/.test(text) && /[？?]/.test(text)) return '应用';
+        // 计算题：包含计算、列竖式、口算等
+        if (/计算|列竖式|口算|脱式|算一算/.test(text)) return '计算';
+        // 默认归类为计算题（纯算式）
+        if (/^[\d\s\+\-\×\÷\.\(\)]+$/.test(text.replace(/\s/g, ''))) return '计算';
+        return '填空'; // 默认
+    }
+
+    function getScoreByDifficulty(difficulty) {
+        switch(difficulty) {
+            case '基础': return 2;
+            case '提高': return 3;
+            case '挑战': return 5;
+            default: return 2;
         }
-        drawTriangle(getValues());
-        inputs.forEach(inp => inp.addEventListener('input', () => drawTriangle(getValues())));
-        document.getElementById('checkGraphBtn').addEventListener('click', () => {
-            let v = getValues();
-            let sum1 = v[0]+v[1]+v[3], sum2 = v[0]+v[2]+v[4], sum3 = v[3]+v[5]+v[4];
-            let allInRange = v.every(x => numbers.includes(x));
-            let unique = new Set(v).size === 6;
-            if(sum1 === targetSum && sum2 === targetSum && sum3 === targetSum && allInRange && unique) {
-                document.getElementById('graphFeedback').innerHTML = '<span style="color:green;">✅ 正确</span>';
-                if(onValidate) onValidate(true);
-            } else {
-                document.getElementById('graphFeedback').innerHTML = '<span style="color:red;">❌ 不正确（每边和'+targetSum+'，数字'+numbers.join(', ')+'）</span>';
-                if(onValidate) onValidate(false);
-            }
+    }
+
+    function renderPrintMode() {
+        const questions = getFilteredQuestions(state.grade);
+        if (!questions.length) {
+            document.getElementById('contentArea').innerHTML = '<div class="question-card">无题目</div>';
+            return;
+        }
+        const limit = getPageLimit();
+        const printQuestions = limit < questions.length ? questions.slice(0, Math.min(limit, 50)) : questions.slice(0, 50);
+
+        // 按题型分组
+        const groups = {};
+        printQuestions.forEach(q => {
+            const type = detectQuestionType(q.question);
+            if (!groups[type]) groups[type] = [];
+            groups[type].push(q);
         });
+
+        // 题型顺序
+        const typeOrder = ['填空', '选择', '判断', '计算', '应用'];
+        let totalScore = 0;
+        const groupedSections = typeOrder.map(type => {
+            if (!groups[type] || groups[type].length === 0) return null;
+            const items = groups[type];
+            const sectionScore = items.reduce((sum, q) => sum + getScoreByDifficulty(q.difficulty), 0);
+            totalScore += sectionScore;
+            return { type, items, sectionScore };
+        }).filter(Boolean);
+
+        const categoryText = document.getElementById('categorySelect').options[document.getElementById('categorySelect').selectedIndex]?.text || '综合';
+        const gradeName = state.grade;
+
+        let html = `<div class="paper-preview">
+            <div class="paper-title">${gradeName}数学练习卷</div>
+            <div class="paper-subtitle">知识点：${categoryText}  |  满分：${totalScore}分  |  时间：40分钟</div>
+            <div class="paper-info">
+                <span>姓名：______________</span>
+                <span>班级：______________</span>
+                <span>得分：______________</span>
+            </div>`;
+
+        let globalIdx = 0;
+        groupedSections.forEach(section => {
+            html += `<div class="paper-section"><h3>${section.type}题（共${section.sectionScore}分）</h3>`;
+            section.items.forEach(q => {
+                globalIdx++;
+                const score = getScoreByDifficulty(q.difficulty);
+                html += `<div class="paper-item">
+                    <div class="question-text">${globalIdx}. ${escapeHtml(q.question)} <span style="font-weight:normal; font-size:0.9em;">(${score}分)</span></div>`;
+                // 答题区根据题型变化
+                if (section.type === '填空') {
+                    html += `<div class="paper-answer-space">__________________</div>`;
+                } else if (section.type === '选择') {
+                    html += `<div class="paper-answer-space">A.________  B.________  C.________  D.________</div>`;
+                } else if (section.type === '判断') {
+                    html += `<div class="paper-answer-space">(    )  对/错</div>`;
+                } else {
+                    html += `<div class="paper-answer-space" style="height:40px;"></div>`;
+                }
+                html += `</div>`;
+            });
+            html += `</div>`;
+        });
+
+        html += `<div class="paper-footer">考试结束，请仔细检查</div>`;
+        html += `<div style="text-align:center; margin-top:20px;"><button class="primary do-print" onclick="window.print()">🖨️ 打印试卷</button></div>`;
+        html += `</div>`;
+
+        document.getElementById('contentArea').innerHTML = html;
     }
 
-    function renderContent() {
-        if (state.mode === 'practice') renderPracticeMode();
-        else if (state.mode === 'exam') renderExamMode();
-        else if (state.mode === 'print') renderPrintMode();
-        else if (state.mode === 'mistake') renderMistakeMode();
-    }
-
+    // 其他模式保持原样（略），只展示print修改部分，此处为了完整将后续函数一并给出
     function renderPracticeMode() {
         let questions = getFilteredQuestions(state.grade);
         if (!questions.length) {
@@ -488,7 +540,7 @@
                 const ok = isAnswerEqual(u, q.answer, q.question);
                 if (ok) {
                     correct++;
-                    toggleMastered(q); // 答对自动掌握
+                    toggleMastered(q);
                 }
                 details += `<div>题号 ${q.id}：你的答案“${escapeHtml(u) || '空'}” 正确答案“${q.answer}” ${ok?'✅':'❌'}</div>`;
                 if (!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
@@ -565,26 +617,66 @@
         });
     }
 
-    function renderPrintMode() {
-        const questions = getFilteredQuestions(state.grade);
-        if (!questions.length) {
-            document.getElementById('contentArea').innerHTML = '<div class="question-card">无题目</div>';
-            return;
+    function renderTriangleGraph(containerId, config, onValidate) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        const targetSum = config.targetSum;
+        const numbers = config.numbers;
+        container.innerHTML = `
+            <canvas id="triCanvas" width="300" height="260" style="max-width:100%; height:auto; background:#f9f9f9; border-radius:16px;"></canvas>
+            <div class="graph-inputs">
+                <input type="number" id="topVal" placeholder="顶"> <input type="number" id="leftMid" placeholder="左中">
+                <input type="number" id="rightMid" placeholder="右中"> <input type="number" id="leftBottom" placeholder="左下">
+                <input type="number" id="rightBottom" placeholder="右下"> <input type="number" id="bottomMid" placeholder="底中">
+            </div>
+            <button id="checkGraphBtn" class="primary">验证</button>
+            <div id="graphFeedback" style="margin-top:8px;"></div>
+        `;
+        const canvas = document.getElementById('triCanvas');
+        const ctx = canvas.getContext('2d');
+        const inputIds = ['topVal','leftMid','rightMid','leftBottom','rightBottom','bottomMid'];
+        const inputs = inputIds.map(id => document.getElementById(id));
+        function getValues() { return inputs.map(inp => parseInt(inp.value) || 0); }
+        function drawTriangle(values) {
+            ctx.clearRect(0,0,300,260);
+            const top = {x:150, y:30}, left = {x:50, y:210}, right = {x:250, y:210};
+            const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
+            const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
+            const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
+            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
+            const drawCircle = (x,y,val) => {
+                ctx.beginPath(); ctx.arc(x,y,16,0,2*Math.PI); ctx.fillStyle='white'; ctx.fill(); ctx.stroke();
+                ctx.fillStyle='black'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val||'?', x, y);
+            };
+            drawCircle(top.x, top.y, values[0]); drawCircle(leftMid.x, leftMid.y, values[1]);
+            drawCircle(rightMid.x, rightMid.y, values[2]); drawCircle(left.x, left.y, values[3]);
+            drawCircle(right.x, right.y, values[4]); drawCircle(bottomMid.x, bottomMid.y, values[5]);
         }
-        const limit = getPageLimit();
-        const printQuestions = limit < questions.length ? questions.slice(0, Math.min(limit, 50)) : questions.slice(0, 50);
-        let html = `<div class="print-preview">
-            <div style="text-align:center;"><h2>数学练习卷</h2><p>年级：${state.grade} | 知识点：${document.getElementById('categorySelect').options[document.getElementById('categorySelect').selectedIndex]?.text||'全部'} | 题数：${printQuestions.length}</p><p>姓名：__________ 日期：__________</p></div>`;
-        printQuestions.forEach((q, idx) => {
-            html += `<div class="question-card">
-                <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span><span>#${q.id}</span></div>
-                <div class="question-text">${escapeHtml(q.question)}</div>
-                <div style="margin:12px 0;"><u>答：_________________________________</u></div>
-            </div>`;
+        drawTriangle(getValues());
+        inputs.forEach(inp => inp.addEventListener('input', () => drawTriangle(getValues())));
+        document.getElementById('checkGraphBtn').addEventListener('click', () => {
+            let v = getValues();
+            let sum1 = v[0]+v[1]+v[3], sum2 = v[0]+v[2]+v[4], sum3 = v[3]+v[5]+v[4];
+            let allInRange = v.every(x => numbers.includes(x));
+            let unique = new Set(v).size === 6;
+            if(sum1 === targetSum && sum2 === targetSum && sum3 === targetSum && allInRange && unique) {
+                document.getElementById('graphFeedback').innerHTML = '<span style="color:green;">✅ 正确</span>';
+                if(onValidate) onValidate(true);
+            } else {
+                document.getElementById('graphFeedback').innerHTML = '<span style="color:red;">❌ 不正确（每边和'+targetSum+'，数字'+numbers.join(', ')+'）</span>';
+                if(onValidate) onValidate(false);
+            }
         });
-        html += `<div style="text-align:center;"><button class="primary do-print">🖨️ 打印</button></div></div>`;
-        document.getElementById('contentArea').innerHTML = html;
-        document.querySelector('.do-print')?.addEventListener('click', () => window.print());
+    }
+
+    function renderContent() {
+        if (state.mode === 'practice') renderPracticeMode();
+        else if (state.mode === 'exam') renderExamMode();
+        else if (state.mode === 'print') renderPrintMode();
+        else if (state.mode === 'mistake') renderMistakeMode();
     }
 
     // 事件委托
@@ -594,7 +686,6 @@
         const action = btn.dataset.action;
         const idx = parseInt(btn.dataset.idx);
         if (isNaN(idx)) return;
-
         if (state.mode === 'mistake') {
             const q = state.displayQuestions[idx];
             if (!q) return;
@@ -609,10 +700,8 @@
             }
             return;
         }
-
         const q = state.displayQuestions[idx];
         if (!q) return;
-
         if (action === 'check') {
             const inp = document.getElementById(`ans_${idx}`), fb = document.getElementById(`feedback_${idx}`);
             if (!inp || !fb) return;
@@ -620,7 +709,6 @@
             if (!user) { fb.innerHTML = '❓ 输入答案'; return; }
             if (isAnswerEqual(user, q.answer, q.question)) {
                 fb.innerHTML = '✅ 正确！'; fb.style.color = 'green';
-                // 答对自动掌握
                 toggleMastered(q);
                 const masterBtn = document.querySelector(`button[data-action="toggleMastered"][data-idx="${idx}"]`);
                 if (masterBtn) { masterBtn.textContent = '✅ 已掌握'; masterBtn.classList.add('mastered-btn'); }
