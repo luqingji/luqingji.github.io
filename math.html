@@ -5,272 +5,111 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>小学数学练习系统 | 护眼模式 + 错题本</title>
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
-        /* 主题变量 */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
-            --bg-body: #f0f7ff;
-            --bg-container: white;
-            --text-primary: #1e2a3e;
-            --text-secondary: #475569;
-            --card-border: #e2e8f0;
-            --btn-bg: white;
-            --btn-border: #cbd5e1;
-            --badge-base: #e2e8f0;
-            --success-bg: #dcfce7;
-            --success-text: #166534;
-            --error-bg: #fee2e2;
-            --error-text: #b91c1c;
+            --bg-body: #f0f7ff; --bg-container: white; --text-primary: #1e2a3e; --text-secondary: #475569;
+            --card-border: #e2e8f0; --btn-bg: white; --btn-border: #cbd5e1; --badge-base: #e2e8f0;
+            --success-bg: #dcfce7; --success-text: #166534; --error-bg: #fee2e2; --error-text: #b91c1c;
+            --warning-bg: #fff3e3; --warning-text: #b45309;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
         body.eye-care {
-            --bg-body: #fef9e6;
-            --bg-container: #fffaf2;
-            --text-primary: #2c3e3f;
-            --text-secondary: #5a6c6e;
-            --card-border: #e2dccd;
-            --btn-bg: #ede7d9;
-            --btn-border: #d4c2a7;
-            --badge-base: #e8e0cf;
-            --success-bg: #e0f0e0;
-            --success-text: #2d6a2d;
-            --error-bg: #f5e0db;
-            --error-text: #b85c4a;
+            --bg-body: #fef9e6; --bg-container: #fffaf2; --text-primary: #2a2a1a; --text-secondary: #4a4a3a;
+            --card-border: #d4c9a8; --btn-bg: #ede7d9; --btn-border: #c4b68b; --badge-base: #e8e0cf;
+            --success-bg: #d9ead3; --success-text: #1e4a1e; --error-bg: #f5e0db; --error-text: #8b3a2a;
+            --warning-bg: #fcead8; --warning-text: #8b4a1a;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
         body {
             font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
-            background: var(--bg-body);
-            margin: 0;
-            padding: 12px;
-            color: var(--text-primary);
+            background: var(--bg-body); margin: 0; padding: 12px; color: var(--text-primary);
             transition: background 0.2s, color 0.2s;
+            font-size: 16px; /* 基准字号 */
         }
         .container {
-            max-width: 1300px;
-            margin: 0 auto;
-            background: var(--bg-container);
-            border-radius: 28px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-            overflow: hidden;
-            padding: 16px 20px 32px;
-            transition: background 0.2s;
+            max-width: 1300px; margin: 0 auto; background: var(--bg-container); border-radius: 32px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.06); padding: 24px 28px 40px; transition: background 0.2s;
         }
-        h1 {
-            font-size: 1.5rem;
-            margin: 0 0 6px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+        h1 { font-size: 1.75rem; margin: 0 0 10px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        h1 small { font-size: 0.85rem; font-weight: normal; background: #eef2ff; padding: 4px 14px; border-radius: 30px; }
+        .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; padding: 6px 0; border-bottom: 1px solid var(--card-border); }
+        .filter-group { background: transparent; padding: 0 4px; gap: 4px; display: flex; flex-wrap: wrap; align-items: center; }
+        .filter-group label { font-size: 0.8rem; color: var(--text-secondary); opacity: 0.85; }
+        select, button, input[type="search"] {
+            background: var(--btn-bg); border: 0.5px solid var(--btn-border); padding: 6px 14px;
+            border-radius: 30px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; font-weight: 500; color: var(--text-primary);
         }
-        h1 small {
-            font-size: 0.7rem;
-            font-weight: normal;
-            background: #eef2ff;
-            padding: 2px 10px;
-            border-radius: 30px;
-        }
-        /* ========= 紧凑工具栏 ========= */
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin: 8px 0 12px;
-            padding: 4px 0;
-            border-bottom: 1px solid var(--card-border);
-        }
-        .filter-group {
-            background: transparent;
-            padding: 0 4px;
-            gap: 4px;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .filter-group label {
-            font-size: 0.7rem;
-            font-weight: normal;
-            color: var(--text-secondary);
-            opacity: 0.8;
-        }
-        select, button {
-            background: var(--btn-bg);
-            border: 0.5px solid var(--btn-border);
-            padding: 4px 10px;
-            border-radius: 30px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-        select:hover, button:hover {
-            background: var(--card-border);
-        }
-        button.primary {
-            background: #1e3a8a;
-            border-color: #1e3a8a;
-            color: white;
-        }
-        body.eye-care button.primary {
-            background: #c1a57b;
-            border-color: #c1a57b;
-            color: #2c3e3f;
-        }
-        button.warning {
-            background: #f59e0b;
-            border-color: #f59e0b;
-            color: white;
-        }
-        .mode-switch {
-            background: transparent;
-            padding: 0;
-            gap: 4px;
-            display: flex;
-        }
-        .mode-btn {
-            border: none;
-            background: transparent;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 0.75rem;
-        }
-        .mode-btn.active {
-            background: var(--bg-container);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            font-weight: bold;
-        }
-        /* 题目卡片区域 */
-        .question-area {
-            margin-top: 20px;
-        }
+        select:hover, button:hover { background: var(--card-border); }
+        button.primary { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+        body.eye-care button.primary { background: #c1a57b; border-color: #c1a57b; color: #1a1a1a; }
+        button.warning { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .mode-switch { display: flex; gap: 4px; }
+        .mode-btn { border: none; background: transparent; padding: 5px 16px; border-radius: 30px; font-size: 0.85rem; }
+        .mode-btn.active { background: var(--bg-container); box-shadow: 0 1px 4px rgba(0,0,0,0.1); font-weight: bold; }
+        .question-area { margin-top: 24px; }
         .question-card {
-            background: var(--bg-container);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 16px;
-            margin-bottom: 20px;
+            background: var(--bg-container); border: 1px solid var(--card-border);
+            border-radius: 24px; padding: 24px; margin-bottom: 24px;
+            box-shadow: var(--card-shadow); transition: box-shadow 0.2s;
         }
+        .question-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .question-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
-            font-size: 0.7rem;
-            gap: 6px;
+            display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;
+            font-size: 0.8rem; gap: 8px; margin-bottom: 12px;
         }
         .badge {
-            background: var(--badge-base);
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 0.65rem;
+            background: var(--badge-base); padding: 3px 12px; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 500;
         }
-        .badge.difficulty-基础 { background: #dcfce7; color: #166534; }
-        .badge.difficulty-提高 { background: #fff3e3; color: #b45309; }
-        .badge.difficulty-挑战 { background: #fee2e2; color: #b91c1c; }
-        body.eye-care .badge.difficulty-基础 { background: #e0f0e0; color: #2d6a2d; }
-        body.eye-care .badge.difficulty-提高 { background: #fcead8; color: #b45309; }
-        body.eye-care .badge.difficulty-挑战 { background: #f5e0db; color: #b85c4a; }
+        .badge.difficulty-基础 { background: var(--success-bg); color: var(--success-text); }
+        .badge.difficulty-提高 { background: var(--warning-bg); color: var(--warning-text); }
+        .badge.difficulty-挑战 { background: var(--error-bg); color: var(--error-text); }
         .badge.no-answer { background: var(--badge-base); font-style: italic; }
         .question-text {
-            font-size: 1rem;
-            line-height: 1.45;
-            margin: 8px 0;
-            font-weight: 600;
-            white-space: pre-wrap;
-            word-break: break-word;
+            font-size: 1.25rem; line-height: 1.6; margin: 12px 0; font-weight: 600;
+            white-space: pre-wrap; word-break: break-word; letter-spacing: 0.02em;
         }
-        .answer-input {
-            margin: 12px 0 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            align-items: center;
-        }
+        .answer-input { margin: 16px 0 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .answer-input input {
-            padding: 6px 12px;
-            width: 160px;
-            border: 1px solid var(--btn-border);
-            border-radius: 30px;
-            font-size: 0.9rem;
-            background: var(--bg-container);
+            padding: 8px 16px; width: 100%; max-width: 220px; border: 1px solid var(--btn-border);
+            border-radius: 30px; font-size: 1rem; background: var(--bg-container);
         }
-        .btn-show-solution, .btn-show-answer, .btn-add-mistake {
-            background: var(--btn-bg);
-            border: none;
-            padding: 5px 12px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            cursor: pointer;
+        button[data-action] {
+            background: var(--btn-bg); border: 0.5px solid var(--btn-border);
+            padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; cursor: pointer;
+            font-weight: 500;
         }
         .solution, .answer-display {
-            background: var(--bg-body);
-            padding: 10px 14px;
-            border-radius: 16px;
-            margin-top: 10px;
-            display: none;
-            font-size: 0.85rem;
-            border-left: 3px solid #3b82f6;
+            background: var(--bg-body); padding: 14px 18px; border-radius: 18px; margin-top: 12px;
+            display: none; font-size: 0.95rem; border-left: 4px solid #3b82f6;
         }
-        .answer-display {
-            background: var(--success-bg);
-            color: var(--success-text);
-        }
-        .feedback {
-            margin-top: 10px;
-            font-size: 0.8rem;
-        }
+        .answer-display { background: var(--success-bg); color: var(--success-text); font-weight: 500; }
+        .feedback { margin-top: 10px; font-size: 0.9rem; }
         .exam-panel, .print-preview {
-            background: #fefce8;
-            border: 1px solid #fde047;
-            border-radius: 20px;
-            padding: 16px;
-            margin-top: 20px;
+            background: #fefce8; border: 1px solid #fde047; border-radius: 24px; padding: 20px; margin-top: 20px;
         }
-        .graph-canvas {
-            margin: 12px 0;
-            text-align: center;
-        }
-        .graph-inputs {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin: 12px 0;
-        }
-        .graph-inputs input {
-            width: 50px;
-            padding: 6px;
-            text-align: center;
-            font-size: 1rem;
-        }
+        .graph-canvas { margin: 16px 0; text-align: center; }
+        .graph-inputs { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+        .graph-inputs input { width: 56px; padding: 8px; text-align: center; font-size: 1.1rem; border-radius: 12px; }
         @media print {
-            body { background: white; padding: 0; }
-            .toolbar, .mode-switch, .answer-input, button:not(.do-print), .no-print, .graph-inputs { display: none !important; }
-            .question-card { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 8px; padding: 6px; }
-            .question-text { font-size: 0.8rem; }
+            body { background: white; padding: 0; font-size: 12pt; }
+            .toolbar, .mode-switch, .answer-input, button:not(.do-print), .no-print, .graph-inputs, #searchBox { display: none !important; }
+            .question-card { break-inside: avoid; border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; box-shadow: none; }
+            .question-text { font-size: 1rem; }
         }
-        .footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-        .stats {
-            font-size: 0.75rem;
-            background: var(--bg-body);
-            padding: 4px 12px;
-            border-radius: 30px;
-            display: inline-block;
-        }
+        .footer { margin-top: 32px; text-align: center; font-size: 0.8rem; color: var(--text-secondary); }
+        .stats { font-size: 0.85rem; background: var(--bg-body); padding: 6px 18px; border-radius: 30px; display: inline-block; }
+        #searchBox { max-width: 170px; }
+        .mistake-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+        /* 移动端适配：保证最小可读性 */
         @media (max-width: 640px) {
             body { padding: 8px; }
-            .container { padding: 12px 16px; }
-            .question-text { font-size: 0.95rem; }
-            .answer-input input { width: 130px; }
-            select, button { padding: 3px 8px; font-size: 0.7rem; }
+            .container { padding: 16px 20px; }
+            .question-card { padding: 18px; margin-bottom: 16px; }
+            .question-text { font-size: 1.15rem; line-height: 1.5; }
+            select, button, input[type="search"] { padding: 5px 12px; font-size: 0.8rem; }
+            .answer-input input { max-width: 160px; font-size: 0.95rem; }
+            .badge { font-size: 0.7rem; padding: 2px 10px; }
         }
     </style>
 </head>
@@ -278,9 +117,8 @@
 <div class="container" id="app">
     <h1>📚 数学小天才练习系统
         <small>幼儿园→六年级</small>
-        <button id="eyeCareBtn" style="margin-left:auto; padding:2px 10px;">🌙 护眼</button>
+        <button id="eyeCareBtn" style="margin-left:auto; padding:4px 14px; font-size:0.85rem;">🌙 护眼</button>
     </h1>
-
     <div class="toolbar no-print">
         <div class="filter-group"><label>📖</label><select id="gradeSelect"></select></div>
         <div class="filter-group"><label>🏷️</label><select id="categorySelect"></select></div>
@@ -290,6 +128,9 @@
             <label>📄</label><select id="pageSizeSelect"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="all">全部</option></select>
             <label>🎲</label><select id="orderSelect"><option value="normal">正常</option><option value="random">随机</option></select>
         </div>
+        <div class="filter-group">
+            <input type="search" id="searchBox" placeholder="搜索题目...">
+        </div>
         <div class="mode-switch">
             <button id="modePractice" class="mode-btn active">✏️ 练</button>
             <button id="modeExam" class="mode-btn">📝 考</button>
@@ -297,7 +138,6 @@
             <button id="modeMistake" class="mode-btn">❌ 错</button>
         </div>
     </div>
-
     <div id="contentArea" class="question-area">加载题库中...</div>
     <div class="footer no-print">✅ 智能匹配 · 错题本 · 护眼模式 · 模拟考试计时</div>
 </div>
@@ -311,424 +151,552 @@
 <script src="tikujs/grade6.js"></script>
 
 <script>
-    (function(){
-        const gradeMap = {
-            "幼儿园": window.kindergarten || [],
-            "一年级": window.grade1 || [],
-            "二年级": window.grade2 || [],
-            "三年级": window.grade3 || [],
-            "四年级": window.grade4 || [],
-            "五年级": window.grade5 || [],
-            "六年级": window.grade6 || []
-        };
-        let currentGrade = "一年级";
-        let currentMode = "practice";
-        let currentQuestions = [];
-        let mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
-        let examTimer = null;
-        let examTimeLeft = 1800;
-        let userAnswers = [];
+(function(){
+    const state = {
+        grade: '一年级',
+        mode: 'practice',
+        examTimer: null,
+        examTimeLeft: 1800,
+        userAnswers: [],
+        displayQuestions: [],
+        mistakeList: [],
+        searchKeyword: ''
+    };
 
-        // DOM
-        const gradeSelect = document.getElementById("gradeSelect");
-        const categorySelect = document.getElementById("categorySelect");
-        const answerStatusSelect = document.getElementById("answerStatusSelect");
-        const difficultySelect = document.getElementById("difficultySelect");
-        const pageSizeSelect = document.getElementById("pageSizeSelect");
-        const orderSelect = document.getElementById("orderSelect");
-        const modePractice = document.getElementById("modePractice");
-        const modeExam = document.getElementById("modeExam");
-        const modePrintPaper = document.getElementById("modePrintPaper");
-        const modeMistake = document.getElementById("modeMistake");
-        const contentArea = document.getElementById("contentArea");
-        const eyeCareBtn = document.getElementById("eyeCareBtn");
+    const gradeMap = {
+        "幼儿园": window.kindergarten || [],
+        "一年级": window.grade1 || [],
+        "二年级": window.grade2 || [],
+        "三年级": window.grade3 || [],
+        "四年级": window.grade4 || [],
+        "五年级": window.grade5 || [],
+        "六年级": window.grade6 || []
+    };
 
-        // 护眼模式
-        if(localStorage.getItem('eyeCare') === 'true') document.body.classList.add('eye-care');
-        eyeCareBtn.addEventListener('click', () => {
-            document.body.classList.toggle('eye-care');
-            localStorage.setItem('eyeCare', document.body.classList.contains('eye-care'));
+    try {
+        state.mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
+    } catch(e) {
+        state.mistakeList = [];
+        localStorage.removeItem('mistakeList');
+    }
+
+    function saveMistakes() { localStorage.setItem('mistakeList', JSON.stringify(state.mistakeList)); }
+
+    const escapeHtml = (str) => {
+        if (!str) return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return str.replace(/[&<>"']/g, m => map[m]);
+    };
+
+    function parseGraphConfig(questionText) {
+        if (!questionText.includes('三角形') || !questionText.includes('每条线上三个数的和')) return null;
+        const sumMatch = questionText.match(/每条线上三个数的和(?:都)?等于(\d+)/);
+        const targetSum = sumMatch ? parseInt(sumMatch[1]) : null;
+        if (!targetSum) return null;
+        let numbers = [];
+        const rangeMatch = questionText.match(/(\d+)\s*[～~\-]\s*(\d+)/);
+        if (rangeMatch) {
+            let start = parseInt(rangeMatch[1]), end = parseInt(rangeMatch[2]);
+            if (start <= end) for (let i=start; i<=end; i++) numbers.push(i);
+        } else {
+            const listMatch = questionText.match(/[2-9]+(?:\s*[,，、]\s*[2-9]+)+/);
+            if (listMatch) {
+                numbers = listMatch[0].split(/[,，、]/).map(s => parseInt(s.trim()));
+            }
+        }
+        if (numbers.length !== 6) numbers = [2,3,4,5,6,7];
+        return { type: 'triangle', targetSum, numbers };
+    }
+
+    function isAnswerEqual(user, correct, questionText) {
+        let u = user.trim().replace(/\s/g, '');
+        if (Array.isArray(correct)) return correct.some(ans => isAnswerEqual(user, ans, questionText));
+        let c = (typeof correct === 'string' ? correct : String(correct)).trim().replace(/\s/g, '');
+        if (u === c) return true;
+        let numU = parseFloat(u), numC = parseFloat(c);
+        if (!isNaN(numU) && !isNaN(numC) && Math.abs(numU - numC) < 1e-6) return true;
+        let fracU = u.match(/^(\d+)\/(\d+)$/), fracC = c.match(/^(\d+)\/(\d+)$/);
+        if (fracU && fracC) {
+            let valU = parseInt(fracU[1])/parseInt(fracU[2]);
+            let valC = parseInt(fracC[1])/parseInt(fracC[2]);
+            if (Math.abs(valU - valC) < 1e-6) return true;
+        }
+        let eqMatch = questionText.match(/□\s*\+\s*□\s*=\s*(\d+)/);
+        if (eqMatch) {
+            let target = parseInt(eqMatch[1], 10);
+            let parts = user.match(/(\d+)\s*\+\s*(\d+)/);
+            if (parts) { let a=parseInt(parts[1]), b=parseInt(parts[2]); if(a+b===target) return true; }
+            let parts2 = user.match(/(\d+)\s+(\d+)/);
+            if (parts2) { let a=parseInt(parts2[1]), b=parseInt(parts2[2]); if(a+b===target) return true; }
+            let single = parseInt(user,10);
+            if (!isNaN(single) && single*2===target) return true;
+        }
+        return false;
+    }
+
+    function addMistake(question) {
+        if(!state.mistakeList.some(m => m.grade === state.grade && m.id === question.id)) {
+            state.mistakeList.push({ grade: state.grade, id: question.id });
+            saveMistakes();
+        }
+    }
+
+    function removeMistake(grade, id) {
+        state.mistakeList = state.mistakeList.filter(m => !(m.grade === grade && m.id === id));
+        saveMistakes();
+    }
+
+    function getMistakeQuestions() {
+        return state.mistakeList.map(m => {
+            const pool = gradeMap[m.grade] || [];
+            const q = pool.find(item => item.id === m.id);
+            return q ? { ...q, grade: m.grade, mistakeGrade: m.grade } : null;
+        }).filter(Boolean);
+    }
+
+    function getFilteredQuestions(grade) {
+        let questions = gradeMap[grade] || [];
+        const cat = document.getElementById('categorySelect').value;
+        if(cat !== 'all') questions = questions.filter(q => q.category === cat);
+        const diff = document.getElementById('difficultySelect').value;
+        if(diff !== 'all') questions = questions.filter(q => q.difficulty === diff);
+        const ansStat = document.getElementById('answerStatusSelect').value;
+        if(ansStat === 'has') questions = questions.filter(q => q.hasAnswer === true);
+        else if(ansStat === 'no') questions = questions.filter(q => q.hasAnswer === false);
+        if(state.searchKeyword) {
+            const kw = state.searchKeyword.toLowerCase();
+            questions = questions.filter(q => q.question.toLowerCase().includes(kw) || (q.category||'').toLowerCase().includes(kw));
+        }
+        if(document.getElementById('orderSelect').value === 'random') {
+            questions = [...questions].sort(() => Math.random() - 0.5);
+        }
+        return questions;
+    }
+
+    function getPageLimit() {
+        const val = document.getElementById('pageSizeSelect').value;
+        return val === 'all' ? Infinity : parseInt(val);
+    }
+
+    function updateCategorySelect(grade) {
+        const cats = new Set((gradeMap[grade] || []).map(q => q.category));
+        const select = document.getElementById('categorySelect');
+        select.innerHTML = '<option value="all">全部</option>';
+        Array.from(cats).sort().forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            select.appendChild(opt);
         });
+        select.value = 'all';
+    }
 
-        function saveMistakes() { localStorage.setItem('mistakeList', JSON.stringify(mistakeList)); }
-        function getAllCategories(grade) {
-            const qs = gradeMap[grade] || [];
-            const cats = new Set();
-            qs.forEach(q => q.category && cats.add(q.category));
-            return Array.from(cats).sort();
-        }
-        function filterQuestions(questions) {
-            let filtered = questions;
-            const cat = categorySelect.value;
-            if(cat !== 'all') filtered = filtered.filter(q => q.category === cat);
-            const diff = difficultySelect.value;
-            if(diff !== 'all') filtered = filtered.filter(q => q.difficulty === diff);
-            const ansStat = answerStatusSelect.value;
-            if(ansStat === 'has') filtered = filtered.filter(q => q.hasAnswer === true);
-            else if(ansStat === 'no') filtered = filtered.filter(q => q.hasAnswer === false);
-            if(orderSelect.value === 'random') filtered = [...filtered].sort(() => Math.random() - 0.5);
-            return filtered;
-        }
-        function getFilteredQuestions() { return filterQuestions(gradeMap[currentGrade] || []); }
-        function updateCategorySelect(grade) {
-            const cats = getAllCategories(grade);
-            categorySelect.innerHTML = '<option value="all">全部</option>';
-            cats.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c;
-                opt.textContent = c;
-                categorySelect.appendChild(opt);
-            });
-            categorySelect.value = "all";
-        }
-        function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
+    function initGradeSelect() {
+        const select = document.getElementById('gradeSelect');
+        select.innerHTML = '';
+        Object.keys(gradeMap).forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            select.appendChild(opt);
+        });
+        select.value = state.grade;
+    }
 
-        // 智能答案匹配
-        function isAnswerEqual(user, correct, questionText) {
-            let u = user.trim().replace(/\s/g, '');
-            if (Array.isArray(correct)) return correct.some(ans => isAnswerEqual(user, ans, questionText));
-            let c = (typeof correct === 'string' ? correct : String(correct)).trim().replace(/\s/g, '');
-            if (u === c) return true;
-            let numU = parseFloat(u), numC = parseFloat(c);
-            if (!isNaN(numU) && !isNaN(numC) && Math.abs(numU - numC) < 1e-6) return true;
-            let fracU = u.match(/^(\d+)\/(\d+)$/), fracC = c.match(/^(\d+)\/(\d+)$/);
-            if (fracU && fracC) {
-                let valU = parseInt(fracU[1])/parseInt(fracU[2]);
-                let valC = parseInt(fracC[1])/parseInt(fracC[2]);
-                if (Math.abs(valU - valC) < 1e-6) return true;
+    function renderTriangleGraph(containerId, config, onValidate) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        const targetSum = config.targetSum;
+        const numbers = config.numbers;
+        container.innerHTML = `
+            <canvas id="triCanvas" width="300" height="260" style="max-width:100%; height:auto; background:#f9f9f9; border-radius:16px;"></canvas>
+            <div class="graph-inputs">
+                <input type="number" id="topVal" placeholder="顶"> <input type="number" id="leftMid" placeholder="左中">
+                <input type="number" id="rightMid" placeholder="右中"> <input type="number" id="leftBottom" placeholder="左下">
+                <input type="number" id="rightBottom" placeholder="右下"> <input type="number" id="bottomMid" placeholder="底中">
+            </div>
+            <button id="checkGraphBtn" class="primary">验证</button>
+            <div id="graphFeedback" style="margin-top:8px;"></div>
+        `;
+        const canvas = document.getElementById('triCanvas');
+        const ctx = canvas.getContext('2d');
+        const inputIds = ['topVal','leftMid','rightMid','leftBottom','rightBottom','bottomMid'];
+        const inputs = inputIds.map(id => document.getElementById(id));
+        function getValues() { return inputs.map(inp => parseInt(inp.value) || 0); }
+        function drawTriangle(values) {
+            ctx.clearRect(0,0,300,260);
+            const top = {x:150, y:30}, left = {x:50, y:210}, right = {x:250, y:210};
+            const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
+            const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
+            const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
+            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
+            const drawCircle = (x,y,val) => {
+                ctx.beginPath(); ctx.arc(x,y,16,0,2*Math.PI); ctx.fillStyle='white'; ctx.fill(); ctx.stroke();
+                ctx.fillStyle='black'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val||'?', x, y);
+            };
+            drawCircle(top.x, top.y, values[0]); drawCircle(leftMid.x, leftMid.y, values[1]);
+            drawCircle(rightMid.x, rightMid.y, values[2]); drawCircle(left.x, left.y, values[3]);
+            drawCircle(right.x, right.y, values[4]); drawCircle(bottomMid.x, bottomMid.y, values[5]);
+        }
+        drawTriangle(getValues());
+        inputs.forEach(inp => inp.addEventListener('input', () => drawTriangle(getValues())));
+        document.getElementById('checkGraphBtn').addEventListener('click', () => {
+            let v = getValues();
+            let sum1 = v[0]+v[1]+v[3], sum2 = v[0]+v[2]+v[4], sum3 = v[3]+v[5]+v[4];
+            let allInRange = v.every(x => numbers.includes(x));
+            let unique = new Set(v).size === 6;
+            if(sum1 === targetSum && sum2 === targetSum && sum3 === targetSum && allInRange && unique) {
+                document.getElementById('graphFeedback').innerHTML = '<span style="color:green;">✅ 正确</span>';
+                if(onValidate) onValidate(true);
+            } else {
+                document.getElementById('graphFeedback').innerHTML = '<span style="color:red;">❌ 不正确（每边和'+targetSum+'，数字'+numbers.join(', ')+'）</span>';
+                if(onValidate) onValidate(false);
             }
-            let eqMatch = questionText.match(/□\s*\+\s*□\s*=\s*(\d+)/);
-            if (eqMatch) {
-                let target = parseInt(eqMatch[1], 10);
-                let parts = user.match(/(\d+)\s*\+\s*(\d+)/);
-                if (parts) { let a=parseInt(parts[1]), b=parseInt(parts[2]); if(a+b===target) return true; }
-                let parts2 = user.match(/(\d+)\s+(\d+)/);
-                if (parts2) { let a=parseInt(parts2[1]), b=parseInt(parts2[2]); if(a+b===target) return true; }
-                let single = parseInt(user,10);
-                if (!isNaN(single) && single*2===target) return true;
-            }
-            return false;
-        }
+        });
+    }
 
-        function addMistake(question) {
-            if(!mistakeList.some(m => m.id === question.id && m.grade === currentGrade)) {
-                mistakeList.push({
-                    id: question.id, grade: currentGrade, question: question.question,
-                    category: question.category, difficulty: question.difficulty,
-                    answer: question.answer, solution: question.solution
+    function renderContent() {
+        if (state.mode === 'practice') renderPracticeMode();
+        else if (state.mode === 'exam') renderExamMode();
+        else if (state.mode === 'print') renderPrintMode();
+        else if (state.mode === 'mistake') renderMistakeMode();
+    }
+
+    function renderPracticeMode() {
+        let questions = getFilteredQuestions(state.grade);
+        if (!questions.length) {
+            document.getElementById('contentArea').innerHTML = '<div class="question-card">⚠️ 无匹配题目</div>';
+            return;
+        }
+        const limit = getPageLimit();
+        const display = limit < questions.length ? questions.slice(0, limit) : questions;
+        state.displayQuestions = display;
+        let html = `<div style="margin-bottom:16px;"><span class="stats">📊 共 ${questions.length} 题 | 显示 ${display.length}</span></div>`;
+        display.forEach((q, idx) => {
+            q._graphConfig = q._graphConfig || parseGraphConfig(q.question);
+            const isGraph = !!q._graphConfig;
+            html += `<div class="question-card">
+                <div class="question-header">
+                    <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
+                    <span class="badge">${q.category}</span>
+                    <span class="badge">#${q.id}</span>
+                    ${!q.hasAnswer ? '<span class="badge no-answer">无答案</span>' : ''}
+                </div>
+                <div class="question-text">${escapeHtml(q.question)}</div>`;
+            if (isGraph) {
+                html += `<div id="graphContainer_${idx}" class="graph-canvas"></div>`;
+            } else {
+                html += `<div class="answer-input">
+                    <input type="text" id="ans_${idx}" placeholder="输入答案" ${!q.hasAnswer ? 'disabled' : ''}>
+                    ${q.hasAnswer ? `<button data-action="check" data-idx="${idx}">核对</button>` : ''}
+                    <button data-action="showAnswer" data-idx="${idx}" ${!q.hasAnswer ? 'disabled' : ''}>显示答案</button>
+                    <button data-action="toggleSolution" data-idx="${idx}">思路</button>
+                    <button data-action="addMistake" data-idx="${idx}">错题本</button>
+                </div>
+                <div id="feedback_${idx}" class="feedback"></div>
+                <div id="answerDisplay_${idx}" class="answer-display"></div>
+                <div id="solution_${idx}" class="solution">${escapeHtml(q.solution || '暂无')}</div>
+                ${!q.hasAnswer ? '<div class="no-answer-notice" style="margin-top:8px; color: var(--text-secondary); font-size:0.9rem;">开放题，无标准答案</div>' : ''}`;
+            }
+            html += `</div>`;
+        });
+        document.getElementById('contentArea').innerHTML = html;
+        display.forEach((q, idx) => {
+            if (q._graphConfig) {
+                renderTriangleGraph(`graphContainer_${idx}`, q._graphConfig, (correct) => {
+                    if(!correct) addMistake(q);
                 });
-                saveMistakes();
             }
-        }
+        });
+    }
 
-        // 图形题判断（三角形填数）
-        function isGraphProblem(questionText) {
-            return questionText.includes('填入○') && (questionText.includes('每条线上三个数的和') || questionText.includes('三角形'));
+    function renderExamMode() {
+        clearExamTimer();
+        let questions = getFilteredQuestions(state.grade).filter(q => q.hasAnswer && !parseGraphConfig(q.question));
+        if (questions.length === 0) {
+            document.getElementById('contentArea').innerHTML = '<div class="question-card">无有答案的非图形题</div>';
+            return;
         }
-        function renderTriangleGraph(containerId, onValidate) {
-            const container = document.getElementById(containerId);
-            if(!container) return;
-            container.innerHTML = `
-                <canvas id="triCanvas" width="300" height="260" style="max-width:100%; height:auto; background:#f9f9f9; border-radius:16px;"></canvas>
-                <div class="graph-inputs">
-                    <input type="number" id="topVal" placeholder="顶"> <input type="number" id="leftMid" placeholder="左中">
-                    <input type="number" id="rightMid" placeholder="右中"> <input type="number" id="leftBottom" placeholder="左下">
-                    <input type="number" id="rightBottom" placeholder="右下"> <input type="number" id="bottomMid" placeholder="底中">
-                </div>
-                <button id="checkGraphBtn" class="primary">验证</button>
-                <div id="graphFeedback" style="margin-top:8px;"></div>
-            `;
-            const canvas = document.getElementById('triCanvas');
-            const ctx = canvas.getContext('2d');
-            const inputIds = ['topVal','leftMid','rightMid','leftBottom','rightBottom','bottomMid'];
-            const inputs = inputIds.map(id => document.getElementById(id));
-            function getValues() { return inputs.map(inp => parseInt(inp.value) || 0); }
-            function drawTriangle(values) {
-                ctx.clearRect(0,0,300,260);
-                const top = {x:150, y:30}, left = {x:50, y:210}, right = {x:250, y:210};
-                const leftMid = {x: (top.x+left.x)/2, y: (top.y+left.y)/2 };
-                const rightMid = {x: (top.x+right.x)/2, y: (top.y+right.y)/2 };
-                const bottomMid = {x: (left.x+right.x)/2, y: (left.y+right.y)/2 };
-                ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(left.x,left.y); ctx.lineTo(right.x,right.y); ctx.closePath(); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(top.x,top.y); ctx.lineTo(bottomMid.x,bottomMid.y); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(left.x,left.y); ctx.lineTo(rightMid.x,rightMid.y); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(right.x,right.y); ctx.lineTo(leftMid.x,leftMid.y); ctx.stroke();
-                const drawCircle = (x,y,val) => {
-                    ctx.beginPath(); ctx.arc(x,y,16,0,2*Math.PI); ctx.fillStyle='white'; ctx.fill(); ctx.stroke();
-                    ctx.fillStyle='black'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(val||'?', x, y);
-                };
-                drawCircle(top.x, top.y, values[0]); drawCircle(leftMid.x, leftMid.y, values[1]);
-                drawCircle(rightMid.x, rightMid.y, values[2]); drawCircle(left.x, left.y, values[3]);
-                drawCircle(right.x, right.y, values[4]); drawCircle(bottomMid.x, bottomMid.y, values[5]);
-            }
-            drawTriangle(getValues());
-            inputs.forEach(inp => inp.addEventListener('input', () => drawTriangle(getValues())));
-            document.getElementById('checkGraphBtn').addEventListener('click', () => {
-                let v = getValues();
-                let sum1 = v[0]+v[1]+v[3], sum2 = v[0]+v[2]+v[4], sum3 = v[3]+v[5]+v[4];
-                let allInRange = v.every(x => x>=2 && x<=7);
-                if(sum1===15 && sum2===15 && sum3===15 && allInRange) {
-                    document.getElementById('graphFeedback').innerHTML = '<span style="color:green;">✅ 正确</span>';
-                    if(onValidate) onValidate(true);
-                } else {
-                    document.getElementById('graphFeedback').innerHTML = '<span style="color:red;">❌ 不正确（每边和15，数字2-7）</span>';
-                    if(onValidate) onValidate(false);
-                }
-            });
-        }
-
-        // 练习模式
-        function renderPracticeMode() {
-            let all = getFilteredQuestions();
-            if(!all.length) { contentArea.innerHTML = '<div class="question-card">⚠️ 无题目</div>'; return; }
-            let pageSize = pageSizeSelect.value;
-            let display = all;
-            let total = all.length;
-            if(pageSize !== 'all') { let limit = parseInt(pageSize); if(!isNaN(limit) && total>limit) display = all.slice(0, limit); }
-            currentQuestions = display;
-            let html = `<div style="margin-bottom:12px;"><span class="stats">📊 共 ${total} 题 | 显示 ${display.length}</span></div>`;
-            display.forEach((q, idx) => {
-                const hasAns = q.hasAnswer;
-                html += `<div class="question-card">
-                    <div class="question-header">
-                        <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
-                        <span class="badge">${q.category}</span>
-                        <span class="badge">#${q.id}</span>
-                        ${!hasAns ? '<span class="badge no-answer">无答案</span>' : ''}
-                    </div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>`;
-                if(isGraphProblem(q.question)) {
-                    html += `<div id="graphContainer_${idx}" class="graph-canvas"></div>`;
-                } else {
-                    html += `<div class="answer-input">
-                        <input type="text" id="ans_${idx}" placeholder="答案" ${!hasAns ? 'disabled' : ''}>
-                        ${hasAns ? `<button class="btn-check" data-idx="${idx}">核对</button>` : ''}
-                        <button class="btn-show-answer" data-idx="${idx}" ${!hasAns ? 'disabled' : ''}>显示答案</button>
-                        <button class="btn-show-solution" data-idx="${idx}">思路</button>
-                        <button class="btn-add-mistake" data-idx="${idx}">错题本</button>
-                    </div>
-                    <div id="feedback_${idx}" class="feedback"></div>
-                    <div id="answerDisplay_${idx}" class="answer-display"></div>
-                    <div id="solution_${idx}" class="solution">${escapeHtml(q.solution || '暂无')}</div>
-                    ${!hasAns ? '<div class="no-answer-notice">开放题，无标准答案</div>' : ''}`;
-                }
-                html += `</div>`;
-            });
-            contentArea.innerHTML = html;
-            // 绑定事件
-            for(let idx=0; idx<display.length; idx++) {
-                const q = display[idx];
-                if(isGraphProblem(q.question)) {
-                    renderTriangleGraph(`graphContainer_${idx}`, (correct) => { if(!correct) addMistake(q); });
-                    continue;
-                }
-                const btnCheck = document.querySelector(`.btn-check[data-idx="${idx}"]`);
-                if(btnCheck) {
-                    btnCheck.addEventListener('click', () => {
-                        const inp = document.getElementById(`ans_${idx}`), user = inp.value.trim(), fb = document.getElementById(`feedback_${idx}`);
-                        if(!user) { fb.innerHTML = "❓ 输入答案"; return; }
-                        if(isAnswerEqual(user, q.answer, q.question)) {
-                            fb.innerHTML = "✅ 正确！"; fb.style.color = "green";
-                        } else {
-                            fb.innerHTML = `❌ 错误，正确答案：${q.answer}`; fb.style.color = "red";
-                            addMistake(q);
-                        }
-                    });
-                }
-                const btnAns = document.querySelector(`.btn-show-answer[data-idx="${idx}"]`);
-                if(btnAns) {
-                    btnAns.addEventListener('click', () => {
-                        let div = document.getElementById(`answerDisplay_${idx}`);
-                        div.innerHTML = `📖 正确答案：${escapeHtml(q.answer)}`;
-                        div.style.display = 'block';
-                        setTimeout(() => div.style.display = 'none', 3000);
-                    });
-                }
-                const btnSol = document.querySelector(`.btn-show-solution[data-idx="${idx}"]`);
-                if(btnSol) {
-                    btnSol.addEventListener('click', () => {
-                        let sol = document.getElementById(`solution_${idx}`);
-                        if(sol.style.display === 'none' || !sol.style.display) {
-                            sol.style.display = 'block';
-                            btnSol.textContent = '隐藏思路';
-                        } else {
-                            sol.style.display = 'none';
-                            btnSol.textContent = '思路';
-                        }
-                    });
-                }
-                const btnMis = document.querySelector(`.btn-add-mistake[data-idx="${idx}"]`);
-                if(btnMis) btnMis.addEventListener('click', () => { addMistake(q); alert('已加入错题本'); });
-                const solDiv = document.getElementById(`solution_${idx}`);
-                if(solDiv) solDiv.style.display = 'none';
-                const ansDiv = document.getElementById(`answerDisplay_${idx}`);
-                if(ansDiv) ansDiv.style.display = 'none';
-            }
-        }
-
-        // 考试模式
-        function renderExamMode() {
-            if(examTimer) clearInterval(examTimer);
-            let all = getFilteredQuestions().filter(q => q.hasAnswer && !isGraphProblem(q.question));
-            if(all.length === 0) { contentArea.innerHTML = '<div class="question-card">无有答案的非图形题</div>'; return; }
-            let examCount = Math.min(15, all.length);
-            let shuffled = [...all];
-            for(let i=shuffled.length-1;i>0;i--){ let j=Math.floor(Math.random()*(i+1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
-            let examQuestions = shuffled.slice(0, examCount);
-            currentQuestions = examQuestions;
-            userAnswers = new Array(examCount).fill("");
-            examTimeLeft = 1800;
-            let timerDiv = document.createElement('div');
-            timerDiv.id = 'examTimerDisplay';
-            timerDiv.style.margin = '8px 0';
-            timerDiv.style.fontWeight = 'bold';
-            let html = `<div class="exam-panel">
-                <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                    <h3>📋 模拟考试 (${examCount}题)</h3>
-                    <div><button id="submitExamBtn" class="primary">提交</button><button id="resetExamBtn" class="warning">重抽</button></div>
-                </div>
-                <div id="examResult"></div>
+        const examCount = Math.min(15, questions.length);
+        const shuffled = [...questions].sort(() => Math.random() - 0.5);
+        const examQuestions = shuffled.slice(0, examCount);
+        state.displayQuestions = examQuestions;
+        state.userAnswers = new Array(examCount).fill('');
+        state.examTimeLeft = 1800;
+        let html = `<div class="exam-panel">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <h3>📋 模拟考试 (${examCount}题)</h3>
+                <div><button id="submitExamBtn" class="primary">提交</button><button id="resetExamBtn" class="warning">重抽</button></div>
+            </div>
+            <div id="examTimerDisplay" style="margin:12px 0; font-weight:bold; color:green; font-size:1.1rem;"></div>
+            <div id="examResult"></div>
+        </div>`;
+        examQuestions.forEach((q, idx) => {
+            html += `<div class="question-card">
+                <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span><span class="badge">#${q.id}</span></div>
+                <div class="question-text">${escapeHtml(q.question)}</div>
+                <div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="输入答案" data-examidx="${idx}"></div>
+                <div id="examSolution_${idx}" class="solution" style="display:none;">💡 ${escapeHtml(q.solution)}</div>
             </div>`;
-            examQuestions.forEach((q, idx) => {
-                html += `<div class="question-card">
-                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span><span class="badge">#${q.id}</span></div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>
-                    <div class="answer-input"><input type="text" id="examAns_${idx}" placeholder="答案"></div>
-                    <div id="examSolution_${idx}" class="solution" style="display:none;">💡 ${escapeHtml(q.solution)}</div>
-                </div>`;
+        });
+        document.getElementById('contentArea').innerHTML = html;
+        function updateTimer() {
+            const mins = Math.floor(state.examTimeLeft/60), secs = state.examTimeLeft%60;
+            const display = document.getElementById('examTimerDisplay');
+            if (display) {
+                display.innerText = `⏱️ ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                if (state.examTimeLeft <= 300) display.style.color = 'orange';
+                if (state.examTimeLeft <= 60) display.style.color = 'red';
+            }
+            if (state.examTimeLeft <= 0) {
+                clearExamTimer();
+                alert('时间到！');
+                document.getElementById('submitExamBtn')?.click();
+            }
+        }
+        updateTimer();
+        state.examTimer = setInterval(() => {
+            if (state.examTimeLeft > 0) { state.examTimeLeft--; updateTimer(); }
+            else clearExamTimer();
+        }, 1000);
+        for (let i=0; i<examQuestions.length; i++) {
+            const inp = document.getElementById(`examAns_${i}`);
+            if (inp) {
+                inp.addEventListener('input', e => { state.userAnswers[i] = e.target.value; });
+                inp.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') document.getElementById('submitExamBtn')?.click();
+                });
+            }
+        }
+        document.getElementById('submitExamBtn')?.addEventListener('click', () => {
+            clearExamTimer();
+            let correct=0, details='';
+            examQuestions.forEach((q, i) => {
+                const u = state.userAnswers[i] || '';
+                const ok = isAnswerEqual(u, q.answer, q.question);
+                if (ok) correct++;
+                details += `<div>题号 ${q.id}：你的答案“${escapeHtml(u) || '空'}” 正确答案“${q.answer}” ${ok?'✅':'❌'}</div>`;
+                if (!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
             });
-            contentArea.innerHTML = html;
-            contentArea.insertBefore(timerDiv, contentArea.firstChild);
-            function updateTimer() {
-                let mins = Math.floor(examTimeLeft/60), secs = examTimeLeft%60;
-                timerDiv.innerText = `⏱️ ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                if(examTimeLeft <= 0) { clearInterval(examTimer); alert('时间到！'); document.getElementById('submitExamBtn')?.click(); }
-            }
-            updateTimer();
-            examTimer = setInterval(() => { if(examTimeLeft>0) { examTimeLeft--; updateTimer(); } else clearInterval(examTimer); }, 1000);
-            for(let i=0;i<examQuestions.length;i++) {
-                document.getElementById(`examAns_${i}`).addEventListener('input', e => userAnswers[i] = e.target.value);
-            }
-            document.getElementById('submitExamBtn').addEventListener('click', () => {
-                clearInterval(examTimer);
-                let correct=0, details='';
-                for(let i=0;i<examQuestions.length;i++) {
-                    let u = userAnswers[i] || '', c = examQuestions[i].answer;
-                    let ok = isAnswerEqual(u, c, examQuestions[i].question);
-                    if(ok) correct++;
-                    details += `<div>题号 ${examQuestions[i].id}：你的答案“${u || '空'}” 正确答案“${c}” ${ok?'✅':'❌'}</div>`;
-                    if(!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
-                }
-                document.getElementById('examResult').innerHTML = `<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`;
+            const resultDiv = document.getElementById('examResult');
+            if (resultDiv) {
+                resultDiv.innerHTML = `<h4>成绩：${correct}/${examQuestions.length} (${Math.round(correct/examQuestions.length*100)}分)</h4>${details}<button id="showAllExamSolutions">显示所有思路</button>`;
                 document.getElementById('showAllExamSolutions')?.addEventListener('click', () => {
-                    for(let i=0;i<examQuestions.length;i++) document.getElementById(`examSolution_${i}`).style.display = 'block';
-                });
-            });
-            document.getElementById('resetExamBtn').addEventListener('click', () => { if(examTimer) clearInterval(examTimer); renderExamMode(); });
-        }
-
-        // 错题本
-        function renderMistakeMode() {
-            if(mistakeList.length === 0) { contentArea.innerHTML = '<div class="question-card">暂无错题</div>'; return; }
-            let html = `<div style="margin-bottom:12px;"><span class="stats">❌ 错题本 (${mistakeList.length}题)</span><button id="clearMistakesBtn" style="margin-left:12px;">清空</button></div>`;
-            mistakeList.forEach((q, idx) => {
-                html += `<div class="question-card">
-                    <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span><span class="badge">#${q.id}</span></div>
-                    <div class="question-text">${escapeHtml(q.question)}</div>
-                    <div class="answer-input">
-                        <button class="btn-show-answer-mistake" data-idx="${idx}">答案</button>
-                        <button class="btn-show-solution-mistake" data-idx="${idx}">思路</button>
-                        <button class="btn-remove-mistake" data-idx="${idx}">移除</button>
-                    </div>
-                    <div id="mistakeAnswer_${idx}" class="answer-display"></div>
-                    <div id="mistakeSolution_${idx}" class="solution">${escapeHtml(q.solution||'暂无')}</div>
-                </div>`;
-            });
-            contentArea.innerHTML = html;
-            for(let i=0;i<mistakeList.length;i++) {
-                let q = mistakeList[i];
-                document.querySelector(`.btn-show-answer-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
-                    let div = document.getElementById(`mistakeAnswer_${i}`);
-                    div.innerHTML = `📖 答案：${escapeHtml(q.answer)}`;
-                    div.style.display = 'block';
-                    setTimeout(() => div.style.display = 'none', 3000);
-                });
-                document.querySelector(`.btn-show-solution-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
-                    let sol = document.getElementById(`mistakeSolution_${i}`);
-                    sol.style.display = sol.style.display === 'none' ? 'block' : 'none';
-                });
-                document.querySelector(`.btn-remove-mistake[data-idx="${i}"]`)?.addEventListener('click', () => {
-                    mistakeList.splice(i,1);
-                    saveMistakes();
-                    renderMistakeMode();
+                    for (let i=0; i<examQuestions.length; i++) document.getElementById(`examSolution_${i}`).style.display = 'block';
                 });
             }
-            document.getElementById('clearMistakesBtn')?.addEventListener('click', () => { if(confirm('清空所有错题？')){ mistakeList=[]; saveMistakes(); renderMistakeMode(); } });
-        }
+        });
+        document.getElementById('resetExamBtn')?.addEventListener('click', () => renderExamMode());
+    }
 
-        // 打印试卷
-        function renderPrintPaperMode() {
-            let questions = getFilteredQuestions();
-            if(questions.length === 0) { contentArea.innerHTML = '<div class="question-card">无题目</div>'; return; }
-            let count = parseInt(prompt(`共 ${questions.length} 题，打印数量（最多50）`, Math.min(20, questions.length)));
-            if(isNaN(count) || count<1) count = 20;
-            count = Math.min(count, 50, questions.length);
-            let printQ = questions.slice(0, count);
-            let html = `<div class="print-preview">
-                <div style="text-align:center;"><h2>数学练习卷</h2><p>年级：${currentGrade} | 知识点：${categorySelect.options[categorySelect.selectedIndex]?.text||'全部'} | 题数：${count}</p><p>姓名：__________ 日期：__________</p></div>`;
-            printQ.forEach((q, idx) => {
-                html += `<div class="question-card">
-                    <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span><span>#${q.id}</span></div>
-                    <div class="question-text" style="white-space:pre-wrap;">${escapeHtml(q.question)}</div>
-                    <div style="margin:8px 0;"><u>答：_________________________________</u></div>
-                </div>`;
-            });
-            html += `<div style="text-align:center;"><button class="primary do-print">🖨️ 打印</button></div></div>`;
-            contentArea.innerHTML = html;
-            document.querySelector('.do-print')?.addEventListener('click', () => window.print());
+    function clearExamTimer() {
+        if (state.examTimer) {
+            clearInterval(state.examTimer);
+            state.examTimer = null;
         }
+    }
 
-        function refreshView() {
-            if(currentMode === 'practice') renderPracticeMode();
-            else if(currentMode === 'exam') renderExamMode();
-            else if(currentMode === 'print') renderPrintPaperMode();
-            else if(currentMode === 'mistake') renderMistakeMode();
+    function renderMistakeMode() {
+        const mistakeQuestions = getMistakeQuestions();
+        if (!mistakeQuestions.length) {
+            document.getElementById('contentArea').innerHTML = '<div class="question-card">暂无错题</div>';
+            return;
         }
-        function onGradeChange() { currentGrade = gradeSelect.value; updateCategorySelect(currentGrade); categorySelect.value = "all"; refreshView(); }
-        function onFilterChange() { if(currentMode !== 'mistake') refreshView(); }
-        function onPageSizeChange() { if(currentMode === 'practice') refreshView(); }
-        function setMode(mode) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            if(mode === 'practice') modePractice.classList.add('active');
-            if(mode === 'exam') modeExam.classList.add('active');
-            if(mode === 'print') modePrintPaper.classList.add('active');
-            if(mode === 'mistake') modeMistake.classList.add('active');
-            refreshView();
+        state.displayQuestions = mistakeQuestions;
+        let html = `<div style="margin-bottom:16px;">
+            <span class="stats">❌ 错题本 (${mistakeQuestions.length}题)</span>
+            <div class="mistake-actions" style="display:inline-flex; gap:8px; margin-left:12px;">
+                <button id="clearMistakesBtn">清空</button>
+                <button id="exportMistakesBtn">导出</button>
+                <button id="importMistakesBtn">导入</button>
+            </div>
+        </div>`;
+        mistakeQuestions.forEach((q, idx) => {
+            html += `<div class="question-card">
+                <div class="question-header"><span class="badge difficulty-${q.difficulty}">${q.difficulty}</span><span class="badge">${q.category}</span><span class="badge">#${q.id}</span></div>
+                <div class="question-text">${escapeHtml(q.question)}</div>
+                <div class="answer-input">
+                    <button data-action="showMistakeAnswer" data-idx="${idx}">答案</button>
+                    <button data-action="toggleMistakeSolution" data-idx="${idx}">思路</button>
+                    <button data-action="removeMistake" data-idx="${idx}">移除</button>
+                </div>
+                <div id="mistakeAnswer_${idx}" class="answer-display"></div>
+                <div id="mistakeSolution_${idx}" class="solution">${escapeHtml(q.solution||'暂无')}</div>
+            </div>`;
+        });
+        document.getElementById('contentArea').innerHTML = html;
+        document.getElementById('clearMistakesBtn')?.addEventListener('click', () => {
+            if(confirm('清空所有错题？')) { state.mistakeList = []; saveMistakes(); renderMistakeMode(); }
+        });
+        document.getElementById('exportMistakesBtn')?.addEventListener('click', () => {
+            const blob = new Blob([JSON.stringify(state.mistakeList, null, 2)], {type: 'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = '错题本.json';
+            a.click();
+        });
+        document.getElementById('importMistakesBtn')?.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const imported = JSON.parse(ev.target.result);
+                        if (!Array.isArray(imported)) throw new Error('格式错误');
+                        state.mistakeList = imported;
+                        saveMistakes();
+                        renderMistakeMode();
+                    } catch(err) {
+                        alert('导入失败，文件格式不正确');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        });
+    }
+
+    function renderPrintMode() {
+        const questions = getFilteredQuestions(state.grade);
+        if (!questions.length) {
+            document.getElementById('contentArea').innerHTML = '<div class="question-card">无题目</div>';
+            return;
         }
-        function initGradeSelect() {
-            const grades = Object.keys(gradeMap);
-            gradeSelect.innerHTML = '';
-            grades.forEach(g => { let opt = document.createElement('option'); opt.value = g; opt.textContent = g; gradeSelect.appendChild(opt); });
-            gradeSelect.value = currentGrade;
+        const limit = getPageLimit();
+        const printQuestions = limit < questions.length ? questions.slice(0, Math.min(limit, 50)) : questions.slice(0, 50);
+        let html = `<div class="print-preview">
+            <div style="text-align:center;"><h2>数学练习卷</h2><p>年级：${state.grade} | 知识点：${document.getElementById('categorySelect').options[document.getElementById('categorySelect').selectedIndex]?.text||'全部'} | 题数：${printQuestions.length}</p><p>姓名：__________ 日期：__________</p></div>`;
+        printQuestions.forEach((q, idx) => {
+            html += `<div class="question-card">
+                <div class="question-header"><span>${idx+1}. 【${q.difficulty}】</span><span>${q.category}</span><span>#${q.id}</span></div>
+                <div class="question-text">${escapeHtml(q.question)}</div>
+                <div style="margin:12px 0;"><u>答：_________________________________</u></div>
+            </div>`;
+        });
+        html += `<div style="text-align:center;"><button class="primary do-print">🖨️ 打印</button></div></div>`;
+        document.getElementById('contentArea').innerHTML = html;
+        document.querySelector('.do-print')?.addEventListener('click', () => window.print());
+    }
+
+    // 统一事件委托
+    document.getElementById('contentArea').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const idx = parseInt(btn.dataset.idx);
+        if (isNaN(idx)) return;
+        if (state.mode === 'mistake') {
+            const q = state.displayQuestions[idx];
+            if (!q) return;
+            if (action === 'showMistakeAnswer') {
+                const div = document.getElementById(`mistakeAnswer_${idx}`);
+                if (div) { div.innerHTML = `📖 答案：${escapeHtml(q.answer)}`; div.style.display = 'block'; setTimeout(() => div.style.display = 'none', 3000); }
+            } else if (action === 'toggleMistakeSolution') {
+                const sol = document.getElementById(`mistakeSolution_${idx}`);
+                if (sol) sol.style.display = sol.style.display === 'none' ? 'block' : 'none';
+            } else if (action === 'removeMistake') {
+                removeMistake(q.mistakeGrade, q.id);
+                renderMistakeMode();
+            }
+            return;
         }
-        function init() {
-            initGradeSelect();
-            updateCategorySelect(currentGrade);
-            gradeSelect.addEventListener('change', onGradeChange);
-            categorySelect.addEventListener('change', onFilterChange);
-            answerStatusSelect.addEventListener('change', onFilterChange);
-            difficultySelect.addEventListener('change', onFilterChange);
-            pageSizeSelect.addEventListener('change', onPageSizeChange);
-            orderSelect.addEventListener('change', onFilterChange);
-            modePractice.addEventListener('click', () => setMode('practice'));
-            modeExam.addEventListener('click', () => setMode('exam'));
-            modePrintPaper.addEventListener('click', () => setMode('print'));
-            modeMistake.addEventListener('click', () => setMode('mistake'));
-            setMode('practice');
+        const q = state.displayQuestions[idx];
+        if (!q) return;
+        if (action === 'check') {
+            const inp = document.getElementById(`ans_${idx}`);
+            const fb = document.getElementById(`feedback_${idx}`);
+            if (!inp || !fb) return;
+            const user = inp.value.trim();
+            if (!user) { fb.innerHTML = '❓ 输入答案'; return; }
+            if (isAnswerEqual(user, q.answer, q.question)) {
+                fb.innerHTML = '✅ 正确！'; fb.style.color = 'green';
+            } else {
+                fb.innerHTML = `❌ 错误，正确答案：${q.answer}`; fb.style.color = 'red';
+                addMistake(q);
+            }
+        } else if (action === 'showAnswer') {
+            const div = document.getElementById(`answerDisplay_${idx}`);
+            if (div) { div.innerHTML = `📖 正确答案：${escapeHtml(q.answer)}`; div.style.display = 'block'; setTimeout(() => div.style.display = 'none', 3000); }
+        } else if (action === 'toggleSolution') {
+            const sol = document.getElementById(`solution_${idx}`);
+            if (sol) {
+                const isHidden = sol.style.display === 'none' || !sol.style.display;
+                sol.style.display = isHidden ? 'block' : 'none';
+                btn.textContent = isHidden ? '隐藏思路' : '思路';
+            }
+        } else if (action === 'addMistake') {
+            addMistake(q);
+            alert('已加入错题本');
         }
-        init();
-    })();
+    });
+
+    // 回车键快速核对
+    document.getElementById('contentArea').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && state.mode === 'practice') {
+            const input = e.target.closest('input[id^="ans_"]');
+            if (input) {
+                const idx = parseInt(input.id.split('_')[1]);
+                const btn = document.querySelector(`button[data-action="check"][data-idx="${idx}"]`);
+                if (btn) btn.click();
+            }
+        }
+    });
+
+    function setMode(mode) {
+        clearExamTimer();
+        state.mode = mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`mode${mode.charAt(0).toUpperCase()+mode.slice(1)}`).classList.add('active');
+        renderContent();
+    }
+
+    let searchTimeout;
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            state.searchKeyword = e.target.value.trim();
+            if (state.mode !== 'mistake') renderContent();
+        }, 300);
+    });
+
+    document.getElementById('gradeSelect').addEventListener('change', (e) => {
+        state.grade = e.target.value;
+        updateCategorySelect(state.grade);
+        document.getElementById('categorySelect').value = 'all';
+        renderContent();
+    });
+    ['categorySelect','difficultySelect','answerStatusSelect','orderSelect'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            if (state.mode !== 'mistake') renderContent();
+        });
+    });
+    document.getElementById('pageSizeSelect').addEventListener('change', () => {
+        if (state.mode === 'practice' || state.mode === 'print') renderContent();
+    });
+
+    document.getElementById('modePractice').addEventListener('click', () => setMode('practice'));
+    document.getElementById('modeExam').addEventListener('click', () => setMode('exam'));
+    document.getElementById('modePrintPaper').addEventListener('click', () => setMode('print'));
+    document.getElementById('modeMistake').addEventListener('click', () => setMode('mistake'));
+
+    const eyeCareBtn = document.getElementById('eyeCareBtn');
+    if (localStorage.getItem('eyeCare') === 'true') document.body.classList.add('eye-care');
+    eyeCareBtn.addEventListener('click', () => {
+        document.body.classList.toggle('eye-care');
+        localStorage.setItem('eyeCare', document.body.classList.contains('eye-care'));
+    });
+
+    initGradeSelect();
+    updateCategorySelect(state.grade);
+    setMode('practice');
+})();
 </script>
 </body>
 </html>
