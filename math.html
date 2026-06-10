@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>小学数学练习系统 | 护眼模式 + 错题本</title>
+    <title>小学数学练习系统 | 护眼 + 错题本 + 自动掌握</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -23,8 +23,7 @@
         body {
             font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, sans-serif;
             background: var(--bg-body); margin: 0; padding: 12px; color: var(--text-primary);
-            transition: background 0.2s, color 0.2s;
-            font-size: 16px;
+            transition: background 0.2s, color 0.2s; font-size: 16px;
         }
         .container {
             max-width: 1300px; margin: 0 auto; background: var(--bg-container); border-radius: 32px;
@@ -58,13 +57,14 @@
             font-size: 0.8rem; gap: 8px; margin-bottom: 12px;
         }
         .badge {
-            background: var(--badge-base); padding: 3px 12px; border-radius: 20px;
-            font-size: 0.75rem; font-weight: 500;
+            background: var(--badge-base); padding: 3px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 500;
         }
         .badge.difficulty-基础 { background: var(--success-bg); color: var(--success-text); }
         .badge.difficulty-提高 { background: var(--warning-bg); color: var(--warning-text); }
         .badge.difficulty-挑战 { background: var(--error-bg); color: var(--error-text); }
         .badge.no-answer { background: var(--badge-base); font-style: italic; }
+        .badge.mastered-badge { background: #c7d2fe; color: #312e81; }
+        body.eye-care .badge.mastered-badge { background: #d4c8a0; color: #3a3318; }
         .question-text {
             font-size: 1.25rem; line-height: 1.6; margin: 12px 0; font-weight: 600;
             white-space: pre-wrap; word-break: break-word; letter-spacing: 0.02em;
@@ -76,9 +76,10 @@
         }
         button[data-action] {
             background: var(--btn-bg); border: 0.5px solid var(--btn-border);
-            padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; cursor: pointer;
-            font-weight: 500;
+            padding: 6px 16px; border-radius: 30px; font-size: 0.8rem; cursor: pointer; font-weight: 500;
         }
+        button.mastered-btn { background: #c7d2fe; color: #312e81; border-color: #a5b4fc; }
+        body.eye-care button.mastered-btn { background: #d4c8a0; color: #3a3318; border-color: #b8a87b; }
         .solution, .answer-display {
             background: var(--bg-body); padding: 14px 18px; border-radius: 18px; margin-top: 12px;
             display: none; font-size: 0.95rem; border-left: 4px solid #3b82f6;
@@ -121,6 +122,7 @@
         <div class="filter-group"><label>📖</label><select id="gradeSelect"></select></div>
         <div class="filter-group"><label>🏷️</label><select id="categorySelect"></select></div>
         <div class="filter-group"><label>⭐</label><select id="difficultySelect"><option value="all">全部</option><option value="基础">基础</option><option value="提高">提高</option><option value="挑战">挑战</option></select></div>
+        <div class="filter-group"><label>🎓</label><select id="masteredSelect"><option value="all">全部</option><option value="unmastered" selected>未掌握</option><option value="mastered">已掌握</option></select></div>
         <div class="filter-group"><label>📝</label><select id="answerStatusSelect"><option value="all">全部</option><option value="has">有答案</option><option value="no">无答案</option></select></div>
         <div class="filter-group">
             <label>📄</label><select id="pageSizeSelect"><option value="10">10</option><option value="20" selected>20</option><option value="50">50</option><option value="all">全部</option></select>
@@ -137,7 +139,7 @@
     <div class="footer no-print">✅ 智能匹配 · 错题本 · 护眼模式 · 模拟考试计时</div>
 </div>
 
-<!-- 题库文件，请保持路径 tikujs/xxx.js -->
+<!-- 题库文件，请保持 tikujs 文件夹路径 -->
 <script src="tikujs/kindergarten.js"></script>
 <script src="tikujs/grade1.js"></script>
 <script src="tikujs/grade2.js"></script>
@@ -155,7 +157,8 @@
         examTimeLeft: 1800,
         userAnswers: [],
         displayQuestions: [],
-        mistakeList: []
+        mistakeList: [],
+        masteredList: []
     };
 
     const gradeMap = {
@@ -168,14 +171,12 @@
         "六年级": window.grade6 || []
     };
 
-    try {
-        state.mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]');
-    } catch(e) {
-        state.mistakeList = [];
-        localStorage.removeItem('mistakeList');
-    }
+    // 安全加载
+    try { state.mistakeList = JSON.parse(localStorage.getItem('mistakeList') || '[]'); } catch(e) { state.mistakeList = []; localStorage.removeItem('mistakeList'); }
+    try { state.masteredList = JSON.parse(localStorage.getItem('masteredList') || '[]'); } catch(e) { state.masteredList = []; localStorage.removeItem('masteredList'); }
 
     function saveMistakes() { localStorage.setItem('mistakeList', JSON.stringify(state.mistakeList)); }
+    function saveMastered() { localStorage.setItem('masteredList', JSON.stringify(state.masteredList)); }
 
     const escapeHtml = (str) => {
         if (!str) return '';
@@ -195,9 +196,7 @@
             if (start <= end) for (let i=start; i<=end; i++) numbers.push(i);
         } else {
             const listMatch = questionText.match(/[2-9]+(?:\s*[,，、]\s*[2-9]+)+/);
-            if (listMatch) {
-                numbers = listMatch[0].split(/[,，、]/).map(s => parseInt(s.trim()));
-            }
+            if (listMatch) numbers = listMatch[0].split(/[,，、]/).map(s => parseInt(s.trim()));
         }
         if (numbers.length !== 6) numbers = [2,3,4,5,6,7];
         return { type: 'triangle', targetSum, numbers };
@@ -235,18 +234,30 @@
             saveMistakes();
         }
     }
-
     function removeMistake(grade, id) {
         state.mistakeList = state.mistakeList.filter(m => !(m.grade === grade && m.id === id));
         saveMistakes();
     }
-
     function getMistakeQuestions() {
         return state.mistakeList.map(m => {
             const pool = gradeMap[m.grade] || [];
             const q = pool.find(item => item.id === m.id);
             return q ? { ...q, grade: m.grade, mistakeGrade: m.grade } : null;
         }).filter(Boolean);
+    }
+
+    function isMastered(grade, id) {
+        return state.masteredList.some(m => m.grade === grade && m.id === id);
+    }
+    function toggleMastered(question) {
+        const idx = state.masteredList.findIndex(m => m.grade === state.grade && m.id === question.id);
+        if (idx !== -1) {
+            state.masteredList.splice(idx, 1);
+        } else {
+            state.masteredList.push({ grade: state.grade, id: question.id });
+            removeMistake(state.grade, question.id); // 掌握后移除错题
+        }
+        saveMastered();
     }
 
     function getFilteredQuestions(grade) {
@@ -258,6 +269,12 @@
         const ansStat = document.getElementById('answerStatusSelect').value;
         if(ansStat === 'has') questions = questions.filter(q => q.hasAnswer === true);
         else if(ansStat === 'no') questions = questions.filter(q => q.hasAnswer === false);
+        const masteredVal = document.getElementById('masteredSelect').value;
+        if (masteredVal === 'unmastered') {
+            questions = questions.filter(q => !isMastered(grade, q.id));
+        } else if (masteredVal === 'mastered') {
+            questions = questions.filter(q => isMastered(grade, q.id));
+        }
         if(document.getElementById('orderSelect').value === 'random') {
             questions = [...questions].sort(() => Math.random() - 0.5);
         }
@@ -275,8 +292,7 @@
         select.innerHTML = '<option value="all">全部</option>';
         Array.from(cats).sort().forEach(c => {
             const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
+            opt.value = c; opt.textContent = c;
             select.appendChild(opt);
         });
         select.value = 'all';
@@ -287,8 +303,7 @@
         select.innerHTML = '';
         Object.keys(gradeMap).forEach(g => {
             const opt = document.createElement('option');
-            opt.value = g;
-            opt.textContent = g;
+            opt.value = g; opt.textContent = g;
             select.appendChild(opt);
         });
         select.value = state.grade;
@@ -369,12 +384,14 @@
         display.forEach((q, idx) => {
             q._graphConfig = q._graphConfig || parseGraphConfig(q.question);
             const isGraph = !!q._graphConfig;
+            const mastered = isMastered(state.grade, q.id);
             html += `<div class="question-card">
                 <div class="question-header">
                     <span class="badge difficulty-${q.difficulty}">${q.difficulty}</span>
                     <span class="badge">${q.category}</span>
                     <span class="badge">#${q.id}</span>
                     ${!q.hasAnswer ? '<span class="badge no-answer">无答案</span>' : ''}
+                    ${mastered ? '<span class="badge mastered-badge">✅ 已掌握</span>' : ''}
                 </div>
                 <div class="question-text">${escapeHtml(q.question)}</div>`;
             if (isGraph) {
@@ -386,6 +403,7 @@
                     <button data-action="showAnswer" data-idx="${idx}" ${!q.hasAnswer ? 'disabled' : ''}>显示答案</button>
                     <button data-action="toggleSolution" data-idx="${idx}">思路</button>
                     <button data-action="addMistake" data-idx="${idx}">错题本</button>
+                    <button data-action="toggleMastered" data-idx="${idx}" class="${mastered ? 'mastered-btn' : ''}">${mastered ? '✅ 已掌握' : '标记掌握'}</button>
                 </div>
                 <div id="feedback_${idx}" class="feedback"></div>
                 <div id="answerDisplay_${idx}" class="answer-display"></div>
@@ -468,7 +486,10 @@
             examQuestions.forEach((q, i) => {
                 const u = state.userAnswers[i] || '';
                 const ok = isAnswerEqual(u, q.answer, q.question);
-                if (ok) correct++;
+                if (ok) {
+                    correct++;
+                    toggleMastered(q); // 答对自动掌握
+                }
                 details += `<div>题号 ${q.id}：你的答案“${escapeHtml(u) || '空'}” 正确答案“${q.answer}” ${ok?'✅':'❌'}</div>`;
                 if (!ok) document.getElementById(`examSolution_${i}`).style.display = 'block';
             });
@@ -524,29 +545,19 @@
         });
         document.getElementById('exportMistakesBtn')?.addEventListener('click', () => {
             const blob = new Blob([JSON.stringify(state.mistakeList, null, 2)], {type: 'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = '错题本.json';
-            a.click();
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '错题本.json'; a.click();
         });
         document.getElementById('importMistakesBtn')?.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
+            const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
             input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+                const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     try {
                         const imported = JSON.parse(ev.target.result);
                         if (!Array.isArray(imported)) throw new Error('格式错误');
-                        state.mistakeList = imported;
-                        saveMistakes();
-                        renderMistakeMode();
-                    } catch(err) {
-                        alert('导入失败，文件格式不正确');
-                    }
+                        state.mistakeList = imported; saveMistakes(); renderMistakeMode();
+                    } catch(err) { alert('导入失败，文件格式不正确'); }
                 };
                 reader.readAsText(file);
             };
@@ -576,13 +587,14 @@
         document.querySelector('.do-print')?.addEventListener('click', () => window.print());
     }
 
-    // 统一事件委托
+    // 事件委托
     document.getElementById('contentArea').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-action]');
         if (!btn) return;
         const action = btn.dataset.action;
         const idx = parseInt(btn.dataset.idx);
         if (isNaN(idx)) return;
+
         if (state.mode === 'mistake') {
             const q = state.displayQuestions[idx];
             if (!q) return;
@@ -593,21 +605,25 @@
                 const sol = document.getElementById(`mistakeSolution_${idx}`);
                 if (sol) sol.style.display = sol.style.display === 'none' ? 'block' : 'none';
             } else if (action === 'removeMistake') {
-                removeMistake(q.mistakeGrade, q.id);
-                renderMistakeMode();
+                removeMistake(q.mistakeGrade, q.id); renderMistakeMode();
             }
             return;
         }
+
         const q = state.displayQuestions[idx];
         if (!q) return;
+
         if (action === 'check') {
-            const inp = document.getElementById(`ans_${idx}`);
-            const fb = document.getElementById(`feedback_${idx}`);
+            const inp = document.getElementById(`ans_${idx}`), fb = document.getElementById(`feedback_${idx}`);
             if (!inp || !fb) return;
             const user = inp.value.trim();
             if (!user) { fb.innerHTML = '❓ 输入答案'; return; }
             if (isAnswerEqual(user, q.answer, q.question)) {
                 fb.innerHTML = '✅ 正确！'; fb.style.color = 'green';
+                // 答对自动掌握
+                toggleMastered(q);
+                const masterBtn = document.querySelector(`button[data-action="toggleMastered"][data-idx="${idx}"]`);
+                if (masterBtn) { masterBtn.textContent = '✅ 已掌握'; masterBtn.classList.add('mastered-btn'); }
             } else {
                 fb.innerHTML = `❌ 错误，正确答案：${q.answer}`; fb.style.color = 'red';
                 addMistake(q);
@@ -623,8 +639,12 @@
                 btn.textContent = isHidden ? '隐藏思路' : '思路';
             }
         } else if (action === 'addMistake') {
-            addMistake(q);
-            alert('已加入错题本');
+            addMistake(q); alert('已加入错题本');
+        } else if (action === 'toggleMastered') {
+            toggleMastered(q);
+            const nowMastered = isMastered(state.grade, q.id);
+            btn.textContent = nowMastered ? '✅ 已掌握' : '标记掌握';
+            if (nowMastered) btn.classList.add('mastered-btn'); else btn.classList.remove('mastered-btn');
         }
     });
 
@@ -648,15 +668,11 @@
     }
 
     document.getElementById('gradeSelect').addEventListener('change', (e) => {
-        state.grade = e.target.value;
-        updateCategorySelect(state.grade);
-        document.getElementById('categorySelect').value = 'all';
-        renderContent();
+        state.grade = e.target.value; updateCategorySelect(state.grade);
+        document.getElementById('categorySelect').value = 'all'; renderContent();
     });
-    ['categorySelect','difficultySelect','answerStatusSelect','orderSelect'].forEach(id => {
-        document.getElementById(id).addEventListener('change', () => {
-            if (state.mode !== 'mistake') renderContent();
-        });
+    ['categorySelect','difficultySelect','answerStatusSelect','orderSelect','masteredSelect'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => { if (state.mode !== 'mistake') renderContent(); });
     });
     document.getElementById('pageSizeSelect').addEventListener('change', () => {
         if (state.mode === 'practice' || state.mode === 'print') renderContent();
