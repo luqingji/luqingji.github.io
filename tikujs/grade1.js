@@ -1348,7 +1348,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小明带了15元去超市，买了1个文具盒用了6元，还剩多少元？",
-    "answer": "15 - 6 = 9（元）",
+    "answer": "9",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1357,7 +1357,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "一共有14个小朋友在玩捉迷藏，已经找到了6个，还有几个没找到？",
-    "answer": "14 - 6 = 8（个）",
+    "answer": "7",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1366,7 +1366,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小明看一本书，第一天看了8页，第二天看了5页，两天一共看了多少页？",
-    "answer": "8 + 5 = 13（页）",
+    "answer": "13",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1375,7 +1375,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "水果店运来18箱苹果，上午卖了7箱，下午卖了5箱，还剩多少箱？",
-    "answer": "18 - 7 - 5 = 6（箱）",
+    "answer": "6",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1384,7 +1384,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "停车场停了12辆车，开走了3辆，又开来了5辆，现在有多少辆？",
-    "answer": "12 - 3 + 5 = 14（辆）",
+    "answer": "14",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1393,7 +1393,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小明有20颗糖，给了小华5颗，又收到了小强送的3颗，现在有多少颗？",
-    "answer": "20 - 5 + 3 = 18（颗）",
+    "answer": "18",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1402,7 +1402,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "学校体育室有18个篮球，一班借走了7个，二班借走了6个，还剩多少个？",
-    "answer": "18 - 7 - 6 = 5（个）",
+    "answer": "5",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1411,7 +1411,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小红看一本故事书，已经看了15页，还剩8页，这本书有多少页？",
-    "answer": "15 + 8 = 23（页）",
+    "answer": "23",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1420,7 +1420,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小华排队买票，他前面有9人，后面有7人，这一队一共有多少人？",
-    "answer": "9 + 1 + 7 = 17（人）",
+    "answer": "17",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1429,7 +1429,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "一根绳子长25米，用去了8米，又接上5米，现在这根绳子长多少米？",
-    "answer": "25 - 8 + 5 = 22（米）",
+    "answer": "22",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1438,7 +1438,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "果园里有18棵桃树，种的梨树比桃树少6棵，梨树有多少棵？",
-    "answer": "18 - 6 = 12（棵）",
+    "answer": "12",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1447,7 +1447,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小红看一本80页的书，第一天看了20页，第二天看了25页，还剩多少页没看？",
-    "answer": "80 - 20 - 25 = 35（页）",
+    "answer": "35",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
@@ -1456,7 +1456,7 @@ const grade1Data = [
     "category": "简单应用题",
     "difficulty": "提高",
     "question": "小明有30元，买了3本笔记本，每本8元，还剩多少元？",
-    "answer": "30 - 3 × 8 = 6（元）",
+    "answer": "6",
     "hasAnswer": true,
     "solution": "仔细读题，分析数量关系，列式计算。"
   },
