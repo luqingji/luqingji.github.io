@@ -1,63 +1,62 @@
 {
   "date": "2026-06-12",
-  "updated_at": "2026-06-12T00:35:33.946430+00:00",
+  "updated_at": "2026-06-12T01:41:10.319170+00:00",
   "sentence": {
-    "content": "生命本是没有意义的,但生命的存在即是其意义,更多的意义需要自己寻找,而不是课本的灌输.",
-    "from": "自己",
-    "meaning": "生命之初，无言无义，章，书，以灌输为其真，其义需由心寻，由行由践。"
+    "content": "我战斗到了最后一刻！",
+    "from": "战争守卫沙尔图拉",
+    "meaning": "这句豪言，不仅是对沙尔特拉守卫者不屈精神的颂扬，更蕴含着生命中不息奋斗的哲思，即使明知胜负，亦无悔此生。"
   },
   "songs": [
     {
-      "id": 27540403,
-      "name": "Habanera from Carmen / La Cumparsita",
-      "artist": "Martynas",
-      "album": "Martynas",
-      "recommendation": "神秘而激情。"
+      "id": 3368186807,
+      "name": "西绪福瓜",
+      "artist": "普信主义",
+      "album": "枭神与荒原",
+      "recommendation": "哲思旋律，启悟心灵。"
     },
     {
-      "id": 3352825378,
-      "name": "人先出来",
-      "artist": "Higher Brothers",
-      "album": "最高",
-      "recommendation": "迷幻都市夜景音"
+      "id": 3353754349,
+      "name": "How Does It Feel",
+      "artist": "Dubdogz",
+      "album": "How Does It Feel",
+      "recommendation": "深邃情感，情感的共鸣之作。"
     },
     {
-      "id": 3366399854,
-      "name": "独处频率",
-      "artist": "祈03",
-      "album": "独处频率",
-      "recommendation": "心灵深处的独白。"
+      "id": 3371754145,
+      "name": "錯覚",
+      "artist": "艾欧查克",
+      "album": "錯覚",
+      "recommendation": "迷离梦境，心灵共鸣。"
     },
     {
-      "id": 5105959,
-      "name": "Salut D’amour Op. 12",
-      "artist": "Edward Elgar",
-      "album": "100 Best Violin",
-      "recommendation": "爱之颂，温婉情长。"
+      "id": 3368793123,
+      "name": "荒唐谣",
+      "artist": "DOUDOU",
+      "album": "荒唐谣",
+      "recommendation": "荒诞中的温情。"
     },
     {
-      "id": 3370701618,
-      "name": "你在我眼中",
-      "artist": "徐化文（四熹丸子）",
-      "album": "你在我眼中",
-      "recommendation": "眼中情，深邃美。"
+      "id": 3370532229,
+      "name": "E or I",
+      "artist": "艾洛樱Aluvin",
+      "album": "E or I",
+      "recommendation": "旋律悠扬，郁情感人。"
     },
     {
-      "id": 3370341261,
-      "name": "Back to the 305",
-      "artist": "Omar+",
-      "album": "Back to the 305",
-      "recommendation": "复古韵"
+      "id": 3372031960,
+      "name": "Dauntless (无畏Funk)",
+      "artist": "XiRXG",
+      "album": "Dauntless (无畏Funk)",
+      "recommendation": "无畏前行。"
     }
   ],
   "article": {
-    "title": "瞎扯 · 如何正确地吐槽",
-    "description": "瞎扯 · 如何正确地吐槽",
-    "content": "",
-    "author": "知乎日报",
-    "url": "https://daily.zhihu.com/story/9790354",
-    "source": "知乎日报",
-    "meaning": "在这篇充满智慧与幽默的妙文中，作者以独到视角，教你如何在吐槽的艺术中游刃有余-ves·"
+    "title": "拉法耶特银元",
+    "description": "拉法耶特银元 是美国为了参加1900年巴黎世博会而发行的一种银质1美元硬币，由美国铸币局首席雕刻师查尔斯·爱德华·巴伯设计，是1983年以前发行的唯一一种1美元面额银质纪念币，也是首枚刻有美国公民形象的美国硬币，这位公民正是乔治·华盛顿。\n",
+    "url": "https://zh.wikipedia.org/wiki/%E6%8B%89%E6%B3%95%E8%80%B6%E7%89%B9%E9%93%B6%E5%85%83",
+    "author": "维基百科",
+    "source": "维基百科",
+    "meaning": "这枚《拉法耶特银元》不仅是一枚纪念币，更是一个时代的见证。它以乔治·华盛顿的形象，承载了美国的荣耀与梦想，是历史与艺术的精美融合，犹如一首无声的赞歌，诉说着过往与未来的故事。"
   },
   "zaobao": {
     "date": "2026-06-12",
@@ -193,6 +192,6 @@
       "author": ""
     }
   },
-  "easter": "生活如歌，低音的坚韧，高音的温柔，共谱你独特旋律 *</string>",
-  "summary": "探索自我，生命之光。"
+  "easter": "在每一个黎明_pesizar都藏着你不灭的希望和温柔。",
+  "summary": "逆境中不失希望的战斗精神。"
 }
