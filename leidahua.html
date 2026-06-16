@@ -29,22 +29,30 @@
     .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
     .tabs button { flex: 1; background: #444; color: #ccc; }
     .tabs button.active-tab { background: #c4975c; color: #1a1a2e; }
+    .link { color: #c4975c; text-decoration: underline; cursor: pointer; text-align: center; display: block; margin-top: 10px; }
   </style>
 </head>
 <body>
 <div class="container" id="app">
-  <!-- 登录面板 -->
+  <!-- ========== 登录面板 ========== -->
   <div id="login-panel" class="panel active">
-    <h2>🔐 登录 / 注册</h2>
-    <input id="email" type="email" placeholder="邮箱" value="test@example.com">
-    <input id="password" type="password" placeholder="密码" value="123456">
-    <div class="row">
-      <button onclick="handleLogin()">登录</button>
-      <button onclick="handleSignUp()">注册</button>
-    </div>
+    <h2>🔐 登录</h2>
+    <input id="login-email" type="email" placeholder="邮箱" value="test@example.com">
+    <input id="login-password" type="password" placeholder="密码" value="123456">
+    <button onclick="handleLogin()">登录</button>
+    <span class="link" onclick="showPanel('register-panel')">没有账号？立即注册</span>
   </div>
 
-  <!-- 主面板（角色、导航） -->
+  <!-- ========== 注册面板 ========== -->
+  <div id="register-panel" class="panel">
+    <h2>📝 注册新账号</h2>
+    <input id="reg-email" type="email" placeholder="邮箱">
+    <input id="reg-password" type="password" placeholder="密码">
+    <button onclick="handleSignUp()">注册</button>
+    <span class="link" onclick="showPanel('login-panel')">已有账号？去登录</span>
+  </div>
+
+  <!-- ========== 主面板（角色、导航） ========== -->
   <div id="main-panel" class="panel">
     <h2 id="char-name">角色名</h2>
     <p>等级 <span id="char-level">1</span> | 经验 <span id="char-exp">0</span></p>
@@ -77,7 +85,7 @@
     <button onclick="logout()" style="background:#555;">退出登录</button>
   </div>
 
-  <!-- 战斗面板 -->
+  <!-- ========== 战斗面板 ========== -->
   <div id="battle-panel" class="panel">
     <h2>⚔️ 战斗</h2>
     <div class="battle-scene" id="battle-scene">
@@ -110,13 +118,12 @@
   const SUPABASE_URL = "https://efzchzgnqcxrlvxevgnv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T";
 
-  // 使用独立变量名，避免与全局 supabase 冲突
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   let currentUser = null;
   let currentProfile = null;
   let currentBattleId = null;
   let battleChannel = null;
-  let battleUnits = {}; // 本地缓存战斗单位
+  let battleUnits = {};
 
   // ======================== 工具函数 ========================
   function showPanel(panelId) {
@@ -126,7 +133,6 @@
   function showSubPanel(name, evt) {
     document.querySelectorAll('#main-panel .panel').forEach(p => p.classList.remove('active'));
     document.getElementById(name + '-panel').classList.add('active');
-    // 切换标签样式
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active-tab'));
     if (evt && evt.target) evt.target.classList.add('active-tab');
   }
@@ -149,8 +155,9 @@
 
   // ======================== 认证 ========================
   async function handleLogin() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    if (!email || !password) return alert('请填写邮箱和密码');
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) return alert('登录失败: ' + error.message);
     currentUser = data.user;
@@ -159,11 +166,20 @@
   }
 
   async function handleSignUp() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+    if (!email || !password) return alert('请填写邮箱和密码');
+    if (password.length < 6) return alert('密码至少6位');
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) return alert('注册失败: ' + error.message);
-    alert('注册成功，请登录（如果开启了邮箱确认，请去邮箱点击确认链接）');
+    // 注册成功，显示提示，并自动跳转到登录面板
+    alert('注册成功！请检查邮箱确认（如果开启了邮箱确认），现在可以登录了。');
+    // 清空注册表单
+    document.getElementById('reg-email').value = '';
+    document.getElementById('reg-password').value = '';
+    showPanel('login-panel');
+    // 预填登录邮箱方便用户
+    document.getElementById('login-email').value = email;
   }
 
   async function logout() {
@@ -177,7 +193,6 @@
   async function loadProfile() {
     const { data, error } = await supabaseClient.from('player_profile').select('*').eq('user_id', currentUser.id).single();
     if (error || !data) {
-      // 如果首次登录，自动创建初始档案
       const { data: newProfile, error: insertError } = await supabaseClient.from('player_profile').insert({
         user_id: currentUser.id,
         name: '新玩家' + Math.floor(Math.random()*1000),
@@ -282,7 +297,6 @@
             battleUnits[payload.new.unit_id] = payload.new;
           }
           updateBattleUI();
-          // 检查战斗是否结束
           const { data: battle } = await supabaseClient.from('battles').select('status').eq('id', battleId).single();
           if (battle && battle.status === 'finished') {
             supabaseClient.removeChannel(battleChannel);
