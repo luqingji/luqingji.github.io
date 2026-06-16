@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>大话风·回合网游</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "Microsoft YaHei", sans-serif; background: #1a1a2e; color: #e0d7c6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { width: 100%; max-width: 480px; background: #2d2d44; border-radius: 12px; padding: 16px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    input, button { padding: 10px; margin: 4px 0; border: none; border-radius: 6px; font-size: 16px; width: 100%; }
+    button { background: #c4975c; color: #1a1a2e; font-weight: bold; cursor: pointer; }
+    button:active { background: #b3834a; }
+    .row { display: flex; gap: 8px; }
+    .row button { flex: 1; }
+    .stat-bar { height: 14px; background: #444; border-radius: 6px; overflow: hidden; margin: 2px 0; }
+    .stat-fill { height: 100%; background: #c44; }
+    .mp-fill { background: #46a; }
+    .exp-fill { background: #4a4; }
+    ul { list-style: none; }
+    li { background: #3a3a55; margin: 4px 0; padding: 8px; border-radius: 6px; }
+    .battle-scene { background: #1f1f33; padding: 12px; border-radius: 8px; }
+    .unit { display: inline-block; width: 45%; text-align: center; }
+    .unit .name { font-weight: bold; }
+    .log { max-height: 120px; overflow-y: auto; background: #111; padding: 6px; border-radius: 4px; margin: 8px 0; font-size: 14px; }
+    .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .tabs button { flex: 1; background: #444; color: #ccc; }
+    .tabs button.active-tab { background: #c4975c; color: #1a1a2e; }
+  </style>
+</head>
+<body>
+<div class="container" id="app">
+  <!-- 登录面板 -->
+  <div id="login-panel" class="panel active">
+    <h2>🔐 登录 / 注册</h2>
+    <input id="email" type="email" placeholder="邮箱" value="test@example.com">
+    <input id="password" type="password" placeholder="密码" value="123456">
+    <div class="row">
+      <button onclick="handleLogin()">登录</button>
+      <button onclick="handleSignUp()">注册</button>
+    </div>
+  </div>
+
+  <!-- 主面板（角色、导航） -->
+  <div id="main-panel" class="panel">
+    <h2 id="char-name">角色名</h2>
+    <p>等级 <span id="char-level">1</span> | 经验 <span id="char-exp">0</span></p>
+    <div>HP <span id="char-hp">100</span>/<span id="char-maxhp">100</span><div class="stat-bar"><div class="stat-fill" id="hp-fill" style="width:100%"></div></div></div>
+    <div>MP <span id="char-mp">50</span>/<span id="char-maxmp">50</span><div class="stat-bar"><div class="mp-fill" id="mp-fill" style="width:100%"></div></div></div>
+    <p>攻击 <span id="char-ap">20</span> | 防御 <span id="char-dp">10</span> | 速度 <span id="char-sp">5</span></p>
+    <p>银两 <span id="char-gold">0</span> | 金币 <span id="char-cash">0</span> | 功德 <span id="char-merit">0</span></p>
+    <div class="tabs">
+      <button onclick="showSubPanel('inventory')" class="active-tab">背包</button>
+      <button onclick="showSubPanel('pets')">宠物</button>
+      <button onclick="showSubPanel('skills')">技能</button>
+    </div>
+    <!-- 子面板容器 -->
+    <div id="inventory-panel" class="panel active">
+      <h3>🎒 背包</h3>
+      <ul id="inventory-list"></ul>
+      <button onclick="loadInventory()">刷新</button>
+    </div>
+    <div id="pets-panel" class="panel">
+      <h3>🐾 宠物</h3>
+      <ul id="pet-list"></ul>
+      <button onclick="loadPets()">刷新</button>
+    </div>
+    <div id="skills-panel" class="panel">
+      <h3>✨ 技能</h3>
+      <ul id="skill-list"></ul>
+    </div>
+    <hr>
+    <button onclick="startBattle()">⚔️ 野外遇敌</button>
+    <button onclick="logout()" style="background:#555;">退出登录</button>
+  </div>
+
+  <!-- 战斗面板 -->
+  <div id="battle-panel" class="panel">
+    <h2>⚔️ 战斗</h2>
+    <div class="battle-scene" id="battle-scene">
+      <div class="row">
+        <div class="unit" id="player-unit">
+          <div class="name" id="player-name">自己</div>
+          <div>HP <span id="player-hp">0</span>/<span id="player-maxhp">0</span></div>
+          <div class="stat-bar"><div class="stat-fill" id="player-hp-fill"></div></div>
+          <div>MP <span id="player-mp">0</span></div>
+        </div>
+        <div class="unit" id="enemy-unit">
+          <div class="name" id="enemy-name">怪物</div>
+          <div>HP <span id="enemy-hp">0</span>/<span id="enemy-maxhp">0</span></div>
+          <div class="stat-bar"><div class="stat-fill" id="enemy-hp-fill"></div></div>
+        </div>
+      </div>
+      <div class="log" id="battle-log"></div>
+    </div>
+    <div class="row">
+      <button onclick="battleAction('attack')">⚔️ 攻击</button>
+      <button onclick="battleAction('capture')">🪢 捕捉</button>
+      <button onclick="battleAction('skill')">🔥 技能</button>
+    </div>
+    <button onclick="fleeBattle()">🏃 逃跑</button>
+  </div>
+</div>
+
+<script>
+  // ======================== Supabase 初始化 ========================
+  const SUPABASE_URL = "https://efzchzgnqcxrlvxevgnv.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T"; // ⚠️ 替换为你 revoke 后生成的新 key
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  let currentUser = null;
+  let currentProfile = null;
+  let currentBattleId = null;
+  let battleChannel = null;
+  let battleUnits = {}; // 本地缓存战斗单位
+
+  // ======================== 工具函数 ========================
+  function showPanel(panelId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(panelId).classList.add('active');
+  }
+  function showSubPanel(name) {
+    document.querySelectorAll('#main-panel .panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(name + '-panel').classList.add('active');
+    // 切换标签样式
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active-tab'));
+    event.target.classList.add('active-tab');
+  }
+  function updateProfileUI() {
+    if (!currentProfile) return;
+    document.getElementById('char-name').textContent = currentProfile.name;
+    document.getElementById('char-level').textContent = currentProfile.level;
+    document.getElementById('char-exp').textContent = currentProfile.exp;
+    document.getElementById('char-hp').textContent = currentProfile.hp;
+    document.getElementById('char-maxhp').textContent = currentProfile.hp; // 简单起见
+    document.getElementById('char-mp').textContent = currentProfile.mp;
+    document.getElementById('char-maxmp').textContent = currentProfile.mp;
+    document.getElementById('char-ap').textContent = currentProfile.ap;
+    document.getElementById('char-dp').textContent = currentProfile.dp;
+    document.getElementById('char-sp').textContent = currentProfile.sp;
+    document.getElementById('char-gold').textContent = currentProfile.gold;
+    document.getElementById('char-cash').textContent = currentProfile.cash;
+    document.getElementById('char-merit').textContent = currentProfile.merit;
+  }
+
+  // ======================== 认证 ========================
+  async function handleLogin() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return alert('登录失败: ' + error.message);
+    currentUser = data.user;
+    await loadProfile();
+    showPanel('main-panel');
+  }
+
+  async function handleSignUp() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) return alert('注册失败: ' + error.message);
+    alert('注册成功，请登录（可能需要确认邮箱，测试时可关闭邮箱确认）');
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    currentUser = null;
+    currentProfile = null;
+    showPanel('login-panel');
+  }
+
+  // ======================== 资料加载 ========================
+  async function loadProfile() {
+    const { data, error } = await supabase.from('player_profile').select('*').eq('user_id', currentUser.id).single();
+    if (error || !data) {
+      // 如果首次登录，自动创建初始档案
+      const { data: newProfile, error: insertError } = await supabase.from('player_profile').insert({
+        user_id: currentUser.id,
+        name: '新玩家' + Math.floor(Math.random()*1000),
+        level: 1, exp: 0, gold: 0, cash: 0, merit: 0,
+        hp: 100, mp: 50, ap: 20, dp: 10, sp: 5
+      }).select().single();
+      if (insertError) return alert('创建角色失败: ' + insertError.message);
+      currentProfile = newProfile;
+    } else {
+      currentProfile = data;
+    }
+    updateProfileUI();
+    loadInventory();
+    loadPets();
+    loadSkills();
+  }
+
+  // ======================== 背包 ========================
+  async function loadInventory() {
+    if (!currentUser) return;
+    const { data: items, error } = await supabase.from('player_items').select('*').eq('user_id', currentUser.id);
+    if (error) return console.error(error);
+    const list = document.getElementById('inventory-list');
+    list.innerHTML = '';
+    items.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = `物品ID:${item.item_def_id} 数量:${item.quantity} ${item.is_bound ? '(绑定)' : ''}`;
+      list.appendChild(li);
+    });
+  }
+
+  // ======================== 宠物 ========================
+  async function loadPets() {
+    if (!currentUser) return;
+    const { data: pets, error } = await supabase.from('user_pets').select('*').eq('owner_id', currentUser.id);
+    if (error) return console.error(error);
+    const list = document.getElementById('pet-list');
+    list.innerHTML = '';
+    pets.forEach(pet => {
+      const li = document.createElement('li');
+      li.innerHTML = `<b>${pet.name}</b> Lv.${pet.level} HP:${pet.hp} AP:${pet.ap} DP:${pet.dp} 资质:${JSON.stringify(pet.growth_rates)}`;
+      list.appendChild(li);
+    });
+  }
+
+  // ======================== 技能（简化，从player_skills查询） ========================
+  async function loadSkills() {
+    if (!currentUser) return;
+    const { data: skills, error } = await supabase.from('player_skills').select('*').eq('user_id', currentUser.id);
+    if (error) return console.error(error);
+    const list = document.getElementById('skill-list');
+    list.innerHTML = '';
+    if (!skills || skills.length === 0) {
+      list.innerHTML = '<li>尚未学习技能</li>';
+      return;
+    }
+    skills.forEach(s => {
+      const li = document.createElement('li');
+      li.textContent = `技能ID:${s.skill_id} 等级:${s.skill_level} 熟练:${s.proficiency}`;
+      list.appendChild(li);
+    });
+  }
+
+  // ======================== 战斗 ========================
+  async function startBattle() {
+    if (!currentUser) return alert('未登录');
+    // 调用后端初始化战斗（这里假设有一个 init_battle 的 RPC 或直接插入）
+    const { data, error } = await supabase.rpc('init_battle', {
+      p_user_id: currentUser.id,
+      p_map_id: currentProfile.map_id || 1
+    });
+    if (error) {
+      console.error(error);
+      // 临时模拟：直接创建战斗并插入战斗单位（需后端支持，这里简化处理）
+      // 为演示，我们手动构造一个战斗ID并设置UI
+      alert('请确保已部署 init_battle 边缘函数，或使用手动测试模式');
+      return;
+    }
+    // 预期返回 battle_id
+    currentBattleId = data.battle_id;
+    subscribeToBattle(currentBattleId);
+    showPanel('battle-panel');
+    // 立即拉取战斗状态
+    await refreshBattleState();
+  }
+
+  async function refreshBattleState() {
+    if (!currentBattleId) return;
+    const { data: units, error } = await supabase.from('battle_units').select('*').eq('battle_id', currentBattleId);
+    if (error) return console.error(error);
+    units.forEach(u => {
+      battleUnits[u.unit_id] = u;
+    });
+    updateBattleUI();
+  }
+
+  function subscribeToBattle(battleId) {
+    if (battleChannel) battleChannel.unsubscribe();
+    battleChannel = supabase
+      .channel('battle-' + battleId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'battle_units', filter: `battle_id=eq.${battleId}` },
+        async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            delete battleUnits[payload.old.unit_id];
+          } else {
+            battleUnits[payload.new.unit_id] = payload.new;
+          }
+          updateBattleUI();
+          // 检查战斗是否结束
+          const { data: battle } = await supabase.from('battles').select('status').eq('id', battleId).single();
+          if (battle && battle.status === 'finished') {
+            battleChannel.unsubscribe();
+            alert('战斗结束！');
+            showPanel('main-panel');
+            loadProfile(); // 刷新经验等
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  function updateBattleUI() {
+    const player = Object.values(battleUnits).find(u => u.unit_type === 'player');
+    const enemies = Object.values(battleUnits).filter(u => u.unit_type === 'monster' && !u.is_dead);
+    const enemy = enemies[0];
+    if (player) {
+      document.getElementById('player-name').textContent = player.name;
+      document.getElementById('player-hp').textContent = player.hp;
+      document.getElementById('player-maxhp').textContent = player.max_hp;
+      document.getElementById('player-mp').textContent = player.mp;
+      document.getElementById('player-hp-fill').style.width = (player.hp / player.max_hp * 100) + '%';
+    }
+    if (enemy) {
+      document.getElementById('enemy-name').textContent = enemy.name;
+      document.getElementById('enemy-hp').textContent = enemy.hp;
+      document.getElementById('enemy-maxhp').textContent = enemy.max_hp;
+      document.getElementById('enemy-hp-fill').style.width = (enemy.hp / enemy.max_hp * 100) + '%';
+    } else {
+      document.getElementById('enemy-name').textContent = '无';
+      document.getElementById('enemy-hp').textContent = '0';
+      document.getElementById('enemy-maxhp').textContent = '0';
+      document.getElementById('enemy-hp-fill').style.width = '0%';
+    }
+  }
+
+  async function battleAction(action) {
+    if (!currentBattleId) return;
+    const player = Object.values(battleUnits).find(u => u.unit_type === 'player');
+    const enemy = Object.values(battleUnits).find(u => u.unit_type === 'monster' && !u.is_dead);
+    if (!player || !enemy) return alert('没有目标');
+    const payload = {
+      battle_id: currentBattleId,
+      user_id: currentUser.id,
+      action: action,
+      target_unit_id: enemy.unit_id,
+      skill_id: action === 'skill' ? 1 : null, // 临时技能ID
+      item_id: null
+    };
+    const { data, error } = await supabase.rpc('battle-action', payload);
+    if (error) {
+      alert('操作失败: ' + error.message);
+      return;
+    }
+    // 战斗日志显示
+    document.getElementById('battle-log').innerHTML += `<p>${data.log}</p>`;
+    // 注意：实际状态更新会通过Realtime推送，这里不需要手动刷新
+  }
+
+  async function fleeBattle() {
+    if (!currentBattleId) return;
+    // 逃跑逻辑：调用后端函数或直接更新战斗状态
+    const { error } = await supabase.rpc('flee_battle', { p_battle_id: currentBattleId, p_user_id: currentUser.id });
+    if (error) alert('逃跑失败: ' + error.message);
+    else {
+      battleChannel.unsubscribe();
+      showPanel('main-panel');
+    }
+  }
+
+  // ======================== 初始检查登录状态 ========================
+  async function init() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      await loadProfile();
+      showPanel('main-panel');
+    }
+  }
+  init();
+</script>
+</body>
+</html>
