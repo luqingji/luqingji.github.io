@@ -53,9 +53,9 @@
     <p>攻击 <span id="char-ap">20</span> | 防御 <span id="char-dp">10</span> | 速度 <span id="char-sp">5</span></p>
     <p>银两 <span id="char-gold">0</span> | 金币 <span id="char-cash">0</span> | 功德 <span id="char-merit">0</span></p>
     <div class="tabs">
-      <button onclick="showSubPanel('inventory')" class="active-tab">背包</button>
-      <button onclick="showSubPanel('pets')">宠物</button>
-      <button onclick="showSubPanel('skills')">技能</button>
+      <button onclick="showSubPanel('inventory', event)" class="active-tab">背包</button>
+      <button onclick="showSubPanel('pets', event)">宠物</button>
+      <button onclick="showSubPanel('skills', event)">技能</button>
     </div>
     <!-- 子面板容器 -->
     <div id="inventory-panel" class="panel active">
@@ -108,9 +108,10 @@
 <script>
   // ======================== Supabase 初始化 ========================
   const SUPABASE_URL = "https://efzchzgnqcxrlvxevgnv.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T"; // ⚠️ 替换为你 revoke 后生成的新 key
+  const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T";
 
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // 使用独立变量名，避免与全局 supabase 冲突
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   let currentUser = null;
   let currentProfile = null;
   let currentBattleId = null;
@@ -122,12 +123,12 @@
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.getElementById(panelId).classList.add('active');
   }
-  function showSubPanel(name) {
+  function showSubPanel(name, evt) {
     document.querySelectorAll('#main-panel .panel').forEach(p => p.classList.remove('active'));
     document.getElementById(name + '-panel').classList.add('active');
     // 切换标签样式
     document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active-tab'));
-    event.target.classList.add('active-tab');
+    if (evt && evt.target) evt.target.classList.add('active-tab');
   }
   function updateProfileUI() {
     if (!currentProfile) return;
@@ -135,7 +136,7 @@
     document.getElementById('char-level').textContent = currentProfile.level;
     document.getElementById('char-exp').textContent = currentProfile.exp;
     document.getElementById('char-hp').textContent = currentProfile.hp;
-    document.getElementById('char-maxhp').textContent = currentProfile.hp; // 简单起见
+    document.getElementById('char-maxhp').textContent = currentProfile.hp;
     document.getElementById('char-mp').textContent = currentProfile.mp;
     document.getElementById('char-maxmp').textContent = currentProfile.mp;
     document.getElementById('char-ap').textContent = currentProfile.ap;
@@ -150,7 +151,7 @@
   async function handleLogin() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) return alert('登录失败: ' + error.message);
     currentUser = data.user;
     await loadProfile();
@@ -160,13 +161,13 @@
   async function handleSignUp() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) return alert('注册失败: ' + error.message);
-    alert('注册成功，请登录（可能需要确认邮箱，测试时可关闭邮箱确认）');
+    alert('注册成功，请登录（如果开启了邮箱确认，请去邮箱点击确认链接）');
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     currentUser = null;
     currentProfile = null;
     showPanel('login-panel');
@@ -174,10 +175,10 @@
 
   // ======================== 资料加载 ========================
   async function loadProfile() {
-    const { data, error } = await supabase.from('player_profile').select('*').eq('user_id', currentUser.id).single();
+    const { data, error } = await supabaseClient.from('player_profile').select('*').eq('user_id', currentUser.id).single();
     if (error || !data) {
       // 如果首次登录，自动创建初始档案
-      const { data: newProfile, error: insertError } = await supabase.from('player_profile').insert({
+      const { data: newProfile, error: insertError } = await supabaseClient.from('player_profile').insert({
         user_id: currentUser.id,
         name: '新玩家' + Math.floor(Math.random()*1000),
         level: 1, exp: 0, gold: 0, cash: 0, merit: 0,
@@ -197,7 +198,7 @@
   // ======================== 背包 ========================
   async function loadInventory() {
     if (!currentUser) return;
-    const { data: items, error } = await supabase.from('player_items').select('*').eq('user_id', currentUser.id);
+    const { data: items, error } = await supabaseClient.from('player_items').select('*').eq('user_id', currentUser.id);
     if (error) return console.error(error);
     const list = document.getElementById('inventory-list');
     list.innerHTML = '';
@@ -211,7 +212,7 @@
   // ======================== 宠物 ========================
   async function loadPets() {
     if (!currentUser) return;
-    const { data: pets, error } = await supabase.from('user_pets').select('*').eq('owner_id', currentUser.id);
+    const { data: pets, error } = await supabaseClient.from('user_pets').select('*').eq('owner_id', currentUser.id);
     if (error) return console.error(error);
     const list = document.getElementById('pet-list');
     list.innerHTML = '';
@@ -222,10 +223,10 @@
     });
   }
 
-  // ======================== 技能（简化，从player_skills查询） ========================
+  // ======================== 技能 ========================
   async function loadSkills() {
     if (!currentUser) return;
-    const { data: skills, error } = await supabase.from('player_skills').select('*').eq('user_id', currentUser.id);
+    const { data: skills, error } = await supabaseClient.from('player_skills').select('*').eq('user_id', currentUser.id);
     if (error) return console.error(error);
     const list = document.getElementById('skill-list');
     list.innerHTML = '';
@@ -243,29 +244,24 @@
   // ======================== 战斗 ========================
   async function startBattle() {
     if (!currentUser) return alert('未登录');
-    // 调用后端初始化战斗（这里假设有一个 init_battle 的 RPC 或直接插入）
-    const { data, error } = await supabase.rpc('init_battle', {
+    const { data, error } = await supabaseClient.rpc('init_battle', {
       p_user_id: currentUser.id,
       p_map_id: currentProfile.map_id || 1
     });
     if (error) {
       console.error(error);
-      // 临时模拟：直接创建战斗并插入战斗单位（需后端支持，这里简化处理）
-      // 为演示，我们手动构造一个战斗ID并设置UI
-      alert('请确保已部署 init_battle 边缘函数，或使用手动测试模式');
+      alert('遇敌失败，请确保已部署 init_battle 边缘函数，且数据库中有怪物模板数据。');
       return;
     }
-    // 预期返回 battle_id
     currentBattleId = data.battle_id;
     subscribeToBattle(currentBattleId);
     showPanel('battle-panel');
-    // 立即拉取战斗状态
     await refreshBattleState();
   }
 
   async function refreshBattleState() {
     if (!currentBattleId) return;
-    const { data: units, error } = await supabase.from('battle_units').select('*').eq('battle_id', currentBattleId);
+    const { data: units, error } = await supabaseClient.from('battle_units').select('*').eq('battle_id', currentBattleId);
     if (error) return console.error(error);
     units.forEach(u => {
       battleUnits[u.unit_id] = u;
@@ -274,10 +270,11 @@
   }
 
   function subscribeToBattle(battleId) {
-    if (battleChannel) battleChannel.unsubscribe();
-    battleChannel = supabase
+    if (battleChannel) supabaseClient.removeChannel(battleChannel);
+    battleChannel = supabaseClient
       .channel('battle-' + battleId)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'battle_units', filter: `battle_id=eq.${battleId}` },
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'battle_units', filter: `battle_id=eq.${battleId}` },
         async (payload) => {
           if (payload.eventType === 'DELETE') {
             delete battleUnits[payload.old.unit_id];
@@ -286,12 +283,13 @@
           }
           updateBattleUI();
           // 检查战斗是否结束
-          const { data: battle } = await supabase.from('battles').select('status').eq('id', battleId).single();
+          const { data: battle } = await supabaseClient.from('battles').select('status').eq('id', battleId).single();
           if (battle && battle.status === 'finished') {
-            battleChannel.unsubscribe();
+            supabaseClient.removeChannel(battleChannel);
+            battleChannel = null;
             alert('战斗结束！');
             showPanel('main-panel');
-            loadProfile(); // 刷新经验等
+            loadProfile();
           }
         }
       )
@@ -332,33 +330,31 @@
       user_id: currentUser.id,
       action: action,
       target_unit_id: enemy.unit_id,
-      skill_id: action === 'skill' ? 1 : null, // 临时技能ID
+      skill_id: action === 'skill' ? 1 : null,
       item_id: null
     };
-    const { data, error } = await supabase.rpc('battle-action', payload);
+    const { data, error } = await supabaseClient.rpc('battle-action', payload);
     if (error) {
       alert('操作失败: ' + error.message);
       return;
     }
-    // 战斗日志显示
     document.getElementById('battle-log').innerHTML += `<p>${data.log}</p>`;
-    // 注意：实际状态更新会通过Realtime推送，这里不需要手动刷新
   }
 
   async function fleeBattle() {
     if (!currentBattleId) return;
-    // 逃跑逻辑：调用后端函数或直接更新战斗状态
-    const { error } = await supabase.rpc('flee_battle', { p_battle_id: currentBattleId, p_user_id: currentUser.id });
+    const { error } = await supabaseClient.rpc('flee_battle', { p_battle_id: currentBattleId, p_user_id: currentUser.id });
     if (error) alert('逃跑失败: ' + error.message);
     else {
-      battleChannel.unsubscribe();
+      if (battleChannel) supabaseClient.removeChannel(battleChannel);
+      battleChannel = null;
       showPanel('main-panel');
     }
   }
 
   // ======================== 初始检查登录状态 ========================
   async function init() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       currentUser = session.user;
       await loadProfile();
