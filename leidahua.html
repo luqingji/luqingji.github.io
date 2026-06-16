@@ -11,7 +11,7 @@
     .container { width: 100%; max-width: 480px; background: #2d2d44; border-radius: 12px; padding: 16px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
     .panel { display: none; }
     .panel.active { display: block; }
-    input, button { padding: 10px; margin: 4px 0; border: none; border-radius: 6px; font-size: 16px; width: 100%; }
+    input, select, button { padding: 10px; margin: 4px 0; border: none; border-radius: 6px; font-size: 16px; width: 100%; }
     button { background: #c4975c; color: #1a1a2e; font-weight: bold; cursor: pointer; }
     button:active { background: #b3834a; }
     .row { display: flex; gap: 8px; }
@@ -30,6 +30,12 @@
     .tabs button { flex: 1; background: #444; color: #ccc; }
     .tabs button.active-tab { background: #c4975c; color: #1a1a2e; }
     .link { color: #c4975c; text-decoration: underline; cursor: pointer; text-align: center; display: block; margin-top: 10px; }
+    .race-option { display: flex; align-items: center; background: #3a3a55; padding: 10px; border-radius: 8px; margin: 8px 0; cursor: pointer; border: 2px solid transparent; }
+    .race-option.selected { border-color: #c4975c; background: #4a4a65; }
+    .race-option input { display: none; }
+    .race-option .race-info { margin-left: 10px; }
+    .race-option .race-name { font-size: 18px; font-weight: bold; }
+    .race-option .race-desc { font-size: 13px; color: #aaa; }
   </style>
 </head>
 <body>
@@ -47,9 +53,37 @@
   <div id="register-panel" class="panel">
     <h2>📝 注册新账号</h2>
     <input id="reg-email" type="email" placeholder="邮箱">
-    <input id="reg-password" type="password" placeholder="密码">
+    <input id="reg-password" type="password" placeholder="密码（至少6位）">
     <button onclick="handleSignUp()">注册</button>
     <span class="link" onclick="showPanel('login-panel')">已有账号？去登录</span>
+  </div>
+
+  <!-- ========== 角色创建面板 ========== -->
+  <div id="create-character-panel" class="panel">
+    <h2>⚔️ 创建角色</h2>
+    <input id="char-name-input" type="text" placeholder="请输入角色名" maxlength="10">
+    <div id="race-selector">
+      <div class="race-option selected" data-race="人族">
+        <div class="race-info">
+          <div class="race-name">👤 人族</div>
+          <div class="race-desc">均衡成长，攻防兼备</div>
+        </div>
+      </div>
+      <div class="race-option" data-race="魔族">
+        <div class="race-info">
+          <div class="race-name">👹 魔族</div>
+          <div class="race-desc">高攻高血，防御薄弱</div>
+        </div>
+      </div>
+      <div class="race-option" data-race="仙族">
+        <div class="race-info">
+          <div class="race-name">🧚 仙族</div>
+          <div class="race-desc">法力高深，速度迅捷</div>
+        </div>
+      </div>
+    </div>
+    <button onclick="handleCreateCharacter()">进入游戏</button>
+    <span class="link" onclick="logout()">退出登录</span>
   </div>
 
   <!-- ========== 主面板（角色、导航） ========== -->
@@ -116,7 +150,7 @@
 <script>
   // ======================== Supabase 初始化 ========================
   const SUPABASE_URL = "https://efzchzgnqcxrlvxevgnv.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T";
+  const SUPABASE_KEY = "sb_publishable_k6agucHIkjGeDlUL3JjhQA___cjTz-T"; // ⚠️ 测试密钥，请之后更换
 
   const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   let currentUser = null;
@@ -153,6 +187,19 @@
     document.getElementById('char-merit').textContent = currentProfile.merit;
   }
 
+  // ======================== 种族选择交互 ========================
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.race-option')) {
+      const option = e.target.closest('.race-option');
+      document.querySelectorAll('.race-option').forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+    }
+  });
+  function getSelectedRace() {
+    const selected = document.querySelector('.race-option.selected');
+    return selected ? selected.dataset.race : '人族';
+  }
+
   // ======================== 认证 ========================
   async function handleLogin() {
     const email = document.getElementById('login-email').value.trim();
@@ -162,7 +209,6 @@
     if (error) return alert('登录失败: ' + error.message);
     currentUser = data.user;
     await loadProfile();
-    showPanel('main-panel');
   }
 
   async function handleSignUp() {
@@ -172,42 +218,74 @@
     if (password.length < 6) return alert('密码至少6位');
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
     if (error) return alert('注册失败: ' + error.message);
-    // 注册成功，显示提示，并自动跳转到登录面板
-    alert('注册成功！请检查邮箱确认（如果开启了邮箱确认），现在可以登录了。');
-    // 清空注册表单
+    alert('注册成功！请检查邮箱确认（如果开启了邮箱确认），然后回到登录页面。');
     document.getElementById('reg-email').value = '';
     document.getElementById('reg-password').value = '';
     showPanel('login-panel');
-    // 预填登录邮箱方便用户
     document.getElementById('login-email').value = email;
   }
 
   async function logout() {
+    if (battleChannel) supabaseClient.removeChannel(battleChannel);
     await supabaseClient.auth.signOut();
     currentUser = null;
     currentProfile = null;
     showPanel('login-panel');
   }
 
-  // ======================== 资料加载 ========================
+  // ======================== 资料加载与角色创建 ========================
   async function loadProfile() {
-    const { data, error } = await supabaseClient.from('player_profile').select('*').eq('user_id', currentUser.id).single();
+    const { data, error } = await supabaseClient
+      .from('player_profile')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .single();
+
     if (error || !data) {
-      const { data: newProfile, error: insertError } = await supabaseClient.from('player_profile').insert({
-        user_id: currentUser.id,
-        name: '新玩家' + Math.floor(Math.random()*1000),
-        level: 1, exp: 0, gold: 0, cash: 0, merit: 0,
-        hp: 100, mp: 50, ap: 20, dp: 10, sp: 5
-      }).select().single();
-      if (insertError) return alert('创建角色失败: ' + insertError.message);
-      currentProfile = newProfile;
-    } else {
-      currentProfile = data;
+      // 没有角色档案，跳转到创建角色页
+      showPanel('create-character-panel');
+      return;
     }
+    // 已有角色，正常进入
+    currentProfile = data;
     updateProfileUI();
+    showPanel('main-panel');
     loadInventory();
     loadPets();
     loadSkills();
+  }
+
+  async function handleCreateCharacter() {
+    const name = document.getElementById('char-name-input').value.trim();
+    if (!name) return alert('请输入角色名');
+    if (name.length < 2) return alert('角色名至少2个字符');
+    const race = getSelectedRace();
+
+    // 检查名字是否已被占用
+    const { data: existing } = await supabaseClient
+      .from('player_profile')
+      .select('name')
+      .eq('name', name)
+      .maybeSingle();
+    if (existing) return alert('该角色名已被使用，请换一个');
+
+    // 根据种族获取初始属性（可从数据库 character_class_def 查询，这里先硬编码）
+    let baseStats = { hp: 100, mp: 50, ap: 20, dp: 10, sp: 5 };
+    if (race === '魔族') baseStats = { hp: 150, mp: 30, ap: 25, dp: 6, sp: 4 };
+    if (race === '仙族') baseStats = { hp: 80, mp: 80, ap: 15, dp: 8, sp: 10 };
+
+    const { error: insertError } = await supabaseClient.from('player_profile').insert({
+      user_id: currentUser.id,
+      name: name,
+      class_id: race === '人族' ? 1 : race === '魔族' ? 2 : 3, // 对应 character_class_def 的 ID
+      level: 1, exp: 0, gold: 0, cash: 0, merit: 0,
+      hp: baseStats.hp, mp: baseStats.mp, ap: baseStats.ap, dp: baseStats.dp, sp: baseStats.sp,
+      map_id: 1, x: 0, y: 0
+    });
+    if (insertError) return alert('创建角色失败: ' + insertError.message);
+
+    // 创建成功，重新加载
+    await loadProfile();
   }
 
   // ======================== 背包 ========================
@@ -278,9 +356,7 @@
     if (!currentBattleId) return;
     const { data: units, error } = await supabaseClient.from('battle_units').select('*').eq('battle_id', currentBattleId);
     if (error) return console.error(error);
-    units.forEach(u => {
-      battleUnits[u.unit_id] = u;
-    });
+    units.forEach(u => { battleUnits[u.unit_id] = u; });
     updateBattleUI();
   }
 
@@ -288,7 +364,7 @@
     if (battleChannel) supabaseClient.removeChannel(battleChannel);
     battleChannel = supabaseClient
       .channel('battle-' + battleId)
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'battle_units', filter: `battle_id=eq.${battleId}` },
         async (payload) => {
           if (payload.eventType === 'DELETE') {
@@ -371,8 +447,7 @@
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
       currentUser = session.user;
-      await loadProfile();
-      showPanel('main-panel');
+      await loadProfile(); // 会自动判断是否进入创建角色页
     }
   }
   init();
