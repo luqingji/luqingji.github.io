@@ -253,7 +253,6 @@ createApp({
         const qualityCN = { white:'普通', green:'优秀', blue:'精良', purple:'史诗', orange:'传说' };
         const slotNames = { weapon:'武器', armor:'衣服', necklace:'项链', ring:'戒指', shoes:'鞋子', belt:'腰带' };
         const skillNameMap = {1:'爪击',2:'火花',3:'水枪',4:'飞叶快刀',5:'电击',6:'叫声',7:'催眠粉',8:'暗袭',9:'光弹',10:'冰冻之风',11:'熔岩铠甲',12:'荆棘护甲',13:'暴风雪',14:'龙之吐息',15:'暗黑气场',16:'冰晶护体',17:'地震',18:'毒针',19:'麻痹粉',20:'灼热吐息'};
-        const passiveSkillMap = { 'p_hp_flat':{ name:'强壮',icon:'🩸',rarity:'common',desc:'HP+5%' }, 'p_atk_flat':{ name:'勇猛',icon:'⚔️',rarity:'common',desc:'攻击+5%' }, 'p_def_flat':{ name:'坚韧',icon:'🛡️',rarity:'common',desc:'防御+5%' }, 'p_spd_flat':{ name:'迅捷',icon:'💨',rarity:'common',desc:'速度+5%' }, 'p_silver_up':{ name:'招财',icon:'💰',rarity:'common',desc:'银两+10%' }, 'p_exp_up':{ name:'好学',icon:'📚',rarity:'common',desc:'经验+10%' }, 'p_crit_rate':{ name:'会心',icon:'✨',rarity:'rare',desc:'暴击率+5%' }, 'p_lifesteal':{ name:'嗜血',icon:'🩸',rarity:'rare',desc:'攻击回复5%' }, 'p_thorns':{ name:'荆棘',icon:'🌿',rarity:'rare',desc:'反弹10%伤害' }, 'p_dodge':{ name:'灵巧',icon:'💨',rarity:'rare',desc:'闪避率+3%' }, 'p_counter':{ name:'反击',icon:'🔄',rarity:'rare',desc:'10%反击50%伤害' }, 'p_berserk':{ name:'狂暴',icon:'😤',rarity:'rare',desc:'HP<30%攻击+15%' }, 'p_first_strike':{ name:'先制',icon:'⚡',rarity:'rare',desc:'15%抢先攻击' }, 'p_double_atk':{ name:'连击',icon:'⚡',rarity:'legendary',desc:'10%双倍伤害' }, 'p_revive':{ name:'复活',icon:'🍀',rarity:'legendary',desc:'5%复活回复30%' }, 'p_freezing':{ name:'冰霜之心',icon:'❄️',rarity:'legendary',desc:'8%冰冻1回合' }, 'p_burning':{ name:'烈焰之魂',icon:'🔥',rarity:'legendary',desc:'10%灼伤3回合' }, 'p_pet_link':{ name:'同心',icon:'🐾',rarity:'legendary',desc:'分担15%伤害' }, 'p_last_stand':{ name:'绝命一击',icon:'💀',rarity:'legendary',desc:'阵亡时20%HP伤害' }, 'p_lucky_drop':{ name:'幸运光环',icon:'🍀',rarity:'legendary',desc:'掉落率+1%' } };
         const auctionItems = ref([
             { id:1, name:'捕捉球', description:'用于捕捉野生宠物', price:100 },
             { id:2, name:'金疮药', description:'回复角色30%气血', price:150 },
@@ -337,7 +336,6 @@ createApp({
                 if(pr.data) {
                     profile.value = pr.data;
                     username.value = pr.data.username; silver.value = pr.data.silver; diamond.value = pr.data.diamond; energy.value = pr.data.energy; merit.value = pr.data.merit||0;
-                    // 仅当数据库有有效血量时才覆盖，否则保留当前前端值
                     if (pr.data.current_hp != null && pr.data.current_hp > 0) {
                         playerHp.value = pr.data.current_hp;
                     }
@@ -398,23 +396,7 @@ createApp({
         }
 
         // 治疗角色
-        async function useHealItem() {
-            if (playerHp.value >= playerMaxHp.value) { showToast('气血已满'); return; }
-            try {
-                const data = await safeRpc('use_heal_item', { p_item_id: HEAL_ITEM_ID, p_quantity: 1 });
-                playerHp.value = data.new_hp;
-                showToast(`使用金疮药，回复 ${data.heal_amount} 点气血`);
-                await refreshData();
-            } catch (e) {
-                const healAmount = Math.floor(playerMaxHp.value * HEAL_RATIO);
-                playerHp.value = Math.min(playerHp.value + healAmount, playerMaxHp.value);
-                const item = inventory.value.find(i => i.item_id === HEAL_ITEM_ID);
-                if (item) item.quantity--;
-                showToast(`使用金疮药，回复 ${healAmount} 点气血（本地）`);
-                try { await supabase.from('profiles').update({ current_hp: playerHp.value }).eq('id', profile.value.id); if(item) await supabase.from('user_items').update({ quantity: item.quantity }).eq('id', item.id); } catch (dbErr) {}
-                await refreshData();
-            }
-        }
+        async function useHealItem() { if (playerHp.value >= playerMaxHp.value) { showToast('气血已满'); return; } try { const data = await safeRpc('use_heal_item', { p_item_id: HEAL_ITEM_ID, p_quantity: 1 }); playerHp.value = data.new_hp; showToast(`使用金疮药，回复 ${data.heal_amount} 点气血`); await refreshData(); } catch (e) { showToast(e.message || '治疗失败'); await refreshData(); } }
 
         // 农场、战斗等核心操作（使用 safeRpc 简化错误处理）
         async function buySeed(seedId) { try { await safeRpc('buy_seed',{p_seed_id:seedId}); showToast('购买成功'); await refreshData(); } catch(e) { showToast('购买出错'); } }
@@ -455,29 +437,7 @@ createApp({
 
         async function getDailyQuests() { const{data}=await supabase.rpc('get_daily_quests'); if(data) dailyQuests.value=data.quests||[]; }
         async function submitQuest(id) { try { const data = await safeRpc('submit_quest',{p_quest_id:id}); showToast('获得功德值 +'+data.merit_gained); refreshData(); } catch(e) { showToast('提交出错'); } }
-        async function attackWorldBoss() { 
-            worldBossStats.attacks_today >= 10 ? showToast('今日攻击次数已用完') : (() => { 
-                const carriedPet = myPets.value.find(p => p.is_carried); 
-                const petId = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null); 
-                if (!petId) { showToast('请先拥有至少一只宠物'); return; } 
-                battleBusy.value = true; 
-                (async () => { 
-                    try { 
-                        const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: petId }); 
-                        if (error) throw error; 
-                        if (data.error) { showToast(data.error); return; } 
-                        silver.value += data.silver_reward; 
-                        energy.value = data.energy_left; 
-                        worldBossStats.attacks_today = data.attacks_today; 
-                        worldBossStats.total_damage_today += data.damage; 
-                        worldBoss.value.hp = data.boss_hp; 
-                        if (data.boss_hp <= 0) worldBoss.value.active = false; 
-                        showToast(data.message || `造成 ${data.damage} 伤害，获得 ${data.silver_reward} 银两`); 
-                    } catch (e) { showToast('攻击失败：' + e.message); } 
-                    finally { battleBusy.value = false; } 
-                })(); 
-            })(); 
-        }
+        async function attackWorldBoss() { worldBossStats.attacks_today >= 10 ? showToast('今日攻击次数已用完') : (() => { const carriedPet = myPets.value.find(p => p.is_carried); const petId = carriedPet ? carriedPet.id : (myPets.value.length ? myPets.value[0].id : null); if (!petId) { showToast('请先拥有至少一只宠物'); return; } battleBusy.value = true; (async () => { try { const { data, error } = await supabase.rpc('attack_world_boss', { p_boss_id: 1, p_pet_id: petId }); if (error) throw error; if (data.error) { showToast(data.error); return; } silver.value += data.silver_reward; energy.value = data.energy_left; worldBossStats.attacks_today = data.attacks_today; worldBossStats.total_damage_today += data.damage; worldBoss.value.hp = data.boss_hp; if (data.boss_hp <= 0) worldBoss.value.active = false; showToast(data.message || `造成 ${data.damage} 伤害，获得 ${data.silver_reward} 银两`); } catch (e) { showToast('攻击失败：' + e.message); } finally { battleBusy.value = false; } })(); })(); }
         async function addFriend() { await supabase.rpc('add_friend',{p_friend_username:friendName.value}); refreshData(); }
         async function addStat(stat) { if(!profile.value?.potential_points){showToast('没有潜力点了！');return;} try { const data = await safeRpc('add_stat',{p_stat:stat}); profile.value=data; showToast('加点成功！'); } catch(e) { showToast('加点出错'); } }
         function selectSlot(slot) { selectedSlot.value=slot; }
@@ -501,12 +461,10 @@ createApp({
             towerBusy.value = true;
             try {
                 await syncTowerProgress();
-                // 调用准备 RPC：检查并扣除还魂丹，回满血
                 const prepareData = await safeRpc('prepare_tower_challenge');
                 playerHp.value = prepareData.player_hp;
                 showToast('准备完毕！');
 
-                // 宠物检查
                 if(activePet.value){
                     activePet.value.current_hp = Math.min(activePet.value.current_hp, petMaxHp.value);
                     petHp.value = activePet.value.current_hp;
@@ -526,7 +484,6 @@ createApp({
                     }
                 }
 
-                // 开始爬塔战斗
                 const petStats = calcPetStats(activePet.value);
                 const rpcParams = {
                     p_pet_id: activePet.value.id, p_pet_current_hp: petHp.value, p_pet_max_hp: petStats.hp,
