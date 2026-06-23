@@ -264,7 +264,8 @@
     // ==================== 1. 初始化 Supabase ====================
     const SUPABASE_URL = 'https://gjcxcexgendndemnuole.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_gAX7qZRxBDgsos4usm6Y4g_qdC3KZQ0';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // 使用不同的变量名避免与全局 supabase 冲突
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ==================== 2. DOM 引用 ====================
     const authBox = document.getElementById('authBox');
@@ -318,7 +319,7 @@
             alert('请先在邮箱输入框中填写你的邮箱地址');
             return;
         }
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
             redirectTo: window.location.origin + '/guestbook.html',
         });
         if (error) {
@@ -341,11 +342,11 @@
 
         try {
             if (isLoginMode) {
-                const { error } = await supabase.auth.signInWithPassword({ email, password });
+                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) throw error;
             } else {
                 if (!name) throw new Error('请填写昵称');
-                const { data, error } = await supabase.auth.signUp({
+                const { data, error } = await supabaseClient.auth.signUp({
                     email,
                     password,
                     options: { data: { name } }
@@ -367,7 +368,7 @@
     });
 
     // ==================== 6. 监听登录状态 ====================
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session) {
             authBox.classList.add('hidden');
             appBox.classList.remove('hidden');
@@ -387,7 +388,7 @@
 
     // ==================== 7. 退出 ====================
     logoutBtn.addEventListener('click', async () => {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
     });
 
     // ==================== 8. 渲染单条留言 ====================
@@ -399,7 +400,7 @@
 
         let actionsHtml = '';
         // 仅当当前登录用户是管理员时，显示删除按钮
-        const currentUser = supabase.auth.getUser();
+        const currentUser = supabaseClient.auth.getUser();
         if (currentUser && adminEmail) {
             // 在下方加载时动态判断，这里先留空
         }
@@ -431,7 +432,7 @@
     // ==================== 9. 加载 + 删除逻辑 ====================
     async function loadMessages() {
         msgList.innerHTML = `<div class="empty-state"><span>⏳</span> 加载中...</div>`;
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('guestbook')
             .select('*')
             .order('created_at', { ascending: false });
@@ -448,7 +449,7 @@
         }
 
         // 获取当前用户信息，判断是否为管理员
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         const isAdmin = user && user.email === adminEmail;
 
         data.forEach(msg => {
@@ -467,7 +468,7 @@
     }
 
     async function deleteMessage(id) {
-        const { error } = await supabase.from('guestbook').delete().eq('id', id);
+        const { error } = await supabaseClient.from('guestbook').delete().eq('id', id);
         if (error) {
             alert('删除失败：' + error.message);
         } else {
@@ -484,7 +485,7 @@
         const content = msgContent.value.trim();
         if (!content) return;
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) {
             alert('请先登录');
             return;
@@ -496,7 +497,7 @@
         btn.disabled = true;
         btn.textContent = '发送中...';
 
-        const { error } = await supabase.from('guestbook').insert({
+        const { error } = await supabaseClient.from('guestbook').insert({
             user_id: user.id,
             user_name: name,
             email: user.email,
@@ -514,7 +515,7 @@
     });
 
     // ==================== 11. 实时订阅 ====================
-    supabase
+    supabaseClient
         .channel('guestbook-public')
         .on('postgres_changes', 
             { event: 'INSERT', schema: 'public', table: 'guestbook' },
@@ -526,7 +527,7 @@
                 const msgEl = renderMsg(payload.new);
                 const deleteBtn = msgEl.querySelector('.delete-btn');
                 // 判断当前用户是否是管理员，若是则显示删除按钮
-                supabase.auth.getUser().then(({ data: { user } }) => {
+                supabaseClient.auth.getUser().then(({ data: { user } }) => {
                     const isAdmin = user && user.email === adminEmail;
                     if (isAdmin) {
                         deleteBtn.classList.remove('hidden');
@@ -543,7 +544,7 @@
         .subscribe();
 
     // ==================== 12. 初始检查 ====================
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             authBox.classList.add('hidden');
             appBox.classList.remove('hidden');
