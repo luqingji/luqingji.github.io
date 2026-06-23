@@ -6,6 +6,7 @@
     <title>留言板 · 隅</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* 样式保持不变（与前版一致） */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -264,7 +265,6 @@
     // ==================== 1. 初始化 Supabase ====================
     const SUPABASE_URL = 'https://gjcxcexgendndemnuole.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_gAX7qZRxBDgsos4usm6Y4g_qdC3KZQ0';
-    // 使用不同的变量名避免与全局 supabase 冲突
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ==================== 2. DOM 引用 ====================
@@ -288,7 +288,7 @@
     const forgotLink = document.getElementById('forgotLink');
 
     let isLoginMode = true;
-    let adminEmail = 'yesluki@qq.com';  // ⚠️ 请改为管理员邮箱
+    const adminEmail = 'yesluki@qq.com';  // ⚠️ 务必改成你的管理员邮箱
 
     // ==================== 3. 切换登录/注册 ====================
     toggleLink.addEventListener('click', () => {
@@ -329,12 +329,12 @@
         }
     });
 
-    // ==================== 5. 登录 / 注册 ====================
+    // ==================== 5. 登录 / 注册（加加载状态） ====================
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         authError.textContent = '';
         authBtn.disabled = true;
-        authBtn.textContent = '处理中...';
+        authBtn.textContent = '⏳ 处理中...';
 
         const email = emailInput.value.trim();
         const password = passwordInput.value;
@@ -367,9 +367,10 @@
         }
     });
 
-    // ==================== 6. 监听登录状态 ====================
+    // ==================== 6. 监听登录状态（优化版） ====================
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session) {
+            // 已登录
             authBox.classList.add('hidden');
             appBox.classList.remove('hidden');
             const user = session.user;
@@ -378,8 +379,10 @@
             if (user.email === adminEmail) {
                 welcomeMsg.innerHTML += ' <span class="admin-badge">⭐ 管理员</span>';
             }
-            loadMessages();
+            // 加载留言（同时传递当前用户邮箱用于判断管理员）
+            loadMessages(user.email);
         } else {
+            // 未登录
             authBox.classList.remove('hidden');
             appBox.classList.add('hidden');
             msgList.innerHTML = `<div class="empty-state"><span>📭</span> 暂无留言</div>`;
@@ -392,17 +395,16 @@
     });
 
     // ==================== 8. 渲染单条留言 ====================
-    function renderMsg(msg) {
+    function renderMsg(msg, currentUserEmail) {
         const div = document.createElement('div');
         div.className = 'msg-item';
         const time = new Date(msg.created_at).toLocaleString('zh-CN', { hour12: false });
         const isAdmin = msg.email === adminEmail;
 
-        let actionsHtml = '';
-        // 仅当当前登录用户是管理员时，显示删除按钮
-        const currentUser = supabaseClient.auth.getUser();
-        if (currentUser && adminEmail) {
-            // 在下方加载时动态判断，这里先留空
+        let deleteBtnHtml = '';
+        // 如果当前登录用户是管理员，显示删除按钮
+        if (currentUserEmail === adminEmail) {
+            deleteBtnHtml = `<button class="delete-btn" data-id="${msg.id}">🗑️ 删除</button>`;
         }
 
         div.innerHTML = `
@@ -417,9 +419,19 @@
             </div>
             <div class="msg-content">${escapeHtml(msg.content)}</div>
             <div class="msg-actions" style="justify-content:flex-end; margin-top:0.3rem;">
-                <button class="delete-btn hidden" data-id="${msg.id}">🗑️ 删除</button>
+                ${deleteBtnHtml}
             </div>
         `;
+
+        // 绑定删除事件（如果有删除按钮）
+        if (deleteBtnHtml) {
+            const delBtn = div.querySelector('.delete-btn');
+            delBtn.addEventListener('click', () => {
+                if (confirm('确定要删除这条留言吗？')) {
+                    deleteMessage(msg.id);
+                }
+            });
+        }
         return div;
     }
 
@@ -429,8 +441,8 @@
         return div.innerHTML;
     }
 
-    // ==================== 9. 加载 + 删除逻辑 ====================
-    async function loadMessages() {
+    // ==================== 9. 加载留言（传入当前用户邮箱） ====================
+    async function loadMessages(currentUserEmail = null) {
         msgList.innerHTML = `<div class="empty-state"><span>⏳</span> 加载中...</div>`;
         const { data, error } = await supabaseClient
             .from('guestbook')
@@ -448,21 +460,14 @@
             return;
         }
 
-        // 获取当前用户信息，判断是否为管理员
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        const isAdmin = user && user.email === adminEmail;
+        // 如果没有传入邮箱，尝试从 session 获取（保险）
+        if (!currentUserEmail) {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            currentUserEmail = session?.user?.email || null;
+        }
 
         data.forEach(msg => {
-            const msgEl = renderMsg(msg);
-            const deleteBtn = msgEl.querySelector('.delete-btn');
-            if (isAdmin) {
-                deleteBtn.classList.remove('hidden');
-                deleteBtn.addEventListener('click', () => {
-                    if (confirm('确定要删除这条留言吗？')) {
-                        deleteMessage(msg.id);
-                    }
-                });
-            }
+            const msgEl = renderMsg(msg, currentUserEmail);
             msgList.appendChild(msgEl);
         });
     }
@@ -472,18 +477,22 @@
         if (error) {
             alert('删除失败：' + error.message);
         } else {
-            // 页面中的元素会在实时订阅或手动移除前被删除
-            // 但为了保险，手动移除 DOM 也可以
             const btn = document.querySelector(`.delete-btn[data-id="${id}"]`);
             if (btn) btn.closest('.msg-item').remove();
         }
     }
 
-    // ==================== 10. 提交留言 ====================
+    // ==================== 10. 提交留言（带防重复锁） ====================
+    let isSubmitting = false;
     guestForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         const content = msgContent.value.trim();
-        if (!content) return;
+        if (!content) {
+            alert('留言内容不能为空');
+            return;
+        }
 
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) {
@@ -492,10 +501,12 @@
         }
 
         const name = user.user_metadata?.name || user.email;
-
         const btn = guestForm.querySelector('button');
+
+        isSubmitting = true;
         btn.disabled = true;
-        btn.textContent = '发送中...';
+        msgContent.disabled = true;
+        btn.textContent = '⏳ 发送中...';
 
         const { error } = await supabaseClient.from('guestbook').insert({
             user_id: user.id,
@@ -504,7 +515,9 @@
             content: content
         });
 
+        isSubmitting = false;
         btn.disabled = false;
+        msgContent.disabled = false;
         btn.textContent = '📨 发送留言';
 
         if (error) {
@@ -520,30 +533,21 @@
         .on('postgres_changes', 
             { event: 'INSERT', schema: 'public', table: 'guestbook' },
             (payload) => {
-                // 移除空状态
                 const empty = msgList.querySelector('.empty-state');
                 if (empty) empty.remove();
 
-                const msgEl = renderMsg(payload.new);
-                const deleteBtn = msgEl.querySelector('.delete-btn');
-                // 判断当前用户是否是管理员，若是则显示删除按钮
-                supabaseClient.auth.getUser().then(({ data: { user } }) => {
-                    const isAdmin = user && user.email === adminEmail;
-                    if (isAdmin) {
-                        deleteBtn.classList.remove('hidden');
-                        deleteBtn.addEventListener('click', () => {
-                            if (confirm('确定要删除这条留言吗？')) {
-                                deleteMessage(payload.new.id);
-                            }
-                        });
-                    }
+                // 获取当前用户邮箱，判断是否管理员
+                supabaseClient.auth.getSession().then(({ data: { session } }) => {
+                    const currentUserEmail = session?.user?.email || null;
+                    const msgEl = renderMsg(payload.new, currentUserEmail);
+                    msgList.prepend(msgEl);
                 });
-                msgList.prepend(msgEl);
             }
         )
         .subscribe();
 
     // ==================== 12. 初始检查 ====================
+    // 一次性获取 session，不重复调用 getUser
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             authBox.classList.add('hidden');
@@ -554,7 +558,7 @@
             if (user.email === adminEmail) {
                 welcomeMsg.innerHTML += ' <span class="admin-badge">⭐ 管理员</span>';
             }
-            loadMessages();
+            loadMessages(user.email);
         }
     });
 </script>
