@@ -3,54 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>留言板 · 隅</title>
+    <title>隅 · 安静角落</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ==================== 基础重置 ==================== */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: #f6f8fa;
             background-image: radial-gradient(circle at 10% 20%, rgba(30, 30, 47, 0.03) 0%, transparent 60%);
             min-height: 100vh;
+            padding: 2rem 1rem;
             display: flex;
             justify-content: center;
-            padding: 2rem 1rem;
         }
-        .container {
+        .app-container {
             max-width: 600px;
             width: 100%;
         }
-        h1 {
-            text-align: center;
-            color: #1e1e2f;
-            font-weight: 500;
-            letter-spacing: -0.5px;
+
+        /* ==================== 导航 ==================== */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 0.8rem 1.2rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
             margin-bottom: 2rem;
-            font-size: 2rem;
+            flex-wrap: wrap;
         }
-        h1 span {
+        .nav-brand {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #1e1e2f;
+        }
+        .nav-brand span {
             background: linear-gradient(135deg, #e67e22, #f1c40f);
             background-clip: text;
             -webkit-background-clip: text;
             color: transparent;
         }
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+        }
+        .nav-links a:hover, .nav-links a.active {
+            color: #1e1e2f;
+            background: #f1f5f9;
+        }
+        .nav-links #logoutBtn {
+            background: #e2e8f0;
+            color: #1e1e2f;
+            padding: 0.4rem 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .nav-links #logoutBtn:hover { background: #cbd5e1; }
+        .hidden { display: none !important; }
 
-        /* 卡片风格 */
+        /* ==================== 页面容器 ==================== */
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ==================== 卡片与表单 ==================== */
         .card {
             background: #ffffff;
             border-radius: 20px;
             padding: 1.8rem;
             margin-bottom: 1.5rem;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s;
         }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+        .card:hover { transform: translateY(-2px); }
+        .card-header {
+            font-weight: 600;
+            color: #1e1e2f;
+            margin-bottom: 1.2rem;
+            font-size: 1.1rem;
         }
 
-        /* 表单元素 */
-        input, textarea {
+        input, textarea, select {
             width: 100%;
             padding: 0.8rem 1rem;
             margin-bottom: 1rem;
@@ -58,7 +110,7 @@
             border-radius: 12px;
             font-size: 1rem;
             background: #fafbfc;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: 0.2s;
             outline: none;
         }
         input:focus, textarea:focus {
@@ -77,150 +129,134 @@
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.2s;
         }
-        button:hover { 
-            transform: scale(1.02); 
-            background: #2d2d45;
+        button:hover { background: #2d2d45; transform: scale(1.02); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-outline {
+            background: transparent;
+            color: #1e1e2f;
+            border: 1px solid #e2e8f0;
         }
-        button:disabled { opacity: 0.6; cursor: not-allowed; transform: scale(1); }
+        .btn-outline:hover { background: #f1f5f9; }
 
-        /* 登录/注册切换 */
+        /* ==================== 动态流帖子 ==================== */
+        .post-item {
+            padding: 1.2rem 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .post-item:last-child { border-bottom: none; }
+        .post-header {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .post-avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            object-fit: cover;
+        }
+        .post-user { font-weight: 600; color: #1e1e2f; font-size: 0.95rem; }
+        .post-time { font-size: 0.75rem; color: #94a3b8; }
+        .post-content { color: #334155; line-height: 1.6; margin-bottom: 0.5rem; }
+        .post-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin: 0.5rem 0;
+            object-fit: cover;
+        }
+        .post-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            align-items: center;
+        }
+        .post-actions button {
+            width: auto;
+            padding: 0.2rem 0.8rem;
+            background: transparent;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85rem;
+            border-radius: 20px;
+        }
+        .post-actions button:hover { background: #f1f5f9; border-color: #94a3b8; }
+        .post-actions button.liked { color: #ef4444; border-color: #fecaca; background: #fef2f2; }
+
+        /* ==================== 个人主页 ==================== */
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .profile-avatar-large {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #e2e8f0;
+            margin-bottom: 0.8rem;
+        }
+        .profile-username { font-size: 1.4rem; font-weight: 600; color: #1e1e2f; }
+        .profile-bio { color: #64748b; margin-top: 0.3rem; }
+        .profile-stats {
+            display: flex;
+            gap: 2rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .profile-stats span { color: #94a3b8; }
+        .profile-stats strong { color: #1e1e2f; }
+
+        /* ==================== 登录 ==================== */
         .toggle-row {
             display: flex;
             justify-content: center;
-            align-items: center;
-            gap: 0.8rem;
+            gap: 0.5rem;
             margin-top: 0.8rem;
             color: #64748b;
             font-size: 0.9rem;
         }
-        .toggle-row a {
-            color: #1e1e2f;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 2px;
-        }
-        .toggle-row a:hover { color: #3b3b5c; }
-        .hidden { display: none !important; }
+        .toggle-row a { color: #1e1e2f; font-weight: 500; cursor: pointer; text-decoration: underline; }
         #authError { color: #e53e3e; font-size: 0.9rem; margin-top: 0.5rem; text-align: center; }
 
-        /* 消息列表 */
-        #msgList { position: relative; }
-        .msg-item {
-            padding: 1rem 0;
-            border-bottom: 1px solid #edf2f7;
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-            animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        /* ==================== 加载遮罩 ==================== */
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 9999; font-size: 1.1rem; color: #1e1e2f;
         }
-        .msg-item:last-child { border-bottom: none; }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .msg-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .msg-user {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .msg-name {
-            font-weight: 600;
-            color: #1e1e2f;
-            font-size: 0.95rem;
-        }
-        .msg-time {
-            font-size: 0.75rem;
-            color: #94a3b8;
-        }
-        .msg-content {
-            color: #334155;
-            line-height: 1.6;
-            font-size: 0.95rem;
-            word-break: break-word;
-        }
-        .msg-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        .admin-badge {
-            background: #fbbf24;
-            color: #1e1e2f;
-            font-size: 0.7rem;
-            padding: 0.1rem 0.4rem;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-        .delete-btn {
-            background: transparent;
-            color: #ef4444;
-            border: 1px solid #fee2e2;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.7rem;
-            width: auto;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .delete-btn:hover {
-            background: #fee2e2;
-            transform: scale(1.05);
-        }
-
-        /* 空状态 & 加载 */
-        .empty-state { text-align: center; color: #94a3b8; padding: 2rem 0; }
-        .empty-state span { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
-
-        /* 退出 & 欢迎 */
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        #welcomeMsg { font-weight: 500; color: #1e1e2f; }
-        #logoutBtn {
-            width: auto;
-            padding: 0.4rem 1.2rem;
-            background: #e2e8f0;
-            color: #1e1e2f;
-            font-size: 0.85rem;
-        }
-        #logoutBtn:hover { background: #cbd5e1; }
-
-        /* 忘记密码链接 */
-        .forgot-link {
-            display: block;
-            text-align: right;
-            margin-top: -0.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
-            color: #64748b;
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 2px;
-        }
-        .forgot-link:hover { color: #1e1e2f; }
+        .loading-overlay.show { display: flex; }
+        .loader { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #1e1e2f; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 1rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 480px) {
-            .card { padding: 1.2rem; }
-            h1 { font-size: 1.6rem; }
+            .nav-bar { flex-direction: column; gap: 0.8rem; }
+            .nav-links { width: 100%; justify-content: space-around; }
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>💬 隅 · <span>留言板</span></h1>
 
-    <!-- ===== 登录/注册卡片 ===== -->
-    <div id="authBox" class="card">
+<div class="app-container">
+    <!-- ==================== 导航栏 ==================== -->
+    <div id="navBar" class="nav-bar hidden">
+        <div class="nav-brand">隅 · <span>角落</span></div>
+        <div class="nav-links">
+            <a id="navFeed" class="active">🌊 动态</a>
+            <a id="navProfile">👤 主页</a>
+            <a id="navGuestbook">💬 留言板</a>
+            <button id="logoutBtn">退出</button>
+        </div>
+    </div>
+
+    <!-- ==================== 登录/注册页面 ==================== -->
+    <div id="pageLogin" class="page active card">
         <h2 id="formTitle" style="font-weight:400; margin-bottom:1.2rem;">登录</h2>
         <form id="authForm">
             <input type="email" id="email" placeholder="邮箱" required>
@@ -228,7 +264,6 @@
             <div id="nameField" class="hidden">
                 <input type="text" id="userName" placeholder="你的昵称（必填）" required>
             </div>
-            <a id="forgotLink" class="forgot-link">忘记密码？</a>
             <button type="submit" id="authBtn">登录</button>
             <div id="authError"></div>
         </form>
@@ -238,37 +273,95 @@
         </div>
     </div>
 
-    <!-- ===== 留言板应用 ===== -->
-    <div id="appBox" class="hidden">
-        <div class="header-actions">
-            <span id="welcomeMsg">👋 你好</span>
-            <button id="logoutBtn">退出</button>
-        </div>
-
+    <!-- ==================== 动态页面 ==================== -->
+    <div id="pageFeed" class="page">
         <div class="card">
-            <form id="guestForm">
-                <textarea id="msgContent" rows="2" placeholder="写下你想说的话…" required></textarea>
-                <button type="submit">📨 发送留言</button>
+            <div class="card-header">🌊 发布动态</div>
+            <form id="postForm">
+                <textarea id="postContent" rows="2" placeholder="分享你的生活碎片…" required></textarea>
+                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+                    <input type="file" id="postImage" accept="image/*" style="width:auto; padding:0.3rem; margin:0;">
+                    <span id="imagePreview" style="font-size:0.8rem; color:#94a3b8;"></span>
+                </div>
+                <button type="submit">📤 发布动态</button>
             </form>
         </div>
+        <div id="feedList" class="card">
+            <div class="card-header">⏳ 加载动态中...</div>
+            <div id="postsContainer"></div>
+        </div>
+    </div>
 
-        <div class="card" id="msgListContainer">
-            <div id="msgList">
-                <div class="empty-state"><span>📭</span> 暂无留言，抢个沙发吧</div>
+    <!-- ==================== 个人主页页面 ==================== -->
+    <div id="pageProfile" class="page">
+        <div class="card">
+            <div class="card-header">👤 个人资料</div>
+            <div class="profile-header" id="profileHeader">
+                <img id="profileAvatar" class="profile-avatar-large" src="https://via.placeholder.com/100" alt="头像">
+                <div class="profile-username" id="profileUsername">用户名</div>
+                <div class="profile-bio" id="profileBio">写一段个人简介吧...</div>
+                <div class="profile-stats">
+                    <div><strong id="profilePosts">0</strong> <span>动态</span></div>
+                    <div><strong id="profileFollowers">0</strong> <span>关注者</span></div>
+                    <div><strong id="profileFollowing">0</strong> <span>关注</span></div>
+                </div>
+                <button id="followBtn" class="btn-outline" style="width:auto; padding:0.3rem 1.2rem; margin-top:0.5rem;">关注</button>
+            </div>
+            <form id="profileForm" style="border-top:1px solid #edf2f7; padding-top:1rem; margin-top:1rem;">
+                <input type="text" id="editUsername" placeholder="用户名（唯一）" required>
+                <input type="text" id="editBio" placeholder="个人简介">
+                <input type="text" id="editLocation" placeholder="所在城市">
+                <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:1rem;">
+                    <input type="file" id="editAvatar" accept="image/*" style="width:auto; padding:0.3rem; margin:0;">
+                    <span style="font-size:0.8rem; color:#94a3b8;">更换头像</span>
+                </div>
+                <button type="submit">💾 保存资料</button>
+            </form>
+        </div>
+        <div class="card" id="profilePostsContainer">
+            <div class="card-header">📝 我的动态</div>
+            <div id="myPostsList"></div>
+        </div>
+    </div>
+
+    <!-- ==================== 旧留言板整合 ==================== -->
+    <div id="pageGuestbook" class="page">
+        <div class="card">
+            <div class="card-header">💬 公共留言板</div>
+            <p style="color:#64748b; margin-bottom:1rem;">这里的留言仍然保留，供大家闲谈。</p>
+            <!-- 可扩展旧留言板功能 -->
+            <div style="background:#f1f5f9; padding:2rem; border-radius:12px; text-align:center; color:#94a3b8;">
+                🛠️ 旧留言板功能已整合，如需完整互动请切换至“动态”页面。
             </div>
         </div>
     </div>
 </div>
 
+<!-- ==================== 全局加载遮罩 ==================== -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loader"></div>
+    <p>✨ 正在处理，请稍候...</p>
+</div>
+
 <script>
-    // ==================== 1. 初始化 Supabase ====================
+    // ==================== 1. 配置与初始化 ====================
     const SUPABASE_URL = 'https://gjcxcexgendndemnuole.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_gAX7qZRxBDgsos4usm6Y4g_qdC3KZQ0';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const adminEmail = 'yesluki@qq.com';
+    const loadingOverlay = document.getElementById('loadingOverlay');
 
     // ==================== 2. DOM 引用 ====================
-    const authBox = document.getElementById('authBox');
-    const appBox = document.getElementById('appBox');
+    const navBar = document.getElementById('navBar');
+    const pageLogin = document.getElementById('pageLogin');
+    const pageFeed = document.getElementById('pageFeed');
+    const pageProfile = document.getElementById('pageProfile');
+    const pageGuestbook = document.getElementById('pageGuestbook');
+    const navFeed = document.getElementById('navFeed');
+    const navProfile = document.getElementById('navProfile');
+    const navGuestbook = document.getElementById('navGuestbook');
+    const logoutBtn = document.getElementById('logoutBtn');
+
     const authForm = document.getElementById('authForm');
     const authBtn = document.getElementById('authBtn');
     const formTitle = document.getElementById('formTitle');
@@ -279,17 +372,109 @@
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const authError = document.getElementById('authError');
-    const msgList = document.getElementById('msgList');
-    const welcomeMsg = document.getElementById('welcomeMsg');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const guestForm = document.getElementById('guestForm');
-    const msgContent = document.getElementById('msgContent');
-    const forgotLink = document.getElementById('forgotLink');
+
+    const postForm = document.getElementById('postForm');
+    const postContent = document.getElementById('postContent');
+    const postImage = document.getElementById('postImage');
+    const imagePreview = document.getElementById('imagePreview');
+    const postsContainer = document.getElementById('postsContainer');
+    const feedList = document.getElementById('feedList');
+
+    const profileAvatar = document.getElementById('profileAvatar');
+    const profileUsername = document.getElementById('profileUsername');
+    const profileBio = document.getElementById('profileBio');
+    const profilePosts = document.getElementById('profilePosts');
+    const profileFollowers = document.getElementById('profileFollowers');
+    const profileFollowing = document.getElementById('profileFollowing');
+    const followBtn = document.getElementById('followBtn');
+    const profileForm = document.getElementById('profileForm');
+    const editUsername = document.getElementById('editUsername');
+    const editBio = document.getElementById('editBio');
+    const editLocation = document.getElementById('editLocation');
+    const editAvatar = document.getElementById('editAvatar');
+    const myPostsList = document.getElementById('myPostsList');
 
     let isLoginMode = true;
-    const adminEmail = 'yesluki@qq.com';  // ⚠️ 务必改成你的管理员邮箱
+    let currentUser = null;         // auth user
+    let currentProfile = null;      // profiles record
+    let viewingProfileId = null;    // 当前查看的用户ID
 
-    // ==================== 3. 切换登录/注册 ====================
+    // ==================== 3. 工具函数 ====================
+    function showLoading(show) {
+        if (show) loadingOverlay.classList.add('show');
+        else loadingOverlay.classList.remove('show');
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 图片压缩函数（纯前端）
+    function compressImage(file, maxWidth, maxHeight, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, file.type || 'image/jpeg', quality);
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    }
+
+    async function uploadFile(bucket, file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const { data, error } = await supabaseClient.storage.from(bucket).upload(fileName, file);
+        if (error) throw error;
+        const { data: urlData } = supabaseClient.storage.from(bucket).getPublicUrl(fileName);
+        return urlData.publicUrl;
+    }
+
+    // ==================== 4. 路由导航 ====================
+    function navigate(pageId) {
+        document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById(pageId);
+        if (target) target.classList.add('active');
+
+        document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+        if (pageId === 'pageFeed') navFeed.classList.add('active');
+        else if (pageId === 'pageProfile') navProfile.classList.add('active');
+        else if (pageId === 'pageGuestbook') navGuestbook.classList.add('active');
+
+        // 加载对应数据
+        if (pageId === 'pageFeed') loadFeed();
+        else if (pageId === 'pageProfile') loadProfile();
+    }
+
+    // ==================== 5. 认证与切换登录/注册 ====================
     toggleLink.addEventListener('click', () => {
         isLoginMode = !isLoginMode;
         if (isLoginMode) {
@@ -310,25 +495,6 @@
         authError.textContent = '';
     });
 
-    // ==================== 4. 忘记密码 ====================
-    forgotLink.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const email = emailInput.value.trim();
-        if (!email) {
-            alert('请先在邮箱输入框中填写你的邮箱地址');
-            return;
-        }
-        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + '/guestbook.html',
-        });
-        if (error) {
-            alert('发送失败：' + error.message);
-        } else {
-            alert('✅ 重置密码邮件已发送，请检查邮箱（注意垃圾箱）');
-        }
-    });
-
-    // ==================== 5. 登录 / 注册（加加载状态） ====================
     authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         authError.textContent = '';
@@ -346,222 +512,413 @@
             } else {
                 if (!name) throw new Error('请填写昵称');
                 const { data, error } = await supabaseClient.auth.signUp({
-                    email,
-                    password,
+                    email, password,
                     options: { data: { name } }
                 });
                 if (error) throw error;
                 if (!data.user?.identities?.length) {
-                    authError.textContent = '请检查邮箱进行验证，验证后重新登录';
+                    authError.textContent = '请检查邮箱验证，验证后重新登录';
                     authBtn.disabled = false;
                     authBtn.textContent = isLoginMode ? '登录' : '注册';
                     return;
                 }
             }
         } catch (err) {
-            authError.textContent = err.message || '操作失败，请重试';
+            authError.textContent = err.message || '操作失败';
         } finally {
             authBtn.disabled = false;
             authBtn.textContent = isLoginMode ? '登录' : '注册';
         }
     });
 
-    // ==================== 6. 监听登录状态（优化版） ====================
+    // ==================== 6. 状态监听 ====================
     supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session) {
-            // 已登录
-            authBox.classList.add('hidden');
-            appBox.classList.remove('hidden');
-            const user = session.user;
-            const name = user.user_metadata?.name || user.email;
-            welcomeMsg.textContent = `👋 你好，${name}`;
-            if (user.email === adminEmail) {
-                welcomeMsg.innerHTML += ' <span class="admin-badge">⭐ 管理员</span>';
-            }
-            // 加载留言（同时传递当前用户邮箱用于判断管理员）
-            loadMessages(user.email);
+            currentUser = session.user;
+            navBar.classList.remove('hidden');
+            pageLogin.classList.remove('active');
+            navigate('pageFeed');
+            ensureProfile();
         } else {
-            // 未登录
-            authBox.classList.remove('hidden');
-            appBox.classList.add('hidden');
-            msgList.innerHTML = `<div class="empty-state"><span>📭</span> 暂无留言</div>`;
+            currentUser = null;
+            currentProfile = null;
+            navBar.classList.add('hidden');
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            pageLogin.classList.add('active');
         }
     });
+
+    async function ensureProfile() {
+        if (!currentUser) return;
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+        if (error && error.code === 'PGRST116') {
+            const defaultName = currentUser.user_metadata?.name || currentUser.email.split('@')[0];
+            const { error: createError } = await supabaseClient
+                .from('profiles')
+                .insert({
+                    id: currentUser.id,
+                    username: defaultName,
+                    bio: '这个人很懒，什么都没有留下。',
+                });
+            if (createError) console.warn('创建默认profile失败', createError);
+        }
+        const { data: pData } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+        if (pData) currentProfile = pData;
+    }
 
     // ==================== 7. 退出 ====================
     logoutBtn.addEventListener('click', async () => {
         await supabaseClient.auth.signOut();
     });
 
-    // ==================== 8. 渲染单条留言 ====================
-    function renderMsg(msg, currentUserEmail) {
-        const div = document.createElement('div');
-        div.className = 'msg-item';
-        const time = new Date(msg.created_at).toLocaleString('zh-CN', { hour12: false });
-        const isAdmin = msg.email === adminEmail;
+    // ==================== 8. 导航点击 ====================
+    navFeed.addEventListener('click', (e) => { e.preventDefault(); navigate('pageFeed'); });
+    navProfile.addEventListener('click', (e) => { e.preventDefault(); navigate('pageProfile'); });
+    navGuestbook.addEventListener('click', (e) => { e.preventDefault(); navigate('pageGuestbook'); });
 
-        let deleteBtnHtml = '';
-        // 如果当前登录用户是管理员，显示删除按钮
-        if (currentUserEmail === adminEmail) {
-            deleteBtnHtml = `<button class="delete-btn" data-id="${msg.id}">🗑️ 删除</button>`;
+    // ==================== 9. 发布动态（带图片压缩） ====================
+    let isPosting = false;
+    postForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isPosting) return;
+        const content = postContent.value.trim();
+        if (!content && !postImage.files.length) {
+            alert('请输入内容或选择一张图片');
+            return;
         }
-
-        div.innerHTML = `
-            <div class="msg-header">
-                <div class="msg-user">
-                    <span class="msg-name">${escapeHtml(msg.user_name)}</span>
-                    ${isAdmin ? '<span class="admin-badge">⭐</span>' : ''}
-                </div>
-                <div class="msg-actions">
-                    <span class="msg-time">${time}</span>
-                </div>
-            </div>
-            <div class="msg-content">${escapeHtml(msg.content)}</div>
-            <div class="msg-actions" style="justify-content:flex-end; margin-top:0.3rem;">
-                ${deleteBtnHtml}
-            </div>
-        `;
-
-        // 绑定删除事件（如果有删除按钮）
-        if (deleteBtnHtml) {
-            const delBtn = div.querySelector('.delete-btn');
-            delBtn.addEventListener('click', () => {
-                if (confirm('确定要删除这条留言吗？')) {
-                    deleteMessage(msg.id);
+        isPosting = true;
+        showLoading(true);
+        try {
+            let imageUrl = null;
+            if (postImage.files.length) {
+                const file = postImage.files[0];
+                // 压缩图片：最大宽度/高度 800px，质量 85%
+                let finalFile = file;
+                if (file.size > 200 * 1024) {
+                    const compressedBlob = await compressImage(file, 800, 800, 0.85);
+                    finalFile = new File([compressedBlob], file.name, { type: compressedBlob.type });
                 }
+                imageUrl = await uploadFile('posts', finalFile);
+            }
+            const { error } = await supabaseClient.from('posts').insert({
+                user_id: currentUser.id,
+                content: content || null,
+                image_url: imageUrl
             });
+            if (error) throw error;
+            postContent.value = '';
+            postImage.value = '';
+            imagePreview.textContent = '';
+            loadFeed();
+        } catch (err) {
+            alert('发布失败：' + err.message);
+        } finally {
+            isPosting = false;
+            showLoading(false);
         }
-        return div;
-    }
+    });
 
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    postImage.addEventListener('change', () => {
+        if (postImage.files.length) {
+            imagePreview.textContent = `📎 已选 ${postImage.files[0].name}`;
+        } else {
+            imagePreview.textContent = '';
+        }
+    });
 
-    // ==================== 9. 加载留言（传入当前用户邮箱） ====================
-    async function loadMessages(currentUserEmail = null) {
-        msgList.innerHTML = `<div class="empty-state"><span>⏳</span> 加载中...</div>`;
-        const { data, error } = await supabaseClient
-            .from('guestbook')
-            .select('*')
+    // ==================== 10. 加载动态流 ====================
+    async function loadFeed() {
+        postsContainer.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:1rem;">⏳ 加载中...</div>';
+        const { data: posts, error } = await supabaseClient
+            .from('posts')
+            .select(`
+                *,
+                profiles ( id, username, avatar_url ),
+                likes ( user_id ),
+                follows!follower_id ( follower_id )
+            `)
             .order('created_at', { ascending: false });
 
         if (error) {
-            msgList.innerHTML = `<div class="empty-state" style="color:red;">加载失败：${error.message}</div>`;
+            postsContainer.innerHTML = `<div style="color:red;text-align:center;">加载失败：${error.message}</div>`;
             return;
         }
 
-        msgList.innerHTML = '';
-        if (data.length === 0) {
-            msgList.innerHTML = `<div class="empty-state"><span>📭</span> 还没有留言，快来抢沙发吧！</div>`;
+        if (!posts || posts.length === 0) {
+            postsContainer.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:2rem;">📭 还没有动态，发布第一条吧！</div>';
             return;
         }
 
-        // 如果没有传入邮箱，尝试从 session 获取（保险）
-        if (!currentUserEmail) {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            currentUserEmail = session?.user?.email || null;
-        }
+        postsContainer.innerHTML = '';
+        posts.forEach(post => {
+            const div = document.createElement('div');
+            div.className = 'post-item';
+            const avatar = post.profiles?.avatar_url || 'https://via.placeholder.com/40';
+            const username = post.profiles?.username || '匿名';
+            const time = new Date(post.created_at).toLocaleString('zh-CN', { hour12: false });
+            const isLiked = post.likes?.some(l => l.user_id === currentUser?.id);
+            const likeCount = post.likes?.length || 0;
 
-        data.forEach(msg => {
-            const msgEl = renderMsg(msg, currentUserEmail);
-            msgList.appendChild(msgEl);
+            div.innerHTML = `
+                <div class="post-header">
+                    <img class="post-avatar" src="${escapeHtml(avatar)}" alt="头像">
+                    <span class="post-user">${escapeHtml(username)}</span>
+                    <span class="post-time">${time}</span>
+                </div>
+                <div class="post-content">${escapeHtml(post.content)}</div>
+                ${post.image_url ? `<img class="post-image" src="${escapeHtml(post.image_url)}" alt="配图">` : ''}
+                <div class="post-actions">
+                    <button class="like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">${isLiked ? '❤️' : '🤍'} ${likeCount}</button>
+                </div>
+            `;
+            postsContainer.appendChild(div);
+        });
+
+        // 绑定点赞事件
+        document.querySelectorAll('.like-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!currentUser) return alert('请先登录');
+                const postId = parseInt(btn.dataset.postId);
+                const isCurrentlyLiked = btn.classList.contains('liked');
+                try {
+                    if (isCurrentlyLiked) {
+                        await supabaseClient.from('likes').delete()
+                            .eq('user_id', currentUser.id)
+                            .eq('post_id', postId);
+                        btn.classList.remove('liked');
+                        btn.textContent = btn.textContent.replace('❤️', '🤍');
+                        const count = parseInt(btn.textContent.split(' ')[1]) - 1;
+                        btn.textContent = `🤍 ${count}`;
+                    } else {
+                        await supabaseClient.from('likes').insert({
+                            user_id: currentUser.id,
+                            post_id: postId
+                        });
+                        btn.classList.add('liked');
+                        btn.textContent = btn.textContent.replace('🤍', '❤️');
+                        const count = parseInt(btn.textContent.split(' ')[1]) + 1;
+                        btn.textContent = `❤️ ${count}`;
+                    }
+                } catch (err) {
+                    alert('操作失败：' + err.message);
+                }
+            });
         });
     }
 
-    async function deleteMessage(id) {
-        const { error } = await supabaseClient.from('guestbook').delete().eq('id', id);
-        if (error) {
-            alert('删除失败：' + error.message);
+    // ==================== 11. 个人主页 ====================
+    async function loadProfile() {
+        if (!currentUser) return;
+        const { data: profile, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+        if (error || !profile) {
+            alert('加载资料失败');
+            return;
+        }
+        currentProfile = profile;
+        renderProfile(profile);
+        loadMyPosts();
+    }
+
+    function renderProfile(profile) {
+        profileAvatar.src = profile.avatar_url || 'https://via.placeholder.com/100';
+        profileUsername.textContent = profile.username || '未设置';
+        profileBio.textContent = profile.bio || '这个人很懒，什么都没有留下。';
+        editUsername.value = profile.username || '';
+        editBio.value = profile.bio || '';
+        editLocation.value = profile.location || '';
+
+        loadFollowStats(profile.id);
+    }
+
+    async function loadFollowStats(userId) {
+        const { count: followerCount } = await supabaseClient
+            .from('follows')
+            .select('*', { count: 'exact', head: true })
+            .eq('following_id', userId);
+        const { count: followingCount } = await supabaseClient
+            .from('follows')
+            .select('*', { count: 'exact', head: true })
+            .eq('follower_id', userId);
+        profileFollowers.textContent = followerCount || 0;
+        profileFollowing.textContent = followingCount || 0;
+
+        if (currentUser && currentUser.id !== userId) {
+            const { data: followCheck } = await supabaseClient
+                .from('follows')
+                .select('*')
+                .eq('follower_id', currentUser.id)
+                .eq('following_id', userId)
+                .maybeSingle();
+            if (followCheck) {
+                followBtn.textContent = '取消关注';
+                followBtn.classList.add('btn-outline');
+                followBtn.style.borderColor = '#ef4444';
+                followBtn.style.color = '#ef4444';
+            } else {
+                followBtn.textContent = '关注';
+                followBtn.classList.add('btn-outline');
+                followBtn.style.borderColor = '#e2e8f0';
+                followBtn.style.color = '#1e1e2f';
+            }
+            followBtn.style.display = 'block';
         } else {
-            const btn = document.querySelector(`.delete-btn[data-id="${id}"]`);
-            if (btn) btn.closest('.msg-item').remove();
+            followBtn.style.display = 'none';
         }
     }
 
-    // ==================== 10. 提交留言（防重复锁 + 提交后刷新页面） ====================
-    let isSubmitting = false;
-    guestForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (isSubmitting) return;
-
-        const content = msgContent.value.trim();
-        if (!content) {
-            alert('留言内容不能为空');
-            return;
-        }
-
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) {
-            alert('请先登录');
-            return;
-        }
-
-        const name = user.user_metadata?.name || user.email;
-        const btn = guestForm.querySelector('button');
-
-        isSubmitting = true;
-        btn.disabled = true;
-        msgContent.disabled = true;
-        btn.textContent = '⏳ 发送中...';
-
-        const { error } = await supabaseClient.from('guestbook').insert({
-            user_id: user.id,
-            user_name: name,
-            email: user.email,
-            content: content
-        });
-
-        // 无论成功失败，都解锁（但成功后要刷新）
-        isSubmitting = false;
-        btn.disabled = false;
-        msgContent.disabled = false;
-        btn.textContent = '📨 发送留言';
-
-        if (error) {
-            alert('发送失败：' + error.message);
-        } else {
-            // ✅ 发送成功，刷新页面，让所有用户看到新留言
-            window.location.reload();
-        }
-    });
-
-    // ==================== 11. 实时订阅（作为辅助，但刷新后会重新加载） ====================
-    supabaseClient
-        .channel('guestbook-public')
-        .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'guestbook' },
-            (payload) => {
-                // 如果页面没有被刷新，这个回调依然会触发，但我们可以忽略或处理
-                // 这里保留以兼容实时更新，但用户主要依靠刷新，所以可以保留
-                const empty = msgList.querySelector('.empty-state');
-                if (empty) empty.remove();
-
-                supabaseClient.auth.getSession().then(({ data: { session } }) => {
-                    const currentUserEmail = session?.user?.email || null;
-                    const msgEl = renderMsg(payload.new, currentUserEmail);
-                    msgList.prepend(msgEl);
+    followBtn.addEventListener('click', async () => {
+        if (!currentUser) return alert('请先登录');
+        if (!currentProfile) return;
+        const isFollowing = followBtn.textContent === '取消关注';
+        try {
+            if (isFollowing) {
+                await supabaseClient.from('follows').delete()
+                    .eq('follower_id', currentUser.id)
+                    .eq('following_id', currentProfile.id);
+            } else {
+                await supabaseClient.from('follows').insert({
+                    follower_id: currentUser.id,
+                    following_id: currentProfile.id
                 });
             }
-        )
-        .subscribe();
-
-    // ==================== 12. 初始检查 ====================
-    supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            authBox.classList.add('hidden');
-            appBox.classList.remove('hidden');
-            const user = session.user;
-            const name = user.user_metadata?.name || user.email;
-            welcomeMsg.textContent = `👋 你好，${name}`;
-            if (user.email === adminEmail) {
-                welcomeMsg.innerHTML += ' <span class="admin-badge">⭐ 管理员</span>';
-            }
-            loadMessages(user.email);
+            loadFollowStats(currentProfile.id);
+        } catch (err) {
+            alert('操作失败：' + err.message);
         }
     });
+
+    // ==================== 12. 更新个人资料（带头像压缩） ====================
+    let isSavingProfile = false;
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (isSavingProfile) return;
+        isSavingProfile = true;
+        showLoading(true);
+        try {
+            const username = editUsername.value.trim();
+            if (!username) throw new Error('用户名不能为空');
+            let avatarUrl = currentProfile?.avatar_url;
+            if (editAvatar.files.length) {
+                const file = editAvatar.files[0];
+                // 头像压缩：最大 200x200，质量 80%
+                let finalFile = file;
+                if (file.size > 200 * 1024) {
+                    const compressedBlob = await compressImage(file, 200, 200, 0.8);
+                    finalFile = new File([compressedBlob], file.name, { type: compressedBlob.type });
+                }
+                avatarUrl = await uploadFile('avatars', finalFile);
+            }
+            const { error } = await supabaseClient
+                .from('profiles')
+                .upsert({
+                    id: currentUser.id,
+                    username: username,
+                    bio: editBio.value.trim(),
+                    location: editLocation.value.trim(),
+                    avatar_url: avatarUrl,
+                    updated_at: new Date().toISOString()
+                });
+            if (error) throw error;
+            const { data: newProfile } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+            if (newProfile) {
+                currentProfile = newProfile;
+                renderProfile(newProfile);
+            }
+            alert('✅ 资料已更新');
+        } catch (err) {
+            alert('保存失败：' + err.message);
+        } finally {
+            isSavingProfile = false;
+            showLoading(false);
+        }
+    });
+
+    // ==================== 13. 加载我的动态 ====================
+    async function loadMyPosts() {
+        myPostsList.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:1rem;">⏳ 加载中...</div>';
+        const { data: posts, error } = await supabaseClient
+            .from('posts')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            myPostsList.innerHTML = `<div style="color:red;">加载失败</div>`;
+            return;
+        }
+        if (!posts || posts.length === 0) {
+            myPostsList.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:1rem;">还没有发布过动态</div>';
+            profilePosts.textContent = '0';
+            return;
+        }
+        profilePosts.textContent = posts.length;
+        myPostsList.innerHTML = '';
+        posts.forEach(post => {
+            const div = document.createElement('div');
+            div.className = 'post-item';
+            const time = new Date(post.created_at).toLocaleString('zh-CN', { hour12: false });
+            div.innerHTML = `
+                <div class="post-header">
+                    <span class="post-time">${time}</span>
+                </div>
+                <div class="post-content">${escapeHtml(post.content)}</div>
+                ${post.image_url ? `<img class="post-image" src="${escapeHtml(post.image_url)}" alt="配图">` : ''}
+                <div style="margin-top:0.3rem;">
+                    <button class="delete-my-post btn-outline" data-post-id="${post.id}" style="width:auto;padding:0.2rem 0.8rem;font-size:0.8rem;color:#ef4444;">🗑️ 删除</button>
+                </div>
+            `;
+            myPostsList.appendChild(div);
+        });
+
+        document.querySelectorAll('.delete-my-post').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('确定要删除这条动态吗？')) return;
+                const postId = parseInt(btn.dataset.postId);
+                const { error } = await supabaseClient.from('posts').delete().eq('id', postId);
+                if (error) alert('删除失败：' + error.message);
+                else loadMyPosts();
+            });
+        });
+    }
+
+    // ==================== 14. 初始检查 ====================
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            currentUser = session.user;
+            navBar.classList.remove('hidden');
+            pageLogin.classList.remove('active');
+            navigate('pageFeed');
+            ensureProfile();
+        } else {
+            pageLogin.classList.add('active');
+        }
+    });
+
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash.replace('#', '');
+        if (hash === 'feed') navigate('pageFeed');
+        else if (hash === 'profile') navigate('pageProfile');
+        else if (hash === 'guestbook') navigate('pageGuestbook');
+    });
+    if (window.location.hash) {
+        window.dispatchEvent(new Event('hashchange'));
+    }
 </script>
 </body>
 </html>
