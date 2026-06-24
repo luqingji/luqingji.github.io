@@ -6,7 +6,6 @@
     <title>留言板 · 隅</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 样式保持不变（与前版一致） */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -482,7 +481,7 @@
         }
     }
 
-    // ==================== 10. 提交留言（带防重复锁） ====================
+    // ==================== 10. 提交留言（防重复锁 + 提交后刷新页面） ====================
     let isSubmitting = false;
     guestForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -515,6 +514,7 @@
             content: content
         });
 
+        // 无论成功失败，都解锁（但成功后要刷新）
         isSubmitting = false;
         btn.disabled = false;
         msgContent.disabled = false;
@@ -523,20 +523,22 @@
         if (error) {
             alert('发送失败：' + error.message);
         } else {
-            msgContent.value = '';
+            // ✅ 发送成功，刷新页面，让所有用户看到新留言
+            window.location.reload();
         }
     });
 
-    // ==================== 11. 实时订阅 ====================
+    // ==================== 11. 实时订阅（作为辅助，但刷新后会重新加载） ====================
     supabaseClient
         .channel('guestbook-public')
         .on('postgres_changes', 
             { event: 'INSERT', schema: 'public', table: 'guestbook' },
             (payload) => {
+                // 如果页面没有被刷新，这个回调依然会触发，但我们可以忽略或处理
+                // 这里保留以兼容实时更新，但用户主要依靠刷新，所以可以保留
                 const empty = msgList.querySelector('.empty-state');
                 if (empty) empty.remove();
 
-                // 获取当前用户邮箱，判断是否管理员
                 supabaseClient.auth.getSession().then(({ data: { session } }) => {
                     const currentUserEmail = session?.user?.email || null;
                     const msgEl = renderMsg(payload.new, currentUserEmail);
@@ -547,7 +549,6 @@
         .subscribe();
 
     // ==================== 12. 初始检查 ====================
-    // 一次性获取 session，不重复调用 getUser
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
             authBox.classList.add('hidden');
