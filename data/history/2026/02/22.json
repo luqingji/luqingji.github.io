@@ -1,177 +1,10 @@
 {
-  "date": "2026-06-27",
-  "updated_at": "2026-06-27T01:24:39.652432+00:00",
-  "sentence": {
-    "content": "民谣有三：爱情 理想 远方   听者有三：孤独 平庸 落魄",
-    "from": "殿下",
-    "meaning": "在这句诗中，，，，着民谣的三种主题——爱情、理想、远方，映射出听者的三种心境——孤独、平庸、落魄。民谣如镜，映照出听者内心深处最真实的自我。"
-  },
-  "songs": [
-    {
-      "id": 3358432060,
-      "name": "Free Your Mind (Extended Mix)",
-      "artist": "Prospa",
-      "album": "Free Your Mind (Extended Mix)",
-      "recommendation": "心灵解放曲"
-    },
-    {
-      "id": 3368666402,
-      "name": "DON'T BELIEVE IT",
-      "artist": "John Summit",
-      "album": "CTRL ESCAPE",
-      "recommendation": "迷离禁感"
-    },
-    {
-      "id": 139359,
-      "name": "且听风吟",
-      "artist": "朴树",
-      "album": "生如夏花",
-      "recommendation": "tranquil心灵栖息地"
-    },
-    {
-      "id": 3345979944,
-      "name": "Dracula (JENNIE Remix)",
-      "artist": "Tame Impala",
-      "album": "Dracula (Remix)",
-      "recommendation": "诡秘魅惑音。"
-    },
-    {
-      "id": 18637990,
-      "name": "Beauty And A Beat",
-      "artist": "Justin Bieber",
-      "album": "Believe (Deluxe Edition)",
-      "recommendation": "节奏感爆棚的夏日新品。"
-    },
-    {
-      "id": 1407951508,
-      "name": "Adore You",
-      "artist": "Harry Styles",
-      "album": "Fine Line",
-      "recommendation": "深情颂歌致爱。"
-    }
-  ],
-  "article": {
-    "title": "瞎扯 · 如何正确地吐槽",
-    "description": "瞎扯 · 如何正确地吐槽",
-    "content": "",
-    "author": "知乎日报",
-    "url": "https://daily.zhihu.com/story/9790728",
-    "source": "知乎日报",
-    "meaning": "在这篇《瞎扯 · 如何正确地吐槽》中，你将学会如何在幽默与智慧中找到平衡，以最恰当的方式表达自己的观点。"
-  },
-  "zaobao": {
-    "date": "2026-06-27",
-    "news": [
-      {
-        "title": "1、“国补”继续，第三批625亿元资金已下达；截至6月20日，今年消费品以旧换新惠及1.36亿人次，带动销售额超1万亿元；",
-        "content": "1、“国补”继续，第三批625亿元资金已下达；截至6月20日，今年消费品以旧换新惠及1.36亿人次，带动销售额超1万亿元；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "2、新型能源体系“十五五”规划出炉：2030年我国电力装机规模将达54亿千瓦；",
-        "content": "2、新型能源体系“十五五”规划出炉：2030年我国电力装机规模将达54亿千瓦；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "3、我国设立“养老服务师”职业资格制度，初级、中级实行全国统一考试；",
-        "content": "3、我国设立“养老服务师”职业资格制度，初级、中级实行全国统一考试；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "4、上海：面向全体60岁以上老人开放陪诊服务，外地来沪也可购买；",
-        "content": "4、上海：面向全体60岁以上老人开放陪诊服务，外地来沪也可购买；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "5、张雪机车冠军版正式预售：价格6.6万元，1小时卖出524台；",
-        "content": "5、张雪机车冠军版正式预售：价格6.6万元，1小时卖出524台；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "6、DeepSeek启动大规模招聘，计划将所有部门的规模扩大至少一倍；",
-        "content": "6、DeepSeek启动大规模招聘，计划将所有部门的规模扩大至少一倍；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "7、微信回应朋友圈互动规则：单删原封不动，互删清空对方全部痕迹；",
-        "content": "7、微信回应朋友圈互动规则：单删原封不动，互删清空对方全部痕迹；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "8、浙江男生高考数学满分被清华录取，老师：新高考Ⅰ卷全国唯一满分；",
-        "content": "8、浙江男生高考数学满分被清华录取，老师：新高考Ⅰ卷全国唯一满分；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "9、湖南一学校当众砸毁上百部学生手机，学校称手机没收多年无人认领，起到警示作用，教育局回应：做法不当；",
-        "content": "9、湖南一学校当众砸毁上百部学生手机，学校称手机没收多年无人认领，起到警示作用，教育局回应：做法不当；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "10、男子多次网购榴莲“仅退款”后倒卖，安徽淮北警方通报：24岁男子被采取刑事强制措施；",
-        "content": "10、男子多次网购榴莲“仅退款”后倒卖，安徽淮北警方通报：24岁男子被采取刑事强制措施；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "11、韩国生育率回升，新生儿数量连续增长22个月，今年4月比去年同期多生18%；",
-        "content": "11、韩国生育率回升，新生儿数量连续增长22个月，今年4月比去年同期多生18%；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "12、日本航空自卫队改编为“航空宇宙自卫队”，明确“将宇宙领域列为新的行动领域”;",
-        "content": "12、日本航空自卫队改编为“航空宇宙自卫队”，明确“将宇宙领域列为新的行动领域”;",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "13、欧洲超1亿人遭高温“烤”验，英国超千所学校停课，家长自掏腰包给教室装空调；",
-        "content": "13、欧洲超1亿人遭高温“烤”验，英国超千所学校停课，家长自掏腰包给教室装空调；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "14、联合国官员称委内瑞拉强震后逾5万人失踪；中方将向委内瑞拉提供紧急人道主义援助；",
-        "content": "14、联合国官员称委内瑞拉强震后逾5万人失踪；中方将向委内瑞拉提供紧急人道主义援助；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      },
-      {
-        "title": "15、美媒爆：伊朗袭击对美军基地造成重创，五角大楼计划转移军力以规避打击；",
-        "content": "15、美媒爆：伊朗袭击对美军基地造成重创，五角大楼计划转移军力以规避打击；",
-        "source": "",
-        "summary": "",
-        "url": ""
-      }
-    ],
-    "weiyu": "人生来是为行动的，就像火光总向上腾，石头总往下落。",
-    "image": "https://file.alapi.cn/60s/202606261782500400.png",
-    "audio": "https://file.alapi.cn/60s/audio/2026-06-27_413454596182426.mp3"
-  },
+  "date": "2026-02-22",
+  "updated_at": "2026-02-21T16:00:00",
+  "sentence": null,
+  "songs": [],
+  "article": null,
+  "zaobao": null,
   "one": {
     "article": {
       "title": "不坏",
@@ -181,10 +14,10 @@
       "img_url": ""
     },
     "photo": {
-      "title": "VOL.5012",
-      "author": "摄影＆Fabio Sasso 作品",
-      "image": "http://image.wufazhuce.com/FmD6-eUSdeuLQ8ug3M5F3Kwy_oGG",
-      "description": "在一个成功才是唯一美德的世界，他听任自己失败。 by 约瑟夫·海勒",
+      "title": "VOL.4887",
+      "author": "周日推荐＆时间的回声 作品",
+      "image": "http://image.wufazhuce.com/FhJAosRf73xPMqAgOKDw0UV_xpFa",
+      "description": "人无法踏入同一条河流，也无法真正回到过去。记忆是温柔的悖论，它承认失去，却拒绝消失。那些已远去的面容、不再响起的声音，因被记住而留存。故人和往事并未停留，一直追随思绪。\n\n本周日，ONE与你一同打捞那些沉在心底，依然发光的人与事。 by ONE编辑部",
       "url": ""
     },
     "question": {
@@ -193,6 +26,6 @@
       "author": ""
     }
   },
-  "easter": "愿你如春日暖阳， wherever you go闪耀，照亮前行的每一步。",
-  "summary": "平凡生活中寻不凡梦。"
+  "easter": null,
+  "summary": null
 }
