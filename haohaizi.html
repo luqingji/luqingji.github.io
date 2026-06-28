@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 家庭教育控制台</title>
+    <style>
+        /* ===== 全局重置 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== 顶部导航 ===== */
+        .header {
+            background: #2c3e50;
+            color: #fff;
+            padding: 12px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .header h1 span {
+            color: #f39c12;
+        }
+        .header .hint {
+            font-size: 13px;
+            color: #b0b8c0;
+        }
+        .header .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .header .actions button {
+            background: #f39c12;
+            border: none;
+            color: #2c3e50;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: inherit;
+        }
+        .header .actions button:hover {
+            background: #e67e22;
+        }
+        .header .actions button.print-btn {
+            background: #3498db;
+            color: #fff;
+        }
+        .header .actions button.print-btn:hover {
+            background: #2980b9;
+        }
+
+        /* ===== 主体布局 ===== */
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ===== 左侧卡片列表 ===== */
+        .sidebar {
+            width: 260px;
+            background: #fff;
+            border-right: 1px solid #e9edf2;
+            padding: 16px 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .sidebar .section-title {
+            font-size: 12px;
+            color: #95a5a6;
+            padding: 8px 20px 4px 20px;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .sidebar .card-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            text-align: left;
+            font-size: 14px;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+            font-family: inherit;
+        }
+        .sidebar .card-btn:hover {
+            background: #f5f7fa;
+        }
+        .sidebar .card-btn.active {
+            background: #ebf5fb;
+            border-left-color: #3498db;
+            font-weight: 600;
+        }
+        .sidebar .card-btn .icon {
+            font-size: 20px;
+            width: 30px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .sidebar .card-btn .badge {
+            margin-left: auto;
+            font-size: 11px;
+            background: #ecf0f1;
+            padding: 0 10px;
+            border-radius: 12px;
+            color: #7f8c8d;
+            white-space: nowrap;
+        }
+        .sidebar .card-btn .badge.preview {
+            background: #3498db;
+            color: #fff;
+        }
+        .sidebar .card-btn .badge.ready {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        /* ===== 右侧预览区 ===== */
+        .preview {
+            flex: 1;
+            background: #f5f7fa;
+            padding: 16px 24px;
+            overflow-y: auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .preview iframe {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+            border: none;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+        }
+
+        /* ===== 滚动条美化 ===== */
+        .sidebar::-webkit-scrollbar,
+        .preview::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #d0d7dd;
+            border-radius: 4px;
+        }
+        .preview::-webkit-scrollbar-thumb {
+            background: #d0d7dd;
+            border-radius: 4px;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 700px) {
+            .sidebar {
+                width: 200px;
+            }
+            .sidebar .card-btn {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+            .header h1 {
+                font-size: 17px;
+            }
+            .preview {
+                padding: 12px;
+            }
+            .header .hint {
+                display: none;
+            }
+        }
+        @media (max-width: 500px) {
+            .main {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 170px;
+                border-right: none;
+                border-bottom: 1px solid #e9edf2;
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding: 8px 12px;
+                gap: 6px;
+            }
+            .sidebar .section-title {
+                display: none;
+            }
+            .sidebar .card-btn {
+                flex-shrink: 0;
+                width: auto;
+                padding: 8px 16px;
+                border-left: none;
+                border-bottom: 3px solid transparent;
+                border-radius: 6px;
+                font-size: 13px;
+            }
+            .sidebar .card-btn .badge {
+                display: none;
+            }
+            .sidebar .card-btn.active {
+                border-bottom-color: #3498db;
+                background: #ebf5fb;
+            }
+            .preview {
+                padding: 10px;
+            }
+            .preview iframe {
+                min-height: 400px;
+            }
+            .header .actions button {
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ====== 顶部栏 ====== -->
+    <div class="header">
+        <h1>🏠 家庭教育<span>控制台</span></h1>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="hint">点击左侧卡片 · 右侧预览</span>
+            <div class="actions">
+                <button class="print-btn" onclick="printCurrentCard()">🖨️ 打印当前卡片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 主体 ====== -->
+    <div class="main">
+
+        <!-- ====== 左侧卡片列表 ====== -->
+        <div class="sidebar" id="sidebar">
+            <div class="section-title">📋 主页</div>
+            <button class="card-btn active" data-target="home">
+                <span class="icon">🏠</span> 家庭教育主页
+                <span class="badge preview">预览</span>
+            </button>
+
+            <div class="section-title" style="margin-top:12px;">💬 父女话题卡</div>
+            <button class="card-btn" data-target="topics1">
+                <span class="icon">🃏</span> 话题卡 · 第一弹
+                <span class="badge preview">预览</span>
+            </button>
+            <button class="card-btn" data-target="topics2">
+                <span class="icon">👨‍👧</span> 话题卡 · 第二弹
+                <span class="badge preview">预览</span>
+            </button>
+
+            <div class="section-title" style="margin-top:12px;">📊 工具</div>
+            <button class="card-btn" data-target="ledger">
+                <span class="icon">💰</span> 零花钱记账本
+                <span class="badge ready">完整版</span>
+            </button>
+            <button class="card-btn" data-target="calendar">
+                <span class="icon">📅</span> 每周执行日历
+                <span class="badge ready">完整版</span>
+            </button>
+
+            <!-- ===== 扩展预留区 ===== -->
+            <!--
+            <div class="section-title" style="margin-top:12px;">🎯 更多</div>
+            <button class="card-btn" data-target="topics3">
+                <span class="icon">🎯</span> 话题卡 · 第三弹
+                <span class="badge preview">预览</span>
+            </button>
+            -->
+        </div>
+
+        <!-- ====== 右侧预览区 ====== -->
+        <div class="preview" id="preview">
+            <iframe id="previewFrame" srcdoc=""></iframe>
+        </div>
+
+    </div>
+
+    <script>
+        // ============================================================
+        // 打印功能
+        // ============================================================
+        function printCurrentCard() {
+            const frame = document.getElementById('previewFrame');
+            const doc = frame.contentDocument || frame.contentWindow.document;
+            const content = doc.documentElement.outerHTML;
+            const win = window.open('', '_blank', 'width=1000,height=800');
+            win.document.write('<!DOCTYPE html><html>' + content + '</html>');
+            win.document.close();
+            win.focus();
+            win.print();
+        }
+
+        // ============================================================
+        // 所有卡片内容
+        // ============================================================
+
+        // -------- 1. 家庭教育主页 --------
+        const HOME_HTML = `<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>家庭教育主页</title>
+        <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#f5f7fa;padding:20px;color:#1e2a3a}
+        .container{max-width:1000px;margin:0 auto;background:#fff;border-radius:16px;padding:25px 30px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        h1{text-align:center;font-size:26px;border-bottom:4px solid #f39c12;padding-bottom:10px;margin-bottom:20px;color:#2c3e50}
+        .sub{text-align:center;color:#95a5a6;font-size:13px;margin-top:-10px;margin-bottom:20px}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+        .card{background:#fafcfe;border:1px solid #e9edf2;border-radius:10px;padding:14px 16px}
+        .card h3{font-size:15px;border-left:4px solid #f39c12;padding-left:10px;margin-bottom:8px;color:#2c3e50}
+        .card ul,.card ol{padding-left:18px;font-size:13px;line-height:1.8}
+        .card ul li,.card ol li{margin:2px 0}
+        .badge{display:inline-block;padding:0 8px;border-radius:10px;font-size:11px;color:#fff;background:#e74c3c;margin-right:4px}
+        .badge.green{background:#27ae60}
+        .badge.blue{background:#3498db}
+        .badge.orange{background:#f39c12}
+        .rule-box{background:#fef9e7;border-left:4px solid #f1c40f;padding:8px 12px;border-radius:4px;margin:6px 0;font-size:13px}
+        .tip-box{background:#ebf5fb;border-left:4px solid #3498db;padding:8px 12px;border-radius:4px;margin:6px 0;font-size:13px}
+        .highlight-red{color:#c0392b;font-weight:bold}
+        .highlight-green{color:#27ae60;font-weight:bold}
+        .highlight-blue{color:#2980b9;font-weight:bold}
+        .light-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}
+        .light-table td{padding:4px 6px;border-bottom:1px solid #ecf0f1}
+        .green-dot{color:#27ae60;font-weight:bold}
+        .yellow-dot{color:#f39c12;font-weight:bold}
+        .red-dot{color:#e74c3c;font-weight:bold}
+        .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;font-size:12px;text-align:center}
+        .cal-grid .d{background:#f4f6f8;padding:4px 0;border-radius:4px;color:#7f8c8d}
+        .cal-grid .d.weekend{background:#fef9e7;color:#2c3e50;font-weight:bold}
+        .cal-grid .d.payday{background:#d5f5e3;color:#1a7a3a;font-weight:bold;border:2px solid #27ae60}
+        .footer{text-align:center;margin-top:18px;font-size:13px;color:#95a5a6;border-top:1px solid #e9edf2;padding-top:14px}
+        .row-full{grid-column:1/-1}
+        @media(max-width:700px){.grid{grid-template-columns:1fr}body{padding:10px}.container{padding:16px}}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+        <h1>🏠 家庭教育主页</h1>
+        <div class="sub">柳州定制版 · 张贴于冰箱 · 2026年7月</div>
+        <div class="grid">
+
+        <div class="card"><h3>🧭 总方针</h3>
+        <div style="background:#eafaf1;padding:8px;border-radius:6px;font-size:14px;font-weight:bold;margin-bottom:6px;">"温和而坚定 · 先接情绪，再解决问题"</div>
+        <ul>
+        <li><span class="badge green">✓</span> 先接纳情绪，再讲道理</li>
+        <li><span class="badge green">✓</span> 延迟满足，用"愿望清单"</li>
+        <li><span class="badge green">✓</span> 周发零花钱（信封法）</li>
+        <li><span class="badge green">✓</span> 提前约定，减少现场对抗</li>
+        <li><span class="badge">✗</span> 不用"妹妹比你乖"对比</li>
+        <li><span class="badge">✗</span> 不剥夺哭泣的权利</li>
+        <li><span class="badge">✗</span> 不现场长篇说教</li>
+        </ul>
+        </div>
+
+        <div class="card"><h3>💰 零花钱制度</h3>
+        <div class="rule-box"><strong>起始年龄：</strong>6岁 · <strong>方式：</strong>周发（信封法）</div>
+        <ul>
+        <li><strong>基本津贴：</strong>每周 <span class="highlight-green">10元</span>（周日开信封）</li>
+        <li><strong>额外奖金：</strong>超常规家务 <span class="highlight-blue">1~2元/次</span></li>
+        <li><strong>爸妈出：</strong>文具 / 零食 / 必需品</li>
+        <li><strong>自己出：</strong>玩具 / 饰品 / 贴纸 / 套圈圈</li>
+        <li><strong>铁律：</strong>不提前、不预支、不干涉</li>
+        <li><strong>大件礼物：</strong>生日 / 儿童节 / 圣诞节</li>
+        </ul>
+        <div class="tip-box" style="margin-top:4px;">💡 每月最后一天包好4个信封，每周日姐姐自己打开当周的信封</div>
+        </div>
+
+        <div class="card"><h3>🛒 出门前三问</h3>
+        <div class="rule-box"><strong>带孩子出门前，先约定：</strong></div>
+        <ol>
+        <li><strong>去哪里？</strong> 只逛不买 / 预算多少</li>
+        <li><strong>看到喜欢的？</strong> 拍照进"愿望清单"</li>
+        <li><strong>做不到？</strong> 下次缩短时间 / 取消一次</li>
+        </ol>
+        <div class="tip-box" style="margin-top:4px;">💡 "今天去超市，你可以在10元以内选一样零食，其他只看不买，能做到吗？"</div>
+        </div>
+
+        <div class="card"><h3>😤 情绪急救四步法</h3>
+        <ol>
+        <li><strong>蹲下·共情</strong><br><span style="color:#7f8c8d;font-size:12px;">"妈妈知道你很难过，那个玩具确实很漂亮。"</span></li>
+        <li><strong>抱抱·接纳</strong><br><span style="color:#7f8c8d;font-size:12px;">"来，妈妈抱你一会儿，想哭就哭吧。"</span></li>
+        <li><strong>冷静期·转移</strong><br><span style="color:#7f8c8d;font-size:12px;">"拍照记下来，三天后还喜欢再考虑。"</span></li>
+        <li><strong>复盘·三句话</strong><br><span style="color:#7f8c8d;font-size:12px;">①你遵守了约定 ②有点遗憾 ③下周零花钱自己决定</span></li>
+        </ol>
+        <div class="rule-box" style="margin-top:4px;padding:4px 10px;font-size:12px;">⚠️ 绝对不说："去房间哭，别给我看见"</div>
+        </div>
+
+        <div class="card"><h3>📹 爸爸视频</h3>
+        <ul>
+        <li><strong>✗</strong> 不查户口："开不开心？学了啥？"</li>
+        <li><strong>✓</strong> 展示具体画面："你看爸爸午饭这个，猜猜什么味道？"</li>
+        <li><strong>✓</strong> 做选择题："妹妹抢你玩具了，还是跟你一起玩？"</li>
+        <li><strong>✓</strong> 固定仪式：每晚8:00"爸爸的今日寻宝"</li>
+        <li><strong>✓</strong> 妈妈提前埋线："待会儿告诉爸爸你画的那只猫"</li>
+        </ul>
+        <div class="tip-box" style="margin-top:4px;">💡 她不是不想你，是6岁"不会"把想念转化成对话</div>
+        </div>
+
+        <div class="card"><h3>🚦 红绿灯自检</h3>
+        <table class="light-table">
+        <tr><td><span class="green-dot">🟢 绿灯</span></td><td>被拒绝时情绪平复 &lt; 5分钟</td></tr>
+        <tr><td><span class="yellow-dot">🟡 黄灯</span></td><td>本周发生1次以上"臭骂开场"或"对比"</td></tr>
+        <tr><td><span class="red-dot">🔴 红灯</span></td><td>因哭闹妥协买了不该买的</td></tr>
+        <tr><td colspan="2" style="text-align:center;color:#95a5a6;font-size:12px;">目标：每周≥4个🟢，0个🔴</td></tr>
+        </table>
+        <div style="margin-top:6px;font-size:13px;background:#f4f6f8;padding:4px 10px;border-radius:4px;">本周：____个🟢 &nbsp; ____个🔴</div>
+        </div>
+
+        <div class="card row-full"><h3>📅 每周执行日历</h3>
+        <div style="font-size:13px;color:#7f8c8d;margin-bottom:4px;">零花钱：<span class="highlight-green">每周日开信封</span> ｜ 视频：<span class="highlight-blue">每晚8:00</span></div>
+        <div class="cal-grid">
+        <div class="d">一</div><div class="d">二</div><div class="d">三</div><div class="d">四</div><div class="d">五</div><div class="d weekend">六</div><div class="d weekend payday">日💰</div>
+        <div style="font-size:10px;color:#b0b8c0;">视频</div><div style="font-size:10px;color:#b0b8c0;">视频</div><div style="font-size:10px;color:#b0b8c0;">视频</div><div style="font-size:10px;color:#b0b8c0;">视频</div><div style="font-size:10px;color:#b0b8c0;">视频</div><div class="weekend" style="font-size:10px;">家庭日</div><div class="payday" style="font-size:10px;background:#d5f5e3;">发钱+复盘</div>
+        </div>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;font-size:12px;justify-content:center;">
+        <span>📌 周一~五 8:00视频</span>
+        <span>🏠 周六家庭日</span>
+        <span>💰 周日开信封+复盘</span>
+        </div>
+        </div>
+
+        </div>
+        <div class="footer">🌱 现在的每一次"不买"，都是为她16岁抵御消费诱惑种种子</div>
+        </div>
+        </body></html>`;
+
+        // -------- 2. 父女话题卡 · 第一弹 --------
+        const TOPICS1_HTML = `<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>父女话题卡 · 第一弹</title>
+        <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#f5f7fa;padding:20px;color:#1e2a3a}
+        .container{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;padding:20px 25px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        h1{text-align:center;font-size:24px;border-bottom:4px solid #f39c12;padding-bottom:8px;color:#2c3e50}
+        .sub{text-align:center;color:#95a5a6;font-size:13px;margin-bottom:16px}
+        .section{border:1px solid #e9edf2;border-radius:8px;margin-bottom:12px;overflow:hidden}
+        .section-header{display:flex;align-items:center;gap:6px;padding:6px 14px;font-weight:bold;font-size:15px;color:#fff}
+        .section-header .tag{font-size:11px;font-weight:normal;opacity:0.8;margin-left:auto}
+        .section-body{padding:4px 14px 8px 14px;background:#fafcfe}
+        .section-body .q{padding:4px 0 4px 24px;border-bottom:1px dashed #ecf0f1;font-size:14px;position:relative;line-height:1.6}
+        .section-body .q:last-child{border-bottom:none}
+        .section-body .q .num{position:absolute;left:0;top:4px;color:#b0b8c0;font-size:12px;width:18px;text-align:right}
+        .pink .section-header{background:#e91e63}
+        .blue .section-header{background:#1e88e5}
+        .green .section-header{background:#43a047}
+        .orange .section-header{background:#fb8c00}
+        .purple .section-header{background:#8e24aa}
+        .checkin{background:#fef9e7;border:2px dashed #f39c12;border-radius:8px;padding:10px 14px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-top:12px}
+        .checkin .title-line{grid-column:1/-1;font-weight:bold;color:#2c3e50;font-size:13px;padding-bottom:2px;background:transparent;border:none}
+        .checkin .day{background:#fff;padding:4px 0;border-radius:4px;border:1px solid #ecf0f1}
+        .checkin .day .label{color:#7f8c8d;font-size:10px}
+        .checkin .day .line{display:block;font-size:16px;color:#b0b8c0}
+        .footer{text-align:center;margin-top:12px;font-size:12px;color:#b0b8c0;border-top:1px solid #ecf0f1;padding-top:12px}
+        @media(max-width:600px){body{padding:10px}.container{padding:14px}.section-body .q{font-size:13px}}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+        <h1>🃏 父女话题卡 · 第一弹</h1>
+        <div class="sub">基础包 · 每天抽一句 · 爸爸问女儿答</div>
+
+        <div class="section pink"><div class="section-header">🃏 破冰卡 <span class="tag">刚见面/视频时</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 你看爸爸手里这个，猜猜它多少钱？</div>
+        <div class="q"><span class="num">2.</span> 爸爸今天做了一件超蠢的事，你猜是什么？</div>
+        <div class="q"><span class="num">3.</span> 如果给今天打一个表情符号，你打哪个？😊😭😡😴</div>
+        <div class="q"><span class="num">4.</span> 爸爸今天吃了一个奇怪的东西，猜是什么味道？</div>
+        <div class="q"><span class="num">5.</span> 你猜妈妈今天说的最多的词是什么？</div>
+        <div class="q"><span class="num">6.</span> 爸爸现在好饿，你觉得我最想吃什么？</div>
+        </div></div>
+
+        <div class="section blue"><div class="section-header">🌙 睡前卡 <span class="tag">睡前/走心</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 如果明天你可以当一天妈妈，你会怎么安排？</div>
+        <div class="q"><span class="num">2.</span> 今天哪一刻你最希望爸爸在你身边？</div>
+        <div class="q"><span class="num">3.</span> 如果你有魔法棒，最想改变家里的什么？</div>
+        <div class="q"><span class="num">4.</span> 今天有没有一个让你心里暖暖的瞬间？</div>
+        <div class="q"><span class="num">5.</span> 你觉得爸爸最厉害的本事是什么？</div>
+        <div class="q"><span class="num">6.</span> 如果明天是你最后一天当小孩，你最想做什么？</div>
+        </div></div>
+
+        <div class="section green"><div class="section-header">🎮 游戏卡 <span class="tag">随时随地</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 来玩"今天三件好事"——我先说，该你了！</div>
+        <div class="q"><span class="num">2.</span> 如果爸爸是一只动物，你觉得我是什么？为什么？</div>
+        <div class="q"><span class="num">3.</span> 快问快答：冰淇淋还是蛋糕？猫还是狗？</div>
+        <div class="q"><span class="num">4.</span> 如果你可以给全家人重新起名字，你会起什么？</div>
+        <div class="q"><span class="num">5.</span> 来比赛：谁先想到一种蓝色的东西谁赢！</div>
+        <div class="q"><span class="num">6.</span> 如果让你隐身一天，你会偷偷干什么？</div>
+        </div></div>
+
+        <div class="section orange"><div class="section-header">🍳 日常卡 <span class="tag">吃饭/路上</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 今天班上有哪个小朋友最搞笑？他做了什么？</div>
+        <div class="q"><span class="num">2.</span> 如果晚饭你可以随便点一道菜，你点什么？</div>
+        <div class="q"><span class="num">3.</span> 今天有没有一件事让你觉得"我长大了"？</div>
+        <div class="q"><span class="num">4.</span> 你最喜欢跟妈妈一起做什么？最不喜欢呢？</div>
+        <div class="q"><span class="num">5.</span> 如果选一个超能力，你选飞还是隐身？</div>
+        <div class="q"><span class="num">6.</span> 今天妹妹有没有做一件让你特别生气的事？</div>
+        </div></div>
+
+        <div class="section purple"><div class="section-header">⭐ 万能卡 <span class="tag">任何时候</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 你觉得自己最像家里的谁？为什么？</div>
+        <div class="q"><span class="num">2.</span> 如果有一天你变成大人，你最想做什么？</div>
+        <div class="q"><span class="num">3.</span> 今天你哭过吗？因为什么？</div>
+        <div class="q"><span class="num">4.</span> 如果爸爸可以陪你一整天，你最想让我陪你做什么？</div>
+        <div class="q"><span class="num">5.</span> 你觉得"幸福"是什么样子的？</div>
+        <div class="q"><span class="num">6.</span> 如果选一个颜色代表今天，你选什么？</div>
+        <div class="q"><span class="num">7.</span> 你心里面最害怕的一件事情是什么？</div>
+        <div class="q"><span class="num">8.</span> 你觉得爸爸妈妈哪里做得特别好？哪里可以更好？</div>
+        <div class="q"><span class="num">9.</span> 如果明天放假，你最想去哪里？</div>
+        <div class="q"><span class="num">10.</span> 今天你学会了什么新东西？</div>
+        <div class="q"><span class="num">11.</span> 如果你可以问爸爸一个问题，你想问什么？</div>
+        <div class="q"><span class="num">12.</span> 你觉得什么叫"勇敢"？</div>
+        </div></div>
+
+        <div class="checkin"><div class="title-line">📅 本周打卡 · 每天抽一句 ✅</div>
+        <div class="day"><span class="label">周一</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周二</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周三</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周四</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周五</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周六</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周日</span><span class="line">___</span></div>
+        </div>
+
+        <div class="footer">💡 爸爸先分享自己的答案 · 不问"为什么"，多问"是什么"</div>
+        </div>
+        </body></html>`;
+
+        // -------- 3. 父女话题卡 · 第二弹 --------
+        const TOPICS2_HTML = `<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>父女话题卡 · 第二弹</title>
+        <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#f5f7fa;padding:20px;color:#1e2a3a}
+        .container{max-width:800px;margin:0 auto;background:#fff;border-radius:12px;padding:20px 25px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+        h1{text-align:center;font-size:24px;border-bottom:4px solid #8e44ad;padding-bottom:8px;color:#2c3e50}
+        .sub{text-align:center;color:#95a5a6;font-size:13px;margin-bottom:16px}
+        .sub span{background:#f0f0f0;padding:0 10px;border-radius:12px;font-size:11px;color:#8e44ad}
+        .section{border:1px solid #e9edf2;border-radius:8px;margin-bottom:12px;overflow:hidden}
+        .section-header{display:flex;align-items:center;gap:6px;padding:6px 14px;font-weight:bold;font-size:15px;color:#fff}
+        .section-header .tag{font-size:11px;font-weight:normal;opacity:0.8;margin-left:auto}
+        .section-body{padding:4px 14px 8px 14px;background:#fafcfe}
+        .section-body .q{padding:4px 0 4px 24px;border-bottom:1px dashed #ecf0f1;font-size:14px;position:relative;line-height:1.6}
+        .section-body .q:last-child{border-bottom:none}
+        .section-body .q .num{position:absolute;left:0;top:4px;color:#b0b8c0;font-size:12px;width:18px;text-align:right}
+        .purple .section-header{background:#8e24aa}
+        .rose .section-header{background:#d81b60}
+        .teal .section-header{background:#00897b}
+        .coral .section-header{background:#e67e22}
+        .amber .section-header{background:#f57c00}
+        .indigo .section-header{background:#3949ab}
+        .checkin{background:#f3e5f5;border:2px dashed #8e44ad;border-radius:8px;padding:10px 14px;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;margin-top:12px}
+        .checkin .title-line{grid-column:1/-1;font-weight:bold;color:#2c3e50;font-size:13px;padding-bottom:2px;background:transparent;border:none}
+        .checkin .day{background:#fff;padding:4px 0;border-radius:4px;border:1px solid #ecf0f1}
+        .checkin .day .label{color:#7f8c8d;font-size:10px}
+        .checkin .day .line{display:block;font-size:16px;color:#b0b8c0}
+        .footer{text-align:center;margin-top:12px;font-size:12px;color:#b0b8c0;border-top:1px solid #ecf0f1;padding-top:12px}
+        @media(max-width:600px){body{padding:10px}.container{padding:14px}.section-body .q{font-size:13px}}
+        </style>
+        </head>
+        <body>
+        <div class="container">
+        <h1>👨‍👧 父女话题卡 · 第二弹</h1>
+        <div class="sub">进阶包 · <span>跟第一弹不重复</span> · 轮换着用</div>
+
+        <div class="section purple"><div class="section-header">💭 幻想卡 <span class="tag">天马行空</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 如果家里可以养一只恐龙，你希望它是什么颜色？</div>
+        <div class="q"><span class="num">2.</span> 如果云朵可以吃，你希望它是什么味道？</div>
+        <div class="q"><span class="num">3.</span> 如果你能变成一种动物，你想变成什么？为什么？</div>
+        <div class="q"><span class="num">4.</span> 如果月亮上开了一家店，你觉得是卖什么的？</div>
+        <div class="q"><span class="num">5.</span> 如果你有一双翅膀，第一件事想去哪里飞？</div>
+        <div class="q"><span class="num">6.</span> 如果玩具会说话，你猜你哪个玩具话最多？</div>
+        </div></div>
+
+        <div class="section rose"><div class="section-header">🤫 悄悄话卡 <span class="tag">睡前/走心</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 今天有没有一件事让你觉得有点丢脸？</div>
+        <div class="q"><span class="num">2.</span> 你心里有没有一个不想告诉任何人（除了爸爸）的秘密？</div>
+        <div class="q"><span class="num">3.</span> 最近有没有哪个人让你有点生气，但你没说出来？</div>
+        <div class="q"><span class="num">4.</span> 你觉得什么时候最孤单？那时候你想做什么？</div>
+        <div class="q"><span class="num">5.</span> 你有没有做过一个让你不想醒来的梦？</div>
+        <div class="q"><span class="num">6.</span> 你心里面最想要但从来没说出口的一样东西是什么？</div>
+        </div></div>
+
+        <div class="section teal"><div class="section-header">👨 爸爸卡 <span class="tag">围着爸爸聊</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 你觉得爸爸最害怕的东西是什么？</div>
+        <div class="q"><span class="num">2.</span> 你觉得爸爸小时候跟你有什么不一样？</div>
+        <div class="q"><span class="num">3.</span> 爸爸做什么事情的时候最让你开心？</div>
+        <div class="q"><span class="num">4.</span> 你觉得爸爸穿什么颜色的衣服最好看？</div>
+        <div class="q"><span class="num">5.</span> 如果爸爸变成小朋友，你会带他去玩什么？</div>
+        <div class="q"><span class="num">6.</span> 你觉得爸爸最像哪种动物？为什么？</div>
+        </div></div>
+
+        <div class="section coral"><div class="section-header">👭 朋友卡 <span class="tag">放学后</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 你最喜欢跟哪个小朋友玩？为什么是他/她？</div>
+        <div class="q"><span class="num">2.</span> 如果好朋友不开心，你会怎么安慰他/她？</div>
+        <div class="q"><span class="num">3.</span> 今天有没有跟小朋友抢东西？后来怎么解决的？</div>
+        <div class="q"><span class="num">4.</span> 如果让你给最好朋友送一个礼物，你送什么？</div>
+        <div class="q"><span class="num">5.</span> 你更喜欢跟一个人玩，还是跟一群人玩？</div>
+        <div class="q"><span class="num">6.</span> 你觉得什么样的朋友才算"好朋友"？</div>
+        </div></div>
+
+        <div class="section amber"><div class="section-header">🚀 长大卡 <span class="tag">未来/梦想</span></div>
+        <div class="section-body">
+        <div class="q"><span class="num">1.</span> 等你长大了，最想带爸爸妈妈去哪里玩？</div>
+        <div class="q"><span class="num">2.</span> 你长大以后最想学会的一项本领是什么？</div>
+        <div class="q"><span class="num">3.</span> 你觉得长大以后，什么会变好？什么会变难？</div>
+        <div class="q"><span class="num">4.</span> 等你当妈妈了，你会对自己的孩子做什么不一样的事？</div>
+        <div class="q"><span class="num">5.</span> 你最想让未来的自己记住现在的什么事？</div>
+        <div class="q"><span class="num">6.</span> 如果长大可以改变一件事，你最想改变什么？</div>
+        </div></div>
+
+        <div class="section indigo"><div class="section-header">🪄 接话神器 <span class="tag">当女儿说"不知道"时</span></div>
+        <div class="section-body" style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">①</span> "没关系，爸爸先说我的答案……"</div>
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">②</span> "来，石头剪刀布，输的人先回答！"</div>
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">③</span> "是不是问题太无聊了？那你换一个问我？"</div>
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">④</span> "如果必须选，你选A还是B？"</div>
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">⑤</span> "你慢慢想，爸爸等你，想多久都行。"</div>
+        <div class="q" style="border-bottom:1px dashed #ecf0f1;"><span class="num">⑥</span> "那我们来画画表达吧？画给爸爸看！"</div>
+        </div></div>
+
+        <div class="checkin"><div class="title-line">📅 本周打卡 · 每天抽一句 ✅</div>
+        <div class="day"><span class="label">周一</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周二</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周三</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周四</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周五</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周六</span><span class="line">___</span></div>
+        <div class="day"><span class="label">周日</span><span class="line">___</span></div>
+        </div>
+
+        <div class="footer">💡 第二弹 <strong>30个全新话题</strong> + 6个救场 · 跟第一弹轮流用</div>
+        </div>
+        </body></html>`;
+
+        // -------- 4. 零花钱记账本（完整版） --------
+        const LEDGER_HTML = `<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>零花钱记账本</title>
+        <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:"Microsoft YaHei","PingFang SC",Arial,sans-serif;background:#f5f7fa;padding:20px;max-width:900px;margin:0 auto}
+        .page{background:#fff;border-radius:12px;padding:25px 30px 30px 30px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.06)}
+        .page-title{text-align:center;font-size:24px;color:#2c3e50;border-bottom:4px solid #27ae60;padding-bottom:8px;margin-bottom:4px}
+        .page-sub{text-align:center;color:#95a5a6;font-size:13px;margin-bottom:16px}
+        .ledger-table{width:100%;border-collapse:collapse;font-size:14px;margin:6px 0 10px 0}
+        .ledger-table th{background:#27ae60;color:#fff;padding:8px 10px;text-align:center;border:1px solid #27ae60}
+        .ledger-table td{padding:6px 10px;border:1px solid #d0d7dd;text-align:center;height:36px}
+        .ledger-table .week-label{background:#f4f8f4;font-weight:bold;color:#2c3e50}
+        .wish-section{margin-top:16px;border-top:2px dashed #ecf0f1;padding-top:14px}
+        .wish-section h3{font-size:16px;color:#2c3e50;margin-bottom:8px}
+        .wish-section h3 span{color:#f39c12}
+        .wish-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+        .wish-item{border:1px dashed #d0d7dd;border-radius:6px;padding:10px 12px;text-align:center;min-height:80px;display:flex;flex-direction:column;justify-content:center}
+        .wish-item .wish-name{font-size:14px;color:#2c3e50;min-height:24px}
+        .wish-item .wish-price{font-size:12px;color:#95a5a6;margin-top:4px}
+        .wish-item .wish-status{font-size:11px;margin-top:4px;color:#f39c12}
+        .summary-box{margin-top:14px;background:#f4f8f4;border-radius:8px;padding:14px 18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center}
+        .summary-box .item{background:#fff;border-radius:6px;padding:8px 10px;border:1px solid #e9edf2}
+        .summary-box .item .label{font-size:11px;color:#95a5a6}
+        .summary-box .item .value{font-size:18px;font-weight:bold;color:#2c3e50;margin-top:2px;min-height:28px}
+        .summary-box .item .value.green{color:#27ae60}
+        .summary-box .item .value.red{color:#e74c3c}
+        .month-title{text-align:center;font-size:20px;color:#2c3e50;margin-bottom:12px}
+        .month-title .month{color:#27ae60}
+        .footer-note{text-align:center;margin-top:12px;font-size:12px;color:#b0b8c0;border-top:1px solid #ecf0f1;padding-top:12px}
+        @media print{body{background:#fff;padding:0}.page{box-shadow:none;border:1px solid #eee;border-radius:4px}}
+        @media(max-width:600px){.wish-grid{grid-template-columns:1fr 1fr}.summary-box{grid-template-columns:1fr}.page{padding:16px}}
+        </style>
+        </head>
+        <body>
+        <div class="page">
+        <div class="page-title">💰 我的零花钱记账本</div>
+        <div class="page-sub">姓名：____________ ｜ 开始日期：______年______月</div>
+        <table class="ledger-table"><thead><tr><th style="width:12%;">周次</th><th style="width:18%;">收入（元）</th><th style="width:30%;">支出明细</th><th style="width:20%;">支出（元）</th><th style="width:20%;">结余（元）</th></tr></thead>
+        <tbody>
+        <tr><td class="week-label">第1周</td><td>______</td><td>________________________</td><td>______</td><td>______</td></tr>
+        <tr><td class="week-label">第2周</td><td>______</td><td>________________________</td><td>______</td><td>______</td></tr>
+        <tr><td class="week-label">第3周</td><td>______</td><td>________________________</td><td>______</td><td>______</td></tr>
+        <tr><td class="week-label">第4周</td><td>______</td><td>________________________</td><td>______</td><td>______</td></tr>
+        <tr style="background:#f9fbf9;font-weight:bold;"><td>📊 合计</td><td>______</td><td style="font-weight:normal;color:#7f8c8d;font-size:12px;">（本月总支出）</td><td>______</td><td>______</td></tr>
+        </tbody></table>
+        <div class="wish-section"><h3>⭐ 我的<span>愿望清单</span></h3>
+        <div class="wish-grid">
+        <div class="wish-item"><div class="wish-name">① ____________</div><div class="wish-price">价格：______ 元</div><div class="wish-status">已存：___ 元</div></div>
+        <div class="wish-item"><div class="wish-name">② ____________</div><div class="wish-price">价格：______ 元</div><div class="wish-status">已存：___ 元</div></div>
+        <div class="wish-item"><div class="wish-name">③ ____________</div><div class="wish-price">价格：______ 元</div><div class="wish-status">已存：___ 元</div></div>
+        </div>
+        <div style="margin-top:6px;font-size:12px;color:#b0b8c0;text-align:right;">💡 存够钱就可以买啦！记得先问妈妈能不能买哦。</div>
+        </div>
+        <div class="footer-note">📌 每周日开信封 · 自己记录收入和支出 · 学会管理自己的钱</div>
+        </div>
+        <div class="page" style="page-break-after:always;">
+        <div class="month-title">📊 <span class="month">______ 月</span> 零花钱总结</div>
+        <div class="summary-box">
+        <div class="item"><div class="label">📥 本月总收入</div><div class="value green">______ 元</div></div>
+        <div class="item"><div class="label">📤 本月总支出</div><div class="value red">______ 元</div></div>
+        <div class="item"><div class="label">💰 本月结余</div><div class="value">______ 元</div></div>
+        </div>
+        <div style="margin-top:14px;"><div style="font-size:14px;font-weight:bold;color:#2c3e50;border-bottom:1px solid #ecf0f1;padding-bottom:4px;">📝 本月买了什么？（画/写下来）</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+        <div style="border:1px dashed #d0d7dd;border-radius:6px;min-height:80px;padding:8px;text-align:center;color:#b0b8c0;font-size:12px;display:flex;align-items:center;justify-content:center;">①</div>
+        <div style="border:1px dashed #d0d7dd;border-radius:6px;min-height:80px;padding:8px;text-align:center;color:#b0b8c0;font-size:12px;display:flex;align-items:center;justify-content:center;">②</div>
+        <div style="border:1px dashed #d0d7dd;border-radius:6px;min-height:80px;padding:8px;text-align:center;color:#b0b8c0;font-size:12px;display:flex;align-items:center;justify-content:center;">③</div>
+        </div></div>
+        <div style="margin-top:14px;"><div style="font-size:14px;font-weight:bold;color:#2c3e50;border-bottom:1px solid #ecf0f1;padding-bottom:4px;">💭 下个月我想买什么？</div>
+        <div style="margin-top:8px;border:1px dashed #d0d7dd;border-radius:6px;min-height:50px;padding:10px;color:#b0b8c0;font-size:13px;">_________________________________________________</div></div>
+        <div style="margin-top:14px;background:#fef9e7;border-radius:6px;padding:10px 14px;font-size:13px;"><strong>👩🏻 妈妈的话：</strong> _________________________________________________</div>
+        <div class="footer-note">🌱 学会存钱和等待，是长大最重要的一课</div>
+        </div>
+        </body></html>`;
+
+        // -------- 5. 每周执行日历（大气·深色版） --------
+        const CALENDAR_HTML = `<!DOCTYPE html>
+        <html><head><meta charset="UTF-8"><title>每周执行日历</title>
+        <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei","PingFang SC",Arial,sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .page {
+            width: 21cm;
+            height: 29.7cm;
+            background: #ffffff;
+            padding: 0.6cm 0.7cm;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            display: flex;
+            flex-direction: column;
+        }
+        .page-title { text-align: center; font-size: 26px; font-weight: 700; color: #000000; border-bottom: 3px solid #1a5bd7; padding-bottom: 6px; flex-shrink: 0; letter-spacing: 2px; }
+        .page-sub { text-align: center; color: #333333; font-size: 15px; margin-top: 4px; flex-shrink: 0; }
+        .page-sub .highlight { color: #1a5bd7; font-weight: 700; }
+
+        .week-label { font-size: 16px; font-weight: 700; color: #000000; background: #e8ecf2; padding: 4px 14px; border-radius: 6px; display: inline-block; flex-shrink: 0; margin: 4px 0 3px 0; letter-spacing: 0.5px; }
+
+        .daily-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; flex-shrink: 0; margin-bottom: 4px; }
+        .daily-item { border: 1.5px solid #c5cdd8; border-radius: 8px; padding: 8px 4px; text-align: center; background: #fafbfc; }
+        .daily-item .day-name { font-size: 16px; font-weight: 700; color: #000000; }
+        .daily-item .day-name.weekend { color: #d4763a; }
+        .daily-item .check-box { font-size: 28px; color: #6a7a8a; line-height: 1.3; }
+        .daily-item .mood { font-size: 22px; line-height: 1.3; color: #444444; letter-spacing: 4px; }
+
+        .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; flex-shrink: 0; margin: 3px 0 4px 0; }
+        .stat-item { background: #f4f6fa; border-radius: 8px; padding: 6px 8px; text-align: center; border: 1px solid #d1d5db; }
+        .stat-item .num { font-size: 24px; font-weight: 700; }
+        .stat-item .num.green { color: #16a34a; }
+        .stat-item .num.yellow { color: #d97706; }
+        .stat-item .num.red { color: #dc2626; }
+        .stat-item .label { font-size: 13px; color: #333333; font-weight: 600; }
+
+        .money-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #f5f3ee; border-radius: 8px; padding: 6px 10px; flex-shrink: 0; margin: 3px 0 4px 0; text-align: center; border: 1px solid #d1cbc0; }
+        .money-row .label { font-size: 12px; color: #444444; font-weight: 600; }
+        .money-row .value { font-size: 19px; font-weight: 700; color: #000000; }
+        .money-row .value.green { color: #16a34a; }
+
+        .weekly-review {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
+            border-top: 2.5px dashed #c5cdd8;
+            padding-top: 8px;
+            margin-top: 4px;
+        }
+        .review-item {
+            border: 1.5px solid #c5cdd8;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            background: #fafbfc;
+        }
+        .review-item .label {
+            font-size: 17px;
+            font-weight: 700;
+            flex-shrink: 0;
+            letter-spacing: 0.5px;
+        }
+        .review-item .label.good { color: #16a34a; }
+        .review-item .label.improve { color: #dc2626; }
+        .review-item .content {
+            font-size: 17px;
+            color: #444444;
+            flex: 1;
+            border-bottom: 2px dashed #c5cdd8;
+            min-height: 36px;
+            margin-top: 4px;
+        }
+
+        .footer-note { text-align: center; font-size: 11px; color: #6a7a8a; flex-shrink: 0; padding-top: 4px; margin-top: 2px; border-top: 1px solid #d1d5db; letter-spacing: 1px; }
+
+        @media print {
+            body { padding: 0; background: #fff; }
+            .page { width: 100%; height: 100vh; padding: 0.4cm 0.5cm; border-radius: 0; box-shadow: none; }
+            .daily-item .check-box { font-size: 24px; }
+            .daily-item .mood { font-size: 20px; }
+            .daily-item .day-name { font-size: 14px; }
+            .stat-item .num { font-size: 21px; }
+            .money-row .value { font-size: 17px; }
+            .weekly-review .review-item .content { font-size: 15px; min-height: 28px; }
+            .weekly-review .review-item .label { font-size: 15px; }
+            .review-item { padding: 8px 12px; }
+            .page-title { font-size: 23px; }
+            .page-sub { font-size: 14px; }
+            .week-label { font-size: 14px; padding: 3px 12px; }
+            .daily-grid { gap: 4px; }
+            .daily-item { padding: 6px 3px; }
+            .stats { gap: 6px; }
+            .stats .stat-item { padding: 4px 6px; }
+            .money-row { gap: 6px; padding: 4px 8px; }
+            .footer-note { font-size: 10px; }
+        }
+        </style>
+        </head>
+        <body>
+        <div class="page">
+        <div class="page-title">📅 每周执行日历</div>
+        <div class="page-sub">第 <span class="highlight">____</span> 周 ｜ 日期：______ 月 ______ 日 ~ ______ 日</div>
+
+        <div class="week-label">📌 每日打卡</div>
+        <div class="daily-grid">
+        <div class="daily-item"><div class="day-name">周一</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name">周二</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name">周三</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name">周四</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name">周五</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name weekend">周六 🏠</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        <div class="daily-item"><div class="day-name weekend">周日 💰</div><div class="check-box">⬜</div><div class="mood">😊😐😢</div></div>
+        </div>
+
+        <div class="week-label" style="margin-top:2px;">🚦 本周红绿灯自检</div>
+        <div class="stats">
+        <div class="stat-item"><div class="num green">____</div><div class="label">🟢 绿灯</div></div>
+        <div class="stat-item"><div class="num yellow">____</div><div class="label">🟡 黄灯</div></div>
+        <div class="stat-item"><div class="num red">____</div><div class="label">🔴 红灯</div></div>
+        </div>
+
+        <div class="week-label" style="margin-top:2px;">💰 零花钱记录</div>
+        <div class="money-row">
+        <div><div class="label">📥 收入</div><div class="value">______ 元</div></div>
+        <div><div class="label">📤 支出</div><div class="value">______ 元</div></div>
+        <div><div class="label">💰 结余</div><div class="value green">______ 元</div></div>
+        </div>
+
+        <div class="weekly-review">
+        <div class="review-item"><div class="label good">✅ 这周做得好的事</div><div class="content"></div></div>
+        <div class="review-item"><div class="label improve">📈 下周要改进的事</div><div class="content"></div></div>
+        </div>
+
+        <div class="footer-note">💡 每晚 8:00 视频 · 周日开信封 · 每周复盘一次</div>
+        </div>
+        </body></html>`;
+
+        // ============================================================
+        // 卡片映射
+        // ============================================================
+        const CARD_MAP = {
+            home: HOME_HTML,
+            topics1: TOPICS1_HTML,
+            topics2: TOPICS2_HTML,
+            ledger: LEDGER_HTML,
+            calendar: CALENDAR_HTML
+        };
+
+        // ============================================================
+        // 交互逻辑
+        // ============================================================
+        const buttons = document.querySelectorAll('.card-btn');
+        const frame = document.getElementById('previewFrame');
+
+        // 默认加载 home
+        frame.srcdoc = HOME_HTML;
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                buttons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const target = this.dataset.target;
+                const html = CARD_MAP[target];
+                if (html) {
+                    frame.srcdoc = html;
+                } else {
+                    frame.srcdoc =
+                        `<html><body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#b0b8c0;font-size:18px;">📭 内容加载中...</body></html>`;
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
