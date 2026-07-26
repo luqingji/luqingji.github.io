@@ -1,62 +1,63 @@
 {
   "date": "2026-07-26",
-  "updated_at": "2026-07-26T00:16:17.417578+00:00",
+  "updated_at": "2026-07-26T12:18:50.637375+00:00",
   "sentence": {
-    "content": "在这样一个世界里，生活的真实性被所谓的清晰概念完全掩盖。经验的本质被剥夺殆尽，取而代之的却只是空有的名称，而这些名称进而有取代了现实。",
-    "from": "其他",
-    "meaning": "在这个纷繁复杂的世界中，我们常常迷失于于事物的本质，被表层的概念所蒙蔽。那些空洞的名称看似赋予了事物新的意义，实则剥夺了我们对真实体验的感知。"
+    "content": "金风玉露一相逢，便胜却、人间无数。",
+    "from": "鹊桥仙·纤云弄巧",
+    "meaning": "这句词如同一幅静谧而美好的画卷，以金风玉露的邂逅，尽人间的美好。它不仅描绘了牛郎织女七夕相逢的浪漫，更道出了世间每一场相聚的独特与珍贵。"
   },
   "songs": [
     {
-      "id": 3355156257,
-      "name": "春宵",
-      "artist": "等一下就回家",
-      "album": "入门级",
-      "recommendation": "春意浓，回家情。"
+      "id": 3355795652,
+      "name": "Funky Bassline (Beltran Remix)",
+      "artist": "Marc Houle",
+      "album": "Funky Bassline (Beltran Remix)",
+      "recommendation": "复古 Funk 魅力"
     },
     {
-      "id": 2744403189,
-      "name": "Opalite",
-      "artist": "Taylor Swift",
-      "album": "The Life of a Showgirl",
-      "recommendation": "梦幻轻盈爱"
+      "id": 3352906902,
+      "name": "Addicted To Bass (Dom Dolla Relapse)",
+      "artist": "Dom Dolla",
+      "album": "Addicted To Bass (Dom Dolla Relapse)",
+      "recommendation": "复古灵魂乐里的现代狂热梦境。"
     },
     {
-      "id": 3371236073,
-      "name": "橘子不是唯一的水果",
-      "artist": "买辣椒也用券",
-      "album": "橘子不是唯一的水果",
-      "recommendation": "味蕾与心灵的双重盛宴。"
+      "id": 3368343622,
+      "name": "是非题 (Live)",
+      "artist": "王赫野",
+      "album": "音你而来第三季 第1期",
+      "recommendation": "哲理深"
     },
     {
-      "id": 3355495370,
-      "name": "Motion Party",
-      "artist": "Bossman Dlow",
-      "album": "Motion Party",
-      "recommendation": "燃爆夜的律动"
+      "id": 3371365498,
+      "name": "Brand New（新的）",
+      "artist": "ayin印",
+      "album": "Swag&Dollar",
+      "recommendation": "新生的希望，温暖而明亮。"
     },
     {
-      "id": 1454664682,
-      "name": "Savage Love (Laxed - Siren Beat)",
-      "artist": "Jawsh 685",
-      "album": "Savage Love (Laxed - Siren Beat)",
-      "recommendation": "燥热舞池风情万种。"
+      "id": 3368693943,
+      "name": "Runway",
+      "artist": "Lady Gaga",
+      "album": "Runway",
+      "recommendation": "爆发力"
     },
     {
-      "id": 3360248690,
-      "name": "十里",
-      "artist": "加木",
-      "album": "十里",
-      "recommendation": "诗意漫漫路。"
+      "id": 28802028,
+      "name": "山水之间",
+      "artist": "许嵩",
+      "album": "不如吃茶去",
+      "recommendation": "山水意，淡然心。"
     }
   ],
   "article": {
-    "title": "吉林省地震列表",
-    "description": "吉林地震列表主要介绍中华人民共和国吉林省自有记录以来的显著地震。自公元19年《三国史记》中最早的吉林省地震记载起算，吉林省已发生了4次7级以上的地震，以及2次6－7级的地震。其中，吉林省发生过的最大规模地震为1597年长白山地震，其规模经高山泰推测达到了7.7级以上，而经李裕澈推测则达到了8级以上。而遇难人数最多的地震为原载于《大金国志》的1119年前郭卡拉木地震，本次地震共造成了今肇源县和农安县数千人遇难。这场地震同时被认为是1975年海城地震之前发生在中国东北地区最大的浅源破坏性地震。\n",
-    "url": "https://zh.wikipedia.org/wiki/%E5%90%89%E6%9E%97%E7%9C%81%E5%9C%B0%E9%9C%87%E5%88%97%E8%A1%A8",
-    "author": "维基百科",
-    "source": "维基百科",
-    "meaning": "探索吉林大地震的记忆，从《三国史记》到明末大地震 antioxidative，4008字的记录，带你穿越时空，感受历史的震颤。"
+    "title": "怎样才可以成为一个杰出的旅行家？",
+    "description": "怎样才可以成为一个杰出的旅行家？",
+    "content": "",
+    "author": "知乎日报",
+    "url": "https://daily.zhihu.com/story/9791412",
+    "source": "知乎日报",
+    "meaning": "在林林总总的旅途中，寻觅心灵的归宿。跟随这篇指南，解锁成为杰出旅行家的秘诀，让每一次出发都成为灵魂深处的盛宴。"
   },
   "zaobao": {
     "date": "2026-07-26",
@@ -186,8 +187,12 @@
       "description": "特立独行的人，性格难免有些棱角，容易和这个世界较劲，一旦认定的人和事绝不放手。非凡也罢，任性也罢，他们总在芸芸众生的潮流中跃起、闪耀。\n\n本周，ONE与你一同走进那些充满个性的故事。 by ONE编辑部",
       "url": ""
     },
-    "question": null
+    "question": {
+      "question": "",
+      "answer": "",
+      "author": ""
+    }
   },
-  "easter": "每一缕晨光都是苏醒的邀请，温柔地提醒你要勇敢前行。",
-  "summary": "虚影掩真实"
+  "easter": "每一颗心灵都是夜空中最温柔的灯塔，愿你为自己的梦想照亮前行之路。",
+  "summary": "情与游，"
 }
